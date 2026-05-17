@@ -2,7 +2,7 @@
 
 **创建日期**: 2026-05-17
 **作者**: Sisyphus
-**状态**: Active
+**状态**: Archived
 **探索笔记**: [2026-05-17-tg-proposal-requirements](../../exploration/2026-05-17-tg-proposal-requirements/)
 
 ---
