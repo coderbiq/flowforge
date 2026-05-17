@@ -11,6 +11,10 @@ tg-workflow 已初始化为独立项目，包含：
 - tg-memory 和 tg-opsx-beads 两个现有 Skill
 - 探索笔记模板（简单时间线模式）
 
+**待解决问题**：
+- tg-opsx-beads 功能与 tg-proposal 重叠
+- 全局配置软链接指向旧路径（toolkit），需要更新到新路径（tg-workflow）
+
 ### 约束条件
 
 1. **本地优先**：不依赖云服务，所有数据存储在本地文件
@@ -28,6 +32,8 @@ tg-workflow 已初始化为独立项目，包含：
 2. 实现探索阶段的"主动探索"理念
 3. 设计混合模式探索笔记结构
 4. 参考 OpenSpec 实现后续阶段（提案、实施、归档）
+5. 删除冗余的 tg-opsx-beads Skill
+6. 更新全局配置软链接到新路径
 
 ### 非目标
 
@@ -196,11 +202,16 @@ docs/proposals/CR{编号}-{name}/
 |------|--------|------|---------|
 | 混合模式结构复杂 | 中 | 中 | 提供 00-探索概览作为入口 |
 | 自然触发时机不准 | 中 | 低 | 先实现显式触发，逐步优化 |
-| 与现有 Skill 冲突 | 低 | 低 | 废弃 tg-opsx-beads |
+| 软链接更新遗漏 | 低 | 中 | 列出所有位置逐一检查 |
 
 ---
 
 ## Implementation Phases (实施阶段)
+
+### Phase 0: 环境清理 (P0)
+- 删除 tg-opsx-beads Skill 目录
+- 删除全局配置中的 tg-opsx-beads 软链接
+- 更新 tg-memory 软链接到新路径
 
 ### Phase 1: 核心命令 (P0)
 - `/tg:explore` - 探索命令
