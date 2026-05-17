@@ -1,0 +1,22 @@
+id: CR26051701
+title: tg-proposal Skill 实现
+status: Proposed
+created: 2026-05-17
+updated: 2026-05-17
+author: Sisyphus
+
+# 关联
+exploration: docs/exploration/2026-05-17-tg-proposal-requirements/
+epic: null  # 创建后更新
+tasks: []
+
+# 标签
+tags:
+  - skill
+  - core
+  - tg-workflow
+
+# 关联模块
+modules:
+  - name: tg-proposal
+    change_type: new
