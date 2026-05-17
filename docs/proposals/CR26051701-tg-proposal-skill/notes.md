@@ -51,6 +51,43 @@
 
 ---
 
+## 2026-05-17 (修订 v1.1)
+
+### 发现设计缺陷
+
+实施过程中发现以下问题：
+
+1. **命令格式错误**：`/tg:explore` 等命令在当前平台不存在
+   - Claude Code: 需要 `.claude/commands/tg/*.md` 文件
+   - OpenCode: 需要 `.opencode/commands/tg/*.md` 文件
+
+2. **Skill description 问题**：description 中列出的命令无法被触发
+   - 单 Skill 文件无法实现多个独立命令
+   - 需要命令文件作为入口，Skill 作为实现层
+
+### 回到探索阶段
+
+- 在现有探索笔记中追加发现-006 至 发现-012
+- 研究 Skill 触发机制和 description 最佳实践
+- 研究提案修订流程和任务联动机制
+
+### v1.1 变更计划
+
+**新增变更**：
+- 创建命令目录结构 `.claude/commands/tg/*.md`
+- 创建命令目录结构 `.opencode/commands/tg/*.md`
+
+**修正变更**：
+- 优化 tg-proposal SKILL.md 的 description 格式
+
+### 下一步
+
+- [ ] 创建命令目录结构
+- [ ] 修正 Skill description
+- [ ] 提交修订到 git
+
+---
+
 ## 后续计划
 
 1. 测试 tg-proposal Skill 的各个命令
