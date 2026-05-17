@@ -258,7 +258,7 @@ docs/
 
 ## 命令定义
 
-### `/propose:explore`
+### `/tg:explore`
 
 **用途**: 创建探索笔记
 
@@ -271,13 +271,13 @@ docs/
 
 **示例**:
 ```
-/propose:explore "数据库选型"
+/tg:explore "数据库选型"
 → 创建 docs/exploration/2026-05-17-database-selection.md
 ```
 
 ---
 
-### `/propose:new`
+### `/tg:propose`
 
 **用途**: 创建新提案
 
@@ -294,14 +294,14 @@ docs/
 
 **示例**:
 ```
-/propose:new "用户认证功能"
+/tg:propose "用户认证功能"
 → 创建 docs/proposals/CR25051701-user-auth/
 → 创建任务 Epic (spec-id: CR25051701)
 ```
 
 ---
 
-### `/propose:apply`
+### `/tg:apply`
 
 **用途**: 开始实施提案
 
@@ -315,7 +315,7 @@ docs/
 
 **示例**:
 ```
-/propose:apply CR25051701
+/tg:apply CR25051701
 → 从 proposal.md 读取 Capabilities
 → 创建任务
 → 创建 notes.md
@@ -323,7 +323,7 @@ docs/
 
 ---
 
-### `/propose:notes`
+### `/tg:notes`
 
 **用途**: 添加实施笔记
 
@@ -335,13 +335,13 @@ docs/
 
 **示例**:
 ```
-/propose:notes CR25051701 "完成了用户登录 API"
+/tg:notes CR25051701 "完成了用户登录 API"
 → 追加到 notes.md
 ```
 
 ---
 
-### `/propose:archive`
+### `/tg:archive`
 
 **用途**: 归档已完成的提案
 
@@ -358,7 +358,7 @@ docs/
 
 **示例**:
 ```
-/propose:archive CR25051701
+/tg:archive CR25051701
 → 检查任务完成状态
 → 关闭 Epic
 → 更新 docs/modules/auth/ 文档
@@ -367,7 +367,7 @@ docs/
 
 ---
 
-### `/propose:status`
+### `/tg:status`
 
 **用途**: 查看提案状态
 

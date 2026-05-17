@@ -89,7 +89,7 @@ modules/auth/
 归档提案时自动触发模块文档更新：
 
 ```
-/propose:archive CR{编号}
+/tg:archive CR{编号}
   → 检查提案影响的模块
   → 更新/创建相应模块文档
 ```

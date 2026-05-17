@@ -102,19 +102,19 @@ export MEMORY_MCP_URL=http://127.0.0.1:8000
 ### 创建探索笔记
 
 ```
-/propose:explore "我的第一个探索主题"
+/tg:explore "我的第一个探索主题"
 ```
 
 ### 创建提案
 
 ```
-/propose:new "我的第一个功能"
+/tg:propose "我的第一个功能"
 ```
 
 ### 查看提案状态
 
 ```
-/propose:status CR25051701
+/tg:status CR26051701
 ```
 
 ## 配置文件

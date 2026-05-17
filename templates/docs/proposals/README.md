@@ -36,11 +36,13 @@ Draft → Proposed → Active → Implemented → completed/
 
 | 命令 | 功能 |
 |------|------|
-| `/propose:new` | 创建新提案 |
-| `/propose:apply` | 开始实施 |
-| `/propose:notes` | 添加笔记 |
-| `/propose:archive` | 归档提案 |
-| `/propose:status` | 查看状态 |
+| `/tg:explore` | 创建探索笔记 |
+| `/tg:propose` | 创建新提案 |
+| `/tg:apply` | 开始实施 |
+| `/tg:notes` | 添加笔记 |
+| `/tg:archive` | 归档提案 |
+| `/tg:status` | 查看状态 |
+| `/tg:list` | 列出所有提案 |
 
 ## 与任务管理的关联
 
