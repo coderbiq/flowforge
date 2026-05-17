@@ -22,18 +22,21 @@
 
 ## 快速开始
 
-### 1. 初始化项目文档结构
+### 1. 安装配置
 
 ```bash
-# 复制模板到你的项目
-cp -r tg-workflow/templates/docs/ your-project/docs/
+# 安装到当前项目
+./scripts/install.sh all
+
+# 或只安装单个平台
+./scripts/install.sh claude      # 只安装 Claude Code 配置
+./scripts/install.sh opencode    # 只安装 OpenCode 配置
+
+# 全局安装（所有项目可用）
+./scripts/install.sh global
 ```
 
-### 2. 安装 Skill
-
-将 `skills/` 目录中的 Skill 安装到你的 AI 工具配置目录。
-
-### 3. 开始使用
+### 2. 开始使用
 
 ```
 /tg:explore "你的探索主题"
@@ -46,16 +49,22 @@ cp -r tg-workflow/templates/docs/ your-project/docs/
 
 ```
 tg-workflow/
-├── docs/                    # 设计文档
-│   ├── ARCHITECTURE.md      # 架构设计
-│   └── PROPOSAL-WORKFLOW.md # 提案工作流
-├── skills/                  # Skill 定义
-│   ├── tg-memory/           # 长期记忆
-│   └── tg-proposal/         # 需求管理
-├── hooks/                   # Claude Code Hooks
-├── plugins/                 # OpenCode Plugins
-└── templates/               # 项目模板
-    └── docs/                # 文档结构模板
+├── configs/                     # 平台配置（清晰目录）
+│   ├── claude/                  # Claude Code 配置
+│   │   ├── commands/tg/         # /tg:* 命令
+│   │   ├── skills/              # 技能定义
+│   │   └── hooks/               # 钩子脚本
+│   └── opencode/                # OpenCode 配置
+│       ├── commands/tg/         # /tg:* 命令
+│       ├── skills/              # 技能定义
+│       └── plugins/             # 插件
+├── docs/                        # 设计文档
+│   ├── ARCHITECTURE.md          # 架构设计
+│   └── PROPOSAL-WORKFLOW.md     # 提案工作流
+├── scripts/                     # 安装脚本
+│   └── install.sh               # 配置安装脚本
+└── templates/                   # 项目模板
+    └── docs/                    # 文档结构模板
 ```
 
 ## 设计原则

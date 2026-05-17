@@ -2,7 +2,8 @@ schema: tg-proposal
 id: CR26051702
 name: config-directory-restructure
 title: 目录结构重构
-status: draft
+status: implemented
 created: 2026-05-17
+implemented: 2026-05-17
 author: Sisyphus
 exploration: docs/exploration/2026-05-17-directory-restructure/

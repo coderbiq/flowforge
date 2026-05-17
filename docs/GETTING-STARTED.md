@@ -9,12 +9,52 @@
 - 可选：任务管理工具（Beads、GitHub Issues 等）
 - 可选：长期记忆服务（Memory MCP、Mem0 等）
 
-## 步骤 1：初始化文档结构
+## 步骤 1：安装配置
+
+### 项目级安装
+
+安装到当前项目：
 
 ```bash
 # 进入你的项目目录
 cd your-project
 
+# 安装全部配置
+/path/to/tg-workflow/scripts/install.sh all
+
+# 或只安装单个平台
+/path/to/tg-workflow/scripts/install.sh claude      # 只安装 Claude Code
+/path/to/tg-workflow/scripts/install.sh opencode    # 只安装 OpenCode
+```
+
+安装后的目录结构：
+
+```
+your-project/
+├── .claude/               # Claude Code 配置
+│   ├── commands/tg/       # /tg:* 命令
+│   ├── skills/            # 技能定义
+│   └── hooks/             # 钩子脚本
+├── .opencode/             # OpenCode 配置
+│   ├── commands/tg/       # /tg:* 命令
+│   ├── skills/            # 技能定义
+│   └── plugins/           # 插件
+└── ...
+```
+
+### 全局安装
+
+安装到用户目录，所有项目可用：
+
+```bash
+/path/to/tg-workflow/scripts/install.sh global
+```
+
+---
+
+## 步骤 2：初始化文档结构
+
+```bash
 # 复制文档模板
 cp -r /path/to/tg-workflow/templates/docs/ ./docs/
 ```
@@ -31,44 +71,7 @@ your-project/
 └── ...
 ```
 
-## 步骤 2：安装 Skill
-
-### Claude Code
-
-将 Skill 目录符号链接到 Claude Code 配置目录：
-
-```bash
-# 创建配置目录
-mkdir -p ~/.claude/skills
-
-# 创建符号链接
-ln -s /path/to/tg-workflow/skills/tg-proposal ~/.claude/skills/tg-proposal
-ln -s /path/to/tg-workflow/skills/tg-memory ~/.claude/skills/tg-memory
-```
-
-### OpenCode
-
-将 Skill 目录符号链接到 OpenCode 配置目录：
-
-```bash
-# 创建配置目录
-mkdir -p ~/.agents/skills
-
-# 创建符号链接
-ln -s /path/to/tg-workflow/skills/tg-proposal ~/.agents/skills/tg-proposal
-ln -s /path/to/tg-workflow/skills/tg-memory ~/.agents/skills/tg-memory
-```
-
-## 步骤 3：安装 Hooks（可选）
-
-如果你使用 Claude Code，可以安装 Hooks 以实现自动化：
-
-```bash
-# 复制 Hooks
-cp -r /path/to/tg-workflow/hooks/* ~/.claude/hooks/
-```
-
-## 步骤 4：配置任务管理（可选）
+## 步骤 3：配置任务管理（可选）
 
 ### 使用 Beads
 
@@ -85,7 +88,7 @@ bd init
 
 无需额外配置，tg-proposal 会自动创建关联的 Issue。
 
-## 步骤 5：配置长期记忆（可选）
+## 步骤 4：配置长期记忆（可选）
 
 ### 使用 Memory MCP
 
@@ -97,7 +100,7 @@ bd init
 export MEMORY_MCP_URL=http://127.0.0.1:8000
 ```
 
-## 步骤 6：开始使用
+## 步骤 5：开始使用
 
 ### 创建探索笔记
 
