@@ -22,6 +22,7 @@ This installs:
 - `agents/`
 - `.claude/` when requested
 - `.opencode/` when requested
+- `AGENTS.md` and `.codex/tg-workflow.md` when using `codex` or `all`
 
 ## 2. Initialize project configuration
 
@@ -93,6 +94,7 @@ Reusable experience memory is optional. If enabled, configure the provider in `w
 ```text
 /tg:explore "topic"
 /tg:propose "proposal title"
+/tg:approve CR26052001
 /tg:apply CR26052001
 /tg:archive CR26052001
 ```
@@ -111,7 +113,17 @@ scripts/tg-create-proposal.js \
 
 This creates `docs/proposals/CRYYMMDDNN-<slug>/` with a valid initial skeleton.
 
-## 8. Apply an approved proposal
+## 8. Approve a proposal
+
+Once the proposal content and archive targets are ready:
+
+```bash
+scripts/tg-approve-proposal.js CR26052001
+```
+
+This moves a valid proposal into `approved` state.
+
+## 9. Apply an approved proposal
 
 Once `meta.yaml` status is `approved`, apply it:
 
@@ -121,7 +133,7 @@ scripts/tg-apply-proposal.js CR26052001
 
 For `Beads`, this creates one epic plus tasks from `task-map.md`, links dependencies, and moves the proposal to `active`.
 
-## 9. Add AGENTS.md
+## 10. Add AGENTS.md
 
 `AGENTS.md` is the project-local contract that makes the workflow visible to any agent working in the repo.
 
@@ -129,7 +141,15 @@ Start from:
 
 - `workflow/templates/project/AGENTS.md`
 
-## 10. Validate proposals
+## 11. Operate and archive proposals
+
+```bash
+scripts/tg-add-note.js CR26052001 "Implemented API adapter and updated validation"
+scripts/tg-list-proposals.js
+scripts/tg-archive-proposal.js CR26052001
+```
+
+## 12. Validate proposals
 
 Use the built-in checks while operating the workflow:
 

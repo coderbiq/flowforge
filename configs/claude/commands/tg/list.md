@@ -12,4 +12,8 @@ Use the `tg-workflow` skill to list proposals.
 - 已完成的提案
 - 草稿
 
+## 执行方式
+
+- 运行 `scripts/tg-list-proposals.js`
+
 Arguments: $ARGUMENTS

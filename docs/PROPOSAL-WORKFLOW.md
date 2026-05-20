@@ -56,6 +56,7 @@ docs/proposals/<proposal-id>/
 
 - `/tg:explore`
 - `/tg:propose`
+- `/tg:approve`
 - `/tg:apply`
 - `/tg:archive`
 - `/tg:status`
@@ -63,3 +64,15 @@ docs/proposals/<proposal-id>/
 - `/tg:notes`
 
 Platform commands are wrappers. They should load workflow guidance instead of owning the business rules themselves.
+
+## Script surface
+
+- `scripts/tg-create-proposal.js`
+- `scripts/tg-approve-proposal.js`
+- `scripts/tg-apply-proposal.js`
+- `scripts/tg-add-note.js`
+- `scripts/tg-list-proposals.js`
+- `scripts/tg-archive-proposal.js`
+- `scripts/tg-validate-proposal.js`
+- `scripts/tg-proposal-status.js`
+- `scripts/tg-check-archive.js`

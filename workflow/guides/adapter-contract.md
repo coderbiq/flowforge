@@ -10,6 +10,11 @@ Platform integrations must adapt `tg-workflow` without redefining workflow behav
 - update local state snapshots
 - call task and memory providers
 
+Adapters may expose different entry surfaces:
+
+- Claude Code and OpenCode: repo-local commands plus hooks/plugins
+- Codex: project `AGENTS.md` plus workflow scripts
+
 ## Adapter must not
 
 - fork lifecycle definitions

@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
 const {
-  ensureBeadsTasks,
-  ensureNotesFile,
   loadProposalContext,
   transitionProposalStatus,
   validateProposalContext,
@@ -11,7 +9,7 @@ const {
 function main() {
   const target = process.argv[2];
   if (!target) {
-    console.error('Usage: scripts/tg-apply-proposal.js <proposal-id|proposal-dir>');
+    console.error('Usage: scripts/tg-approve-proposal.js <proposal-id|proposal-dir>');
     process.exit(2);
   }
 
@@ -29,30 +27,19 @@ function main() {
       process.exit(1);
     }
 
-    if (!['approved', 'active'].includes(context.meta.status)) {
-      console.error(`ERROR proposal status must be approved before apply, got ${context.meta.status}`);
+    if (!['draft', 'proposed', 'approved'].includes(context.meta.status)) {
+      console.error(`ERROR proposal status must be draft or proposed before approve, got ${context.meta.status}`);
       process.exit(1);
     }
 
-    let backendSummary = null;
-    if (context.meta.task_backend === 'beads') {
-      backendSummary = ensureBeadsTasks(context, process.cwd());
-    }
-
-    const notesCreated = ensureNotesFile(context, process.cwd());
-
-    if (context.meta.status === 'approved') {
-      transitionProposalStatus(context, 'active');
+    if (context.meta.status !== 'approved') {
+      transitionProposalStatus(context, 'approved');
     }
 
     console.log(JSON.stringify({
       id: context.meta.id,
       status: context.meta.status,
       proposal_dir: context.proposalDir,
-      notes_created: notesCreated,
-      task_backend: context.meta.task_backend,
-      task_epic_id: context.meta.task_epic_id,
-      backend: backendSummary,
     }, null, 2));
   } catch (error) {
     console.error(`ERROR ${error.message}`);

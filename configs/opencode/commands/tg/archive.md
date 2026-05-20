@@ -9,9 +9,9 @@ Use the `tg-workflow` skill to archive a proposal.
 
 1. Confirm the proposal is implemented
 2. Confirm backend tasks are closed
-3. Update primary and secondary archive targets
-4. Mark the proposal archived
-5. Pass `scripts/tg-check-archive.js`
+3. Run `scripts/tg-check-archive.js`
+4. Run `scripts/tg-archive-proposal.js`
+5. Confirm archive targets were updated and the proposal is `archived`
 
 ## 参数
 

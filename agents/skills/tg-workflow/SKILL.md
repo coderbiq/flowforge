@@ -45,6 +45,7 @@ When metadata shape matters, use:
 
 - `/tg:explore`: create or extend an exploration
 - `/tg:propose`: create or revise a proposal from an exploration
+- `/tg:approve`: move a valid proposal into approved state
 - `/tg:apply`: create backend tasks and switch to active execution
 - `/tg:archive`: complete archive updates and close the proposal
 - `/tg:status`: summarize proposal and task state
@@ -56,7 +57,11 @@ When metadata shape matters, use:
 Before reporting a proposal as ready or archivable, use:
 
 - `scripts/tg-create-proposal.js --title ... --source-exploration ... --archive-target ...`
+- `scripts/tg-approve-proposal.js <proposal-id|proposal-dir>`
 - `scripts/tg-apply-proposal.js <proposal-id|proposal-dir>`
+- `scripts/tg-add-note.js <proposal-id|proposal-dir> <note text>`
+- `scripts/tg-list-proposals.js`
+- `scripts/tg-archive-proposal.js <proposal-id|proposal-dir>`
 - `scripts/tg-validate-proposal.js <proposal-id|proposal-dir>`
 - `scripts/tg-proposal-status.js <proposal-id|proposal-dir>`
 - `scripts/tg-check-archive.js <proposal-id|proposal-dir>`

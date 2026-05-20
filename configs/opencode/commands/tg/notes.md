@@ -7,7 +7,7 @@ Use the `tg-workflow` skill to add implementation notes.
 
 ## 执行流程
 
-1. Append the entry to `notes.md`
+1. Run `scripts/tg-add-note.js`
 2. If scope changed, update proposal/design artifacts too
 
 ## 参数

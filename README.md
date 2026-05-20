@@ -4,7 +4,9 @@
 
 It is built around one idea: durable artifacts should outlive chat sessions and platform integrations. Exploration, proposals, task mapping, implementation notes, archive targets, and reusable experience are all first-class files.
 
-Core workflow rules live in [`workflow/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/README.md). Canonical skill definitions live in [`agents/skills/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/agents/skills/tg-workflow/SKILL.md). Platform adapters under `configs/` only expose commands, hooks, and plugins.
+Core workflow rules live in [`workflow/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/README.md). Canonical skill definitions live in [`agents/skills/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/agents/skills/tg-workflow/SKILL.md). Platform adapters under `configs/` only expose commands, hooks, plugins, or platform-specific entry guidance.
+
+Codex support uses project `AGENTS.md` plus workflow scripts rather than a repo-local slash-command registry.
 
 ## Repository layout
 
@@ -31,6 +33,7 @@ tg-workflow/
 ./scripts/install.sh all
 ./scripts/install.sh claude
 ./scripts/install.sh opencode
+./scripts/install.sh codex
 ./scripts/install.sh global
 ```
 
@@ -40,6 +43,12 @@ Project installation copies:
 - `agents/`
 - requested platform adapters
 
+Codex installation adds:
+
+- root `AGENTS.md` when absent
+- `.codex/tg-workflow.md` adapter notes
+- workflow scripts under `scripts/`
+
 ## Commands
 
 The default adapter surface remains:
@@ -47,6 +56,7 @@ The default adapter surface remains:
 ```text
 /tg:explore "topic"
 /tg:propose "proposal title"
+/tg:approve CR26052001
 /tg:apply CR26052001
 /tg:archive CR26052001
 ```

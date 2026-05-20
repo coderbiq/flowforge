@@ -31,6 +31,7 @@ const ARCHIVE_TARGET_TYPES = new Set(['module', 'architecture', 'decision']);
 const ARCHIVE_TARGET_ROLES = new Set(['primary', 'secondary']);
 const TASK_PRIORITIES = new Set(['P0', 'P1', 'P2']);
 const PROPOSAL_ID_RE = /^CR\d{8}$/;
+const HISTORY_MARKER_PREFIX = '<!-- tg-workflow:proposal:';
 const DEFAULT_CONFIG = {
   project: {
     id: 'unknown-project',
@@ -50,7 +51,7 @@ const DEFAULT_CONFIG = {
 };
 
 const STATUS_TRANSITIONS = {
-  draft: new Set(['draft', 'proposed', 'rejected']),
+  draft: new Set(['draft', 'proposed', 'approved', 'rejected']),
   proposed: new Set(['proposed', 'approved', 'rejected', 'draft']),
   approved: new Set(['approved', 'active', 'rejected']),
   active: new Set(['active', 'implemented', 'rejected']),
@@ -301,8 +302,22 @@ function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
+function ensureParentDir(filePath) {
+  ensureDir(path.dirname(filePath));
+}
+
 function fileExists(filePath) {
   return fs.existsSync(filePath);
+}
+
+function writeText(filePath, content) {
+  ensureParentDir(filePath);
+  fs.writeFileSync(filePath, content, 'utf8');
+}
+
+function appendText(filePath, content) {
+  ensureParentDir(filePath);
+  fs.appendFileSync(filePath, content, 'utf8');
 }
 
 function getWorkflowConfig(cwd = process.cwd()) {
@@ -348,6 +363,10 @@ function nowIso() {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
+function todayDate() {
+  return nowIso().slice(0, 10);
+}
+
 function formatDateCode(date = new Date()) {
   const year = String(date.getFullYear()).slice(-2);
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -364,6 +383,10 @@ function yamlScalar(value) {
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') return String(value);
   return JSON.stringify(String(value));
+}
+
+function isPlainScalar(value) {
+  return value === null || ['string', 'number', 'boolean'].includes(typeof value);
 }
 
 function serializeYaml(value, indent = 0) {
@@ -411,10 +434,6 @@ function serializeYaml(value, indent = 0) {
   return `${prefix}${yamlScalar(value)}`;
 }
 
-function isPlainScalar(value) {
-  return value === null || ['string', 'number', 'boolean'].includes(typeof value);
-}
-
 function renderTemplate(templateText, replacements) {
   let text = templateText;
   for (const [key, value] of Object.entries(replacements)) {
@@ -422,6 +441,24 @@ function renderTemplate(templateText, replacements) {
     text = text.replace(pattern, value);
   }
   return text;
+}
+
+function renderTaskMapTemplate(templateText, replacements, taskBackend) {
+  if (taskBackend === 'none') {
+    return [
+      `# Task Map: ${replacements['<Proposal Title>']}`,
+      '',
+      '- Backend: none',
+      `- Proposal ID: ${replacements.CR26052001 || replacements.CR20260520}`,
+      '',
+      '## Tasks',
+      '',
+      'No external task backend is configured for this proposal.',
+      '',
+    ].join('\n');
+  }
+
+  return renderTemplate(templateText, replacements);
 }
 
 function findNextProposalId(cwd = process.cwd(), date = new Date()) {
@@ -679,22 +716,36 @@ function beadTaskSummary(proposalId, cwd = process.cwd()) {
       available: false,
       error: command.error,
       tasks: [],
+      epics: [],
+      workItems: [],
+      openTasks: [],
+      openWorkItems: [],
     };
   }
 
   try {
     const tasks = JSON.parse(command.stdout || '[]');
+    const epics = tasks.filter((task) => String(task.issue_type || '').toLowerCase() === 'epic');
+    const workItems = tasks.filter((task) => String(task.issue_type || '').toLowerCase() !== 'epic');
     const openTasks = tasks.filter((task) => !['closed', 'done', 'completed'].includes(String(task.status || '').toLowerCase()));
+    const openWorkItems = workItems.filter((task) => !['closed', 'done', 'completed'].includes(String(task.status || '').toLowerCase()));
     return {
       available: true,
       tasks,
+      epics,
+      workItems,
       openTasks,
+      openWorkItems,
     };
   } catch (error) {
     return {
       available: false,
       error: `Failed to parse bd output: ${error.message}`,
       tasks: [],
+      epics: [],
+      workItems: [],
+      openTasks: [],
+      openWorkItems: [],
     };
   }
 }
@@ -769,15 +820,16 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
     '<Proposal Title>': title,
     'CR20260520': id,
     'CR26052001': id,
+    '- Backend: beads': `- Backend: ${taskBackend}`,
     'module:example-module': primaryRef,
     '2026-05-20': createdAt.slice(0, 10),
   };
 
-  fs.writeFileSync(path.join(proposalDir, 'meta.yaml'), `${serializeYaml(meta)}\n`, 'utf8');
-  fs.writeFileSync(path.join(proposalDir, 'proposal.md'), renderTemplate(proposalTemplate, replacements), 'utf8');
-  fs.writeFileSync(path.join(proposalDir, 'design.md'), renderTemplate(designTemplate, replacements), 'utf8');
-  fs.writeFileSync(path.join(proposalDir, 'task-map.md'), renderTemplate(taskMapTemplate, replacements), 'utf8');
-  fs.writeFileSync(path.join(proposalDir, 'notes.md'), renderTemplate(notesTemplate, replacements), 'utf8');
+  writeText(path.join(proposalDir, 'meta.yaml'), `${serializeYaml(meta)}\n`);
+  writeText(path.join(proposalDir, 'proposal.md'), renderTemplate(proposalTemplate, replacements));
+  writeText(path.join(proposalDir, 'design.md'), renderTemplate(designTemplate, replacements));
+  writeText(path.join(proposalDir, 'task-map.md'), renderTaskMapTemplate(taskMapTemplate, replacements, taskBackend));
+  writeText(path.join(proposalDir, 'notes.md'), renderTemplate(notesTemplate, replacements));
 
   return {
     id,
@@ -788,7 +840,7 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
 }
 
 function writeProposalMeta(metaPath, meta) {
-  fs.writeFileSync(metaPath, `${serializeYaml(meta)}\n`, 'utf8');
+  writeText(metaPath, `${serializeYaml(meta)}\n`);
 }
 
 function transitionProposalStatus(context, nextStatus) {
@@ -812,10 +864,34 @@ function ensureNotesFile(context, cwd = process.cwd()) {
   const template = loadTemplate(cwd, path.join('proposals', 'notes.md'));
   const content = renderTemplate(template, {
     '<Proposal Title>': context.meta.title,
-    '2026-05-20': nowIso().slice(0, 10),
+    '2026-05-20': todayDate(),
   });
-  fs.writeFileSync(context.notesPath, content, 'utf8');
+  writeText(context.notesPath, content);
   return true;
+}
+
+function appendImplementationNote(context, note, cwd = process.cwd()) {
+  ensureNotesFile(context, cwd);
+  const timestamp = nowIso();
+  const date = timestamp.slice(0, 10);
+  const block = [
+    '',
+    `## ${date}`,
+    '',
+    `### ${timestamp}`,
+    '',
+    '#### Progress',
+    '',
+    `- ${note.trim()}`,
+    '',
+  ].join('\n');
+  appendText(context.notesPath, block);
+  context.meta.updated_at = nowIso();
+  writeProposalMeta(context.metaPath, context.meta);
+  return {
+    notes_path: context.notesPath,
+    timestamp,
+  };
 }
 
 function beadCreateIssue(args, cwd = process.cwd()) {
@@ -851,10 +927,10 @@ function ensureBeadsTasks(context, cwd = process.cwd()) {
     }
   }
 
-  const epicDescription = `Proposal ${context.meta.id}\n\n${context.meta.proposalDir || context.proposalDir}`;
+  const epicDescription = `Proposal ${context.meta.id}\n\n${context.proposalDir}`;
   const epicLabels = [
     `proposal:${context.meta.id}`,
-    `workflow:proposal`,
+    'workflow:proposal',
     `archive:${path.basename((context.meta.archive_targets || [])[0]?.path || 'unknown')}`,
   ];
 
@@ -930,24 +1006,266 @@ function ensureBeadsTasks(context, cwd = process.cwd()) {
   };
 }
 
+function closeBeadsEpic(epicId, proposalId, cwd = process.cwd()) {
+  if (!epicId) return false;
+  const command = runCommand('bd', ['close', epicId, '--reason', `Archived ${proposalId}`], cwd);
+  if (!command.ok) {
+    throw new Error(`bd close failed for ${epicId}: ${command.error}`);
+  }
+  return true;
+}
+
+function getArchiveMarker(proposalId) {
+  return `${HISTORY_MARKER_PREFIX}${proposalId} -->`;
+}
+
+function appendArchiveBlock(filePath, proposalId, block) {
+  const marker = getArchiveMarker(proposalId);
+  if (fileExists(filePath) && readFileRequired(filePath).includes(marker)) {
+    return false;
+  }
+  appendText(filePath, `\n${marker}\n${block}`);
+  return true;
+}
+
+function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
+  ensureDir(targetPath);
+
+  const templateFiles = [
+    ['README.md', path.join('modules', 'README.md')],
+    ['design.md', path.join('modules', 'design.md')],
+    ['api.md', path.join('modules', 'api.md')],
+    ['history.md', path.join('modules', 'history.md')],
+  ];
+
+  for (const [fileName, templatePath] of templateFiles) {
+    const absolutePath = path.join(targetPath, fileName);
+    if (fileExists(absolutePath)) continue;
+    let rendered;
+    if (fileName === 'history.md') {
+      rendered = `# ${path.basename(targetPath)} History\n`;
+    } else {
+      const template = loadTemplate(cwd, templatePath);
+      rendered = renderTemplate(template, {
+        '<Module Name>': path.basename(targetPath),
+        '<proposal id>': context.meta.id,
+        'CR26052001': context.meta.id,
+        '2026-05-20': todayDate(),
+        'What changed in the module': context.meta.title,
+      });
+    }
+    writeText(absolutePath, rendered);
+  }
+
+  const historyPath = path.join(targetPath, 'history.md');
+  const block = [
+    `## ${todayDate()}`,
+    '',
+    `- Proposal: ${context.meta.id}`,
+    `- Summary: ${context.meta.title}`,
+    `- Source: ${path.relative(path.dirname(historyPath), context.proposalDir)}`,
+    '',
+  ].join('\n');
+  appendArchiveBlock(historyPath, context.meta.id, block);
+
+  const readmePath = path.join(targetPath, 'README.md');
+  appendArchiveBlock(readmePath, context.meta.id, [
+    '## Archived proposals',
+    '',
+    `- ${context.meta.id}: ${context.meta.title}`,
+    '',
+  ].join('\n'));
+
+  return {
+    type: 'module',
+    path: targetPath,
+  };
+}
+
+function ensureArchitectureArchiveTarget(targetPath, context, cwd = process.cwd()) {
+  if (!fileExists(targetPath)) {
+    const template = loadTemplate(cwd, path.join('architecture', 'system.md'));
+    const rendered = renderTemplate(template, {
+      '<System Topic>': path.basename(targetPath, path.extname(targetPath)),
+      '<proposal id>': context.meta.id,
+    });
+    writeText(targetPath, rendered);
+  }
+
+  const block = [
+    `## ${todayDate()} ${context.meta.id}`,
+    '',
+    `- Status: archived from proposal ${context.meta.id}`,
+    `- Summary: ${context.meta.title}`,
+    `- Source: ${path.relative(path.dirname(targetPath), context.proposalDir)}`,
+    '',
+    '### Required follow-through',
+    '',
+    '- Update the relevant system view and cross-cutting relationships.',
+    '',
+  ].join('\n');
+  appendArchiveBlock(targetPath, context.meta.id, block);
+
+  return {
+    type: 'architecture',
+    path: targetPath,
+  };
+}
+
+function ensureDecisionArchiveTarget(targetPath, context, cwd = process.cwd()) {
+  if (!fileExists(targetPath)) {
+    const template = loadTemplate(cwd, path.join('decisions', 'ADR-template.md'));
+    const rendered = renderTemplate(template, {
+      'ADR-001: <Title>': `${path.basename(targetPath, path.extname(targetPath))}: ${context.meta.title}`,
+      'CR26052001': context.meta.id,
+      '2026-05-20': todayDate(),
+      '<Title>': context.meta.title,
+    });
+    writeText(targetPath, rendered);
+  }
+
+  const block = [
+    `## Update ${todayDate()}`,
+    '',
+    `- Proposal: ${context.meta.id}`,
+    `- Summary: ${context.meta.title}`,
+    `- Source: ${path.relative(path.dirname(targetPath), context.proposalDir)}`,
+    '',
+  ].join('\n');
+  appendArchiveBlock(targetPath, context.meta.id, block);
+
+  return {
+    type: 'decision',
+    path: targetPath,
+  };
+}
+
+function ensureArchiveTarget(target, context, cwd = process.cwd()) {
+  const absolutePath = path.isAbsolute(target.path) ? target.path : path.join(cwd, target.path);
+
+  if (target.type === 'module') {
+    return ensureModuleArchiveTarget(absolutePath, context, cwd);
+  }
+  if (target.type === 'architecture') {
+    return ensureArchitectureArchiveTarget(absolutePath, context, cwd);
+  }
+  if (target.type === 'decision') {
+    return ensureDecisionArchiveTarget(absolutePath, context, cwd);
+  }
+
+  throw new Error(`unsupported archive target type: ${target.type}`);
+}
+
+function getArchiveReadiness(context, cwd = process.cwd()) {
+  const validation = validateProposalContext(context, cwd);
+  const failures = [...validation.errors];
+  const warnings = [...validation.warnings];
+
+  if (context.meta.status !== 'implemented') {
+    failures.push(`proposal status must be implemented before archive, got ${context.meta.status}`);
+  }
+
+  let beadSummary = null;
+  if (context.meta.task_backend === 'beads') {
+    beadSummary = beadTaskSummary(context.meta.id, cwd);
+    if (!beadSummary.available) {
+      failures.push(`cannot verify Beads tasks: ${beadSummary.error}`);
+    } else if (beadSummary.openWorkItems.length > 0) {
+      failures.push(`proposal still has ${beadSummary.openWorkItems.length} open Beads work items`);
+    }
+  }
+
+  const primaryTarget = (context.meta.archive_targets || []).find((target) => target.role === 'primary');
+  if (!primaryTarget) {
+    failures.push('proposal must define a primary archive target');
+  }
+
+  return {
+    failures,
+    warnings,
+    beadSummary,
+  };
+}
+
+function archiveProposal(context, cwd = process.cwd()) {
+  const readiness = getArchiveReadiness(context, cwd);
+  if (readiness.failures.length > 0) {
+    const error = new Error(`archive readiness failed for ${context.meta.id}`);
+    error.readiness = readiness;
+    throw error;
+  }
+
+  const updatedTargets = [];
+  for (const target of context.meta.archive_targets || []) {
+    updatedTargets.push(ensureArchiveTarget(target, context, cwd));
+  }
+
+  let epicClosed = false;
+  if (context.meta.task_backend === 'beads' && context.meta.task_epic_id) {
+    epicClosed = closeBeadsEpic(context.meta.task_epic_id, context.meta.id, cwd);
+  }
+
+  transitionProposalStatus(context, 'archived');
+
+  return {
+    id: context.meta.id,
+    updated_targets: updatedTargets,
+    task_epic_closed: epicClosed,
+    status: context.meta.status,
+  };
+}
+
+function listProposalDirs(cwd = process.cwd()) {
+  const proposalsRoot = getProposalsRoot(cwd);
+  if (!fileExists(proposalsRoot)) return [];
+
+  return fs.readdirSync(proposalsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(proposalsRoot, entry.name))
+    .sort();
+}
+
+function listProposalSummaries(cwd = process.cwd()) {
+  return listProposalDirs(cwd).map((proposalDir) => {
+    const context = loadProposalContext(proposalDir, cwd);
+    return {
+      id: context.meta.id,
+      title: context.meta.title,
+      status: context.meta.status,
+      task_backend: context.meta.task_backend,
+      proposal_dir: proposalDir,
+      updated_at: context.meta.updated_at,
+      archive_targets: context.meta.archive_targets || [],
+    };
+  });
+}
+
 module.exports = {
+  appendImplementationNote,
+  archiveProposal,
   archiveTargetRef,
   beadTaskSummary,
   createProposalSkeleton,
+  ensureArchiveTarget,
   ensureBeadsTasks,
   ensureNotesFile,
+  fileExists,
   findNextProposalId,
   formatDateCode,
+  getArchiveReadiness,
   getDocsRoot,
   getWorkflowConfig,
   isProposalId,
+  listProposalSummaries,
   loadProposalContext,
+  nowIso,
   parseCliArgs,
   parseSimpleYaml,
   parseTaskMap,
   resolveProposalDir,
   serializeYaml,
   slugify,
+  todayDate,
   transitionProposalStatus,
   validateProposalContext,
   writeProposalMeta,

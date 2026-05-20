@@ -50,6 +50,11 @@ Contains:
 - hooks and plugins
 - adapter-local configuration resolution
 
+Adapter note:
+
+- Claude Code and OpenCode use repo-local command surfaces
+- Codex uses project `AGENTS.md` plus workflow scripts
+
 Adapters must not invent states, directory structures, or archive semantics.
 
 ### 4. Project artifacts

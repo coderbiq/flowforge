@@ -20,3 +20,5 @@ your-project/
 ```
 
 Use this template when bootstrapping a new repository or normalizing an existing one.
+
+This layout is also the expected Codex project shape, because Codex reads project instructions from `AGENTS.md` and operates directly on the installed workflow scripts.

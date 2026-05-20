@@ -5,6 +5,7 @@
 # 用法：
 #   ./scripts/install.sh claude [path]    # 只安装 Claude Code 配置
 #   ./scripts/install.sh opencode [path]  # 只安装 OpenCode 配置
+#   ./scripts/install.sh codex [path]     # 安装 Codex 项目适配
 #   ./scripts/install.sh all [path]       # 安装全部平台配置
 #   ./scripts/install.sh self             # tg-workflow 自用（创建软链接）
 #
@@ -101,12 +102,37 @@ install_opencode() {
   info "OpenCode configs installed to: $target_opencode"
 }
 
+install_codex() {
+  local target="${1:-$(pwd)}"
+  local target_agents="$target/AGENTS.md"
+  local target_codex="$target/.codex"
+
+  echo "Installing Codex adapter to: $target"
+  install_workflow_core "$target"
+
+  mkdir -p "$target_codex"
+  cp "$CONFIGS_DIR/codex/README.md" "$target_codex/tg-workflow.md"
+  info "Copied Codex adapter notes"
+
+  if [[ ! -f "$target_agents" ]]; then
+    cp "$WORKFLOW_DIR/templates/project/AGENTS.md" "$target_agents"
+    info "Created project AGENTS.md"
+  else
+    warn "AGENTS.md already exists; leaving it unchanged"
+  fi
+
+  echo ""
+  info "Codex adapter installed to: $target"
+}
+
 # 安装全部配置
 install_all() {
   local target="${1:-$(pwd)}"
   install_claude "$target"
   echo ""
   install_opencode "$target"
+  echo ""
+  install_codex "$target"
 }
 
 install_workflow_core() {
@@ -126,7 +152,12 @@ install_workflow_core() {
   cp "$SCRIPTS_DIR/tg-check-archive.js" "$target_scripts/"
   cp "$SCRIPTS_DIR/tg-create-proposal.js" "$target_scripts/"
   cp "$SCRIPTS_DIR/tg-apply-proposal.js" "$target_scripts/"
+  cp "$SCRIPTS_DIR/tg-approve-proposal.js" "$target_scripts/"
+  cp "$SCRIPTS_DIR/tg-add-note.js" "$target_scripts/"
+  cp "$SCRIPTS_DIR/tg-list-proposals.js" "$target_scripts/"
+  cp "$SCRIPTS_DIR/tg-archive-proposal.js" "$target_scripts/"
   cp "$SCRIPTS_DIR/lib/tg-workflow.js" "$target_scripts/lib/"
+  chmod +x "$target_scripts"/tg-*.js
   info "Copied workflow core/"
   info "Copied agent definitions/"
   info "Copied workflow scripts/"
@@ -191,7 +222,12 @@ install_global() {
   cp "$SCRIPTS_DIR/tg-check-archive.js" "$scripts_global/"
   cp "$SCRIPTS_DIR/tg-create-proposal.js" "$scripts_global/"
   cp "$SCRIPTS_DIR/tg-apply-proposal.js" "$scripts_global/"
+  cp "$SCRIPTS_DIR/tg-approve-proposal.js" "$scripts_global/"
+  cp "$SCRIPTS_DIR/tg-add-note.js" "$scripts_global/"
+  cp "$SCRIPTS_DIR/tg-list-proposals.js" "$scripts_global/"
+  cp "$SCRIPTS_DIR/tg-archive-proposal.js" "$scripts_global/"
   cp "$SCRIPTS_DIR/lib/tg-workflow.js" "$scripts_global/lib/"
+  chmod +x "$scripts_global"/tg-*.js
   info "Installed workflow scripts to $scripts_global"
   
   # Claude Code 全局目录
@@ -217,6 +253,15 @@ install_global() {
   cp -r "$AGENTS_DIR/skills/tg-memory" "$opencode_global/skills/"
   cp -r "$CONFIGS_DIR/opencode/plugins/"* "$opencode_global/plugins/"
   info "Installed OpenCode configs to $opencode_global"
+
+  local codex_skills="$HOME/.codex/skills"
+  local codex_adapter="$HOME/.codex/tg-workflow"
+  mkdir -p "$codex_skills"
+  mkdir -p "$codex_adapter"
+  cp -r "$AGENTS_DIR/skills/tg-workflow" "$codex_skills/"
+  cp -r "$AGENTS_DIR/skills/tg-memory" "$codex_skills/"
+  cp "$CONFIGS_DIR/codex/README.md" "$codex_adapter/README.md"
+  info "Installed Codex skills to $codex_skills"
   
   echo ""
   info "Global installation complete!"
@@ -229,13 +274,14 @@ show_help() {
   echo "用法："
   echo "  $0 claude [path]    只安装 Claude Code 配置到指定项目"
   echo "  $0 opencode [path]  只安装 OpenCode 配置到指定项目"
+  echo "  $0 codex [path]     安装 Codex 项目适配到指定项目"
   echo "  $0 all [path]       安装 workflow core + 全部平台配置到指定项目"
   echo "  $0 self             tg-workflow 自用（创建软链接）"
   echo "  $0 global           全局安装到用户目录"
   echo ""
   echo "示例："
   echo "  $0 claude                          # 安装 Claude Code 配置到当前目录"
-  echo "  $0 claude /path/to/my-project      # 安装 Claude Code 配置到指定项目"
+  echo "  $0 codex /path/to/my-project       # 安装 Codex 适配到指定项目"
   echo "  $0 self                            # tg-workflow 自用模式"
   echo ""
 }
@@ -247,6 +293,9 @@ case "${1:-help}" in
     ;;
   opencode)
     install_opencode "${2:-$(pwd)}"
+    ;;
+  codex)
+    install_codex "${2:-$(pwd)}"
     ;;
   all)
     install_all "${2:-$(pwd)}"

@@ -28,7 +28,11 @@ function main() {
       const beadSummary = beadTaskSummary(context.meta.id, process.cwd());
       summary.backend_available = beadSummary.available;
       summary.backend_error = beadSummary.error || null;
-      summary.backend_open_tasks = beadSummary.openTasks ? beadSummary.openTasks.length : null;
+      summary.backend_issue_count = beadSummary.tasks ? beadSummary.tasks.length : null;
+      summary.backend_epic_count = beadSummary.epics ? beadSummary.epics.length : null;
+      summary.backend_work_item_count = beadSummary.workItems ? beadSummary.workItems.length : null;
+      summary.backend_open_issue_count = beadSummary.openTasks ? beadSummary.openTasks.length : null;
+      summary.backend_open_work_item_count = beadSummary.openWorkItems ? beadSummary.openWorkItems.length : null;
     }
 
     console.log(JSON.stringify(summary, null, 2));
