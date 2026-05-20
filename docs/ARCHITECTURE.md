@@ -1,302 +1,135 @@
-# tg-workflow 架构设计
+# Architecture
 
-## 背景
+`tg-workflow` is intentionally split into four layers:
 
-### 问题起源
+1. canonical workflow spec
+2. canonical agent definitions
+3. platform adapters
+4. project artifacts
 
-在 AI 辅助软件开发的过程中，我们遇到了三个核心问题：
+## Why this split exists
 
-#### 问题 1：探索阶段信息丢失
+Earlier iterations mixed workflow design with Claude/OpenCode implementation details. That caused drift in proposal states, exploration layouts, and memory behavior. The current architecture fixes that by making the workflow spec platform-agnostic and forcing adapters to load it instead of re-declaring it.
 
-**现象**：
-- 技术调研、架构讨论在对话中进行
-- AI 工具（如 OpenSpec 的 explore 模式）设计为 ephemeral
-- 探索过程的决策、发现没有持久化
-- 后续会话需要重新理解背景
+## Layer model
 
-**根本原因**：
-- 探索被视为"临时性"工作，不需要记录
-- 缺乏从探索到定稿的过渡机制
-- AI 工具的上下文窗口限制
+### 1. Canonical workflow spec
 
-#### 问题 2：需求与任务断裂
+Lives in [`workflow/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/README.md).
 
-**现象**：
-- 需求文档在聊天中散落
-- 任务管理系统（如 Beads、GitHub Issues）与需求文档无关联
-- 实施过程难以追溯回原始需求
-- 变更影响范围不可见
+Contains:
 
-**根本原因**：
-- 需求管理和任务管理是独立工具
-- 缺乏统一标识符关联（如 `--spec-id`）
-- 没有强制"提案 → 任务"的工作流约束
+- lifecycle rules
+- metadata schemas
+- archive rules
+- adapter contracts
+- canonical templates
 
-#### 问题 3：跨会话上下文丢失
+This is the source of truth for all business semantics.
 
-**现象**：
-- 每次会话都要重新解释项目背景
-- 之前做出的决策在后续会话中被遗忘
-- 调试发现的经验无法复用
+### 2. Agent definitions
 
-**根本原因**：
-- 缺乏长期记忆机制
-- 记忆存储和检索不成体系
-- 没有延迟回顾机制
+Lives in `agents/skills/`.
 
----
+Contains:
 
-## 探索过的方案
+- canonical skill definitions
+- agent-facing workflow semantics
+- references to workflow guides and schemas
 
-### 方案 1：OpenSpec + Beads + Memory MCP
+These files are the portable source for agent behavior and should not be duplicated by platform.
 
-**组合模式**：
-```
-OpenSpec (需求提案)
-    ↓ --spec-id
-Beads (任务管理)
-    ↓ 触发
-Memory MCP (长期记忆)
-```
+### 3. Platform adapters
 
-**优点**：
-- OpenSpec 提供结构化的提案模板
-- Beads 提供本地任务管理
-- Memory MCP 提供语义记忆
+Lives in `configs/`.
 
-**遇到的问题**：
+Contains:
 
-| 问题 | 描述 | 影响 |
-|------|------|------|
-| 探索阶段信息丢失 | OpenSpec 的 `explore` 模式设计为 ephemeral，不持久化决策 | 探索工作无法沉淀 |
-| 工具间数据流断裂 | OpenSpec CLI 是独立进程，与 AI 会话集成困难 | 需要手动同步状态 |
-| tasks.md 与 Beads 重复 | OpenSpec 生成 tasks.md，Beads 也有任务数据 | 维护两套数据 |
-| CLI 依赖 | 需要安装和运行独立的 CLI 工具 | 增加复杂度 |
+- command entrypoints
+- skill wrappers
+- hooks and plugins
+- adapter-local configuration resolution
 
-**结论**：OpenSpec 的核心价值在于**文档模板设计**，而非 CLI 工具本身。
+Adapters must not invent states, directory structures, or archive semantics.
 
-**OpenSpec 官方确认**：
-> GitHub Issue #738: `opsx:explore` 设计为 ephemeral，不会自动持久化决策到磁盘
+### 4. Project artifacts
 
-### 方案 2：一体化平台
+Lives in the target project after installation.
 
-**调研过的项目**：
+Contains:
 
-| 项目 | Stars | 类型 | 问题 |
-|------|-------|------|------|
-| Logseq | 41K | 知识管理 | 无任务管理 |
-| Plane | 47K | 项目管理 | 无 AI 记忆集成 |
-| Mem0 | 55K | AI 记忆 | 无需求/任务管理 |
-| Obsidian + 插件 | - | 知识管理 | 需要大量配置 |
+- `docs/explorations/`
+- `docs/proposals/`
+- `docs/modules/`
+- `docs/architecture/`
+- `docs/decisions/`
+- `.workflow/state/`
 
-**结论**：不存在单一平台能同时解决需求管理、任务管理和长期记忆三个问题。
+## Data model
 
-### 方案 3：社区成熟组合
+### Local state memory
 
-**调研过的组合**：
+Purpose:
 
-| 组合 | 集成难度 | 问题 |
-|------|---------|------|
-| Obsidian + GitHub Issues | 低 | 无 AI 记忆系统 |
-| Plane + Mem0 | 中 | 需要配置集成 |
-| GitHub Issues + Mem0 | 中 | 无结构化需求管理 |
-
-**结论**：成熟组合存在，但需要额外的集成工作，且缺乏统一的 AI 工作流设计。
-
----
-
-## 最终设计
-
-基于以上探索，我们设计了 tg-workflow，核心决策如下：
-
-### 决策 1：Skill 替代 CLI
-
-**选择**：使用 AI Skill 而非独立 CLI
-
-**理由**：
-- Skill 与 AI 会话深度集成，无需进程管理
-- 可以利用 AI 的理解能力进行上下文感知
-- 减少工具链复杂度
-- 借鉴 OpenSpec 的文档模板设计，但实现方式更轻量
-
-### 决策 2：三层存储模型
-
-**选择**：文档层 + 任务层 + 记忆层
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        文档层 (Markdown)                         │
-│  docs/exploration/ → docs/proposals/ → docs/modules/           │
-│  特点：可读性强、版本控制友好、AI 直接读取                         │
-└─────────────────────────────────────────────────────────────────┘
-                           │
-                           │ 提案编号关联
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        任务层 (可选)                             │
-│  Beads / GitHub Issues / Linear                                 │
-│  特点：状态管理、依赖跟踪、进度可视化                              │
-└─────────────────────────────────────────────────────────────────┘
-                           │
-                           │ 语义标签关联
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        记忆层 (可选)                             │
-│  Memory MCP / Mem0 / 本地向量存储                                │
-│  特点：语义检索、跨会话持久化、延迟回顾                            │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**设计理念**：
-- 文档层是**核心**，必须有
-- 任务层和记忆层是**增强**，可选配置
-
-### 决策 3：聚合式模块文档
-
-**选择**：每个模块一个文档目录，归档提案时更新
-
-**与 OpenSpec specs 对比**：
-
-| 对比 | OpenSpec specs | 模块文档 |
-|------|---------------|---------|
-| 结构 | 分散，每个能力一个文件 | 聚合，每个模块一个目录 |
-| 更新 | 新增 spec 文件 | 归档提案时更新模块文档 |
-| 内容 | 行为规格 (BDD) | 设计概览 + 决策 + API + 历史 |
-| 目的 | 验收测试 | 理解模块全貌 |
-
-**理由**：
-- 开发者需要的是"这个模块现在的设计是什么"，而非"这个能力的规格是什么"
-- 聚合视角减少文件数量，便于维护
-- history.md 提供演进追溯
-
-### 决策 4：文件存储优先
-
-**选择**：Markdown 文件存储
-
-**理由**：
-- AI 可直接读取，无需额外 API
-- Git 版本控制天然支持
-- 人类可读性强，便于 review
-- 编辑器友好
-- 无锁定，可迁移
-
-### 决策 5：渐进式工作流
-
-**选择**：探索 → 提案 → 实施 → 归档
-
-```
-探索笔记 (非正式)
-    ↓ 想法成熟
-提案 (半正式)
-    ↓ 批准实施
-实施 (正式)
-    ↓ 完成归档
-模块文档 (更新)
-```
-
-**理由**：
-- 不是所有想法都需要正式提案
-- 支持需求的自然成熟
-- 明确的阶段边界，避免混乱
-
----
-
-## 数据流向
-
-```
-探索阶段                    提案阶段                    实施阶段                    归档阶段
-   │                          │                          │                          │
-   │  记录想法                 │  创建提案                 │  执行任务                 │  完成归档
-   │  调研笔记                 │  定义需求                 │  更新进度                 │  更新模块文档
-   │                          │  设计方案                 │  记录决策                 │  关闭任务 Epic
-   │                          │                          │                          │
-   ▼                          ▼                          ▼                          ▼
-docs/exploration/     docs/proposals/CR{编号}/    notes.md 更新            docs/modules/{module}/
-   │                          │                          │                          │
-   │                          │  创建 Epic                │  创建 Tasks              │  更新 history.md
-   │                          │  --spec-id               │  --spec-id               │
-   │                          ▼                          ▼                          ▼
-                        任务管理器                 任务管理器                 任务管理器
-   │                          │                          │                          │
-   │  存储发现                 │  存储决策                 │  存储进度                 │  更新记忆状态
-   │  架构理解                 │  review-pending          │  调试经验                 │  移除 review-pending
-   │                          │                          │                          │
-   ▼                          ▼                          ▼                          ▼
-长期记忆               长期记忆                   长期记忆                   长期记忆
-```
-
----
-
-## 组件集成
-
-### 与任务管理集成
-
-| 操作 | 命令示例 (Beads) |
-|------|-----------------|
-| 创建提案 | `bd create "CR{编号}: {标题}" --type epic --spec-id "CR{编号}"` |
-| 拆解任务 | `bd create "{任务}" --parent {epic-id} --spec-id "CR{编号}"` |
-| 查询任务 | `bd query "spec=CR{编号}"` |
-| 关闭 Epic | `bd close {epic-id} --reason "已完成"` |
-
-**支持的任务管理器**：
-- Beads（本地，推荐）
-- GitHub Issues
-- GitLab Issues
-- Linear（商业）
-
-### 与长期记忆集成
-
-| 场景 | 存储内容 |
-|------|---------|
-| 创建提案 | decision 类型, review-pending 标签 |
-| 技术决策 | decision 类型 |
-| 调试发现 | debugging 类型 |
-| 架构理解 | architecture 类型 |
-| 实施进度 | note 类型, spec:CR{编号} 标签 |
-
-**支持的长期记忆方案**：
-- Memory MCP（本地，推荐）
-- Mem0（云/本地）
-- 自定义向量存储
-
----
-
-## 扩展性
-
-### 自定义任务管理器
-
-实现以下接口即可替换 Beads：
-
-```typescript
-interface TaskManager {
-  createEpic(title: string, specId: string): Promise<string>;
-  createTask(title: string, parentId: string, specId: string): Promise<string>;
-  queryTasks(specId: string): Promise<Task[]>;
-  closeEpic(epicId: string, reason: string): Promise<void>;
-}
-```
-
-### 自定义长期记忆
-
-实现以下接口即可替换 Memory MCP：
-
-```typescript
-interface LongTermMemory {
-  store(content: string, tags: string[], metadata: object): Promise<void>;
-  search(query: string, tags?: string[]): Promise<Memory[]>;
-  updateTags(memoryId: string, addTags: string[], removeTags: string[]): Promise<void>;
-}
-```
-
-### 自定义文档模板
-
-修改 `templates/docs/` 下的模板文件即可。
-
----
-
-## 后续优化
-
-1. **自动化触发**：实现 Plugin 自动检测提案状态变化
-2. **可视化**：生成提案进度报告和甘特图
-3. **模板扩展**：根据不同类型需求定制模板
-4. **多项目支持**：跨项目的记忆共享和提案复用
+- restore active work quickly
+- remember current focus, touched files, and next steps
+
+Storage:
+
+- `.workflow/state/active-session.json`
+- `.workflow/state/sessions/*.json`
+- `.workflow/state/workstreams/*.json`
+
+This layer is operational, not semantic.
+
+### External memory provider
+
+Purpose:
+
+- store reusable decisions, architecture insights, debugging knowledge, and workflow preferences
+
+Contract:
+
+- `store`
+- `search`
+- `list_due_reviews`
+- `supersede`
+
+`Memory MCP` is a default provider, not a hardcoded design assumption.
+
+### Task backend
+
+Purpose:
+
+- manage dependency-aware execution
+- expose agent-friendly ready work
+
+Default backend:
+
+- `Beads`
+
+Contract:
+
+- `create_epic`
+- `create_tasks`
+- `query_by_proposal`
+- `close_epic`
+
+## Archive model
+
+The default archive view is module-first, but not module-only.
+
+- Module-scoped change: archive primarily to `docs/modules/<module>/`
+- Cross-cutting or system design: archive primarily to `docs/architecture/`
+- Stable high-cost decision: additionally record an ADR in `docs/decisions/`
+
+This resolves the earlier problem where every change was forced through a module lens even when the real artifact was architectural.
+
+## External references
+
+The current model borrows good ideas from:
+
+- OpenSpec: staged explore/propose/apply flow
+- ADR/MADR: durable decision records
+- C4/documentation-as-code: architecture views as maintained text artifacts
+- Beads: dependency-aware task execution for AI agents

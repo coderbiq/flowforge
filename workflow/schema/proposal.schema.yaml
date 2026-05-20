@@ -1,0 +1,86 @@
+schema: tg-workflow/proposal@v1
+description: Canonical metadata contract for a proposal artifact.
+type: object
+required:
+  - schema_version
+  - id
+  - slug
+  - title
+  - status
+  - created_at
+  - updated_at
+  - source_exploration
+  - owner
+  - task_backend
+  - archive_targets
+properties:
+  schema_version:
+    type: string
+    enum: ["v1"]
+  id:
+    type: string
+    pattern: "^CR[0-9]{8}$"
+    description: Change request id in CRYYMMDDNN format.
+  slug:
+    type: string
+    description: Kebab-case proposal slug.
+  title:
+    type: string
+  status:
+    type: string
+    enum:
+      - draft
+      - proposed
+      - approved
+      - active
+      - implemented
+      - archived
+      - rejected
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time
+  source_exploration:
+    type: string
+    description: Relative path to the originating exploration directory.
+  owner:
+    type: string
+  task_backend:
+    type: string
+    enum:
+      - beads
+      - github
+      - linear
+      - none
+  task_epic_id:
+    type: ["string", "null"]
+  archive_targets:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [type, path, role]
+      properties:
+        type:
+          type: string
+          enum: [module, architecture, decision]
+        path:
+          type: string
+        role:
+          type: string
+          enum: [primary, secondary]
+  tags:
+    type: array
+    items:
+      type: string
+  links:
+    type: object
+    properties:
+      design:
+        type: string
+      task_map:
+        type: string
+      notes:
+        type: string

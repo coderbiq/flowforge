@@ -1,0 +1,33 @@
+schema: tg-workflow/memory-state@v1
+description: Local session state contract used to restore active work.
+type: object
+required:
+  - session_id
+  - updated_at
+  - proposal_id
+  - current_focus
+  - next_actions
+properties:
+  session_id:
+    type: string
+  updated_at:
+    type: string
+    format: date-time
+  proposal_id:
+    type: ["string", "null"]
+  current_focus:
+    type: string
+  active_files:
+    type: array
+    items:
+      type: string
+  completed_items:
+    type: array
+    items:
+      type: string
+  next_actions:
+    type: array
+    items:
+      type: string
+  notes:
+    type: string

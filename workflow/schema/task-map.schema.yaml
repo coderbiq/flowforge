@@ -1,0 +1,57 @@
+schema: tg-workflow/task-map@v1
+description: Canonical bridge from proposal capabilities to task backend items.
+type: object
+required:
+  - proposal_id
+  - backend
+  - tasks
+properties:
+  proposal_id:
+    type: string
+  backend:
+    type: string
+    enum:
+      - beads
+      - github
+      - linear
+      - none
+  tasks:
+    type: array
+    items:
+      type: object
+      required:
+        - task_id
+        - title
+        - outcome
+        - capability_refs
+        - completion_definition
+      properties:
+        task_id:
+          type: string
+        title:
+          type: string
+        outcome:
+          type: string
+        priority:
+          type: string
+          enum: [P0, P1, P2]
+        depends_on:
+          type: array
+          items:
+            type: string
+        capability_refs:
+          type: array
+          items:
+            type: string
+        decision_refs:
+          type: array
+          items:
+            type: string
+        archive_target_refs:
+          type: array
+          items:
+            type: string
+        completion_definition:
+          type: array
+          items:
+            type: string

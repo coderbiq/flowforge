@@ -1,16 +1,16 @@
 ---
-description: 创建探索笔记并主动探索代码库和网络资源。用户提到"探索"、"调研"、"分析"时触发。
-allowed-tools: Skill(tg-proposal)
+description: Create or extend a durable exploration using the canonical tg-workflow structure.
+allowed-tools: Skill(tg-workflow)
 ---
 
-Use the `tg-proposal` skill to create exploration notes and actively explore.
+Use the `tg-workflow` skill to create or extend an exploration.
 
 ## 执行流程
 
-1. 创建探索目录 `docs/exploration/YYYY-MM-DD-{topic}/`
-2. 初始化混合模式结构
-3. 主动探索代码库、网络资源
-4. 持续记录发现和待执行变更
+1. Create `docs/explorations/<slug>/`
+2. Initialize `index.md`, `journal/`, `findings/`, `decisions/`, and `artifacts/`
+3. Record durable findings before implementation
+4. Keep `index.md` readable and current
 
 ## 触发场景
 

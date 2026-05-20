@@ -1,9 +1,9 @@
 ---
-description: 列出所有提案。
-allowed-tools: Skill(tg-proposal)
+description: List proposals grouped by canonical lifecycle status.
+allowed-tools: Skill(tg-workflow)
 ---
 
-Use the `tg-proposal` skill to list all proposals.
+Use the `tg-workflow` skill to list proposals.
 
 ## 输出格式
 

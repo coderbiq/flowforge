@@ -1,0 +1,50 @@
+schema: tg-workflow/exploration@v1
+description: Directory contract for an exploration artifact.
+type: object
+required:
+  - slug
+  - title
+  - status
+  - created_at
+  - updated_at
+  - question
+  - paths
+properties:
+  slug:
+    type: string
+  title:
+    type: string
+  status:
+    type: string
+    enum:
+      - active
+      - validated
+      - parked
+      - rejected
+  created_at:
+    type: string
+    format: date-time
+  updated_at:
+    type: string
+    format: date-time
+  question:
+    type: string
+  paths:
+    type: object
+    required:
+      - index
+      - journal_dir
+      - findings_dir
+      - decisions_dir
+      - artifacts_dir
+    properties:
+      index:
+        type: string
+      journal_dir:
+        type: string
+      findings_dir:
+        type: string
+      decisions_dir:
+        type: string
+      artifacts_dir:
+        type: string

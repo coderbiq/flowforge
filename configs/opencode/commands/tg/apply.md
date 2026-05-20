@@ -1,19 +1,19 @@
 ---
-description: 开始实施提案，解析能力并创建任务。
-allowed-tools: Skill(tg-proposal)
+description: Start execution for an approved proposal using its canonical task map.
+allowed-tools: Skill(tg-workflow)
 ---
 
-Use the `tg-proposal` skill to implement a proposal.
+Use the `tg-workflow` skill to apply a proposal.
 
 ## 执行流程
 
-1. 读取 proposal.md 的 Capabilities
-2. 为每个能力创建 Beads 任务
-3. 创建 notes.md
-4. 更新提案状态为 Active
+1. Read and validate `meta.yaml` and `task-map.md`
+2. Require proposal status `approved`
+3. Run `scripts/tg-apply-proposal.js`
+4. Confirm backend tasks and proposal state changed to `active`
 
 ## 参数
 
-- 提案编号：CR{YYMMDD}{序号}
+- 提案编号：`CRYYMMDDNN`
 
 Arguments: $ARGUMENTS

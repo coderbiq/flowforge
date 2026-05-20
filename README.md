@@ -1,131 +1,60 @@
 # tg-workflow
 
-一套用于软件项目的需求管理、任务跟踪和知识持久化的工作流系统。
+`tg-workflow` is a docs-first workflow for AI-assisted software design and delivery.
 
-## 起源
+It is built around one idea: durable artifacts should outlive chat sessions and platform integrations. Exploration, proposals, task mapping, implementation notes, archive targets, and reusable experience are all first-class files.
 
-本工作流系统源于实际项目开发中的痛点：
+Core workflow rules live in [`workflow/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/README.md). Canonical skill definitions live in [`agents/skills/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/agents/skills/tg-workflow/SKILL.md). Platform adapters under `configs/` only expose commands, hooks, and plugins.
 
-1. **探索阶段信息丢失**：技术调研、架构讨论等探索性工作的信息散落在对话中，无法沉淀
-2. **需求与任务断裂**：需求文档与任务管理系统缺乏关联，实施过程难以追溯
-3. **跨会话上下文丢失**：AI 辅助开发场景下，每次会话都需要重新理解项目背景
+## Repository layout
 
-经过对成熟开源方案的调研和实践验证，形成了这套可复用的工作流系统。
+```text
+tg-workflow/
+├── workflow/                   # canonical lifecycle, schemas, templates
+├── agents/                     # canonical agent-facing skill definitions
+├── configs/                    # platform adapters
+├── docs/                       # tool documentation
+└── scripts/                    # installation helpers
+```
 
-## 核心组件
+## Core model
 
-| 组件 | 职责 | 可选方案 |
-|------|------|---------|
-| **需求管理** | 从探索到定稿的需求演进 | tg-proposal |
-| **任务管理** | 任务拆解、进度跟踪 | Beads / GitHub Issues / Linear |
-| **长期记忆** | 跨会话持久化记忆 | Memory MCP / Mem0 |
+- Workflow lifecycle: `explore -> propose -> approve -> apply -> implement -> archive`
+- Primary docs root in a target project: `docs/`
+- Local work-restoration state: `.workflow/state/`
+- Default task backend: `Beads`
+- Default external memory provider: `Memory MCP` through a provider interface
 
-## 快速开始
-
-### 1. 安装配置
+## Install
 
 ```bash
-# 安装到当前项目
 ./scripts/install.sh all
-
-# 或只安装单个平台
-./scripts/install.sh claude      # 只安装 Claude Code 配置
-./scripts/install.sh opencode    # 只安装 OpenCode 配置
-
-# 全局安装（所有项目可用）
+./scripts/install.sh claude
+./scripts/install.sh opencode
 ./scripts/install.sh global
 ```
 
-### 2. 开始使用
+Project installation copies:
 
-```
-/tg:explore "你的探索主题"
-/tg:propose "功能名称"
-/tg:apply CR{编号}
-/tg:archive CR{编号}
-```
+- `workflow/`
+- `agents/`
+- requested platform adapters
 
-## 目录结构
+## Commands
 
-```
-tg-workflow/
-├── configs/                     # 平台配置（清晰目录）
-│   ├── claude/                  # Claude Code 配置
-│   │   ├── commands/tg/         # /tg:* 命令
-│   │   ├── skills/              # 技能定义
-│   │   └── hooks/               # 钩子脚本
-│   └── opencode/                # OpenCode 配置
-│       ├── commands/tg/         # /tg:* 命令
-│       ├── skills/              # 技能定义
-│       └── plugins/             # 插件
-├── docs/                        # 设计文档
-│   ├── ARCHITECTURE.md          # 架构设计
-│   └── PROPOSAL-WORKFLOW.md     # 提案工作流
-├── scripts/                     # 安装脚本
-│   └── install.sh               # 配置安装脚本
-└── templates/                   # 项目模板
-    └── docs/                    # 文档结构模板
+The default adapter surface remains:
+
+```text
+/tg:explore "topic"
+/tg:propose "proposal title"
+/tg:apply CR26052001
+/tg:archive CR26052001
 ```
 
-## 设计原则
+These commands now load the canonical workflow guides instead of embedding their own business rules.
 
-1. **本地优先**：所有数据存储在本地，不依赖云服务
-2. **文件存储**：文档使用 Markdown 格式，便于版本控制和 AI 读取
-3. **深度集成**：需求 → 任务 → 记忆 全链路打通
-4. **渐进式演进**：从探索笔记到正式提案，支持需求的自然成熟
-5. **可复用**：独立于特定项目，可应用到任何软件项目
+## Read next
 
-## 适用场景
-
-- AI 辅助开发的软件项目
-- 需要长期维护的项目
-- 需要追溯决策历史的项目
-- 多人协作的项目
-
-## 工作流概览
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ 1. 探索阶段                                                      │
-│    docs/exploration/YYYY-MM-DD-topic.md                          │
-│    - 记录想法、调研、讨论                                         │
-│    - 触发长期记忆存储关键发现                                     │
-└─────────────────────────────────────────────────────────────────┘
-                           │
-                           │ 想法成熟，创建提案
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 2. 提案阶段                                                      │
-│    /tg:propose "提案名称"                                         │
-│    → 创建 docs/proposals/CR{编号}-{name}/                         │
-│    → 自动创建任务 Epic (--spec-id CR{编号})                       │
-│    → 存储长期记忆 (decision, review-pending)                      │
-└─────────────────────────────────────────────────────────────────┘
-                           │
-                           │ 提案批准，开始实施
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 3. 实施阶段                                                      │
-│    /tg:apply CR{编号}                                            │
-│    → 从 proposal.md 提取任务 → 创建 Tasks                         │
-│    → 执行任务时同步更新 notes.md                                  │
-│    → 触发长期记忆记录进度、决策、经验                             │
-└─────────────────────────────────────────────────────────────────┘
-                           │
-                           │ 任务全部完成
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ 4. 归档阶段                                                      │
-│    /tg:archive CR{编号}                                          │
-│    → 检查任务完成状态                                             │
-│    → 移动到 docs/proposals/completed/                            │
-│    → 更新功能模块文档                                             │
-│    → 更新长期记忆（移除 review-pending）                          │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## 相关文档
-
-- [架构设计](./docs/ARCHITECTURE.md) - 背景、设计决策、组件集成
-- [提案工作流设计](./docs/PROPOSAL-WORKFLOW.md) - 目录结构、模板、命令定义
-- [快速开始指南](./docs/GETTING-STARTED.md) - 项目初始化步骤
+- [Architecture](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/docs/ARCHITECTURE.md)
+- [Workflow Guide](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/docs/PROPOSAL-WORKFLOW.md)
+- [Getting Started](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/docs/GETTING-STARTED.md)

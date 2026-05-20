@@ -2,9 +2,17 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const DEFAULT_CONFIG = {
-  memoryService: {
+  project: {
+    id: null,
+    slug: null,
+  },
+  memory_provider: {
+    type: 'memory-mcp',
+    enabled: false,
     endpoint: process.env.TG_MEMORY_ENDPOINT || 'http://127.0.0.1:8000',
     apiKey: process.env.TG_MEMORY_API_KEY || '',
+    tags: [],
+    timeoutMs: 5000,
   },
 };
 
@@ -14,9 +22,53 @@ function buildUrl(baseUrl, pathname) {
   return new URL(normalizedPath, normalizedBase).toString();
 }
 
+function mergeConfig(base, overrides = {}) {
+  return {
+    ...base,
+    ...overrides,
+    project: {
+      ...base.project,
+      ...(overrides.project || {}),
+    },
+    memory_provider: {
+      ...base.memory_provider,
+      ...(overrides.memory_provider || {}),
+    },
+  };
+}
+
+async function loadConfig(directory) {
+  let config = DEFAULT_CONFIG;
+  const configPath = path.join(directory, 'workflow', 'config.json');
+
+  try {
+    const raw = await fs.readFile(configPath, 'utf8');
+    config = mergeConfig(config, JSON.parse(raw));
+  } catch {
+    // use defaults
+  }
+
+  return mergeConfig(config, {
+    memory_provider: {
+      endpoint: process.env.TG_MEMORY_ENDPOINT || config.memory_provider.endpoint,
+      apiKey: process.env.TG_MEMORY_API_KEY || config.memory_provider.apiKey,
+    },
+  });
+}
+
+function getProjectContext(directory, config) {
+  const fallbackSlug = path.basename(directory) || 'project';
+  const slug = config.project.slug || config.project.id || fallbackSlug;
+  const tags = config.memory_provider.tags?.length
+    ? config.memory_provider.tags
+    : [`project:${slug}`];
+
+  return { slug, tags };
+}
+
 async function requestJson(config, pathname, init = {}) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), config.memory_provider.timeoutMs);
 
   try {
     const headers = {
@@ -25,25 +77,18 @@ async function requestJson(config, pathname, init = {}) {
       ...init.headers,
     };
 
-    if (config.memoryService.apiKey) {
-      headers.Authorization = `Bearer ${config.memoryService.apiKey}`;
+    if (config.memory_provider.apiKey) {
+      headers.Authorization = `Bearer ${config.memory_provider.apiKey}`;
     }
 
-    const response = await fetch(buildUrl(config.memoryService.endpoint, pathname), {
+    const response = await fetch(buildUrl(config.memory_provider.endpoint, pathname), {
       ...init,
       headers,
       signal: controller.signal,
     });
 
     const text = await response.text();
-    let body = null;
-    if (text) {
-      try {
-        body = JSON.parse(text);
-      } catch {
-        body = { detail: text };
-      }
-    }
+    const body = text ? JSON.parse(text) : null;
 
     if (!response.ok) {
       const detail = body?.detail || body?.error || response.statusText;
@@ -56,15 +101,18 @@ async function requestJson(config, pathname, init = {}) {
   }
 }
 
-async function checkDelayedReview(config, projectTag) {
+async function checkDelayedReview(config, tags) {
+  if (!config.memory_provider.enabled) {
+    return [];
+  }
+
   try {
     const today = new Date().toISOString().slice(0, 10);
-
     const result = await requestJson(config, '/api/memories/search', {
       method: 'POST',
       body: JSON.stringify({
         query: 'review pending decisions',
-        tags: [projectTag, 'review-pending'],
+        tags: [...tags, 'review-pending'],
         limit: 10,
       }),
     });
@@ -77,15 +125,12 @@ async function checkDelayedReview(config, projectTag) {
           ? result.results
           : [];
 
-    const dueReviews = memories.filter((m) => {
-      const reviewAt = m?.metadata?.review_at || m?.memory?.metadata?.review_at;
-      if (!reviewAt) return false;
-      return reviewAt <= today;
+    return memories.filter((memory) => {
+      const reviewAt = memory?.metadata?.review_at || memory?.memory?.metadata?.review_at;
+      return reviewAt && reviewAt <= today;
     });
-
-    return dueReviews;
   } catch (error) {
-    console.error('[Session Hook] Delayed review check failed:', error.message);
+    console.error('[tg-memory] Delayed review check failed:', error.message);
     return [];
   }
 }
@@ -94,25 +139,19 @@ function formatReviewReminder(reviews) {
   if (!reviews.length) return '';
 
   const lines = [
-    '## ⚠️ 待回顾的决策',
-    '',
-    '以下决策已到回顾日期：',
+    '## Pending Review Decisions',
     '',
   ];
 
   for (const review of reviews) {
     const content = review.content || review.memory?.content || 'Unknown';
-    const reason = review.metadata?.review_reason || review.memory?.metadata?.review_reason || '无原因';
+    const reason = review.metadata?.review_reason || review.memory?.metadata?.review_reason || 'No reason';
     const reviewAt = review.metadata?.review_at || review.memory?.metadata?.review_at || 'Unknown';
 
-    lines.push(`- **${content.slice(0, 100)}...`);
-    lines.push(`  - 回顾日期: ${reviewAt}`);
-    lines.push(`  - 原因: ${reason}`);
-    lines.push('');
+    lines.push(`- ${content.slice(0, 100)}...`);
+    lines.push(`  review_at: ${reviewAt}`);
+    lines.push(`  reason: ${reason}`);
   }
-
-  lines.push('请回顾这些决策，确认是否需要调整。');
-  lines.push('使用 `#skip` 标记跳过，或使用 Memory MCP 更新决策状态。');
 
   return lines.join('\n');
 }
@@ -120,32 +159,23 @@ function formatReviewReminder(reviews) {
 async function onSessionStart(context) {
   try {
     const directory = context.workingDirectory || process.cwd();
-    const projectName = path.basename(directory) || 'project';
-    const projectTag = `project:${projectName}`;
+    const config = await loadConfig(directory);
+    const project = getProjectContext(directory, config);
 
-    console.log(`[Session Hook] Session starting for project: ${projectName}`);
-
-    const dueReviews = await checkDelayedReview(DEFAULT_CONFIG, projectTag);
-
-    if (dueReviews.length > 0) {
-      const reminder = formatReviewReminder(dueReviews);
-      console.log('\n' + reminder + '\n');
-    } else {
-      console.log('[Session Hook] No pending reviews found');
+    console.log(`[tg-memory] Session starting for project: ${project.slug}`);
+    const dueReviews = await checkDelayedReview(config, project.tags);
+    if (dueReviews.length) {
+      console.log(`\n${formatReviewReminder(dueReviews)}\n`);
     }
-
   } catch (error) {
-    console.error('[Session Hook] Error in session start:', error.message);
+    console.error('[tg-memory] Session start failed:', error.message);
   }
 }
 
 async function readStdinContext() {
   return new Promise((resolve, reject) => {
     let data = '';
-
-    const timeout = setTimeout(() => {
-      resolve(null);
-    }, 100);
+    const timeout = setTimeout(() => resolve(null), 100);
 
     process.stdin.setEncoding('utf8');
     process.stdin.on('readable', () => {
@@ -157,21 +187,20 @@ async function readStdinContext() {
 
     process.stdin.on('end', () => {
       clearTimeout(timeout);
-      if (data.trim()) {
-        try {
-          resolve(JSON.parse(data));
-        } catch (error) {
-          console.error('[Session Hook] Failed to parse stdin JSON:', error.message);
-          reject(error);
-        }
-      } else {
+      if (!data.trim()) {
         resolve(null);
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(data));
+      } catch (error) {
+        reject(error);
       }
     });
 
     process.stdin.on('error', (error) => {
       clearTimeout(timeout);
-      console.error('[Session Hook] Stdin error:', error.message);
       reject(error);
     });
   });
@@ -180,39 +209,33 @@ async function readStdinContext() {
 async function main() {
   try {
     const stdinContext = await readStdinContext();
-
-    let context;
-
-    if (stdinContext) {
-      context = {
-        workingDirectory: stdinContext.cwd || process.cwd(),
-        sessionId: stdinContext.session_id || `session_${Date.now()}`,
-      };
-    } else {
-      context = {
-        workingDirectory: process.cwd(),
-        sessionId: `session_${Date.now()}`,
-      };
-    }
+    const context = stdinContext
+      ? {
+          workingDirectory: stdinContext.cwd || process.cwd(),
+          sessionId: stdinContext.session_id || `session_${Date.now()}`,
+        }
+      : {
+          workingDirectory: process.cwd(),
+          sessionId: `session_${Date.now()}`,
+        };
 
     await onSessionStart(context);
-
   } catch (error) {
-    console.error('[Session Hook] Session start hook failed:', error);
+    console.error('[tg-memory] Session start hook failed:', error);
     process.exit(1);
   }
 }
 
 module.exports = {
   name: 'tg-session-start',
-  version: '1.0.0',
-  description: 'Check delayed review on session start for Tangram V2',
+  version: '2.0.0',
+  description: 'tg-workflow session-start hook',
   trigger: 'session-start',
   handler: onSessionStart,
   config: {
     async: true,
     timeout: 5000,
-    priority: 'normal'
+    priority: 'normal',
   },
 };
 

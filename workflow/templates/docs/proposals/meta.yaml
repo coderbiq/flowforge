@@ -1,0 +1,21 @@
+schema_version: v1
+id: CR26052001
+slug: example-proposal
+title: Example Proposal
+status: draft
+created_at: 2026-05-20T00:00:00Z
+updated_at: 2026-05-20T00:00:00Z
+source_exploration: docs/explorations/example-topic
+owner: your-name
+task_backend: beads
+task_epic_id: null
+archive_targets:
+  - type: module
+    path: docs/modules/example-module
+    role: primary
+tags:
+  - capability:example
+links:
+  design: design.md
+  task_map: task-map.md
+  notes: notes.md
