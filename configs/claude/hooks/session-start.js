@@ -1,6 +1,14 @@
 const fs = require('fs').promises;
 const path = require('path');
 
+function resolveEnv(...names) {
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) return value;
+  }
+  return undefined;
+}
+
 const DEFAULT_CONFIG = {
   project: {
     id: null,
@@ -9,8 +17,14 @@ const DEFAULT_CONFIG = {
   memory_provider: {
     type: 'memory-mcp',
     enabled: false,
-    endpoint: process.env.TG_MEMORY_ENDPOINT || 'http://127.0.0.1:8000',
-    apiKey: process.env.TG_MEMORY_API_KEY || '',
+    endpoint: resolveEnv(
+      'FLOWFORGE_MEMORY_ENDPOINT',
+      'CLAUDE_FLOWFORGE_MEMORY_ENDPOINT',
+    ) || 'http://127.0.0.1:8000',
+    apiKey: resolveEnv(
+      'FLOWFORGE_MEMORY_API_KEY',
+      'CLAUDE_FLOWFORGE_MEMORY_API_KEY',
+    ),
     tags: [],
     timeoutMs: 5000,
   },
@@ -39,19 +53,31 @@ function mergeConfig(base, overrides = {}) {
 
 async function loadConfig(directory) {
   let config = DEFAULT_CONFIG;
-  const configPath = path.join(directory, 'workflow', 'config.json');
+  const configPaths = [
+    path.join(directory, '.flowforge', 'config.json'),
+    path.join(directory, 'workflow', 'config.json'),
+  ];
 
-  try {
-    const raw = await fs.readFile(configPath, 'utf8');
-    config = mergeConfig(config, JSON.parse(raw));
-  } catch {
-    // use defaults
+  for (const configPath of configPaths) {
+    try {
+      const raw = await fs.readFile(configPath, 'utf8');
+      config = mergeConfig(config, JSON.parse(raw));
+      break;
+    } catch {
+      // continue
+    }
   }
 
   return mergeConfig(config, {
     memory_provider: {
-      endpoint: process.env.TG_MEMORY_ENDPOINT || config.memory_provider.endpoint,
-      apiKey: process.env.TG_MEMORY_API_KEY || config.memory_provider.apiKey,
+      endpoint: resolveEnv(
+        'FLOWFORGE_MEMORY_ENDPOINT',
+        'CLAUDE_FLOWFORGE_MEMORY_ENDPOINT',
+      ) || config.memory_provider.endpoint,
+      apiKey: resolveEnv(
+        'FLOWFORGE_MEMORY_API_KEY',
+        'CLAUDE_FLOWFORGE_MEMORY_API_KEY',
+      ) || config.memory_provider.apiKey,
     },
   });
 }

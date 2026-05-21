@@ -98,6 +98,17 @@ Local work-restoration state requires no external service. It is stored in `.flo
 
 Reusable experience memory is optional. If enabled, configure the provider in `.flowforge/config.json`.
 
+Per-user authentication can be supplied through environment variables:
+
+- `FLOWFORGE_MEMORY_ENDPOINT`
+- `FLOWFORGE_MEMORY_API_KEY`
+
+Platform-specific aliases are also supported for compatibility:
+
+- Claude: `CLAUDE_FLOWFORGE_MEMORY_ENDPOINT`, `CLAUDE_FLOWFORGE_MEMORY_API_KEY`
+- OpenCode: `OPENCODE_FLOWFORGE_MEMORY_ENDPOINT`, `OPENCODE_FLOWFORGE_MEMORY_API_KEY`
+- Legacy alias: `OPENCODE_MEMORY_ENDPOINT`, `OPENCODE_MEMORY_API_KEY`
+
 ## 6. Start the lifecycle
 
 ```text

@@ -2,6 +2,14 @@ import { readFile, writeFile, mkdir } from "node:fs/promises"
 import { homedir } from "node:os"
 import path from "node:path"
 
+function resolveEnv(...names) {
+  for (const name of names) {
+    const value = process.env[name]
+    if (value) return value
+  }
+  return undefined
+}
+
 const DEFAULT_CONFIG = {
   project: {
     id: null,
@@ -47,11 +55,27 @@ function mergeConfig(base, overrides = {}) {
 }
 
 function environmentOverrides() {
+  const endpoint = resolveEnv(
+    "FLOWFORGE_MEMORY_ENDPOINT",
+    "OPENCODE_FLOWFORGE_MEMORY_ENDPOINT",
+    "OPENCODE_MEMORY_ENDPOINT",
+  )
+  const apiKey = resolveEnv(
+    "FLOWFORGE_MEMORY_API_KEY",
+    "OPENCODE_FLOWFORGE_MEMORY_API_KEY",
+    "OPENCODE_MEMORY_API_KEY",
+  )
+
+  const memory_provider = {}
+  if (endpoint !== undefined) {
+    memory_provider.endpoint = endpoint
+  }
+  if (apiKey !== undefined) {
+    memory_provider.apiKey = apiKey
+  }
+
   return {
-    memory_provider: {
-      endpoint: process.env.TG_MEMORY_ENDPOINT || process.env.OPENCODE_MEMORY_ENDPOINT,
-      apiKey: process.env.TG_MEMORY_API_KEY || process.env.OPENCODE_MEMORY_API_KEY,
-    },
+    memory_provider,
   }
 }
 
