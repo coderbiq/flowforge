@@ -5,6 +5,7 @@ This directory contains the platform-agnostic workflow specification for `FlowFo
 It is the source of truth for:
 
 - lifecycle and authoring rules
+- task splitting and checkpoint rules
 - metadata schemas
 - archive behavior
 - adapter contracts for IDE integrations

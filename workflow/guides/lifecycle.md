@@ -32,11 +32,13 @@
 ### Apply
 
 - Create tasks from `task-map.md` and transition the proposal into execution.
+- Task decomposition must follow `task-splitting.md`, including milestone boundaries and checkpoint rules for long-running work.
 - Proposal status changes from `approved` to `active`.
 
 ### Implement
 
 - Execute tasks, keep `notes.md` current, and write back scope changes into the proposal.
+- Stop at declared checkpoints for verification when a proposal spans multiple sessions or days.
 - Major scope changes require returning to exploration/proposal, not just implementation notes.
 
 ### Archive

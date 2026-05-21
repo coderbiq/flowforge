@@ -37,6 +37,8 @@ docs/proposals/<proposal-id>/
 └── notes.md
 ```
 
+`task-map.md` should follow the canonical task-splitting rules in [`workflow/guides/task-splitting.md`](../workflow/guides/task-splitting.md).
+
 ## Lifecycle summary
 
 1. `explore`: create durable findings before implementation

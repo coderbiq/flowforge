@@ -20,6 +20,7 @@ Lives in [`workflow/`](../workflow/README.md).
 Contains:
 
 - lifecycle rules
+- task splitting and checkpoint rules
 - metadata schemas
 - archive rules
 - adapter contracts

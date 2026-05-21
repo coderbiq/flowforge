@@ -92,6 +92,8 @@ bd init
 
 `task-map.md` is the bridge from proposals to the task backend. The workflow core does not store task logic in proposal prose.
 
+Task maps should follow [`workflow/guides/task-splitting.md`](../workflow/guides/task-splitting.md): split by deliverable, not by file list, and insert explicit checkpoints for long-running proposals.
+
 ## 5. Configure memory
 
 Local work-restoration state requires no external service. It is stored in `.flowforge/state/`.

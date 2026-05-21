@@ -35,6 +35,7 @@ This repository uses `FlowForge` as the default design and delivery workflow.
 
 - Default backend: `Beads`
 - `task-map.md` is the source of truth for task decomposition
+- `task-map.md` must use deliverable-first splitting, milestone boundaries, and explicit checkpoint rules from `workflow/guides/task-splitting.md`
 - Do not create unrelated standalone tasks outside the proposal workflow
 
 ## Archive model

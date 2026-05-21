@@ -25,6 +25,12 @@ Summarize the relevant findings and constraints.
 
 - CAP-001 Capability statement
 
+## Delivery phases
+
+- Phase 1: <milestone outcome>
+- Phase 2: <milestone outcome>
+- Checkpoints: <where the proposal should pause for review during long-running execution>
+
 ## Impact
 
 - Affected modules or systems

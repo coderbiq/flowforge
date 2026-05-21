@@ -20,6 +20,7 @@
 - `proposal.md` answers why and what.
 - `design.md` answers how and why this approach.
 - `task-map.md` is authoritative for task decomposition.
+- `task-map.md` must follow `task-splitting.md` for deliverable-first decomposition, milestone boundaries, and checkpoint rules.
 - `notes.md` is for execution history only.
 
 ## Decisions

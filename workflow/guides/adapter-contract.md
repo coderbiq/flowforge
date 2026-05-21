@@ -1,5 +1,7 @@
 # Adapter Contract
 
+Adapters and agent wrappers must preserve the canonical task-splitting rules defined in `task-splitting.md`.
+
 Platform integrations must adapt `FlowForge` without redefining workflow behavior.
 
 ## Adapter responsibilities
