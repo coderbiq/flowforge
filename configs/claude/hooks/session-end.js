@@ -124,7 +124,7 @@ async function parseTranscript(transcriptPath) {
 
     return { messages };
   } catch (error) {
-    console.error('[tg-memory] Failed to parse transcript:', error.message);
+    console.error('[flowforge-memory] Failed to parse transcript:', error.message);
     return { messages: [] };
   }
 }
@@ -179,7 +179,7 @@ async function onSessionEnd(context) {
     if (context.conversation?.messages) {
       const markers = checkUserMarkers(context.conversation.messages);
       if (markers.skip) {
-        console.log('[tg-memory] Session state update skipped by #skip marker');
+        console.log('[flowforge-memory] Session state update skipped by #skip marker');
         return;
       }
     }
@@ -204,7 +204,7 @@ async function onSessionEnd(context) {
     const markers = checkUserMarkers(context.conversation?.messages || []);
 
     if (contentLength < config.session.minContentLength && !markers.remember) {
-      console.log(`[tg-memory] Session content too short (${contentLength} chars), skipping update`);
+      console.log(`[flowforge-memory] Session content too short (${contentLength} chars), skipping update`);
       return;
     }
 
@@ -217,9 +217,9 @@ async function onSessionEnd(context) {
 
     await saveSessionState(directory, config, sessionId, sessionState);
     await updateActiveSession(directory, config, sessionId);
-    console.log(`[tg-memory] Session state updated: ${sessionId}`);
+    console.log(`[flowforge-memory] Session state updated: ${sessionId}`);
   } catch (error) {
-    console.error('[tg-memory] Session end failed:', error.message);
+    console.error('[flowforge-memory] Session end failed:', error.message);
   }
 }
 
@@ -275,7 +275,7 @@ async function main() {
     if (process.argv.includes('--background')) {
       const contextJson = process.env.TG_SESSION_CONTEXT;
       if (!contextJson) {
-        console.error('[tg-memory] No context provided for background processing');
+        console.error('[flowforge-memory] No context provided for background processing');
         process.exit(1);
       }
 
@@ -285,7 +285,7 @@ async function main() {
 
     const stdinContext = await readStdinContext();
     if (!stdinContext?.transcript_path) {
-      console.log('[tg-memory] No transcript context - skipping session state update');
+      console.log('[flowforge-memory] No transcript context - skipping session state update');
       return;
     }
 
@@ -298,9 +298,9 @@ async function main() {
     };
 
     await runInBackground(context);
-    console.log('[tg-memory] Session state update started in background');
+    console.log('[flowforge-memory] Session state update started in background');
   } catch (error) {
-    console.error('[tg-memory] Session end hook failed:', error);
+    console.error('[flowforge-memory] Session end hook failed:', error);
     process.exit(1);
   }
 }

@@ -130,7 +130,7 @@ async function checkDelayedReview(config, tags) {
       return reviewAt && reviewAt <= today;
     });
   } catch (error) {
-    console.error('[tg-memory] Delayed review check failed:', error.message);
+    console.error('[flowforge-memory] Delayed review check failed:', error.message);
     return [];
   }
 }
@@ -162,13 +162,13 @@ async function onSessionStart(context) {
     const config = await loadConfig(directory);
     const project = getProjectContext(directory, config);
 
-    console.log(`[tg-memory] Session starting for project: ${project.slug}`);
+    console.log(`[flowforge-memory] Session starting for project: ${project.slug}`);
     const dueReviews = await checkDelayedReview(config, project.tags);
     if (dueReviews.length) {
       console.log(`\n${formatReviewReminder(dueReviews)}\n`);
     }
   } catch (error) {
-    console.error('[tg-memory] Session start failed:', error.message);
+    console.error('[flowforge-memory] Session start failed:', error.message);
   }
 }
 
@@ -221,7 +221,7 @@ async function main() {
 
     await onSessionStart(context);
   } catch (error) {
-    console.error('[tg-memory] Session start hook failed:', error);
+    console.error('[flowforge-memory] Session start hook failed:', error);
     process.exit(1);
   }
 }

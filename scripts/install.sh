@@ -39,7 +39,7 @@ install_claude() {
   # 创建目录
   mkdir -p "$target_claude/commands/flowforge"
   mkdir -p "$target_claude/skills/flowforge"
-  mkdir -p "$target_claude/skills/tg-memory"
+  mkdir -p "$target_claude/skills/flowforge-memory"
   mkdir -p "$target_claude/hooks"
   
   # 复制命令
@@ -48,7 +48,7 @@ install_claude() {
   
   # 复制技能
   cp -r "$AGENTS_DIR/skills/flowforge/"* "$target_claude/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/tg-memory/"* "$target_claude/skills/tg-memory/"
+  cp -r "$AGENTS_DIR/skills/flowforge-memory/"* "$target_claude/skills/flowforge-memory/"
   info "Copied skills/"
   
   # 复制钩子
@@ -76,7 +76,7 @@ install_opencode() {
   # 创建目录
   mkdir -p "$target_opencode/commands/flowforge"
   mkdir -p "$target_opencode/skills/flowforge"
-  mkdir -p "$target_opencode/skills/tg-memory"
+  mkdir -p "$target_opencode/skills/flowforge-memory"
   mkdir -p "$target_opencode/plugins"
   
   # 复制命令
@@ -85,7 +85,7 @@ install_opencode() {
   
   # 复制技能
   cp -r "$AGENTS_DIR/skills/flowforge/"* "$target_opencode/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/tg-memory/"* "$target_opencode/skills/tg-memory/"
+  cp -r "$AGENTS_DIR/skills/flowforge-memory/"* "$target_opencode/skills/flowforge-memory/"
   info "Copied skills/"
   
   # 复制插件
@@ -250,7 +250,7 @@ install_global() {
   
   cp -r "$CONFIGS_DIR/claude/commands/flowforge/"* "$claude_global/commands/flowforge/"
   cp -r "$AGENTS_DIR/skills/flowforge/"* "$claude_global/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/tg-memory" "$claude_global/skills/"
+  cp -r "$AGENTS_DIR/skills/flowforge-memory" "$claude_global/skills/"
   cp -r "$CONFIGS_DIR/claude/hooks/"* "$claude_global/hooks/"
   info "Installed Claude Code configs to $claude_global"
   
@@ -263,7 +263,7 @@ install_global() {
   
   cp -r "$CONFIGS_DIR/opencode/commands/flowforge/"* "$opencode_global/commands/flowforge/"
   cp -r "$AGENTS_DIR/skills/flowforge/"* "$opencode_global/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/tg-memory" "$opencode_global/skills/"
+  cp -r "$AGENTS_DIR/skills/flowforge-memory" "$opencode_global/skills/"
   cp -r "$CONFIGS_DIR/opencode/plugins/"* "$opencode_global/plugins/"
   info "Installed OpenCode configs to $opencode_global"
 
@@ -273,7 +273,7 @@ install_global() {
   mkdir -p "$codex_adapter"
   mkdir -p "$codex_skills/flowforge"
   cp -r "$AGENTS_DIR/skills/flowforge/"* "$codex_skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/tg-memory" "$codex_skills/"
+  cp -r "$AGENTS_DIR/skills/flowforge-memory" "$codex_skills/"
   cp "$CONFIGS_DIR/codex/README.md" "$codex_adapter/README.md"
   info "Installed Codex skills to $codex_skills"
   

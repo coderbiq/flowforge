@@ -1,14 +1,14 @@
 ---
-name: tg-memory
+name: flowforge-memory
 description: |
   Memory and work-restoration skill for FlowForge.
 
   Load this skill when the user asks about previous decisions, current progress, pending review items, or storing reusable experience.
 ---
 
-# tg-memory
+# flowforge-memory
 
-`tg-memory` manages two distinct layers and must keep them separate.
+`flowforge-memory` manages two distinct layers and must keep them separate.
 
 ## Layer 1: local work-restoration state
 

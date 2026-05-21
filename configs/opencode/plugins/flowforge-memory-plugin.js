@@ -59,8 +59,8 @@ async function loadConfig(directory) {
   let config = DEFAULT_CONFIG
   const configPaths = [
     path.join(directory, ".flowforge", "config.json"),
-    path.join(directory, ".opencode", "tg-memory-plugin.json"),
-    path.join(homedir(), ".config", "opencode", "tg-memory-plugin.json"),
+    path.join(directory, ".opencode", "flowforge-memory-plugin.json"),
+    path.join(homedir(), ".config", "opencode", "flowforge-memory-plugin.json"),
   ]
 
   for (const configPath of configPaths) {
@@ -187,7 +187,7 @@ async function checkDelayedReview(config, tags) {
       return reviewAt && reviewAt <= today
     })
   } catch (error) {
-    console.error("[tg-memory] Delayed review check failed:", error.message)
+    console.error("[flowforge-memory] Delayed review check failed:", error.message)
     return []
   }
 }
@@ -248,7 +248,7 @@ export const OpenCodeMemoryPlugin = async ({ client, directory }) => {
   const projectTags = getProjectTags(directory, config)
 
   const logInfo = async (message) => {
-    await appLog({ body: { service: "tg-memory", level: "info", message } }).catch(() => {})
+    await appLog({ body: { service: "flowforge-memory", level: "info", message } }).catch(() => {})
   }
 
   return {

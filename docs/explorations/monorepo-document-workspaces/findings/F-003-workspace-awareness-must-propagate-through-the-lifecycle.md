@@ -15,4 +15,4 @@
 
 - [lifecycle.md](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/guides/lifecycle.md)
 - [archive-rules.md](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/guides/archive-rules.md)
-- [tg-memory skill](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/agents/skills/tg-memory/SKILL.md)
+- [flowforge-memory skill](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/agents/skills/flowforge-memory/SKILL.md)
