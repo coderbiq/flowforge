@@ -229,7 +229,7 @@ async function main() {
 module.exports = {
   name: 'tg-session-start',
   version: '2.0.0',
-  description: 'tg-workflow session-start hook',
+  description: 'FlowForge session-start hook',
   trigger: 'session-start',
   handler: onSessionStart,
   config: {

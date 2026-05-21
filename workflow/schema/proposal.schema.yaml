@@ -1,5 +1,5 @@
-schema: tg-workflow/proposal@v1
-description: Canonical metadata contract for a proposal artifact.
+schema: flowforge/proposal@v2
+description: Canonical metadata contract for a FlowForge proposal artifact.
 type: object
 required:
   - schema_version
@@ -9,14 +9,17 @@ required:
   - status
   - created_at
   - updated_at
-  - source_exploration
+  - workspace
+  - scope
+  - source_explorations
   - owner
   - task_backend
   - archive_targets
+  - links
 properties:
   schema_version:
     type: string
-    enum: ["v1"]
+    enum: ["v2"]
   id:
     type: string
     pattern: "^CR[0-9]{8}$"
@@ -42,9 +45,26 @@ properties:
   updated_at:
     type: string
     format: date-time
-  source_exploration:
+  workspace:
     type: string
-    description: Relative path to the originating exploration directory.
+    description: Proposal's primary document workspace name.
+  scope:
+    type: string
+    enum:
+      - workspace
+      - cross-workspace
+      - monorepo
+  source_explorations:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [workspace, ref]
+      properties:
+        workspace:
+          type: string
+        ref:
+          type: string
   owner:
     type: string
   task_backend:
@@ -55,19 +75,25 @@ properties:
       - linear
       - none
   task_epic_id:
-    type: ["string", "null"]
+    type: [string, "null"]
   archive_targets:
     type: array
     minItems: 1
     items:
       type: object
-      required: [type, path, role]
+      required: [key, type, workspace, ref, role]
       properties:
+        key:
+          type: string
+          description: Stable logical reference for the target.
         type:
           type: string
           enum: [module, architecture, decision]
-        path:
+        workspace:
           type: string
+        ref:
+          type: string
+          description: Path relative to the workspace docs root.
         role:
           type: string
           enum: [primary, secondary]
@@ -77,6 +103,7 @@ properties:
       type: string
   links:
     type: object
+    required: [design, task_map, notes]
     properties:
       design:
         type: string

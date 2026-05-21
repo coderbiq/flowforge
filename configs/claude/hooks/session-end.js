@@ -4,7 +4,7 @@ const { spawn } = require('child_process');
 
 const DEFAULT_CONFIG = {
   paths: {
-    state_root: '.workflow/state',
+    state_root: '.flowforge/state',
   },
   session: {
     minContentLength: 100,
@@ -28,7 +28,7 @@ function mergeConfig(base, overrides = {}) {
 
 async function loadConfig(directory) {
   let config = DEFAULT_CONFIG;
-  const configPath = path.join(directory, 'workflow', 'config.json');
+  const configPath = path.join(directory, '.flowforge', 'config.json');
 
   try {
     const raw = await fs.readFile(configPath, 'utf8');
@@ -308,7 +308,7 @@ async function main() {
 module.exports = {
   name: 'tg-session-end',
   version: '2.0.0',
-  description: 'tg-workflow session-end hook',
+  description: 'FlowForge session-end hook',
   trigger: 'session-end',
   handler: onSessionEnd,
   config: {

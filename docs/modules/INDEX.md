@@ -1,10 +1,12 @@
-# Module Index
+# 模块索引
 
-This directory is reserved for module-level archive outputs produced by `tg-workflow`.
+这里用于存放 `FlowForge` 产出的模块级归档结果。
 
-Canonical guidance lives in:
+规范说明位于：
 
 - `workflow/templates/docs/modules/`
 - `workflow/guides/archive-rules.md`
 
-No module examples are kept in this repository.
+当前仓库不保留模块示例。
+
+针对当前 monorepo 工作流探索，尚未产生模块归档输出。

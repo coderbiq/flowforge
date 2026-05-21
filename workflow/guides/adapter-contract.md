@@ -1,6 +1,6 @@
 # Adapter Contract
 
-Platform integrations must adapt `tg-workflow` without redefining workflow behavior.
+Platform integrations must adapt `FlowForge` without redefining workflow behavior.
 
 ## Adapter responsibilities
 
@@ -53,6 +53,6 @@ Adapters may expose different entry surfaces:
 Adapters should resolve configuration in this order:
 
 1. environment overrides
-2. project-local `workflow/config.json`
+2. project-local `.flowforge/config.json`
 3. user-level adapter config
 4. built-in defaults

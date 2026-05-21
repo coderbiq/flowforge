@@ -8,7 +8,7 @@ const DEFAULT_CONFIG = {
     slug: null,
   },
   paths: {
-    state_root: ".workflow/state",
+    state_root: ".flowforge/state",
   },
   memory_provider: {
     type: "memory-mcp",
@@ -58,7 +58,7 @@ function environmentOverrides() {
 async function loadConfig(directory) {
   let config = DEFAULT_CONFIG
   const configPaths = [
-    path.join(directory, "workflow", "config.json"),
+    path.join(directory, ".flowforge", "config.json"),
     path.join(directory, ".opencode", "tg-memory-plugin.json"),
     path.join(homedir(), ".config", "opencode", "tg-memory-plugin.json"),
   ]

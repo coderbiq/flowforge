@@ -1,4 +1,4 @@
-schema: tg-workflow/task-map@v1
+schema: flowforge/task-map@v2
 description: Canonical bridge from proposal capabilities to task backend items.
 type: object
 required:
@@ -32,6 +32,12 @@ properties:
           type: string
         outcome:
           type: string
+        workspace:
+          type: string
+          description: Optional workspace name for the task when work spans multiple document spaces.
+        code_scope:
+          type: string
+          description: Optional code scope or subdirectory the task targets.
         priority:
           type: string
           enum: [P0, P1, P2]

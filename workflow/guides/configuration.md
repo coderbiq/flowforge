@@ -1,6 +1,6 @@
 # Configuration
 
-`tg-workflow` uses a machine-readable project config at `workflow/config.json`.
+`FlowForge` uses a machine-readable project config at `.flowforge/config.json`.
 
 ```json
 {
@@ -10,8 +10,18 @@
     "slug": "example-app"
   },
   "paths": {
-    "docs_root": "docs",
-    "state_root": ".workflow/state"
+    "tool_root": ".flowforge",
+    "state_root": ".flowforge/state"
+  },
+  "docs": {
+    "default_workspace": "default",
+    "workspaces": {
+      "default": {
+        "root": "docs",
+        "scope": ".",
+        "kind": "repository"
+      }
+    }
   },
   "task_backend": {
     "type": "beads"
@@ -27,8 +37,8 @@
 
 ## Defaults
 
-- `paths.docs_root`: `docs`
-- `paths.state_root`: `.workflow/state`
+- `paths.tool_root`: `.flowforge`
+- `paths.state_root`: `.flowforge/state`
 - `task_backend.type`: `beads`
 - `memory_provider.enabled`: `false`
 

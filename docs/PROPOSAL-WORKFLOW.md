@@ -1,6 +1,6 @@
 # Workflow Guide
 
-This document is the high-level guide to `tg-workflow`. The canonical operational details live under [`workflow/guides/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/guides/lifecycle.md) and [`workflow/schema/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/schema/proposal.schema.yaml).
+This document is the high-level guide to `FlowForge`. The canonical operational details live under [`workflow/guides/`](../workflow/guides/lifecycle.md) and [`workflow/schema/`](../workflow/schema/proposal.schema.yaml).
 
 ## Canonical directories
 
@@ -54,25 +54,25 @@ docs/proposals/<proposal-id>/
 
 ## Command surface
 
-- `/tg:explore`
-- `/tg:propose`
-- `/tg:approve`
-- `/tg:apply`
-- `/tg:archive`
-- `/tg:status`
-- `/tg:list`
-- `/tg:notes`
+- `/flowforge:explore`
+- `/flowforge:propose`
+- `/flowforge:approve`
+- `/flowforge:apply`
+- `/flowforge:archive`
+- `/flowforge:status`
+- `/flowforge:list`
+- `/flowforge:notes`
 
 Platform commands are wrappers. They should load workflow guidance instead of owning the business rules themselves.
 
 ## Script surface
 
-- `scripts/tg-create-proposal.js`
-- `scripts/tg-approve-proposal.js`
-- `scripts/tg-apply-proposal.js`
-- `scripts/tg-add-note.js`
-- `scripts/tg-list-proposals.js`
-- `scripts/tg-archive-proposal.js`
-- `scripts/tg-validate-proposal.js`
-- `scripts/tg-proposal-status.js`
-- `scripts/tg-check-archive.js`
+- `scripts/flowforge-create-proposal.js`
+- `scripts/flowforge-approve-proposal.js`
+- `scripts/flowforge-apply-proposal.js`
+- `scripts/flowforge-add-note.js`
+- `scripts/flowforge-list-proposals.js`
+- `scripts/flowforge-archive-proposal.js`
+- `scripts/flowforge-validate-proposal.js`
+- `scripts/flowforge-proposal-status.js`
+- `scripts/flowforge-check-archive.js`

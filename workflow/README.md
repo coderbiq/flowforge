@@ -1,6 +1,6 @@
-# tg-workflow Core
+# FlowForge Core
 
-This directory contains the platform-agnostic workflow specification for `tg-workflow`.
+This directory contains the platform-agnostic workflow specification for `FlowForge`.
 
 It is the source of truth for:
 

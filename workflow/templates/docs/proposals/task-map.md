@@ -9,6 +9,8 @@
 
 - Title: Implement first slice
 - Outcome: Observable change
+- Workspace: default
+- Code Scope: apps/example
 - Priority: P0
 - Capability refs: CAP-001
 - Decision refs: D-001

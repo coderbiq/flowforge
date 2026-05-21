@@ -1,7 +1,8 @@
-schema: tg-workflow/exploration@v1
-description: Directory contract for an exploration artifact.
+schema: flowforge/exploration@v2
+description: Directory contract for a durable exploration artifact.
 type: object
 required:
+  - workspace
   - slug
   - title
   - status
@@ -10,6 +11,9 @@ required:
   - question
   - paths
 properties:
+  workspace:
+    type: string
+    description: Document workspace that owns the exploration.
   slug:
     type: string
   title:

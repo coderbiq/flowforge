@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide installs `tg-workflow` into a project with both the canonical workflow core and the optional platform adapters.
+This guide installs `FlowForge` into a project with both the canonical workflow core and the optional platform adapters.
 
 ## Requirements
 
@@ -13,20 +13,19 @@ This guide installs `tg-workflow` into a project with both the canonical workflo
 
 ```bash
 cd your-project
-/path/to/tg-workflow/scripts/install.sh all
+/path/to/flowforge/scripts/install.sh all
 ```
 
 This installs:
 
-- `workflow/`
-- `agents/`
+- `.flowforge/`
 - `.claude/` when requested
 - `.opencode/` when requested
-- `AGENTS.md` and `.codex/tg-workflow.md` when using `codex` or `all`
+- `AGENTS.md` and `.codex/flowforge.md` when using `codex` or `all`
 
 ## 2. Initialize project configuration
 
-Create `workflow/config.json`:
+Create `.flowforge/config.json`:
 
 ```json
 {
@@ -36,8 +35,18 @@ Create `workflow/config.json`:
     "slug": "your-project"
   },
   "paths": {
-    "docs_root": "docs",
-    "state_root": ".workflow/state"
+    "tool_root": ".flowforge",
+    "state_root": ".flowforge/state"
+  },
+  "docs": {
+    "default_workspace": "default",
+    "workspaces": {
+      "default": {
+        "root": "docs",
+        "scope": ".",
+        "kind": "repository"
+      }
+    }
   },
   "task_backend": {
     "type": "beads"
@@ -64,13 +73,13 @@ docs/proposals
 docs/modules
 docs/architecture
 docs/decisions
-.workflow/state
+.flowforge/state
 ```
 
 Use:
 
 - `workflow/templates/project/AGENTS.md`
-- `workflow/templates/project/workflow/config.json`
+- `.flowforge/config.json` (bootstrapped from the project template)
 - `workflow/templates/docs/`
 
 ## 4. Configure task management
@@ -85,18 +94,18 @@ bd init
 
 ## 5. Configure memory
 
-Local work-restoration state requires no external service. It is stored in `.workflow/state/`.
+Local work-restoration state requires no external service. It is stored in `.flowforge/state/`.
 
-Reusable experience memory is optional. If enabled, configure the provider in `workflow/config.json`.
+Reusable experience memory is optional. If enabled, configure the provider in `.flowforge/config.json`.
 
 ## 6. Start the lifecycle
 
 ```text
-/tg:explore "topic"
-/tg:propose "proposal title"
-/tg:approve CR26052001
-/tg:apply CR26052001
-/tg:archive CR26052001
+/flowforge:explore "topic"
+/flowforge:propose "proposal title"
+/flowforge:approve CR26052001
+/flowforge:apply CR26052001
+/flowforge:archive CR26052001
 ```
 
 ## 7. Create a proposal skeleton
@@ -104,11 +113,11 @@ Reusable experience memory is optional. If enabled, configure the provider in `w
 Use the generator instead of creating proposal files by hand:
 
 ```bash
-scripts/tg-create-proposal.js \
+.flowforge/scripts/flowforge-create-proposal.js \
   --title "Example Proposal" \
-  --source-exploration docs/explorations/example-topic \
-  --archive-target module:docs/modules/example-module:primary \
-  --archive-target architecture:docs/architecture/system-overview.md:secondary
+  --source-exploration explorations/example-topic \
+  --archive-target module:modules/example-module:primary \
+  --archive-target architecture:architecture/system-overview.md:secondary
 ```
 
 This creates `docs/proposals/CRYYMMDDNN-<slug>/` with a valid initial skeleton.
@@ -118,7 +127,7 @@ This creates `docs/proposals/CRYYMMDDNN-<slug>/` with a valid initial skeleton.
 Once the proposal content and archive targets are ready:
 
 ```bash
-scripts/tg-approve-proposal.js CR26052001
+.flowforge/scripts/flowforge-approve-proposal.js CR26052001
 ```
 
 This moves a valid proposal into `approved` state.
@@ -128,7 +137,7 @@ This moves a valid proposal into `approved` state.
 Once `meta.yaml` status is `approved`, apply it:
 
 ```bash
-scripts/tg-apply-proposal.js CR26052001
+.flowforge/scripts/flowforge-apply-proposal.js CR26052001
 ```
 
 For `Beads`, this creates one epic plus tasks from `task-map.md`, links dependencies, and moves the proposal to `active`.
@@ -144,9 +153,9 @@ Start from:
 ## 11. Operate and archive proposals
 
 ```bash
-scripts/tg-add-note.js CR26052001 "Implemented API adapter and updated validation"
-scripts/tg-list-proposals.js
-scripts/tg-archive-proposal.js CR26052001
+.flowforge/scripts/flowforge-add-note.js CR26052001 "Implemented API adapter and updated validation"
+.flowforge/scripts/flowforge-list-proposals.js
+.flowforge/scripts/flowforge-archive-proposal.js CR26052001
 ```
 
 ## 12. Validate proposals
@@ -154,13 +163,13 @@ scripts/tg-archive-proposal.js CR26052001
 Use the built-in checks while operating the workflow:
 
 ```bash
-scripts/tg-validate-proposal.js CR26052001
-scripts/tg-proposal-status.js CR26052001
-scripts/tg-check-archive.js CR26052001
+.flowforge/scripts/flowforge-validate-proposal.js CR26052001
+.flowforge/scripts/flowforge-proposal-status.js CR26052001
+.flowforge/scripts/flowforge-check-archive.js CR26052001
 ```
 
 ## Read next
 
-- [Architecture](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/docs/ARCHITECTURE.md)
-- [Workflow Guide](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/docs/PROPOSAL-WORKFLOW.md)
-- [Lifecycle guide](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/guides/lifecycle.md)
+- [Architecture](ARCHITECTURE.md)
+- [Workflow Guide](PROPOSAL-WORKFLOW.md)
+- [Lifecycle guide](../workflow/guides/lifecycle.md)

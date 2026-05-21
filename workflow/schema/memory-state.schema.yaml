@@ -1,10 +1,11 @@
-schema: tg-workflow/memory-state@v1
+schema: flowforge/memory-state@v2
 description: Local session state contract used to restore active work.
 type: object
 required:
   - session_id
   - updated_at
   - proposal_id
+  - workspace
   - current_focus
   - next_actions
 properties:
@@ -14,7 +15,9 @@ properties:
     type: string
     format: date-time
   proposal_id:
-    type: ["string", "null"]
+    type: [string, "null"]
+  workspace:
+    type: [string, "null"]
   current_focus:
     type: string
   active_files:

@@ -1,6 +1,6 @@
 # Architecture
 
-`tg-workflow` is intentionally split into four layers:
+`FlowForge` is intentionally split into four layers:
 
 1. canonical workflow spec
 2. canonical agent definitions
@@ -15,7 +15,7 @@ Earlier iterations mixed workflow design with Claude/OpenCode implementation det
 
 ### 1. Canonical workflow spec
 
-Lives in [`workflow/`](/Users/qiangbi/develop/projects/Syl/tangram-v2/tg-workflow/workflow/README.md).
+Lives in [`workflow/`](../workflow/README.md).
 
 Contains:
 
@@ -68,7 +68,7 @@ Contains:
 - `docs/modules/`
 - `docs/architecture/`
 - `docs/decisions/`
-- `.workflow/state/`
+- `.flowforge/state/`
 
 ## Data model
 
@@ -81,9 +81,9 @@ Purpose:
 
 Storage:
 
-- `.workflow/state/active-session.json`
-- `.workflow/state/sessions/*.json`
-- `.workflow/state/workstreams/*.json`
+- `.flowforge/state/active-session.json`
+- `.flowforge/state/sessions/*.json`
+- `.flowforge/state/workstreams/*.json`
 
 This layer is operational, not semantic.
 

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repository uses `tg-workflow` as the default design and delivery workflow.
+This repository uses `FlowForge` as the default design and delivery workflow.
 
 ## Expected behavior
 
@@ -11,10 +11,10 @@ This repository uses `tg-workflow` as the default design and delivery workflow.
 
 ## Canonical paths
 
-- Workflow rules: `workflow/guides/`
-- Schemas: `workflow/schema/`
+- Workflow rules: `.flowforge/workflow/guides/`
+- Schemas: `.flowforge/workflow/schema/`
 - Project docs: `docs/`
-- Local work-restoration state: `.workflow/state/`
+- Local work-restoration state: `.flowforge/state/`
 
 ## Default lifecycle
 
@@ -50,12 +50,12 @@ This repository uses `tg-workflow` as the default design and delivery workflow.
 
 ## Validation commands
 
-- `scripts/tg-create-proposal.js --title ... --source-exploration ... --archive-target ...`
-- `scripts/tg-approve-proposal.js <proposal-id|proposal-dir>`
-- `scripts/tg-add-note.js <proposal-id|proposal-dir> <note text>`
-- `scripts/tg-list-proposals.js`
-- `scripts/tg-archive-proposal.js <proposal-id|proposal-dir>`
-- `scripts/tg-apply-proposal.js <proposal-id|proposal-dir>`
-- `scripts/tg-validate-proposal.js <proposal-id|proposal-dir>`
-- `scripts/tg-proposal-status.js <proposal-id|proposal-dir>`
-- `scripts/tg-check-archive.js <proposal-id|proposal-dir>`
+- `.flowforge/scripts/flowforge-create-proposal.js --title ... --source-exploration ... --archive-target ...`
+- `.flowforge/scripts/flowforge-approve-proposal.js <proposal-id|proposal-dir>`
+- `.flowforge/scripts/flowforge-add-note.js <proposal-id|proposal-dir> <note text>`
+- `.flowforge/scripts/flowforge-list-proposals.js`
+- `.flowforge/scripts/flowforge-archive-proposal.js <proposal-id|proposal-dir>`
+- `.flowforge/scripts/flowforge-apply-proposal.js <proposal-id|proposal-dir>`
+- `.flowforge/scripts/flowforge-validate-proposal.js <proposal-id|proposal-dir>`
+- `.flowforge/scripts/flowforge-proposal-status.js <proposal-id|proposal-dir>`
+- `.flowforge/scripts/flowforge-check-archive.js <proposal-id|proposal-dir>`

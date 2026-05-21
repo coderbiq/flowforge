@@ -1,6 +1,6 @@
 # Lifecycle
 
-`tg-workflow` uses a single lifecycle across all platforms:
+`FlowForge` uses a single lifecycle across all platforms:
 
 1. `explore`
 2. `propose`

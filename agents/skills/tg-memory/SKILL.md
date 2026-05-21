@@ -1,7 +1,7 @@
 ---
 name: tg-memory
 description: |
-  Memory and work-restoration skill for tg-workflow.
+  Memory and work-restoration skill for FlowForge.
 
   Load this skill when the user asks about previous decisions, current progress, pending review items, or storing reusable experience.
 ---
@@ -19,9 +19,9 @@ Purpose:
 
 Storage:
 
-- `.workflow/state/active-session.json`
-- `.workflow/state/sessions/*.json`
-- `.workflow/state/workstreams/*.json`
+- `.flowforge/state/active-session.json`
+- `.flowforge/state/sessions/*.json`
+- `.flowforge/state/workstreams/*.json`
 
 Rules:
 
@@ -39,7 +39,7 @@ Provider model:
 
 - use a provider interface
 - `Memory MCP` is a default implementation, not a required hardcoded dependency
-- project tags come from `workflow/config.json`, not from code constants
+- project tags come from `.flowforge/config.json`, not from code constants
 
 Allowed memory types:
 
@@ -51,12 +51,14 @@ Allowed memory types:
 
 ## Configuration
 
-Read `workflow/config.json` for:
+Read `.flowforge/config.json` for:
 
 - `project.id`
 - `project.slug`
 - `paths.state_root`
 - `memory_provider.*`
+
+When installed in a project, this resolves from `.flowforge/config.json`.
 
 If `memory_provider.tags` is absent, derive tags from the configured project identity.
 
