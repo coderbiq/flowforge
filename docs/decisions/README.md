@@ -5,3 +5,4 @@
 - [ADR-001 Deliverable-first task splitting with explicit checkpoints](./ADR-001-task-splitting-deliverable-first.md)
 - [ADR-002 Archived knowledge base as the default exploration baseline](./ADR-002-archived-knowledge-base-as-default-exploration-baseline.md)
 - [ADR-003 Monorepo Document Workspaces](./ADR-003-monorepo-document-workspaces.md)
+- [ADR-004 Installed FlowForge Safe Upgrade](./ADR-004-installed-flowforge-safe-upgrade.md)

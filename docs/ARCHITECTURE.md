@@ -50,10 +50,11 @@ Contains:
 - skill wrappers
 - hooks and plugins
 - adapter-local configuration resolution
+- install and upgrade surfaces that keep managed payloads in sync
 
 Adapter note:
 
-- Claude Code and OpenCode use repo-local command surfaces
+- Claude Code and OpenCode use repo-local command surfaces, including upgrade wrappers
 - Codex uses project `AGENTS.md` plus workflow scripts
 
 Adapters must not invent states, directory structures, or archive semantics.

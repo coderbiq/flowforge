@@ -68,6 +68,7 @@ docs/proposals/<proposal-id>/
 
 - `/flowforge:explore`
 - `/flowforge:propose`
+- `/flowforge:upgrade`
 - `/flowforge:approve`
 - `/flowforge:apply`
 - `/flowforge:archive`

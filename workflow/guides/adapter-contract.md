@@ -11,6 +11,7 @@ Platform integrations must adapt `FlowForge` without redefining workflow behavio
 - load project configuration
 - update local state snapshots
 - call task and memory providers
+- keep install and upgrade entrypoints aligned with the same managed payload rules
 
 Adapters may expose different entry surfaces:
 
@@ -30,6 +31,7 @@ Adapters may expose different entry surfaces:
 
 - `explore(topic)`
 - `propose(exploration_path, title)`
+- `upgrade(target_project)`
 - `apply(proposal_id)`
 - `archive(proposal_id)`
 - `status(proposal_id)`
@@ -58,3 +60,9 @@ Adapters should resolve configuration in this order:
 2. project-local `.flowforge/config.json`
 3. user-level adapter config
 4. built-in defaults
+
+## Upgrade behavior
+
+- Upgrade must preserve project-owned `.flowforge/config.json`
+- Upgrade must preserve `.flowforge/state/`
+- Platform command surfaces should describe the same upgrade boundary as the underlying scripts

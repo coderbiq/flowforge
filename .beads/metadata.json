@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "tg_workflow",
+  "project_id": "93761555-4716-4592-8df6-71e0653d526c"
+}

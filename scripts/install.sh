@@ -28,6 +28,31 @@ info() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 error() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
+sync_dir() {
+  local source="$1"
+  local target="$2"
+  mkdir -p "$target"
+  rsync -a --delete "$source"/ "$target"/
+}
+
+sync_script_bundle() {
+  local source_root="$1"
+  local target_root="$2"
+
+  rm -rf "$target_root"
+  mkdir -p "$target_root/lib"
+  cp "$source_root/flowforge-validate-proposal.js" "$target_root/"
+  cp "$source_root/flowforge-proposal-status.js" "$target_root/"
+  cp "$source_root/flowforge-check-archive.js" "$target_root/"
+  cp "$source_root/flowforge-create-proposal.js" "$target_root/"
+  cp "$source_root/flowforge-apply-proposal.js" "$target_root/"
+  cp "$source_root/flowforge-approve-proposal.js" "$target_root/"
+  cp "$source_root/flowforge-add-note.js" "$target_root/"
+  cp "$source_root/flowforge-list-proposals.js" "$target_root/"
+  cp "$source_root/flowforge-archive-proposal.js" "$target_root/"
+  cp "$source_root/lib/flowforge.js" "$target_root/lib/"
+}
+
 # 安装 Claude Code 配置
 install_claude() {
   local target="${1:-$(pwd)}"
@@ -43,16 +68,16 @@ install_claude() {
   mkdir -p "$target_claude/hooks"
   
   # 复制命令
-  cp -r "$CONFIGS_DIR/claude/commands/flowforge/"* "$target_claude/commands/flowforge/"
+  sync_dir "$CONFIGS_DIR/claude/commands/flowforge" "$target_claude/commands/flowforge"
   info "Copied commands/flowforge/"
   
   # 复制技能
-  cp -r "$AGENTS_DIR/skills/flowforge/"* "$target_claude/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/flowforge-memory/"* "$target_claude/skills/flowforge-memory/"
+  sync_dir "$AGENTS_DIR/skills/flowforge" "$target_claude/skills/flowforge"
+  sync_dir "$AGENTS_DIR/skills/flowforge-memory" "$target_claude/skills/flowforge-memory"
   info "Copied skills/"
   
   # 复制钩子
-  cp -r "$CONFIGS_DIR/claude/hooks/"* "$target_claude/hooks/"
+  sync_dir "$CONFIGS_DIR/claude/hooks" "$target_claude/hooks"
   info "Copied hooks/"
   
   # 复制配置（如果存在）
@@ -80,16 +105,16 @@ install_opencode() {
   mkdir -p "$target_opencode/plugins"
   
   # 复制命令
-  cp -r "$CONFIGS_DIR/opencode/commands/flowforge/"* "$target_opencode/commands/flowforge/"
+  sync_dir "$CONFIGS_DIR/opencode/commands/flowforge" "$target_opencode/commands/flowforge"
   info "Copied commands/flowforge/"
   
   # 复制技能
-  cp -r "$AGENTS_DIR/skills/flowforge/"* "$target_opencode/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/flowforge-memory/"* "$target_opencode/skills/flowforge-memory/"
+  sync_dir "$AGENTS_DIR/skills/flowforge" "$target_opencode/skills/flowforge"
+  sync_dir "$AGENTS_DIR/skills/flowforge-memory" "$target_opencode/skills/flowforge-memory"
   info "Copied skills/"
   
   # 复制插件
-  cp -r "$CONFIGS_DIR/opencode/plugins/"* "$target_opencode/plugins/"
+  sync_dir "$CONFIGS_DIR/opencode/plugins" "$target_opencode/plugins"
   info "Copied plugins/"
   
   # 复制配置（如果存在）
@@ -149,18 +174,9 @@ install_workflow_core() {
   mkdir -p "$target_agents"
   mkdir -p "$target_scripts/lib"
   mkdir -p "$target_adapters"
-  cp -r "$WORKFLOW_DIR/"* "$target_workflow/"
-  cp -r "$AGENTS_DIR/"* "$target_agents/"
-  cp "$SCRIPTS_DIR/flowforge-validate-proposal.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-proposal-status.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-check-archive.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-create-proposal.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-apply-proposal.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-approve-proposal.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-add-note.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-list-proposals.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/flowforge-archive-proposal.js" "$target_scripts/"
-  cp "$SCRIPTS_DIR/lib/flowforge.js" "$target_scripts/lib/"
+  sync_dir "$WORKFLOW_DIR" "$target_workflow"
+  sync_dir "$AGENTS_DIR" "$target_agents"
+  sync_script_bundle "$SCRIPTS_DIR" "$target_scripts"
   chmod +x "$target_scripts"/flowforge-*.js
 
   if [[ ! -f "$target_tool_root/config.json" ]]; then
@@ -171,6 +187,11 @@ install_workflow_core() {
   info "Copied FlowForge core/"
   info "Copied agent definitions/"
   info "Copied workflow scripts/"
+}
+
+upgrade_all() {
+  local target="${1:-$(pwd)}"
+  install_all "$target"
 }
 
 # 自用模式（创建软链接）
@@ -217,27 +238,18 @@ install_global() {
 
   local workflow_global="$HOME/.flowforge"
   mkdir -p "$workflow_global"
-  cp -r "$WORKFLOW_DIR/"* "$workflow_global/"
+  sync_dir "$WORKFLOW_DIR" "$workflow_global"
   mkdir -p "$workflow_global/adapters"
   info "Installed FlowForge core to $workflow_global"
 
   local agents_global="$HOME/.flowforge-agents"
   mkdir -p "$agents_global"
-  cp -r "$AGENTS_DIR/"* "$agents_global/"
+  sync_dir "$AGENTS_DIR" "$agents_global"
   info "Installed agent definitions to $agents_global"
 
   local scripts_global="$HOME/.flowforge-scripts"
   mkdir -p "$scripts_global/lib"
-  cp "$SCRIPTS_DIR/flowforge-validate-proposal.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-proposal-status.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-check-archive.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-create-proposal.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-apply-proposal.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-approve-proposal.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-add-note.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-list-proposals.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/flowforge-archive-proposal.js" "$scripts_global/"
-  cp "$SCRIPTS_DIR/lib/flowforge.js" "$scripts_global/lib/"
+  sync_script_bundle "$SCRIPTS_DIR" "$scripts_global"
   chmod +x "$scripts_global"/flowforge-*.js
   info "Installed FlowForge scripts to $scripts_global"
   
@@ -248,10 +260,10 @@ install_global() {
   mkdir -p "$claude_global/hooks"
   mkdir -p "$claude_global/skills/flowforge"
   
-  cp -r "$CONFIGS_DIR/claude/commands/flowforge/"* "$claude_global/commands/flowforge/"
-  cp -r "$AGENTS_DIR/skills/flowforge/"* "$claude_global/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/flowforge-memory" "$claude_global/skills/"
-  cp -r "$CONFIGS_DIR/claude/hooks/"* "$claude_global/hooks/"
+  sync_dir "$CONFIGS_DIR/claude/commands/flowforge" "$claude_global/commands/flowforge"
+  sync_dir "$AGENTS_DIR/skills/flowforge" "$claude_global/skills/flowforge"
+  sync_dir "$AGENTS_DIR/skills/flowforge-memory" "$claude_global/skills/flowforge-memory"
+  sync_dir "$CONFIGS_DIR/claude/hooks" "$claude_global/hooks"
   info "Installed Claude Code configs to $claude_global"
   
   # OpenCode 全局目录
@@ -261,10 +273,10 @@ install_global() {
   mkdir -p "$opencode_global/plugins"
   mkdir -p "$opencode_global/skills/flowforge"
   
-  cp -r "$CONFIGS_DIR/opencode/commands/flowforge/"* "$opencode_global/commands/flowforge/"
-  cp -r "$AGENTS_DIR/skills/flowforge/"* "$opencode_global/skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/flowforge-memory" "$opencode_global/skills/"
-  cp -r "$CONFIGS_DIR/opencode/plugins/"* "$opencode_global/plugins/"
+  sync_dir "$CONFIGS_DIR/opencode/commands/flowforge" "$opencode_global/commands/flowforge"
+  sync_dir "$AGENTS_DIR/skills/flowforge" "$opencode_global/skills/flowforge"
+  sync_dir "$AGENTS_DIR/skills/flowforge-memory" "$opencode_global/skills/flowforge-memory"
+  sync_dir "$CONFIGS_DIR/opencode/plugins" "$opencode_global/plugins"
   info "Installed OpenCode configs to $opencode_global"
 
   local codex_skills="$HOME/.codex/skills"
@@ -272,8 +284,8 @@ install_global() {
   mkdir -p "$codex_skills"
   mkdir -p "$codex_adapter"
   mkdir -p "$codex_skills/flowforge"
-  cp -r "$AGENTS_DIR/skills/flowforge/"* "$codex_skills/flowforge/"
-  cp -r "$AGENTS_DIR/skills/flowforge-memory" "$codex_skills/"
+  sync_dir "$AGENTS_DIR/skills/flowforge" "$codex_skills/flowforge"
+  sync_dir "$AGENTS_DIR/skills/flowforge-memory" "$codex_skills/flowforge-memory"
   cp "$CONFIGS_DIR/codex/README.md" "$codex_adapter/README.md"
   info "Installed Codex skills to $codex_skills"
   
@@ -290,11 +302,13 @@ show_help() {
   echo "  $0 opencode [path]  只安装 OpenCode 配置到指定项目"
   echo "  $0 codex [path]     安装 Codex 项目适配到指定项目"
   echo "  $0 all [path]       安装 workflow core + 全部平台配置到指定项目"
+  echo "  $0 upgrade [path]   升级 workflow core + 全部平台配置到指定项目"
   echo "  $0 self             FlowForge 自用（创建软链接）"
   echo "  $0 global           全局安装到用户目录"
   echo ""
   echo "示例："
   echo "  $0 claude                          # 安装 Claude Code 配置到当前目录"
+  echo "  $0 upgrade /path/to/my-project     # 升级已安装的 FlowForge"
   echo "  $0 codex /path/to/my-project       # 安装 Codex 适配到指定项目"
   echo "  $0 self                            # FlowForge 自用模式"
   echo ""
@@ -313,6 +327,9 @@ case "${1:-help}" in
     ;;
   all)
     install_all "${2:-$(pwd)}"
+    ;;
+  upgrade)
+    upgrade_all "${2:-$(pwd)}"
     ;;
   self)
     install_self

@@ -23,6 +23,18 @@ This installs:
 - `.opencode/` when requested
 - `AGENTS.md` and `.codex/flowforge.md` when using `codex` or `all`
 
+If the project already has FlowForge installed, use upgrade mode instead of reinstalling from scratch:
+
+```bash
+cd your-project
+/path/to/flowforge/scripts/install.sh upgrade
+```
+
+Upgrade mode refreshes the managed workflow payload and platform command surfaces while preserving:
+
+- `.flowforge/config.json`
+- `.flowforge/state/`
+
 ## 2. Initialize project configuration
 
 Create `.flowforge/config.json`:
@@ -139,6 +151,7 @@ If one user needs different tokens for different projects, use the user-level co
 ```text
 /flowforge:explore "topic"
 /flowforge:propose "proposal title"
+/flowforge:upgrade
 /flowforge:approve CR26052001
 /flowforge:apply CR26052001
 /flowforge:archive CR26052001
