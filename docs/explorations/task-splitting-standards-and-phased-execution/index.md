@@ -1,6 +1,6 @@
 # 任务拆分标准与大型提案分阶段执行
 
-- Status: active
+- Status: archived
 - Question: 任务拆分应该有哪些标准，大型提案如何分阶段执行任务和跟踪？
 - Owner: Codex
 - Created: 2026-05-21T00:00:00+08:00
@@ -29,7 +29,7 @@
 
 ## Candidate decisions
 
-- [D-001](./decisions/D-001-task-splitting-should-use-deliverable-first-criteria.md) 以“可交付成果优先”的标准定义任务拆分方式。
+- [ADR-001](../../decisions/ADR-001-task-splitting-deliverable-first.md) 已归档为稳定决策记录。
 
 ## Open questions
 
@@ -37,6 +37,8 @@
 - 大型提案是否需要显式阶段字段，还是只靠任务分组和依赖关系表达？
 - 阶段状态应由 proposal 记录，还是由外部任务后端推导？
 
-## Proposed next step
+## Archived result
 
-先把任务拆分标准和阶段模型写成可讨论的规范，再决定是否需要扩展 task map 模板或任务后端约定。
+- `workflow/guides/task-splitting.md` 已成为 canonical 任务拆分规范。
+- `workflow/templates/docs/proposals/task-map.md` 已更新为 milestone-first 模板。
+- 相关稳定决策已归档到 [ADR-001](../../decisions/ADR-001-task-splitting-deliverable-first.md)。
