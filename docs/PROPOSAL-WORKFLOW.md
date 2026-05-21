@@ -67,12 +67,12 @@ Platform commands are wrappers. They should load workflow guidance instead of ow
 
 ## Script surface
 
-- `scripts/flowforge-create-proposal.js`
-- `scripts/flowforge-approve-proposal.js`
-- `scripts/flowforge-apply-proposal.js`
-- `scripts/flowforge-add-note.js`
-- `scripts/flowforge-list-proposals.js`
-- `scripts/flowforge-archive-proposal.js`
-- `scripts/flowforge-validate-proposal.js`
-- `scripts/flowforge-proposal-status.js`
-- `scripts/flowforge-check-archive.js`
+- `.flowforge/scripts/flowforge-create-proposal.js`
+- `.flowforge/scripts/flowforge-approve-proposal.js`
+- `.flowforge/scripts/flowforge-apply-proposal.js`
+- `.flowforge/scripts/flowforge-add-note.js`
+- `.flowforge/scripts/flowforge-list-proposals.js`
+- `.flowforge/scripts/flowforge-archive-proposal.js`
+- `.flowforge/scripts/flowforge-validate-proposal.js`
+- `.flowforge/scripts/flowforge-proposal-status.js`
+- `.flowforge/scripts/flowforge-check-archive.js`

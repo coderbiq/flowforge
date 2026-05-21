@@ -8,9 +8,9 @@ Use the `FlowForge` skill to create or revise a proposal.
 ## 执行流程
 
 1. Collect title, source exploration, archive targets, and task backend
-2. Run `scripts/flowforge-create-proposal.js`
+2. Run `.flowforge/scripts/flowforge-create-proposal.js`
 3. Review and refine `proposal.md`, `design.md`, and `task-map.md`
-4. Validate with `scripts/flowforge-validate-proposal.js`
+4. Validate with `.flowforge/scripts/flowforge-validate-proposal.js`
 
 ## 触发场景
 

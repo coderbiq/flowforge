@@ -10,7 +10,7 @@ Use the `FlowForge` skill to check proposal status.
 - 提案基本信息
 - 任务进度
 - 相关记忆
-- `scripts/flowforge-proposal-status.js` summary
+- `.flowforge/scripts/flowforge-proposal-status.js` summary
 
 ## 参数
 

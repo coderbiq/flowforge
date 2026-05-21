@@ -9,7 +9,7 @@ Use the `FlowForge` skill to approve a proposal.
 
 1. Validate `meta.yaml`, `design.md`, and `task-map.md`
 2. Require proposal status `draft` or `proposed`
-3. Run `scripts/flowforge-approve-proposal.js`
+3. Run `.flowforge/scripts/flowforge-approve-proposal.js`
 4. Confirm proposal state changed to `approved`
 
 ## 参数

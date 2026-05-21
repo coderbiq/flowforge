@@ -9,8 +9,8 @@ Use the `FlowForge` skill to archive a proposal.
 
 1. Confirm the proposal is implemented
 2. Confirm backend tasks are closed
-3. Run `scripts/flowforge-check-archive.js`
-4. Run `scripts/flowforge-archive-proposal.js`
+3. Run `.flowforge/scripts/flowforge-check-archive.js`
+4. Run `.flowforge/scripts/flowforge-archive-proposal.js`
 5. Confirm archive targets were updated and the proposal is `archived`
 
 ## 参数

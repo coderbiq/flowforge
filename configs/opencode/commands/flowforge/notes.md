@@ -7,7 +7,7 @@ Use the `FlowForge` skill to add implementation notes.
 
 ## 执行流程
 
-1. Run `scripts/flowforge-add-note.js`
+1. Run `.flowforge/scripts/flowforge-add-note.js`
 2. If scope changed, update proposal/design artifacts too
 
 ## 参数

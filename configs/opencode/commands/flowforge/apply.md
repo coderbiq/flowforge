@@ -9,7 +9,7 @@ Use the `FlowForge` skill to apply a proposal.
 
 1. Read and validate `meta.yaml` and `task-map.md`
 2. Require proposal status `approved`
-3. Run `scripts/flowforge-apply-proposal.js`
+3. Run `.flowforge/scripts/flowforge-apply-proposal.js`
 4. Confirm backend tasks and proposal state changed to `active`
 
 ## 参数

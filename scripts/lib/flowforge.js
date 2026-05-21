@@ -280,6 +280,39 @@ function parseTaskMap(text) {
   return result;
 }
 
+function parseExplorationIndex(text) {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const result = {
+    title: null,
+    status: null,
+    date: null,
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const titleMatch = trimmed.match(/^#\s+(.+)$/);
+    if (titleMatch && !result.title) {
+      result.title = titleMatch[1].trim();
+      continue;
+    }
+
+    const dateMatch = trimmed.match(/^\*\*日期\*\*:\s*(.+)$/);
+    if (dateMatch && !result.date) {
+      result.date = dateMatch[1].trim();
+      continue;
+    }
+
+    const statusMatch = trimmed.match(/^\*\*状态\*\*:\s*(.+)$/);
+    if (statusMatch && !result.status) {
+      result.status = statusMatch[1].trim();
+    }
+  }
+
+  return result;
+}
+
 function parseCliArgs(argv) {
   const args = { _: [] };
 
@@ -1594,6 +1627,7 @@ function listProposalSummaries(cwd = process.cwd(), workspaceName = null) {
     .map((proposalDir) => {
       const context = loadProposalContext(proposalDir, cwd);
       return {
+        kind: 'proposal',
         id: context.meta.id,
         title: context.meta.title,
         status: context.meta.status,
@@ -1604,6 +1638,33 @@ function listProposalSummaries(cwd = process.cwd(), workspaceName = null) {
         archive_targets: context.meta.archive_targets || [],
       };
     });
+}
+
+function listExplorationSummaries(cwd = process.cwd(), workspaceName = null) {
+  const resolvedWorkspace = workspaceName ? getDocsWorkspace(workspaceName, cwd) : resolveWorkspaceForCwd(cwd);
+  const explorationsRoot = path.join(getWorkspaceDocsRoot(resolvedWorkspace.name, cwd), 'explorations');
+  if (!fileExists(explorationsRoot)) return [];
+
+  const summaries = [];
+  for (const entry of fs.readdirSync(explorationsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const explorationDir = path.join(explorationsRoot, entry.name);
+    const indexPath = path.join(explorationDir, 'index.md');
+    if (!fileExists(indexPath)) continue;
+
+    const parsed = parseExplorationIndex(readFileRequired(indexPath));
+    summaries.push({
+      kind: 'exploration',
+      title: parsed.title || entry.name,
+      status: parsed.status || '进行中',
+      workspace: resolvedWorkspace.name,
+      exploration_dir: explorationDir,
+      index_path: indexPath,
+      date: parsed.date || null,
+    });
+  }
+
+  return summaries.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN'));
 }
 
 module.exports = {
@@ -1628,6 +1689,7 @@ module.exports = {
   getWorkspaceDocsRoot,
   isProposalId,
   listProposalSummaries,
+  listExplorationSummaries,
   listDocsWorkspaces,
   loadProposalContext,
   nowIso,
