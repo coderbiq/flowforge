@@ -12,6 +12,17 @@
 
 安装到工程中的 FlowForge 资源统一收敛到 `.flowforge/`，避免脚本、配置和适配文件直接污染项目根目录。
 
+## 最终知识库维护
+
+大型项目的最终文档不能只记录“当时怎么做”，还必须支持后续持续维护。因此提案需要把知识的流转方式一起设计进去：
+
+- 以模块 README、架构总览或 ADR 作为 canonical entry point，保证读者始终有一个稳定入口
+- 需要修改已有事实时，优先在原文档对应 section 做 in-place 更新
+- 需要补充新知识时，优先追加到与知识主题最接近的现有文档，而不是平铺到新文档里
+- 当知识被拆分到多个子文档时，必须明确同步边界，避免 reader path 分裂
+- 被修正、替换或废弃的事实应保留在 `history.md`、changelog 或归档备注中，确保可追溯
+- 归档完成后，proposal 记录的是知识库的更新方式，最终产物才是长期维护的 canonical corpus
+
 ## 正式命名
 
 - 产品名称：`FlowForge`
@@ -187,7 +198,7 @@ archive_targets:
   - key: "monorepo-workspaces-adr"
     type: "decision"
     workspace: "root"
-    ref: "decisions/ADR-monorepo-document-workspaces.md"
+    ref: "decisions/ADR-003-monorepo-document-workspaces.md"
     role: "secondary"
 ```
 

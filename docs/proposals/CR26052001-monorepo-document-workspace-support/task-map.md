@@ -153,3 +153,18 @@
   - 单 workspace 项目的回归验证点被列出。
   - 典型 monorepo 的 create/list/status/archive 验证路径被列出。
   - 歧义 scope、跨 workspace 归档、`v1/v2` 读取边界和 `workspace + ref + key` 解析规则的验证点被列出。
+
+### TASK-011
+
+- Title: 定义最终知识库的维护和合并规则
+- Outcome: 复杂项目的最终文档能够持续增量维护，既能反映新知识，也能保留历史上下文。
+- Priority: P1
+- Capability refs: CAP-002, CAP-004
+- Decision refs: D-002
+- Archive target refs: monorepo-workspaces-architecture, workflow-core-module
+- Depends on: TASK-009, TASK-010
+- Completion definition:
+  - 提案和归档文档明确了“修改已有内容”时的 in-place 更新、补充、替换和历史保留规则。
+  - 复杂模块的 canonical entry point、子文档拆分和同步边界被正式定义。
+  - 被替换或废弃的事实有明确的历史保留位置，而不是静默丢失。
+  - 归档操作被定义为一次知识库维护动作，而不仅是文件写入动作。

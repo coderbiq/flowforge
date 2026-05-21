@@ -41,8 +41,29 @@ function parseArchiveTarget(raw, index) {
   };
 }
 
+function parseCanonicalCorpus(raw, index) {
+  const parts = String(raw).split(':');
+  if (parts.length < 2) {
+    throw new Error(`invalid --canonical-corpus value at item ${index + 1}: ${raw}`);
+  }
+
+  const [typeSpec, ref, maybeRole] = parts;
+  const [type, workspace] = typeSpec.includes('@') ? typeSpec.split('@', 2) : [typeSpec, undefined];
+  if (!type || !ref) {
+    throw new Error(`invalid --canonical-corpus value at item ${index + 1}: ${raw}`);
+  }
+
+  const role = maybeRole === 'primary' ? 'primary' : 'secondary';
+  return {
+    type,
+    workspace,
+    ref,
+    role,
+  };
+}
+
 function usage() {
-  console.error('Usage: scripts/flowforge-create-proposal.js --title <title> --source-exploration <ref> --archive-target <type[@workspace]:ref[:role[:key]]> [--archive-target ...] [--workspace <workspace>] [--scope workspace|cross-workspace|monorepo] [--owner <owner>] [--task-backend beads|github|linear|none] [--tag <tag>] [--slug <slug>] [--status draft|proposed|approved]');
+  console.error('Usage: scripts/flowforge-create-proposal.js --title <title> --source-exploration <ref> --archive-target <type[@workspace]:ref[:role[:key]]> [--archive-target ...] [--canonical-corpus <type[@workspace]:ref[:role]>] [--canonical-corpus ...] [--workspace <workspace>] [--scope workspace|cross-workspace|monorepo] [--owner <owner>] [--task-backend beads|github|linear|none] [--tag <tag>] [--slug <slug>] [--status draft|proposed|approved]');
 }
 
 function main() {
@@ -50,6 +71,7 @@ function main() {
   const title = args.title;
   const sourceExploration = args['source-exploration'];
   const archiveTargetValues = toArray(args['archive-target']);
+  const canonicalCorpusValues = toArray(args['canonical-corpus']);
 
   if (!title || !sourceExploration || archiveTargetValues.length === 0) {
     usage();
@@ -58,6 +80,7 @@ function main() {
 
   try {
     const archiveTargets = archiveTargetValues.map(parseArchiveTarget);
+    const canonicalCorpus = canonicalCorpusValues.map(parseCanonicalCorpus);
     const created = createProposalSkeleton({
       title,
       slug: args.slug,
@@ -69,6 +92,7 @@ function main() {
       status: args.status,
       tags: toArray(args.tag),
       archiveTargets,
+      canonicalCorpus: canonicalCorpus.length > 0 ? canonicalCorpus : undefined,
     }, process.cwd());
 
     const context = loadProposalContext(created.proposalDir, process.cwd());
@@ -91,6 +115,7 @@ function main() {
       proposal_dir: path.relative(process.cwd(), created.proposalDir),
       status: created.meta.status,
       task_backend: created.meta.task_backend,
+      canonical_corpus: created.meta.canonical_corpus,
       archive_targets: created.meta.archive_targets,
     }, null, 2));
   } catch (error) {

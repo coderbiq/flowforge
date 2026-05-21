@@ -70,6 +70,7 @@
 - 命令支持单 workspace 解析、按 workspace 查询和全 workspace 查询
 - 安装后的 FlowForge 资源不再散落在项目根目录，而是统一位于 `.flowforge/`
 - 提案、设计、模板、安装说明和 adapter 入口统一使用 `FlowForge` 名称
+- 大型模块的最终知识库具备明确的维护规则，能在更新已有内容时保留历史上下文而不丢失可追溯性
 
 ## 命名变更范围
 
@@ -86,5 +87,15 @@
   - 该变更属于 workflow 的跨项目架构模型调整
 - Secondary: `docs/modules/workflow-core/`
   - 需要同步沉淀 workflow-core 的运行时与配置行为
-- Secondary: `docs/decisions/ADR-monorepo-document-workspaces.md`
+- Secondary: `docs/decisions/ADR-003-monorepo-document-workspaces.md`
   - 需要形成稳定 ADR，记录文档放置与解析模型
+
+## 最终知识库维护
+
+本提案不只关心最终文档写到哪里，也关心最终文档如何持续维护：
+
+- 读者入口应保持稳定，通常由模块 README、架构总览或 ADR 承担
+- 当已有事实被修正时，优先在原文档中更新对应 section，而不是在新文档里重复一份旧事实
+- 当知识被拆分到多个子文档时，必须在提案中说明同步边界，避免 reader path 断裂
+- 被替换或废弃的事实应保留到 history、changelog 或 archived note 中
+- 归档完成后，canonical corpus 应成为后续探索和后续提案的默认 baseline

@@ -10,6 +10,11 @@
 
 Describe the problem, constraints, and why this exploration exists.
 
+## Canonical corpus consulted
+
+- Existing modules, architecture docs, and ADRs relevant to the topic
+- Any prior proposal or exploration that already covers the same area
+
 ## Current understanding
 
 - Key observation

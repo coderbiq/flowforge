@@ -4,4 +4,8 @@
 
 ## 进行中
 
+当前无进行中提案。
+
+## 已归档
+
 - [CR26052001 Monorepo 文档工作区支持](./CR26052001-monorepo-document-workspace-support/proposal.md)

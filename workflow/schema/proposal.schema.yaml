@@ -65,6 +65,22 @@ properties:
           type: string
         ref:
           type: string
+  canonical_corpus:
+    type: array
+    items:
+      type: object
+      required: [workspace, ref, type]
+      properties:
+        workspace:
+          type: string
+        ref:
+          type: string
+        type:
+          type: string
+          enum: [module, architecture, decision]
+        role:
+          type: string
+          enum: [primary, secondary]
   owner:
     type: string
   task_backend:

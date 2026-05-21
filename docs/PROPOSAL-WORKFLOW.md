@@ -53,6 +53,16 @@ docs/proposals/<proposal-id>/
 - Module change: primary target in `docs/modules/`
 - Cross-cutting or system design: primary target in `docs/architecture/`
 - Stable architectural decision: ADR in `docs/decisions/`
+- The archived knowledge base is the default reference corpus for future explorations.
+- Archive is also the point where existing final docs are reconciled, not just appended to.
+- If a change replaces or narrows an existing fact, the final doc should preserve a trace of the older fact in a history or changelog section.
+
+## Proposal behavior
+
+- Proposals start from the canonical corpus and record deltas against it.
+- New proposals should identify the existing modules, architecture docs, and ADRs that form the baseline for the change.
+- Proposal creation may infer the baseline corpus from archive targets and same-type final docs in the workspace, with explicit overrides for broader review sets.
+- For complex modules, proposals should say which canonical doc remains the entry point and which subdocs carry the detailed knowledge.
 
 ## Command surface
 

@@ -12,7 +12,10 @@
 
 ## 当前重点
 
-- [Monorepo 文档工作区支持](./explorations/monorepo-document-workspaces/index.md)
-- [Task Splitting canonical guide](../workflow/guides/task-splitting.md)
-- [提案归档时生成模块和架构文档的结构](./explorations/proposal-archive-document-structure/index.md)
+- [Monorepo Document Workspaces](./architecture/monorepo-document-workspaces.md)
+- [workflow-core](./modules/workflow-core/README.md)
+- [Monorepo Document Workspaces ADR](./decisions/ADR-003-monorepo-document-workspaces.md)
 - [CR26052001 Monorepo 文档工作区支持](./proposals/CR26052001-monorepo-document-workspace-support/proposal.md)
+- [Task Splitting canonical guide](../workflow/guides/task-splitting.md)
+- [Monorepo 文档工作区支持](./explorations/monorepo-document-workspaces/index.md)
+- [提案归档时生成模块和架构文档的结构](./explorations/proposal-archive-document-structure/index.md)

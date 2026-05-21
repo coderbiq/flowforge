@@ -43,6 +43,7 @@ This repository uses `FlowForge` as the default design and delivery workflow.
 - Module-scoped changes archive to `docs/modules/`
 - Cross-cutting changes archive to `docs/architecture/`
 - Stable architectural decisions should also produce an ADR in `docs/decisions/`
+- The archived docs corpus is the default baseline for future exploration; prefer reading it before opening new exploratory threads.
 
 ## When in doubt
 

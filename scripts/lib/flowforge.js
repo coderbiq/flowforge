@@ -830,6 +830,48 @@ function validateProposalContext(context, cwd = process.cwd()) {
       }
     }
 
+    const targetTypeWorkspacePairs = new Set();
+    for (const target of meta.archive_targets || []) {
+      const targetType = target?.type;
+      const targetWorkspace = target?.workspace;
+      if (!targetType || !targetWorkspace || !ARCHIVE_TARGET_TYPES.has(targetType)) continue;
+      const key = `${targetWorkspace}:${targetType}`;
+      if (targetTypeWorkspacePairs.has(key)) continue;
+      targetTypeWorkspacePairs.add(key);
+      const existingDocs = scanWorkspaceDocsForCanonicalCorpus(targetWorkspace, cwd, new Set([targetType]));
+      if (existingDocs.length === 0) {
+        warnings.push(`no existing canonical corpus docs found for ${targetWorkspace}:${targetType}; this proposal will establish the baseline`);
+      }
+    }
+
+    if (meta.canonical_corpus !== undefined) {
+      if (!Array.isArray(meta.canonical_corpus)) {
+        errors.push('meta.yaml canonical_corpus must be an array when present');
+      } else {
+        for (const entry of meta.canonical_corpus) {
+          if (!entry?.workspace) errors.push('canonical corpus workspace is required');
+          if (!entry?.ref) errors.push('canonical corpus ref is required');
+          if (!entry?.type) errors.push('canonical corpus type is required');
+          if (entry?.type && !ARCHIVE_TARGET_TYPES.has(entry.type)) {
+            errors.push(`invalid canonical corpus type: ${entry.type}`);
+          }
+          if (entry?.workspace && workspaceNames.size > 0 && !workspaceNames.has(entry.workspace)) {
+            errors.push(`unknown canonical corpus workspace: ${entry.workspace}`);
+          }
+          if (entry?.ref && path.isAbsolute(entry.ref)) {
+            errors.push(`canonical corpus ref must be relative: ${entry.ref}`);
+          }
+          if (entry?.workspace && entry?.ref) {
+            const corpusRoot = getWorkspaceDocsRoot(entry.workspace, cwd);
+            const corpusPath = path.join(corpusRoot, entry.ref);
+            if (!fileExists(corpusPath)) {
+              errors.push(`canonical corpus path does not exist locally: ${entry.workspace}:${entry.ref}`);
+            }
+          }
+        }
+      }
+    }
+
     if (!Array.isArray(meta.archive_targets) || meta.archive_targets.length === 0) {
       errors.push('meta.yaml must define at least one archive target');
     } else {
@@ -1117,6 +1159,136 @@ function archiveTargetRef(target) {
   return `${target?.type || 'unknown'}:${path.basename(target?.path || 'unknown')}`;
 }
 
+function normalizeCanonicalCorpusEntry(entry, workspaceName) {
+  if (!entry) return null;
+  const workspace = entry.workspace || workspaceName;
+  const ref = entry.ref || entry.path;
+  const type = entry.type;
+  if (!workspace || !ref || !type) return null;
+  return {
+    workspace,
+    ref,
+    type,
+    role: entry.role || 'secondary',
+  };
+}
+
+function appendCanonicalCorpusEntries(target, entries, workspaceName) {
+  const seen = new Set(target.map((entry) => `${entry.workspace}:${entry.type}:${entry.ref}:${entry.role}`));
+  for (const rawEntry of entries || []) {
+    const entry = normalizeCanonicalCorpusEntry(rawEntry, workspaceName);
+    if (!entry) continue;
+    const key = `${entry.workspace}:${entry.type}:${entry.ref}:${entry.role}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    target.push(entry);
+  }
+  return target;
+}
+
+function getCanonicalCorpusTypesForArchiveTargets(archiveTargets) {
+  return new Set((archiveTargets || [])
+    .map((target) => target?.type)
+    .filter((type) => ARCHIVE_TARGET_TYPES.has(type)));
+}
+
+function scanWorkspaceDocsForCanonicalCorpus(workspaceName, cwd = process.cwd(), allowedTypes = null) {
+  const workspaceRoot = getWorkspaceDocsRoot(workspaceName, cwd);
+  const corpus = [];
+  const typeAllowed = (type) => !allowedTypes || allowedTypes.has(type);
+
+  const modulesRoot = path.join(workspaceRoot, 'modules');
+  if (typeAllowed('module') && fileExists(modulesRoot)) {
+    for (const entry of fs.readdirSync(modulesRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      corpus.push({
+        workspace: workspaceName,
+        ref: path.join('modules', entry.name),
+        type: 'module',
+        role: 'secondary',
+      });
+    }
+  }
+
+  const architectureRoot = path.join(workspaceRoot, 'architecture');
+  if (typeAllowed('architecture') && fileExists(architectureRoot)) {
+    for (const entry of fs.readdirSync(architectureRoot, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+      corpus.push({
+        workspace: workspaceName,
+        ref: path.join('architecture', entry.name),
+        type: 'architecture',
+        role: 'secondary',
+      });
+    }
+  }
+
+  const decisionsRoot = path.join(workspaceRoot, 'decisions');
+  if (typeAllowed('decision') && fileExists(decisionsRoot)) {
+    for (const entry of fs.readdirSync(decisionsRoot, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+      corpus.push({
+        workspace: workspaceName,
+        ref: path.join('decisions', entry.name),
+        type: 'decision',
+        role: 'secondary',
+      });
+    }
+  }
+
+  return corpus;
+}
+
+function sortCanonicalCorpusEntries(entries) {
+  return [...entries].sort((a, b) => {
+    const aKey = `${a.workspace}:${a.type}:${a.ref}:${a.role}`;
+    const bKey = `${b.workspace}:${b.type}:${b.ref}:${b.role}`;
+    return aKey.localeCompare(bKey);
+  });
+}
+
+function renderCanonicalCorpusList(entries, proposalDir, cwd = process.cwd()) {
+  if (!entries || entries.length === 0) {
+    return '- <none>';
+  }
+
+  const seen = new Set();
+  const lines = [];
+
+  for (const entry of sortCanonicalCorpusEntries(entries)) {
+    const key = `${entry.workspace}:${entry.type}:${entry.ref}:${entry.role || 'secondary'}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const docsRoot = getWorkspaceDocsRoot(entry.workspace, cwd);
+    const absolutePath = path.join(docsRoot, entry.ref);
+    const relativeLink = path.relative(proposalDir, absolutePath).split(path.sep).join('/');
+    const label = `${entry.type}${entry.role ? `/${entry.role}` : ''}`;
+    lines.push(`- ${label} @ ${entry.workspace}: [${entry.ref}](${relativeLink})`);
+  }
+
+  return lines.join('\n');
+}
+
+function renderKnowledgeImpact(entries) {
+  if (!entries || entries.length === 0) {
+    return [
+      '- What is reused from the canonical corpus: 0 baseline docs reviewed; this proposal establishes the initial baseline',
+      '- What changes in the canonical corpus: <proposal-specific edits to formal docs>',
+      '- What new material must be added: <new module, architecture, or ADR content>',
+    ].join('\n');
+  }
+
+  const modules = entries.filter((entry) => entry.type === 'module').length;
+  const architecture = entries.filter((entry) => entry.type === 'architecture').length;
+  const decisions = entries.filter((entry) => entry.type === 'decision').length;
+  return [
+    `- What is reused from the canonical corpus: ${modules + architecture + decisions} baseline doc(s) reviewed`,
+    '- What changes in the canonical corpus: <proposal-specific edits to formal docs>',
+    '- What new material must be added: <new module, architecture, or ADR content>',
+  ].join('\n');
+}
+
+
 function getDefaultOwner() {
   const fromGit = runCommand('git', ['config', 'user.name'], process.cwd(), 5000);
   if (fromGit.ok && fromGit.stdout.trim()) return fromGit.stdout.trim();
@@ -1164,6 +1336,11 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
 
   ensureDir(proposalDir);
 
+  const canonicalCorpus = [];
+  appendCanonicalCorpusEntries(canonicalCorpus, options.canonicalCorpus || [], workspaceName);
+  const archiveTypes = getCanonicalCorpusTypesForArchiveTargets(archiveTargets);
+  appendCanonicalCorpusEntries(canonicalCorpus, scanWorkspaceDocsForCanonicalCorpus(workspaceName, cwd, archiveTypes), workspaceName);
+
   const meta = {
     schema_version: 'v2',
     id,
@@ -1175,6 +1352,7 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
     workspace: workspaceName,
     scope: options.scope || 'workspace',
     source_explorations: sourceExplorations,
+    canonical_corpus: canonicalCorpus,
     owner,
     task_backend: taskBackend,
     task_epic_id: null,
@@ -1197,6 +1375,8 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
     'CR20260520': id,
     'CR26052001': id,
     '- Backend: beads': `- Backend: ${taskBackend}`,
+    '<Canonical corpus reviewed>': renderCanonicalCorpusList(canonicalCorpus, proposalDir, cwd),
+    '<Knowledge impact>': renderKnowledgeImpact(canonicalCorpus),
     'module:example-module': primaryRef,
     '2026-05-20': createdAt.slice(0, 10),
   };

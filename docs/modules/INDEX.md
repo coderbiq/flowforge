@@ -7,6 +7,4 @@
 - `workflow/templates/docs/modules/`
 - `workflow/guides/archive-rules.md`
 
-当前仓库不保留模块示例。
-
-针对当前 monorepo 工作流探索，尚未产生模块归档输出。
+- [workflow-core](./workflow-core/README.md)

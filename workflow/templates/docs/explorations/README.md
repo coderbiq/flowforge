@@ -15,3 +15,10 @@ docs/explorations/<slug>/
 ```
 
 Use `index.md` as the main reading surface.
+
+When starting a new exploration, review the existing canonical corpus first:
+
+- relevant module docs
+- relevant architecture docs
+- relevant ADRs
+- earlier proposals or explorations in the same area

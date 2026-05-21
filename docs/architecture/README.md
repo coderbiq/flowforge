@@ -2,4 +2,4 @@
 
 这里归档跨模块和系统级设计结果。
 
-当前 monorepo 工作流变更仍处于提案阶段，尚未归档到这里。
+- [Monorepo Document Workspaces](./monorepo-document-workspaces.md)

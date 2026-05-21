@@ -10,6 +10,10 @@ State the problem or opportunity.
 
 Summarize the relevant findings and constraints.
 
+### Canonical corpus reviewed
+
+<Canonical corpus reviewed>
+
 ### Success criteria
 
 - Observable success criterion
@@ -25,6 +29,13 @@ Summarize the relevant findings and constraints.
 
 - CAP-001 Capability statement
 
+### Delta from canonical corpus
+
+- New knowledge: <facts newly established by the proposal>
+- Changed knowledge: <facts that replace existing canonical content>
+- Reused knowledge: <facts already covered by the canonical corpus>
+- Maintenance strategy: <which existing docs are updated in place, which sections are appended, and where historical facts are preserved>
+
 ## Delivery phases
 
 - Phase 1: <milestone outcome>
@@ -35,6 +46,7 @@ Summarize the relevant findings and constraints.
 
 - Affected modules or systems
 - Migration or rollout implications
+- Canonical doc entry point and any subdocs that must stay synchronized
 
 ## Archive targets
 

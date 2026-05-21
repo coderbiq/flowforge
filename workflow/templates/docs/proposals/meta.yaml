@@ -10,6 +10,11 @@ scope: workspace
 source_explorations:
   - workspace: default
     ref: explorations/example-topic
+canonical_corpus:
+  - workspace: default
+    ref: modules/example-module
+    type: module
+    role: primary
 owner: your-name
 task_backend: beads
 task_epic_id: null

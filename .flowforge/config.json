@@ -1,0 +1,27 @@
+{
+  "project": {
+    "id": "tg-workflow",
+    "name": "tg-workflow",
+    "slug": "tg-workflow"
+  },
+  "paths": {
+    "tool_root": ".flowforge",
+    "state_root": ".flowforge/state"
+  },
+  "docs": {
+    "default_workspace": "default",
+    "workspaces": {
+      "default": {
+        "root": "docs",
+        "scope": ".",
+        "kind": "repository"
+      }
+    }
+  },
+  "task_backend": {
+    "type": "beads"
+  },
+  "memory_provider": {
+    "enabled": false
+  }
+}
