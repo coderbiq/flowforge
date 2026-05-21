@@ -49,3 +49,4 @@
 - Adapters may store additional runtime-only settings outside this file.
 - For per-user memory authentication, prefer `FLOWFORGE_MEMORY_ENDPOINT` and `FLOWFORGE_MEMORY_API_KEY`.
 - `OPENCODE_MEMORY_*` remains accepted as a legacy alias during migration.
+- User-level memory overrides can be stored at `~/.config/flowforge/memory.json` and keyed by project slug or id.

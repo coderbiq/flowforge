@@ -109,6 +109,29 @@ Platform-specific aliases are also supported for compatibility:
 - OpenCode: `OPENCODE_FLOWFORGE_MEMORY_ENDPOINT`, `OPENCODE_FLOWFORGE_MEMORY_API_KEY`
 - Legacy alias: `OPENCODE_MEMORY_ENDPOINT`, `OPENCODE_MEMORY_API_KEY`
 
+If one user needs different tokens for different projects, use the user-level config at `~/.config/flowforge/memory.json`:
+
+```json
+{
+  "memory_provider": {
+    "endpoint": "http://127.0.0.1:8000"
+  },
+  "projects": {
+    "project-a": {
+      "memory_provider": {
+        "apiKey": "token-a"
+      }
+    },
+    "project-b": {
+      "memory_provider": {
+        "endpoint": "https://memory.example.com",
+        "apiKey": "token-b"
+      }
+    }
+  }
+}
+```
+
 ## 6. Start the lifecycle
 
 ```text

@@ -10,6 +10,9 @@ function resolveEnv(...names) {
   return undefined
 }
 
+const SHARED_USER_CONFIG_PATH = path.join(homedir(), ".config", "flowforge", "memory.json")
+const LEGACY_USER_CONFIG_PATH = path.join(homedir(), ".config", "opencode", "flowforge-memory-plugin.json")
+
 const DEFAULT_CONFIG = {
   project: {
     id: null,
@@ -54,6 +57,52 @@ function mergeConfig(base, overrides = {}) {
   }
 }
 
+async function readJsonIfExists(filePath) {
+  try {
+    const raw = await readFile(filePath, "utf8")
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+function getProjectKeys(project, fallbackSlug) {
+  return [...new Set([
+    project?.slug,
+    project?.id,
+    fallbackSlug,
+  ].filter(Boolean))]
+}
+
+function mergeMemoryProvider(base, overrides = {}) {
+  return {
+    ...base,
+    ...overrides,
+  }
+}
+
+function applyUserConfig(config, userConfig, projectKeys) {
+  if (!userConfig || typeof userConfig !== "object") {
+    return config
+  }
+
+  const baseMemoryProvider = userConfig.memory_provider && typeof userConfig.memory_provider === "object"
+    ? userConfig.memory_provider
+    : {}
+  const projectOverrides = userConfig.projects && typeof userConfig.projects === "object"
+    ? projectKeys.map((key) => userConfig.projects[key]).find((value) => value && typeof value === "object")
+    : null
+  const projectMemoryProvider = projectOverrides?.memory_provider && typeof projectOverrides.memory_provider === "object"
+    ? projectOverrides.memory_provider
+    : projectOverrides && typeof projectOverrides === "object"
+      ? projectOverrides
+      : {}
+
+  return mergeConfig(config, {
+    memory_provider: mergeMemoryProvider(baseMemoryProvider, projectMemoryProvider),
+  })
+}
+
 function environmentOverrides() {
   const endpoint = resolveEnv(
     "FLOWFORGE_MEMORY_ENDPOINT",
@@ -95,6 +144,15 @@ async function loadConfig(directory) {
       // continue
     }
   }
+
+  const fallbackSlug = path.basename(directory) || "project"
+  const projectKeys = getProjectKeys(config.project, fallbackSlug)
+
+  const legacyUserConfig = await readJsonIfExists(LEGACY_USER_CONFIG_PATH)
+  config = applyUserConfig(config, legacyUserConfig, projectKeys)
+
+  const sharedUserConfig = await readJsonIfExists(SHARED_USER_CONFIG_PATH)
+  config = applyUserConfig(config, sharedUserConfig, projectKeys)
 
   return mergeConfig(config, environmentOverrides())
 }
