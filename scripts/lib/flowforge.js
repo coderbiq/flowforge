@@ -665,7 +665,7 @@ function getProposalsRoot(cwd = process.cwd(), workspaceName = null) {
 }
 
 function getProjectRulesRoot(cwd = process.cwd(), workspaceName = null) {
-  return path.join(getWorkspaceDocsRoot(workspaceName, cwd), 'flowforge', '_rules');
+  return path.join(getProjectRoot(cwd), 'docs', 'flowforge', '_rules');
 }
 
 function getIntakeRoot(cwd = process.cwd(), workspaceName = null) {
