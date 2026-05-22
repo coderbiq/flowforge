@@ -8,6 +8,7 @@ It is the source of truth for:
 - task splitting and checkpoint rules
 - metadata schemas
 - archive behavior
+- template usage and customization guidance
 - adapter contracts for IDE integrations
 - project document templates
 

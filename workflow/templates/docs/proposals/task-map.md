@@ -27,7 +27,9 @@
 - Priority: P0
 - Capability refs: CAP-001
 - Decision refs: D-001
-- Archive target refs: example-module-primary
+- Archive target refs: <Primary archive target key>
+- Model refs:
+- Convention refs:
 - Depends on: MILESTONE-001
 - Completion definition:
   - <specific verification step 1>

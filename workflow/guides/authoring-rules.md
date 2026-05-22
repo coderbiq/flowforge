@@ -12,15 +12,17 @@
 - `journal/` preserves chronology.
 - `findings/` contains atomic statements worth reusing.
 - `decisions/` contains candidate decisions with status.
-- Use the archived knowledge base as the first source of truth for exploration research.
+- Declare `ownership`, `expected_size_class`, and `reusable_rules` in `index.md` once the question is scoped. These propagate into the resulting proposal.
+- Use the archived knowledge base as the first source of truth for exploration research, including `docs/conventions/`.
 - Treat proposals and explorations as delta records against the existing final corpus, not as replacements for it.
 - Do not mix implementation logs into exploration files.
 
 ## Proposals
 
 - `meta.yaml` is the machine contract.
-- `proposal.md` answers why and what.
-- `design.md` answers how and why this approach.
+- `proposal.md` answers why and what, and surfaces `size_class`, `ownership`, and any promoted `reusable_rules`.
+- Design lives in either `design.md` or a `design/` directory depending on `size_class`. See `workflow/guides/sizing.md`.
+- Template customization follows the reference-copy rule in `workflow/guides/templates.md`: projects may copy the whole template or the relevant part files and edit the copies directly.
 - `task-map.md` is authoritative for task decomposition.
 - `task-map.md` must follow `task-splitting.md` for deliverable-first decomposition, milestone boundaries, and checkpoint rules.
 - `notes.md` is for execution history only.
@@ -37,6 +39,25 @@
 - Do not duplicate the same fact across multiple final docs unless one of them is clearly marked as a pointer or historical record.
 - If a proposal redistributes knowledge across docs, update the linked docs in one archive pass so the reader path stays coherent.
 
+### Design surface by size class
+
+- `small`: single-file `design.md`. Optional sections may be omitted.
+- `medium`: default is single-file `design.md`. The proposal may opt into the `design/` directory layout when the change spans multiple concerns. When the proposal introduces two or more business models, a `model/` directory is mandatory regardless of whether `design.md` stays single-file.
+- `large`: `design/` directory is mandatory and must contain at minimum `README.md`, `architecture.md`, `model.md`, and `lifecycle.md`. The `model/` directory is mandatory and must contain one document per core business model.
+
+### Business model documents
+
+- One document per core business model when the `model/` directory is in use.
+- Each model document describes: data structure, responsibilities, lifecycle, validation, referenced conventions, and links to related models.
+- `model/README.md` lists every model in the proposal and groups them by role (core configuration, lifecycle, view-facing helper, etc).
+- The model template is split into readable parts so projects can customize the data-structure section, including project-specific columns such as `Master table`, by copying the template or the relevant part file.
+
+### Convention authoring
+
+- Conventions live in `docs/conventions/<topic>.md` and are not embedded only inside module or architecture docs.
+- A proposal that introduces a convention must declare a matching `ownership` entry of type `convention` and a matching `archive_target` of type `convention`.
+- A convention document follows the canonical template under `workflow/templates/docs/conventions/convention.md`.
+
 ## Decisions
 
 - Use ADRs only for stable, high-cost decisions with meaningful alternatives.
@@ -47,4 +68,5 @@
 - Every proposal must declare at least one primary archive target.
 - Primary target is where a future reader should start.
 - Secondary targets exist to preserve alternate reading paths.
+- Ownership entries and archive targets must align: every ownership entry should have a corresponding archive target.
 - The archived target corpus is the default baseline for future explorations, so archive targets should be kept navigable and up to date.

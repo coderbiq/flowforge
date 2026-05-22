@@ -6,13 +6,23 @@
 - Created: <ISO-8601 timestamp>
 - Updated: <ISO-8601 timestamp>
 
+## Classification
+
+- Expected size class for the resulting proposal: small | medium | large
+- Ownership:
+  - primary: <type:target>
+  - secondary: <type:target>
+
+Ownership types: `module`, `system`, `cross-module`, `convention`.
+See `workflow/guides/ownership.md` and `workflow/guides/sizing.md`.
+
 ## Context
 
 Describe the problem, constraints, and why this exploration exists.
 
 ## Canonical corpus consulted
 
-- Existing modules, architecture docs, and ADRs relevant to the topic
+- Existing modules, architecture docs, conventions, and ADRs relevant to the topic
 - Any prior proposal or exploration that already covers the same area
 
 ## Current understanding
@@ -27,6 +37,12 @@ Describe the problem, constraints, and why this exploration exists.
 ## Candidate decisions
 
 - [D-001](./decisions/D-001-candidate.md) Candidate direction
+
+## Reusable rules
+
+Candidate rules surfaced during exploration that may be promoted into `docs/conventions/` during the resulting proposal.
+
+- <Rule title>: <one-sentence statement>
 
 ## Open questions
 

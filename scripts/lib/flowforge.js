@@ -27,9 +27,12 @@ const STATUS_VALUES = new Set([
 ]);
 
 const TASK_BACKENDS = new Set(['beads', 'github', 'linear', 'none']);
-const ARCHIVE_TARGET_TYPES = new Set(['module', 'architecture', 'decision']);
+const ARCHIVE_TARGET_TYPES = new Set(['module', 'architecture', 'decision', 'convention']);
 const ARCHIVE_TARGET_ROLES = new Set(['primary', 'secondary']);
 const TASK_PRIORITIES = new Set(['P0', 'P1', 'P2']);
+const SIZE_CLASSES = new Set(['small', 'medium', 'large']);
+const OWNERSHIP_TYPES = new Set(['module', 'system', 'cross-module', 'convention']);
+const DESIGN_LAYOUTS = new Set(['single', 'split']);
 const PROPOSAL_ID_RE = /^CR\d{8}$/;
 const HISTORY_MARKER_PREFIX = '<!-- flowforge:proposal:';
 const DEFAULT_TOOL_ROOT = '.flowforge';
@@ -61,6 +64,13 @@ const DEFAULT_CONFIG = {
   memory_provider: {
     enabled: false,
   },
+};
+
+const OWNERSHIP_TO_ARCHIVE_TYPE = {
+  module: 'module',
+  system: 'architecture',
+  'cross-module': 'architecture',
+  convention: 'convention',
 };
 
 const STATUS_TRANSITIONS = {
@@ -242,6 +252,8 @@ function parseTaskMap(text) {
         capability_refs: [],
         decision_refs: [],
         archive_target_refs: [],
+        model_refs: [],
+        convention_refs: [],
         completion_definition: [],
       };
       result.tasks.push(currentTask);
@@ -266,6 +278,8 @@ function parseTaskMap(text) {
       else if (field === 'capability refs' && value) currentTask.capability_refs = value.split(',').map((item) => item.trim()).filter(Boolean);
       else if (field === 'decision refs' && value) currentTask.decision_refs = value.split(',').map((item) => item.trim()).filter(Boolean);
       else if (field === 'archive target refs' && value) currentTask.archive_target_refs = value.split(',').map((item) => item.trim()).filter(Boolean);
+      else if (field === 'model refs' && value) currentTask.model_refs = value.split(',').map((item) => item.trim()).filter(Boolean);
+      else if (field === 'convention refs' && value) currentTask.convention_refs = value.split(',').map((item) => item.trim()).filter(Boolean);
       continue;
     }
 
@@ -285,7 +299,10 @@ function parseExplorationIndex(text) {
   const result = {
     title: null,
     status: null,
-    date: null,
+    created: null,
+    updated: null,
+    ownership: [],
+    expected_size_class: null,
   };
 
   for (const line of lines) {
@@ -298,15 +315,47 @@ function parseExplorationIndex(text) {
       continue;
     }
 
-    const dateMatch = trimmed.match(/^\*\*日期\*\*:\s*(.+)$/);
-    if (dateMatch && !result.date) {
-      result.date = dateMatch[1].trim();
+    const statusMatch = trimmed.match(/^-\s*Status:\s*(.+)$/i);
+    if (statusMatch && !result.status) {
+      result.status = statusMatch[1].trim();
       continue;
     }
 
-    const statusMatch = trimmed.match(/^\*\*状态\*\*:\s*(.+)$/);
-    if (statusMatch && !result.status) {
-      result.status = statusMatch[1].trim();
+    const createdMatch = trimmed.match(/^-\s*Created:\s*(.+)$/i);
+    if (createdMatch && !result.created) {
+      result.created = createdMatch[1].trim();
+      continue;
+    }
+
+    const updatedMatch = trimmed.match(/^-\s*Updated:\s*(.+)$/i);
+    if (updatedMatch && !result.updated) {
+      result.updated = updatedMatch[1].trim();
+      continue;
+    }
+
+    const sizeMatch = trimmed.match(/^-\s*Expected size class for the resulting proposal:\s*(.+)$/i);
+    if (sizeMatch && !result.expected_size_class) {
+      result.expected_size_class = sizeMatch[1].trim();
+      continue;
+    }
+
+    const primaryOwnershipMatch = trimmed.match(/^-\s*primary:\s*(.+)$/i);
+    if (primaryOwnershipMatch) {
+      result.ownership.push({
+        type: null,
+        target: primaryOwnershipMatch[1].trim(),
+        role: 'primary',
+      });
+      continue;
+    }
+
+    const secondaryOwnershipMatch = trimmed.match(/^-\s*secondary:\s*(.+)$/i);
+    if (secondaryOwnershipMatch) {
+      result.ownership.push({
+        type: null,
+        target: secondaryOwnershipMatch[1].trim(),
+        role: 'secondary',
+      });
     }
   }
 
@@ -747,11 +796,19 @@ function resolveProposalDir(target, cwd = process.cwd()) {
 function loadProposalContext(target, cwd = process.cwd()) {
   const proposalDir = resolveProposalDir(target, cwd);
   const metaPath = path.join(proposalDir, 'meta.yaml');
-  const taskMapPath = path.join(proposalDir, 'task-map.md');
-  const designPath = path.join(proposalDir, 'design.md');
-  const notesPath = path.join(proposalDir, 'notes.md');
-
   const meta = parseSimpleYaml(readFileRequired(metaPath));
+  const taskMapPath = meta?.links?.task_map
+    ? path.join(proposalDir, meta.links.task_map)
+    : path.join(proposalDir, 'task-map.md');
+  const designPath = meta?.links?.design
+    ? path.join(proposalDir, meta.links.design)
+    : path.join(proposalDir, 'design.md');
+  const modelPath = meta?.links?.model
+    ? path.join(proposalDir, meta.links.model)
+    : path.join(proposalDir, 'model', 'README.md');
+  const notesPath = meta?.links?.notes
+    ? path.join(proposalDir, meta.links.notes)
+    : path.join(proposalDir, 'notes.md');
   const taskMap = parseTaskMap(readFileRequired(taskMapPath));
 
   return {
@@ -759,16 +816,29 @@ function loadProposalContext(target, cwd = process.cwd()) {
     metaPath,
     taskMapPath,
     designPath,
+    modelPath,
     notesPath,
     meta,
     taskMap,
   };
 }
 
+
+function isMilestoneTaskId(taskId) {
+  return /^MILESTONE-/i.test(String(taskId || ''));
+}
+
+function isTemplatePlaceholder(value) {
+  if (value === null || value === undefined) return false;
+  const text = String(value).trim();
+  if (!text) return true;
+  return text.startsWith('<') && text.endsWith('>');
+}
+
 function validateProposalContext(context, cwd = process.cwd()) {
   const errors = [];
   const warnings = [];
-  const { meta, taskMap, proposalDir, designPath, notesPath } = context;
+  const { meta, taskMap, proposalDir, designPath, modelPath, notesPath } = context;
 
   const proposalRoot = path.dirname(proposalDir);
 
@@ -787,6 +857,8 @@ function validateProposalContext(context, cwd = process.cwd()) {
       'updated_at',
       'workspace',
       'scope',
+      'size_class',
+      'ownership',
       'source_explorations',
       'owner',
       'task_backend',
@@ -805,6 +877,9 @@ function validateProposalContext(context, cwd = process.cwd()) {
     if (meta.status && !STATUS_VALUES.has(meta.status)) {
       errors.push(`invalid proposal status: ${meta.status}`);
     }
+    if (meta.size_class && !SIZE_CLASSES.has(meta.size_class)) {
+      errors.push(`invalid proposal size_class: ${meta.size_class}`);
+    }
     if (meta.task_backend && !TASK_BACKENDS.has(meta.task_backend)) {
       errors.push(`invalid task backend: ${meta.task_backend}`);
     }
@@ -813,6 +888,42 @@ function validateProposalContext(context, cwd = process.cwd()) {
     }
     if (meta.scope && !['workspace', 'cross-workspace', 'monorepo'].includes(meta.scope)) {
       errors.push(`invalid proposal scope: ${meta.scope}`);
+    }
+
+    if (!Array.isArray(meta.ownership) || meta.ownership.length === 0) {
+      errors.push('meta.yaml must define at least one ownership entry');
+    } else {
+      const primaryOwnership = meta.ownership.filter((entry) => entry?.role === 'primary');
+      if (primaryOwnership.length !== 1) {
+        errors.push(`meta.yaml must define exactly one primary ownership entry, found ${primaryOwnership.length}`);
+      }
+
+      const ownershipTargets = new Set();
+      for (const entry of meta.ownership) {
+        if (!entry?.type) {
+          errors.push('ownership type is required');
+          continue;
+        }
+        if (!OWNERSHIP_TYPES.has(entry.type)) {
+          errors.push(`invalid ownership type: ${entry.type}`);
+        }
+        if (!entry?.target) {
+          errors.push('ownership target is required');
+        }
+        if (!ARCHIVE_TARGET_ROLES.has(entry?.role)) {
+          errors.push(`invalid ownership role: ${entry?.role}`);
+        }
+        if (entry?.workspace && workspaceNames.size > 0 && !workspaceNames.has(entry.workspace)) {
+          errors.push(`unknown ownership workspace: ${entry.workspace}`);
+        }
+        if (entry?.target) {
+          const key = `${entry.type}:${entry.target}`;
+          if (ownershipTargets.has(key)) {
+            warnings.push(`duplicate ownership entry detected: ${key}`);
+          }
+          ownershipTargets.add(key);
+        }
+      }
     }
 
     if (!Array.isArray(meta.source_explorations) || meta.source_explorations.length === 0) {
@@ -913,6 +1024,72 @@ function validateProposalContext(context, cwd = process.cwd()) {
         }
       }
     }
+
+    const designLayout = getProposalDesignLayout(proposalDir, meta);
+    const modelLayout = getProposalModelLayout(proposalDir, meta);
+
+    if (meta.size_class === 'small') {
+      if (!fileExists(path.join(proposalDir, 'design.md'))) {
+        errors.push(`design.md not found for small proposal: ${path.join(proposalDir, 'design.md')}`);
+      }
+      if (fileExists(path.join(proposalDir, 'design'))) {
+        warnings.push('small proposal contains a design/ directory; consider using the single-file design.md layout');
+      }
+    }
+
+    if (meta.size_class === 'medium') {
+      if (!fileExists(path.join(proposalDir, 'design.md')) && !fileExists(path.join(proposalDir, 'design', 'README.md'))) {
+        errors.push('medium proposal must provide either design.md or design/README.md');
+      }
+    }
+
+    if (meta.size_class === 'large') {
+      if (!fileExists(path.join(proposalDir, 'design', 'README.md'))) {
+        errors.push('large proposal must provide design/README.md');
+      }
+      if (fileExists(path.join(proposalDir, 'design.md'))) {
+        errors.push('large proposal must not use root design.md');
+      }
+      if (!fileExists(path.join(proposalDir, 'model', 'README.md'))) {
+        errors.push('large proposal must provide model/README.md');
+      }
+    }
+
+    if (designLayout === 'split' && !meta.links.design.includes('design/README.md')) {
+      warnings.push('proposal contains a split design/ layout but meta.links.design does not point to design/README.md');
+    }
+
+    if (modelLayout === 'split' && !meta.links.model) {
+      errors.push('proposal contains a model/ directory but meta.yaml links.model is missing');
+    }
+
+    if (modelLayout === 'split' && meta.size_class === 'small') {
+      errors.push('small proposals should not use a split model/ layout');
+    }
+
+    const primaryOwnership = primaryOwnershipEntries(meta.ownership);
+    const archiveTargetsByTypeRef = new Set(
+      (meta.archive_targets || []).map((target) => `${target.type}:${target.ref || target.path}`)
+    );
+    for (const ownership of meta.ownership || []) {
+      const expectedType = OWNERSHIP_TO_ARCHIVE_TYPE[ownership.type];
+      if (!expectedType) continue;
+      const ownershipKey = `${expectedType}:${ownership.target}`;
+      if (!archiveTargetsByTypeRef.has(ownershipKey)) {
+        errors.push(`ownership entry has no matching archive target: ${ownership.type}:${ownership.target}`);
+      }
+    }
+    if (primaryOwnership.length === 1) {
+      const primary = primaryOwnership[0];
+      const expectedType = OWNERSHIP_TO_ARCHIVE_TYPE[primary.type];
+      if (expectedType) {
+        const primaryKey = `${expectedType}:${primary.target}`;
+        const primaryArchiveTarget = meta.archive_targets.find((target) => target.role === 'primary');
+        if (!primaryArchiveTarget || `${primaryArchiveTarget.type}:${primaryArchiveTarget.ref || primaryArchiveTarget.path}` !== primaryKey) {
+          errors.push('primary ownership must correspond to the primary archive target');
+        }
+      }
+    }
   } else {
     for (const field of META_REQUIRED_FIELDS) {
       if (meta[field] === undefined || meta[field] === null || meta[field] === '') {
@@ -969,7 +1146,10 @@ function validateProposalContext(context, cwd = process.cwd()) {
   }
 
   if (!fileExists(designPath)) {
-    errors.push(`design.md not found: ${designPath}`);
+    errors.push(`design entry not found: ${designPath}`);
+  }
+  if (meta?.links?.model && !fileExists(modelPath)) {
+    errors.push(`model README not found: ${modelPath}`);
   }
   if (!fileExists(notesPath)) {
     warnings.push(`notes.md not found: ${notesPath}`);
@@ -1015,7 +1195,7 @@ function validateProposalContext(context, cwd = process.cwd()) {
     if (task.priority && !TASK_PRIORITIES.has(task.priority)) {
       errors.push(`${task.task_id} has invalid priority ${task.priority}`);
     }
-    if (!Array.isArray(task.capability_refs) || task.capability_refs.length === 0) {
+    if (!isMilestoneTaskId(task.task_id) && (!Array.isArray(task.capability_refs) || task.capability_refs.length === 0)) {
       errors.push(`${task.task_id} must reference at least one capability`);
     }
     if (!Array.isArray(task.completion_definition) || task.completion_definition.length === 0) {
@@ -1025,6 +1205,7 @@ function validateProposalContext(context, cwd = process.cwd()) {
 
   for (const task of taskMap.tasks) {
     for (const dependency of task.depends_on || []) {
+      if (isTemplatePlaceholder(dependency)) continue;
       if (!taskIds.has(dependency)) {
         errors.push(`${task.task_id} depends on unknown task ${dependency}`);
       }
@@ -1041,6 +1222,7 @@ function validateProposalContext(context, cwd = process.cwd()) {
   );
   for (const task of taskMap.tasks) {
     for (const ref of task.archive_target_refs || []) {
+      if (isTemplatePlaceholder(ref)) continue;
       if (!archiveTargetRefs.has(ref)) {
         warnings.push(`${task.task_id} archive target ref not found in meta.yaml: ${ref}`);
       }
@@ -1153,10 +1335,96 @@ function loadTemplate(cwd, relativePath) {
   return readFileRequired(path.join(getTemplateRoot(cwd), relativePath));
 }
 
+function parseOwnershipEntry(raw, index) {
+  const parts = String(raw).split(':');
+  if (parts.length < 2) {
+    throw new Error(`invalid --ownership value at item ${index + 1}: ${raw}`);
+  }
+
+  const [type, target, maybeRole] = parts;
+  if (!type || !target) {
+    throw new Error(`invalid --ownership value at item ${index + 1}: ${raw}`);
+  }
+
+  const role = maybeRole === 'primary' || maybeRole === 'secondary'
+    ? maybeRole
+    : index === 0
+      ? 'primary'
+      : 'secondary';
+
+  return {
+    type,
+    target,
+    role,
+  };
+}
+
 function archiveTargetRef(target) {
   if (target?.key) return target.key;
   if (target?.ref) return `${target.type}:${path.basename(target.ref)}`;
   return `${target?.type || 'unknown'}:${path.basename(target?.path || 'unknown')}`;
+}
+
+function normalizeOwnershipEntry(entry, workspaceName) {
+  if (!entry) return null;
+  const type = entry.type;
+  const target = entry.target || entry.ref || entry.path;
+  if (!type || !target) return null;
+  return {
+    type,
+    target,
+    role: entry.role || 'secondary',
+    workspace: entry.workspace || workspaceName,
+  };
+}
+
+function appendOwnershipEntries(target, entries, workspaceName) {
+  const seen = new Set(target.map((entry) => `${entry.type}:${entry.target}:${entry.role}`));
+  for (const rawEntry of entries || []) {
+    const entry = normalizeOwnershipEntry(rawEntry, workspaceName);
+    if (!entry) continue;
+    const key = `${entry.type}:${entry.target}:${entry.role}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    target.push(entry);
+  }
+  return target;
+}
+
+function inferOwnershipFromArchiveTargets(archiveTargets) {
+  return (archiveTargets || [])
+    .map((target) => {
+      const type = OWNERSHIP_TO_ARCHIVE_TYPE[target?.type];
+      if (!type) return null;
+      return {
+        type,
+        target: target.ref || target.path || target.key,
+        role: target.role || 'secondary',
+      };
+    })
+    .filter(Boolean);
+}
+
+function primaryOwnershipEntries(ownership) {
+  return (ownership || []).filter((entry) => entry?.role === 'primary');
+}
+
+function getProposalDesignLayout(proposalDir, meta = {}) {
+  const splitDesign = fileExists(path.join(proposalDir, 'design', 'README.md'));
+  const singleDesign = fileExists(path.join(proposalDir, 'design.md'));
+  if (splitDesign) return 'split';
+  if (singleDesign) return 'single';
+  const declaredDesign = meta?.links?.design;
+  if (declaredDesign && declaredDesign.includes('design/README.md')) return 'split';
+  return 'single';
+}
+
+function getProposalModelLayout(proposalDir, meta = {}) {
+  const splitModel = fileExists(path.join(proposalDir, 'model', 'README.md'));
+  if (splitModel) return 'split';
+  const declaredModel = meta?.links?.model;
+  if (declaredModel && declaredModel.includes('model/README.md')) return 'split';
+  return 'none';
 }
 
 function normalizeCanonicalCorpusEntry(entry, workspaceName) {
@@ -1231,6 +1499,19 @@ function scanWorkspaceDocsForCanonicalCorpus(workspaceName, cwd = process.cwd(),
         workspace: workspaceName,
         ref: path.join('decisions', entry.name),
         type: 'decision',
+        role: 'secondary',
+      });
+    }
+  }
+
+  const conventionsRoot = path.join(workspaceRoot, 'conventions');
+  if (typeAllowed('convention') && fileExists(conventionsRoot)) {
+    for (const entry of fs.readdirSync(conventionsRoot, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+      corpus.push({
+        workspace: workspaceName,
+        ref: path.join('conventions', entry.name),
+        type: 'convention',
         role: 'secondary',
       });
     }
@@ -1314,6 +1595,22 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
 
   const createdAt = nowIso();
   const title = options.title;
+  const sizeClass = options.sizeClass || 'small';
+  if (!SIZE_CLASSES.has(sizeClass)) {
+    throw new Error(`invalid size class: ${sizeClass}`);
+  }
+
+  const designLayout = options.designLayout || (sizeClass === 'large' ? 'split' : 'single');
+  if (!DESIGN_LAYOUTS.has(designLayout)) {
+    throw new Error(`invalid design layout: ${designLayout}`);
+  }
+  if (sizeClass === 'small' && designLayout !== 'single') {
+    throw new Error('small proposals must use the single-file design layout');
+  }
+  if (sizeClass === 'large' && designLayout !== 'split') {
+    throw new Error('large proposals must use the split design layout');
+  }
+
   const taskBackend = options.taskBackend || getWorkflowConfig(cwd).task_backend?.type || 'beads';
   const sourceExplorations = (options.sourceExplorations && options.sourceExplorations.length > 0)
     ? options.sourceExplorations
@@ -1332,6 +1629,11 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
   });
   const primaryTarget = archiveTargets.find((target) => target.role === 'primary');
   const primaryRef = archiveTargetRef(primaryTarget);
+  const ownership = (options.ownership && options.ownership.length > 0)
+    ? options.ownership
+    : inferOwnershipFromArchiveTargets(archiveTargets);
+  const primaryOwnership = primaryOwnershipEntries(ownership)[0] || null;
+  const reusableRules = options.reusableRules || [];
   const owner = options.owner || getDefaultOwner();
 
   ensureDir(proposalDir);
@@ -1351,6 +1653,8 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
     updated_at: createdAt,
     workspace: workspaceName,
     scope: options.scope || 'workspace',
+    size_class: sizeClass,
+    ownership,
     source_explorations: sourceExplorations,
     canonical_corpus: canonicalCorpus,
     owner,
@@ -1359,19 +1663,42 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
     archive_targets: archiveTargets,
     tags: options.tags || [],
     links: {
-      design: 'design.md',
+      design: designLayout === 'split' ? 'design/README.md' : 'design.md',
+      ...(designLayout === 'split' ? { model: 'model/README.md' } : {}),
       task_map: 'task-map.md',
       notes: 'notes.md',
     },
   };
 
   const proposalTemplate = loadTemplate(cwd, path.join('proposals', 'proposal.md'));
-  const designTemplate = loadTemplate(cwd, path.join('proposals', 'design.md'));
   const taskMapTemplate = loadTemplate(cwd, path.join('proposals', 'task-map.md'));
   const notesTemplate = loadTemplate(cwd, path.join('proposals', 'notes.md'));
+  const singleDesignTemplate = loadTemplate(cwd, path.join('proposals', 'design.md'));
+  const designReadmeTemplate = loadTemplate(cwd, path.join('proposals', 'design', 'README.md'));
+  const designSectionTemplates = {
+    'architecture.md': loadTemplate(cwd, path.join('proposals', 'design', 'architecture.md')),
+    'model.md': loadTemplate(cwd, path.join('proposals', 'design', 'model.md')),
+    'lifecycle.md': loadTemplate(cwd, path.join('proposals', 'design', 'lifecycle.md')),
+    'flow.md': loadTemplate(cwd, path.join('proposals', 'design', 'flow.md')),
+    'api.md': loadTemplate(cwd, path.join('proposals', 'design', 'api.md')),
+    'constraints.md': loadTemplate(cwd, path.join('proposals', 'design', 'constraints.md')),
+    'tradeoffs.md': loadTemplate(cwd, path.join('proposals', 'design', 'tradeoffs.md')),
+  };
+  const modelReadmeTemplate = loadTemplate(cwd, path.join('proposals', 'model', 'README.md'));
 
   const replacements = {
     '<Proposal Title>': title,
+    '<Size class>': sizeClass,
+    '<Primary ownership>': primaryOwnership ? `${primaryOwnership.type}:${primaryOwnership.target}` : '<Primary ownership>',
+    '<Secondary ownership>': ownership.filter((entry) => entry.role === 'secondary').map((entry) => `${entry.type}:${entry.target}`).join(', ') || 'none',
+    '<Promotes reusable rules>': reusableRules.length > 0 ? 'yes' : 'no',
+    '<Document layout>': designLayout === 'split'
+      ? 'design/README.md plus model/README.md and supporting section files'
+      : 'design.md',
+    '<Primary archive target key>': primaryTarget?.key || 'primary-archive-target',
+    '<Reusable rules block>': reusableRules.length > 0
+      ? reusableRules.map((rule) => `- ${rule.title}: ${rule.summary || ''}`.trimEnd()).join('\n')
+      : '- none',
     'CR20260520': id,
     'CR26052001': id,
     '- Backend: beads': `- Backend: ${taskBackend}`,
@@ -1383,7 +1710,19 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
 
   writeText(path.join(proposalDir, 'meta.yaml'), `${serializeYaml(meta)}\n`);
   writeText(path.join(proposalDir, 'proposal.md'), renderTemplate(proposalTemplate, replacements));
-  writeText(path.join(proposalDir, 'design.md'), renderTemplate(designTemplate, replacements));
+  if (designLayout === 'single') {
+    writeText(path.join(proposalDir, 'design.md'), renderTemplate(singleDesignTemplate, replacements));
+  } else {
+    const designDir = path.join(proposalDir, 'design');
+    const modelDir = path.join(proposalDir, 'model');
+    ensureDir(designDir);
+    ensureDir(modelDir);
+    writeText(path.join(designDir, 'README.md'), renderTemplate(designReadmeTemplate, replacements));
+    for (const [fileName, templateText] of Object.entries(designSectionTemplates)) {
+      writeText(path.join(designDir, fileName), renderTemplate(templateText, replacements));
+    }
+    writeText(path.join(modelDir, 'README.md'), renderTemplate(modelReadmeTemplate, replacements));
+  }
   writeText(path.join(proposalDir, 'task-map.md'), renderTaskMapTemplate(taskMapTemplate, replacements, taskBackend));
   writeText(path.join(proposalDir, 'notes.md'), renderTemplate(notesTemplate, replacements));
 
@@ -1512,12 +1851,16 @@ function ensureBeadsTasks(context, cwd = process.cwd()) {
       ...(task.code_scope ? [`code-scope:${task.code_scope}`] : []),
       ...task.capability_refs.map((ref) => `capability:${ref}`),
       ...task.archive_target_refs.map((ref) => `archive-ref:${ref}`),
+      ...task.model_refs.map((ref) => `model-ref:${ref}`),
+      ...task.convention_refs.map((ref) => `convention-ref:${ref}`),
     ];
 
     const descriptionLines = [
       task.outcome ? `Outcome: ${task.outcome}` : '',
       task.decision_refs.length > 0 ? `Decision refs: ${task.decision_refs.join(', ')}` : '',
       task.archive_target_refs.length > 0 ? `Archive refs: ${task.archive_target_refs.join(', ')}` : '',
+      task.model_refs.length > 0 ? `Model refs: ${task.model_refs.join(', ')}` : '',
+      task.convention_refs.length > 0 ? `Convention refs: ${task.convention_refs.join(', ')}` : '',
     ].filter(Boolean);
 
     const beadId = beadCreateIssue([
@@ -1587,7 +1930,8 @@ function appendArchiveBlock(filePath, proposalId, block) {
 }
 
 function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
-  ensureDir(targetPath);
+  const moduleDir = path.extname(targetPath) === '.md' ? path.dirname(targetPath) : targetPath;
+  ensureDir(moduleDir);
 
   const templateFiles = [
     ['README.md', path.join('modules', 'README.md')],
@@ -1597,15 +1941,15 @@ function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
   ];
 
   for (const [fileName, templatePath] of templateFiles) {
-    const absolutePath = path.join(targetPath, fileName);
+    const absolutePath = path.join(moduleDir, fileName);
     if (fileExists(absolutePath)) continue;
     let rendered;
     if (fileName === 'history.md') {
-      rendered = `# ${path.basename(targetPath)} History\n`;
+      rendered = `# ${path.basename(moduleDir)} History\n`;
     } else {
       const template = loadTemplate(cwd, templatePath);
       rendered = renderTemplate(template, {
-        '<Module Name>': path.basename(targetPath),
+        '<Module Name>': path.basename(moduleDir),
         '<proposal id>': context.meta.id,
         'CR26052001': context.meta.id,
         '2026-05-20': todayDate(),
@@ -1615,7 +1959,7 @@ function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
     writeText(absolutePath, rendered);
   }
 
-  const historyPath = path.join(targetPath, 'history.md');
+  const historyPath = path.join(moduleDir, 'history.md');
   const block = [
     `## ${todayDate()}`,
     '',
@@ -1626,7 +1970,7 @@ function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
   ].join('\n');
   appendArchiveBlock(historyPath, context.meta.id, block);
 
-  const readmePath = path.join(targetPath, 'README.md');
+  const readmePath = path.join(moduleDir, 'README.md');
   appendArchiveBlock(readmePath, context.meta.id, [
     '## Archived proposals',
     '',
@@ -1636,7 +1980,7 @@ function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
 
   return {
     type: 'module',
-    path: targetPath,
+    path: moduleDir,
   };
 }
 
@@ -1698,6 +2042,35 @@ function ensureDecisionArchiveTarget(targetPath, context, cwd = process.cwd()) {
   };
 }
 
+function ensureConventionArchiveTarget(targetPath, context, cwd = process.cwd()) {
+  if (!fileExists(targetPath)) {
+    const template = loadTemplate(cwd, path.join('conventions', 'convention.md'));
+    const rendered = renderTemplate(template, {
+      '<Convention Title>': path.basename(targetPath, path.extname(targetPath)),
+      '<proposal id>': context.meta.id,
+      '<name or team>': context.meta.owner || 'unknown-owner',
+      '<ISO-8601 timestamp>': nowIso(),
+      '<ISO date>': todayDate(),
+    });
+    writeText(targetPath, rendered);
+  }
+
+  const block = [
+    `## Update ${todayDate()}`,
+    '',
+    `- Proposal: ${context.meta.id}`,
+    `- Summary: ${context.meta.title}`,
+    `- Source: ${path.relative(path.dirname(targetPath), context.proposalDir)}`,
+    '',
+  ].join('\n');
+  appendArchiveBlock(targetPath, context.meta.id, block);
+
+  return {
+    type: 'convention',
+    path: targetPath,
+  };
+}
+
 function ensureArchiveTarget(target, context, cwd = process.cwd()) {
   const absolutePath = (() => {
     if (target?.ref && target?.workspace) {
@@ -1720,6 +2093,9 @@ function ensureArchiveTarget(target, context, cwd = process.cwd()) {
   }
   if (target.type === 'decision') {
     return ensureDecisionArchiveTarget(absolutePath, context, cwd);
+  }
+  if (target.type === 'convention') {
+    return ensureConventionArchiveTarget(absolutePath, context, cwd);
   }
 
   throw new Error(`unsupported archive target type: ${target.type}`);
@@ -1806,17 +2182,19 @@ function listProposalSummaries(cwd = process.cwd(), workspaceName = null) {
     .sort()
     .map((proposalDir) => {
       const context = loadProposalContext(proposalDir, cwd);
-      return {
-        kind: 'proposal',
-        id: context.meta.id,
-        title: context.meta.title,
-        status: context.meta.status,
-        task_backend: context.meta.task_backend,
-        workspace: context.meta.workspace || resolvedWorkspace.name,
-        proposal_dir: proposalDir,
-        updated_at: context.meta.updated_at,
-        archive_targets: context.meta.archive_targets || [],
-      };
+    return {
+      kind: 'proposal',
+      id: context.meta.id,
+      title: context.meta.title,
+      status: context.meta.status,
+      task_backend: context.meta.task_backend,
+      size_class: context.meta.size_class || null,
+      ownership: context.meta.ownership || [],
+      workspace: context.meta.workspace || resolvedWorkspace.name,
+      proposal_dir: proposalDir,
+      updated_at: context.meta.updated_at,
+      archive_targets: context.meta.archive_targets || [],
+    };
     });
 }
 
@@ -1840,7 +2218,10 @@ function listExplorationSummaries(cwd = process.cwd(), workspaceName = null) {
       workspace: resolvedWorkspace.name,
       exploration_dir: explorationDir,
       index_path: indexPath,
-      date: parsed.date || null,
+      created: parsed.created || null,
+      updated: parsed.updated || null,
+      expected_size_class: parsed.expected_size_class || null,
+      ownership: parsed.ownership || [],
     });
   }
 
@@ -1874,6 +2255,7 @@ module.exports = {
   loadProposalContext,
   nowIso,
   parseCliArgs,
+  parseOwnershipEntry,
   parseSimpleYaml,
   parseTaskMap,
   resolveProposalDir,

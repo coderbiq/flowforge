@@ -11,6 +11,8 @@ required:
   - updated_at
   - workspace
   - scope
+  - size_class
+  - ownership
   - source_explorations
   - owner
   - task_backend
@@ -54,6 +56,40 @@ properties:
       - workspace
       - cross-workspace
       - monorepo
+  size_class:
+    type: string
+    enum:
+      - small
+      - medium
+      - large
+    description: |
+      Design surface size declared by the proposal. Determines whether the
+      proposal uses a single design.md, an optional split layout, or a
+      mandatory design/ + model/ directory layout.
+      See workflow/guides/sizing.md.
+  ownership:
+    type: array
+    minItems: 1
+    description: |
+      Ownership tags that drive archive placement. At least one entry must
+      have role: primary. See workflow/guides/ownership.md.
+    items:
+      type: object
+      required: [type, target, role]
+      properties:
+        type:
+          type: string
+          enum:
+            - module
+            - system
+            - cross-module
+            - convention
+        target:
+          type: string
+          description: Path relative to the workspace docs root.
+        role:
+          type: string
+          enum: [primary, secondary]
   source_explorations:
     type: array
     minItems: 1
@@ -77,7 +113,7 @@ properties:
           type: string
         type:
           type: string
-          enum: [module, architecture, decision]
+          enum: [module, architecture, decision, convention]
         role:
           type: string
           enum: [primary, secondary]
@@ -95,6 +131,13 @@ properties:
   archive_targets:
     type: array
     minItems: 1
+    description: |
+      Concrete archive destinations. Each archive target should correspond
+      to an ownership entry. Type mapping:
+      - module       -> docs/modules/<name>/
+      - architecture -> docs/architecture/<topic>.md
+      - convention   -> docs/conventions/<topic>.md
+      - decision     -> docs/decisions/ADR-*.md
     items:
       type: object
       required: [key, type, workspace, ref, role]
@@ -104,7 +147,7 @@ properties:
           description: Stable logical reference for the target.
         type:
           type: string
-          enum: [module, architecture, decision]
+          enum: [module, architecture, decision, convention]
         workspace:
           type: string
         ref:
@@ -120,10 +163,19 @@ properties:
   links:
     type: object
     required: [design, task_map, notes]
+    description: |
+      Link map for the proposal artifacts.
+      - For size_class small or medium without directory layout, `design`
+        points to `design.md`.
+      - For size_class large, and for any proposal that opts into the
+        directory layout, `design` points to `design/README.md` and the
+        optional `model` link points to `model/README.md`.
     properties:
       design:
         type: string
       task_map:
         type: string
       notes:
+        type: string
+      model:
         type: string

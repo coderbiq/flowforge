@@ -1,5 +1,13 @@
 # <Proposal Title>
 
+## Classification
+
+- Size class: <Size class>
+- Ownership:
+  - primary: <Primary ownership>
+  - secondary: <Secondary ownership>
+- Promotes reusable rules: <Promotes reusable rules>
+
 ## Why
 
 ### Problem
@@ -36,6 +44,14 @@ Summarize the relevant findings and constraints.
 - Reused knowledge: <facts already covered by the canonical corpus>
 - Maintenance strategy: <which existing docs are updated in place, which sections are appended, and where historical facts are preserved>
 
+### Reusable rules
+
+List any candidate or confirmed conventions promoted by this proposal.
+Each entry should map to a `docs/conventions/<topic>.md` archive target.
+If there are no reusable rules, write `- none`.
+
+<Reusable rules block>
+
 ## Delivery phases
 
 - Phase 1: <milestone outcome>
@@ -52,3 +68,9 @@ Summarize the relevant findings and constraints.
 
 - Primary target and why it is the main reading path
 - Secondary targets and why they must also be updated
+
+## Document layout
+
+State which design surface this proposal uses:
+
+- Layout: <Document layout>

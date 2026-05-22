@@ -4,6 +4,7 @@ const path = require('path');
 const {
   createProposalSkeleton,
   parseCliArgs,
+  parseOwnershipEntry,
   validateProposalContext,
   loadProposalContext,
 } = require('./lib/flowforge');
@@ -63,7 +64,7 @@ function parseCanonicalCorpus(raw, index) {
 }
 
 function usage() {
-  console.error('Usage: scripts/flowforge-create-proposal.js --title <title> --source-exploration <ref> --archive-target <type[@workspace]:ref[:role[:key]]> [--archive-target ...] [--canonical-corpus <type[@workspace]:ref[:role]>] [--canonical-corpus ...] [--workspace <workspace>] [--scope workspace|cross-workspace|monorepo] [--owner <owner>] [--task-backend beads|github|linear|none] [--tag <tag>] [--slug <slug>] [--status draft|proposed|approved]');
+  console.error('Usage: scripts/flowforge-create-proposal.js --title <title> --source-exploration <ref> --archive-target <type[@workspace]:ref[:role[:key]]> [--archive-target ...] [--canonical-corpus <type[@workspace]:ref[:role]>] [--canonical-corpus ...] [--workspace <workspace>] [--scope workspace|cross-workspace|monorepo] [--size-class small|medium|large] [--design-layout single|split] [--ownership <type:target[:role]> ...] [--reusable-rule <title[:summary]> ...] [--owner <owner>] [--task-backend beads|github|linear|none] [--tag <tag>] [--slug <slug>] [--status draft|proposed|approved]');
 }
 
 function main() {
@@ -72,6 +73,8 @@ function main() {
   const sourceExploration = args['source-exploration'];
   const archiveTargetValues = toArray(args['archive-target']);
   const canonicalCorpusValues = toArray(args['canonical-corpus']);
+  const ownershipValues = toArray(args.ownership);
+  const reusableRuleValues = toArray(args['reusable-rule']);
 
   if (!title || !sourceExploration || archiveTargetValues.length === 0) {
     usage();
@@ -81,12 +84,25 @@ function main() {
   try {
     const archiveTargets = archiveTargetValues.map(parseArchiveTarget);
     const canonicalCorpus = canonicalCorpusValues.map(parseCanonicalCorpus);
+    const ownership = ownershipValues.map(parseOwnershipEntry);
+    const reusableRules = reusableRuleValues.map((raw) => {
+      const [titleText, ...rest] = String(raw).split(':');
+      const summary = rest.join(':').trim();
+      return {
+        title: titleText.trim(),
+        summary: summary || undefined,
+      };
+    }).filter((rule) => rule.title);
     const created = createProposalSkeleton({
       title,
       slug: args.slug,
       owner: args.owner,
       workspace: args.workspace,
       scope: args.scope,
+      sizeClass: args['size-class'],
+      designLayout: args['design-layout'],
+      ownership: ownership.length > 0 ? ownership : undefined,
+      reusableRules: reusableRules.length > 0 ? reusableRules : undefined,
       sourceExploration,
       taskBackend: args['task-backend'],
       status: args.status,
@@ -115,6 +131,9 @@ function main() {
       proposal_dir: path.relative(process.cwd(), created.proposalDir),
       status: created.meta.status,
       task_backend: created.meta.task_backend,
+      size_class: created.meta.size_class,
+      ownership: created.meta.ownership,
+      design_layout: created.meta.links.design === 'design/README.md' ? 'split' : 'single',
       canonical_corpus: created.meta.canonical_corpus,
       archive_targets: created.meta.archive_targets,
     }, null, 2));

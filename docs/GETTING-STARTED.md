@@ -84,8 +84,15 @@ docs/explorations
 docs/proposals
 docs/modules
 docs/architecture
+docs/conventions
 docs/decisions
 .flowforge/state
+```
+
+If a workspace needs its own template variants, add a workspace-local template copy area such as:
+
+```text
+docs/flowforge/_templates
 ```
 
 Use:
@@ -105,6 +112,8 @@ bd init
 `task-map.md` is the bridge from proposals to the task backend. The workflow core does not store task logic in proposal prose.
 
 Task maps should follow [`workflow/guides/task-splitting.md`](../workflow/guides/task-splitting.md): split by deliverable, not by file list, and insert explicit checkpoints for long-running proposals.
+
+Template customization is copy-and-edit only. If a workspace needs a specialized model field layout, copy the default model template or the relevant part file into the workspace-local `_templates` area and adjust the copy there.
 
 ## 5. Configure memory
 
@@ -157,6 +166,8 @@ If one user needs different tokens for different projects, use the user-level co
 /flowforge:archive CR26052001
 ```
 
+When opening an exploration, declare `ownership` and `expected_size_class` in `index.md`. When creating the proposal, lock `size_class` and `ownership` in `meta.yaml`.
+
 ## 7. Create a proposal skeleton
 
 Use the generator instead of creating proposal files by hand:
@@ -165,8 +176,10 @@ Use the generator instead of creating proposal files by hand:
 .flowforge/scripts/flowforge-create-proposal.js \
   --title "Example Proposal" \
   --source-exploration explorations/example-topic \
+  --size-class large \
+  --ownership module:modules/example-module:primary \
   --archive-target module:modules/example-module:primary \
-  --archive-target architecture:architecture/system-overview.md:secondary
+  --archive-target convention:conventions/example-rule.md:secondary
 ```
 
 This creates `docs/proposals/CRYYMMDDNN-<slug>/` with a valid initial skeleton.
@@ -222,3 +235,5 @@ Use the built-in checks while operating the workflow:
 - [Architecture](ARCHITECTURE.md)
 - [Workflow Guide](PROPOSAL-WORKFLOW.md)
 - [Lifecycle guide](../workflow/guides/lifecycle.md)
+- [Sizing guide](../workflow/guides/sizing.md)
+- [Ownership guide](../workflow/guides/ownership.md)

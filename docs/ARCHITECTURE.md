@@ -20,6 +20,8 @@ Lives in [`workflow/`](../workflow/README.md).
 Contains:
 
 - lifecycle rules
+- sizing rules
+- ownership rules
 - task splitting and checkpoint rules
 - metadata schemas
 - archive rules
@@ -69,6 +71,7 @@ Contains:
 - `docs/proposals/`
 - `docs/modules/`
 - `docs/architecture/`
+- `docs/conventions/`
 - `docs/decisions/`
 - `.flowforge/state/`
 
@@ -122,15 +125,25 @@ Contract:
 - `query_by_proposal`
 - `close_epic`
 
+## Classification model
+
+Every exploration and proposal carries two classification axes:
+
+- `size_class`: `small | medium | large` — controls the document skeleton (see `workflow/guides/sizing.md`).
+- `ownership`: one or more of `module | system | cross-module | convention` — controls the archive destination (see `workflow/guides/ownership.md`).
+
+These axes are independent. A `small` proposal can still introduce a `convention` archive target, and a `large` module proposal can still carry zero conventions.
+
 ## Archive model
 
-The default archive view is module-first, but not module-only.
+The archive view has four first-class destinations:
 
 - Module-scoped change: archive primarily to `docs/modules/<module>/`
-- Cross-cutting or system design: archive primarily to `docs/architecture/`
+- Cross-cutting or system design: archive primarily to `docs/architecture/<topic>.md`
+- Reusable rule or consensus standard: archive primarily to `docs/conventions/<topic>.md`
 - Stable high-cost decision: additionally record an ADR in `docs/decisions/`
 
-This resolves the earlier problem where every change was forced through a module lens even when the real artifact was architectural.
+This resolves the earlier problem where every change was forced through a module lens even when the real artifact was architectural or a shared convention.
 
 ## External references
 

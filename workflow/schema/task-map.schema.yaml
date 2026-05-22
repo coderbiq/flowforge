@@ -57,6 +57,16 @@ properties:
           type: array
           items:
             type: string
+        convention_refs:
+          type: array
+          description: Conventions this task establishes, enforces, or modifies.
+          items:
+            type: string
+        model_refs:
+          type: array
+          description: Business model documents this task implements or modifies, e.g. model/DsDataset.md.
+          items:
+            type: string
         completion_definition:
           type: array
           items:

@@ -9,6 +9,7 @@ required:
   - created_at
   - updated_at
   - question
+  - ownership
   - paths
 properties:
   workspace:
@@ -33,6 +34,55 @@ properties:
     format: date-time
   question:
     type: string
+  ownership:
+    type: array
+    minItems: 1
+    description: |
+      Ownership tags the exploration expects to flow into proposals.
+      Same shape as proposal ownership. See workflow/guides/ownership.md.
+    items:
+      type: object
+      required: [type, target, role]
+      properties:
+        type:
+          type: string
+          enum:
+            - module
+            - system
+            - cross-module
+            - convention
+        target:
+          type: string
+        role:
+          type: string
+          enum: [primary, secondary]
+  expected_size_class:
+    type: string
+    enum:
+      - small
+      - medium
+      - large
+    description: |
+      Predicted size class for the future proposal. Used as the default
+      when a proposal is generated from this exploration. May be overridden
+      at proposal time. See workflow/guides/sizing.md.
+  reusable_rules:
+    type: array
+    description: |
+      Candidate convention-level rules surfaced during exploration. Each
+      entry should be a short statement that may later be promoted into
+      docs/conventions/.
+    items:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        target:
+          type: string
+          description: Optional path hint for the future convention doc.
   paths:
     type: object
     required:

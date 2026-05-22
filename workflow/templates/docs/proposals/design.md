@@ -1,5 +1,13 @@
 # Design: <Proposal Title>
 
+This single-file design is intended for `small` and `medium` proposals.
+For `large` proposals, use the `design/` directory layout instead and delete this file.
+For `medium` proposals that opt into the split layout, also use the `design/` directory.
+
+> Section guidance per size:
+> - `small`: sections marked OPTIONAL may be omitted.
+> - `medium`: all sections should be present, but may be brief.
+
 ## Canonical corpus reviewed
 
 <Canonical corpus reviewed>
@@ -16,11 +24,39 @@ Describe the intended implementation at the right level of abstraction.
 - Reason:
 - Alternatives rejected:
 
+## Architecture <!-- OPTIONAL for small -->
+
+- Module boundary, layering, and cross-module impact
+- Allowed and forbidden dependency directions
+
 ## Data and interfaces
 
-- data structures
+- Data structures (inline for small; link to `model/` for medium when 2+ models exist)
 - APIs or commands
-- state transitions
+- State transitions
+
+## Lifecycle <!-- OPTIONAL for small -->
+
+- State model
+- Validation gates
+- Audit and history
+- Enable / disable semantics
+
+## Flow <!-- OPTIONAL for small -->
+
+- Primary flows and sequences
+
+## Constraints
+
+- Hard constraints
+- Non-goals
+- Preconditions
+
+## Tradeoffs <!-- OPTIONAL for small -->
+
+- Chosen approach vs alternatives
+- Cost of each alternative
+- Conditions under which the tradeoff should be revisited
 
 ## Knowledge impact
 
@@ -41,4 +77,5 @@ Describe the intended implementation at the right level of abstraction.
 
 ## Risks and mitigations
 
-- Risk
+- Risk:
+- Mitigation:

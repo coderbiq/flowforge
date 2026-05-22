@@ -8,7 +8,13 @@
 - `proposals/`：进行中和已归档的变更提案工作集
 - `modules/`：按模块组织的最终文档
 - `architecture/`：跨模块和系统级设计文档
+- `conventions/`：可复用的共识规范，例如"这一类问题统一用某种方案解决"
 - `decisions/`：稳定架构决策和 ADR
+
+## 分类与归档
+
+- 每个 exploration 和 proposal 需要声明 `size_class` 和 `ownership`，参见 [`workflow/guides/sizing.md`](../workflow/guides/sizing.md) 和 [`workflow/guides/ownership.md`](../workflow/guides/ownership.md)。
+- 归档目标根据 ownership 决定落在 modules、architecture、conventions、decisions 中的哪一个。
 
 ## 当前重点
 

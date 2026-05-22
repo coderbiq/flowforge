@@ -6,12 +6,12 @@ This guide is part of the canonical workflow spec. It defines how proposal work 
 
 ## Relationship to lifecycle
 
-- `explore`: capture context, evidence, and open questions before any execution plan is finalized.
-- `propose`: define scope, success criteria, archive targets, and the high-level delivery path.
-- `approve`: lock the chosen approach and task backend before execution starts.
+- `explore`: capture context, evidence, ownership tags, expected size, and open questions before any execution plan is finalized.
+- `propose`: define scope, success criteria, archive targets, the size class, and the high-level delivery path.
+- `approve`: lock the chosen approach, size class, and task backend before execution starts.
 - `apply`: materialize the task map into the backend.
 - `implement`: execute tasks, keep notes current, and stop at declared checkpoints.
-- `archive`: verify completion and write back durable docs.
+- `archive`: verify completion and write back durable docs, including any promoted conventions.
 
 Task splitting belongs primarily to `propose` and `apply`, but its rules continue to govern `implement` and `archive`.
 
@@ -21,11 +21,20 @@ Tasks are defined by **deliverable**, not by file list, implementation step, or 
 
 Each task should describe a result that can be verified independently. If a task cannot be checked without reading the entire proposal history, it is too large.
 
+## Sizing baseline
+
+Task density follows the proposal `size_class`:
+
+- `small`: usually one milestone with a handful of implementation tasks. A milestone may be skipped when the entire proposal fits in a single review session.
+- `medium`: multiple milestones, each producing a verifiable phase output. Model and convention work should appear as named tasks when present.
+- `large`: milestones must cover architecture, model documents, lifecycle, and any introduced conventions. Each business model under the `model/` directory should map to at least one implementation task.
+
 ## Task hierarchy
 
 ### 1. Milestone task
 
 A milestone task represents a phase boundary in a proposal.
+Milestone tasks are allowed to act as structural separators and may omit capability refs when they are not implementation work.
 
 Use a milestone task when:
 
@@ -70,6 +79,11 @@ Every task in `task-map.md` should state:
 
 For execution-grade tasks, the completion definition should be written as concrete verification statements, not vague intent.
 
+When the proposal carries model or convention work, tasks should also state:
+
+- `model_refs`: which `model/<Model>.md` documents are implemented or modified
+- `convention_refs`: which `docs/conventions/<topic>.md` documents the task establishes, enforces, or modifies
+
 Recommended structure for each task:
 
 - result: the artifact or system state produced
@@ -86,6 +100,7 @@ Split a task again if any of the following are true:
 - it requires multiple design decisions before implementation can start
 - it is likely to exceed one working session
 - it would be unsafe to let an agent run it without a human checkpoint
+- it bundles multiple business models into one task in a `large` proposal
 
 ## Long-running proposals
 
@@ -112,6 +127,7 @@ Rules:
 - avoid file-by-file task lists unless the file itself is the deliverable
 - include enough verification detail that an agent can self-check progress
 - keep dependency chains explicit and shallow where possible
+- reference `model/` and `docs/conventions/` documents through `model_refs` and `convention_refs` when they exist
 
 ## Practical template
 
@@ -133,6 +149,8 @@ Rules:
 - Outcome: <what this smaller task produces>
 - Priority: P1
 - Depends on: TASK-001
+- Model refs: model/DsDataset.md
+- Convention refs: conventions/dictionary-fields.md
 - Completion definition:
   - <verifiable statement 1>
   - <verification step>
@@ -146,6 +164,8 @@ The current task-map schema already supports the fields needed for deliverable-f
 - `priority`
 - `depends_on`
 - `completion_definition`
+- `model_refs`
+- `convention_refs`
 
 Use these fields consistently before introducing new schema concepts. Add new fields only if the workflow cannot be expressed clearly with the existing model.
 
@@ -157,4 +177,3 @@ This guide follows the same practical direction used by OpenSpec-style and Super
 - tasks that can be verified independently
 - explicit review gates for large changes
 - small enough execution units for autonomous agent work
-
