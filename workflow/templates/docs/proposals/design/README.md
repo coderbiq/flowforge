@@ -1,3 +1,20 @@
+---
+doc_type: note
+title: Design: <Proposal Title>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: design
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+---
+
 # Design: <Proposal Title>
 
 This directory is the design entry point for large proposals and for medium proposals that opt into a split layout.
@@ -20,12 +37,14 @@ If a proposal only needs a small change, keep the single-file `design.md` layout
 6. [Constraints](./constraints.md)
 7. [Tradeoffs](./tradeoffs.md)
 
+Frontmatter carries the design properties used by Obsidian and FlowForge.
+
 ## Ownership summary
 
-- Primary reading path: <Primary ownership>
-- Owning modules: <Owning modules>
-- System / architecture targets: <Owning systems>
-- Reusable conventions: <Owning conventions>
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this design directory
 
 ## Canonical corpus reviewed
 

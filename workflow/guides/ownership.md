@@ -1,6 +1,6 @@
 # Proposal Ownership
 
-`FlowForge` requires every exploration and proposal to declare ownership tags. Ownership controls where knowledge is archived, not which team owns the work.
+`FlowForge` requires every exploration and proposal to declare ownership tags. Ownership controls where knowledge is archived, not which team owns the work. The same ownership graph is also surfaced in each document's YAML frontmatter so Obsidian and other indexers can route the document without parsing the proposal bundle first.
 
 ## Ownership types
 
@@ -57,7 +57,7 @@ When a proposal introduces a convention, the convention must be archived under `
 
 ## Relationship to archive targets
 
-`ownership` and `archive_targets` are aligned. Every ownership entry should resolve to a matching archive target.
+`ownership` and `archive_targets` are aligned. Every ownership entry should resolve to a matching archive target. Document frontmatter mirrors the same graph at the document level, but `meta.yaml` remains the proposal bundle contract.
 
 - ownership `module` maps to archive target `module`
 - ownership `system` maps to archive target `architecture`
@@ -68,7 +68,7 @@ A proposal must declare at least one `primary` archive target that corresponds t
 
 ## Exploration ownership
 
-Explorations declare ownership too. This lets the proposal phase inherit the ownership graph instead of rediscovering it.
+Explorations declare ownership too. This lets the proposal phase inherit the ownership graph instead of rediscovering it, while each exploration file still carries its own frontmatter for Obsidian indexing.
 
 When an exploration spans multiple ownership types, the resulting proposals may either:
 

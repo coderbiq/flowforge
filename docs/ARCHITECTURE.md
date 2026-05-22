@@ -1,11 +1,28 @@
+---
+doc_type: "note"
+title: "Architecture"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: "note"
+topics: []
+related_docs: []
+archive_target: "default:ARCHITECTURE.md"
+created: "2026-05-22T08:16:57.269Z"
+updated: "2026-05-22T08:16:57.269Z"
+---
+
 # Architecture
 
-`FlowForge` is intentionally split into four layers:
+## Ownership summary
 
-1. canonical workflow spec
-2. canonical agent definitions
-3. platform adapters
-4. project artifacts
+- Primary module: none
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: ARCHITECTURE.md
 
 ## Why this split exists
 
@@ -127,7 +144,7 @@ Contract:
 
 ## Classification model
 
-Every exploration and proposal carries two classification axes:
+Every exploration, proposal, and durable subdocument carries two classification axes in its own YAML frontmatter:
 
 - `size_class`: `small | medium | large` — controls the document skeleton (see `workflow/guides/sizing.md`).
 - `ownership`: one or more of `module | system | cross-module | convention` — controls the archive destination (see `workflow/guides/ownership.md`).
@@ -135,6 +152,7 @@ Every exploration and proposal carries two classification axes:
 These axes are independent. A `small` proposal can still introduce a `convention` archive target, and a `large` module proposal can still carry zero conventions.
 
 These axes also need a human-readable mirror in the document bodies. Readers should not have to reconstruct module or architecture ownership by inspecting only `meta.yaml`.
+`meta.yaml` remains the proposal bundle manifest, but document frontmatter is the document-level contract for Obsidian indexing and doc-local routing.
 
 ## Archive model
 

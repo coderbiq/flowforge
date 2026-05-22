@@ -3,6 +3,7 @@ id: "CR26052001"
 slug: "monorepo-document-workspace-support"
 title: "Monorepo Document Workspace Support"
 status: "archived"
+size_class: "medium"
 created_at: "2026-05-20T13:29:53Z"
 updated_at: "2026-05-21T12:04:04Z"
 workspace: "default"
@@ -13,6 +14,13 @@ source_explorations:
 owner: "Jon.Bi"
 task_backend: "beads"
 task_epic_id: null
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
 archive_targets:
   - key: "monorepo-workspaces-architecture"
     type: "architecture"

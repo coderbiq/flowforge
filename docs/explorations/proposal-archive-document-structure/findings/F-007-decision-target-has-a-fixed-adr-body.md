@@ -1,7 +1,38 @@
+---
+doc_type: "finding"
+title: "F-007 decision 目标已经有固定的 ADR 正文骨架"
+status: "validated"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/proposal-archive-document-structure.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/proposal-archive-document-structure/index.md"
+archive_target: "default:architecture/proposal-archive-document-structure.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "proposal-archive-document-structure"
+finding_id: "F-007-decision-target-has-a-fixed-adr-body"
+evidence_sources: []
+---
+
 # F-007 decision 目标已经有固定的 ADR 正文骨架
 
-- Status: validated
-- Source: `workflow/templates/docs/decisions/ADR-template.md`
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/proposal-archive-document-structure.md
+- Convention targets: none
+- Canonical reading path: proposal-archive-document-structure/findings/F-007-decision-target-has-a-fixed-adr-body.md
 
 ## Statement
 

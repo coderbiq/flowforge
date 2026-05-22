@@ -1,7 +1,34 @@
+---
+doc_type: "architecture"
+title: "Installed FlowForge Upgrade Policy"
+status: "active"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+information_class: "architecture"
+topics: []
+related_docs:
+  - "default:proposals/CR26052101"
+archive_target: "default:architecture/installed-flowforge-upgrade-policy.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+architecture_topic: "installed-flowforge-upgrade-policy"
+architecture_status: "active"
+---
+
 # Installed FlowForge Upgrade Policy
 
-- Status: active
-- Primary proposal: CR26052101
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: architecture/installed-flowforge-upgrade-policy.md
+- Convention targets: none
+- Canonical reading path: installed-flowforge-upgrade-policy.md
 
 ## Scope
 

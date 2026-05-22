@@ -1,6 +1,33 @@
+---
+doc_type: "module"
+title: "workflow-core API"
+status: "active"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "primary"
+information_class: "module"
+topics: []
+related_docs: []
+archive_target: "default:modules/workflow-core/api.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+module_name: "workflow-core"
+module_status: "active"
+---
+
 # workflow-core API
 
-`workflow-core` is consumed through the CLI wrappers in `scripts/`.
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: modules/workflow-core/api.md
 
 ## Proposal commands
 

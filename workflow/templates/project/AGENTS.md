@@ -1,4 +1,28 @@
+---
+doc_type: note
+title: AGENTS.md
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: note
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+---
+
 # AGENTS.md
+
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: this project scaffold
 
 This repository uses `FlowForge` as the default design and delivery workflow.
 
@@ -29,10 +53,11 @@ This repository uses `FlowForge` as the default design and delivery workflow.
 
 ## Classification model
 
-Every exploration and proposal must declare:
+Every exploration, proposal, and durable subdocument must declare frontmatter properties:
 
 - `size_class`: `small`, `medium`, or `large`. See `.flowforge/workflow/guides/sizing.md`.
 - `ownership`: one or more entries of type `module`, `system`, `cross-module`, or `convention`. See `.flowforge/workflow/guides/ownership.md`.
+- `meta.yaml` remains the proposal bundle contract; document frontmatter is the document-level contract.
 - Human-readable docs must mirror the ownership graph with an explicit summary of owning modules, system or architecture targets, and reusable conventions.
 - Template customization is copy-and-edit only. If a workspace needs project-specific template variants, place them in `docs/<workspace>/_templates/` and make the customization explicit in the copied files.
 

@@ -33,6 +33,21 @@ const TASK_PRIORITIES = new Set(['P0', 'P1', 'P2']);
 const SIZE_CLASSES = new Set(['small', 'medium', 'large']);
 const OWNERSHIP_TYPES = new Set(['module', 'system', 'cross-module', 'convention']);
 const DESIGN_LAYOUTS = new Set(['single', 'split']);
+const DOCUMENT_TYPES = new Set([
+  'exploration',
+  'proposal',
+  'design',
+  'model',
+  'finding',
+  'decision',
+  'journal',
+  'note',
+  'task-map',
+  'convention',
+  'module',
+  'architecture',
+  'adr',
+]);
 const PROPOSAL_ID_RE = /^CR\d{8}$/;
 const HISTORY_MARKER_PREFIX = '<!-- flowforge:proposal:';
 const DEFAULT_TOOL_ROOT = '.flowforge';
@@ -88,6 +103,8 @@ function parseScalar(raw) {
   if (value === 'null') return null;
   if (value === 'true') return true;
   if (value === 'false') return false;
+  if (value === '[]') return [];
+  if (value === '{}') return {};
   if (/^-?\d+$/.test(value)) return Number(value);
   if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
     return value.slice(1, -1);
@@ -218,17 +235,20 @@ function parseSimpleYaml(text) {
 }
 
 function parseTaskMap(text) {
+  const parsed = parseFrontmatterDocument(text);
   const lines = text.replace(/\r\n/g, '\n').split('\n');
   const result = {
-    proposal_id: null,
-    backend: null,
+    proposal_id: parsed.frontmatter?.proposal_id || null,
+    backend: parsed.frontmatter?.task_backend || null,
     tasks: [],
   };
+
+  const sourceLines = parsed.frontmatter ? parsed.body.split('\n') : lines;
 
   let currentTask = null;
   let collectingCompletion = false;
 
-  for (const line of lines) {
+  for (const line of sourceLines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
@@ -295,6 +315,22 @@ function parseTaskMap(text) {
 }
 
 function parseExplorationIndex(text) {
+  const parsed = parseFrontmatterDocument(text);
+  if (parsed.frontmatter) {
+    const frontmatter = parsed.frontmatter;
+    return {
+      title: frontmatter.title || null,
+      status: frontmatter.status || null,
+      created: frontmatter.created || null,
+      updated: frontmatter.updated || null,
+      ownership: Array.isArray(frontmatter.ownership) ? frontmatter.ownership : [],
+      reusable_rules: Array.isArray(frontmatter.reusable_rules) ? frontmatter.reusable_rules : [],
+      expected_size_class: frontmatter.expected_size_class || null,
+      question: frontmatter.question || null,
+      exploration_slug: frontmatter.exploration_slug || null,
+    };
+  }
+
   const lines = text.replace(/\r\n/g, '\n').split('\n');
   const result = {
     title: null,
@@ -302,6 +338,7 @@ function parseExplorationIndex(text) {
     created: null,
     updated: null,
     ownership: [],
+    reusable_rules: [],
     expected_size_class: null,
   };
 
@@ -675,6 +712,9 @@ function serializeYaml(value, indent = 0) {
   const prefix = ' '.repeat(indent);
 
   if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return `${prefix}[]`;
+    }
     return value
       .map((item) => {
         if (item && typeof item === 'object' && !Array.isArray(item)) {
@@ -705,6 +745,12 @@ function serializeYaml(value, indent = 0) {
   if (value && typeof value === 'object') {
     return Object.entries(value)
       .map(([key, nestedValue]) => {
+        if (Array.isArray(nestedValue) && nestedValue.length === 0) {
+          return `${prefix}${key}: []`;
+        }
+        if (nestedValue && typeof nestedValue === 'object' && !Array.isArray(nestedValue) && Object.keys(nestedValue).length === 0) {
+          return `${prefix}${key}: {}`;
+        }
         if (isPlainScalar(nestedValue)) {
           return `${prefix}${key}: ${yamlScalar(nestedValue)}`;
         }
@@ -714,6 +760,177 @@ function serializeYaml(value, indent = 0) {
   }
 
   return `${prefix}${yamlScalar(value)}`;
+}
+
+function parseFrontmatterDocument(text) {
+  const normalized = String(text || '').replace(/\r\n/g, '\n');
+  const lines = normalized.split('\n');
+  if (lines[0]?.trim() !== '---') {
+    return {
+      frontmatter: null,
+      body: normalized,
+    };
+  }
+
+  let closingIndex = -1;
+  for (let index = 1; index < lines.length; index += 1) {
+    if (lines[index].trim() === '---') {
+      closingIndex = index;
+      break;
+    }
+  }
+
+  if (closingIndex === -1) {
+    return {
+      frontmatter: null,
+      body: normalized,
+    };
+  }
+
+  const frontmatterText = lines.slice(1, closingIndex).join('\n');
+  const body = lines.slice(closingIndex + 1).join('\n').replace(/^\n+/, '');
+
+  return {
+    frontmatter: parseSimpleYaml(frontmatterText),
+    body,
+  };
+}
+
+function renderFrontmatter(frontmatter, body = '') {
+  const normalizedBody = String(body || '').replace(/^\n+/, '');
+  const renderedFrontmatter = serializeYaml(frontmatter);
+  return normalizedBody
+    ? `---\n${renderedFrontmatter}\n---\n\n${normalizedBody}`
+    : `---\n${renderedFrontmatter}\n---`;
+}
+
+function workspaceDocRef(workspaceName, ref) {
+  return `${workspaceName}:${ref}`;
+}
+
+function toPosixPath(filePath) {
+  return String(filePath || '').split(path.sep).join('/');
+}
+
+function normalizeRefList(values) {
+  return Array.from(new Set((values || [])
+    .filter((value) => value !== null && value !== undefined)
+    .map((value) => String(value).trim())
+    .filter(Boolean)));
+}
+
+function buildDocumentFrontmatter({
+  doc_type,
+  title,
+  status,
+  workspace,
+  module_scope = [],
+  system_scope = [],
+  convention_scope = [],
+  ownership = [],
+  information_class,
+  topics = [],
+  related_docs = [],
+  archive_target = 'none',
+  created,
+  updated,
+  ...rest
+}) {
+  const frontmatter = {
+    doc_type,
+    title,
+    status,
+    workspace,
+    module_scope: normalizeRefList(module_scope),
+    system_scope: normalizeRefList(system_scope),
+    convention_scope: normalizeRefList(convention_scope),
+    ownership,
+    information_class,
+    topics: normalizeRefList(topics),
+    related_docs: normalizeRefList(related_docs),
+    archive_target,
+    created,
+    updated,
+    ...rest,
+  };
+
+  for (const key of Object.keys(frontmatter)) {
+    if (frontmatter[key] === undefined) {
+      delete frontmatter[key];
+    }
+  }
+
+  return frontmatter;
+}
+
+function renderDocumentWithFrontmatter(frontmatter, body) {
+  const normalizedBody = String(body || '').replace(/^\n+/, '');
+  return `${renderFrontmatter(frontmatter, normalizedBody)}\n`;
+}
+
+function renderDocumentTemplate(templateText, frontmatter, replacements) {
+  return renderDocumentWithFrontmatter(frontmatter, renderTemplate(templateText, replacements));
+}
+
+function updateDocumentFrontmatter(filePath, patch = {}) {
+  if (!fileExists(filePath)) return false;
+  const { frontmatter, body } = parseFrontmatterDocument(readFileRequired(filePath));
+  if (!frontmatter) return false;
+  writeText(filePath, renderDocumentWithFrontmatter({ ...frontmatter, ...patch }, body));
+  return true;
+}
+
+function validateDocumentFrontmatter(filePath, expectedDocType, errors, warnings, options = {}) {
+  if (!fileExists(filePath)) {
+    errors.push(`${path.basename(filePath)} not found`);
+    return null;
+  }
+
+  const label = options.label || path.basename(filePath);
+  const { frontmatter, body } = parseFrontmatterDocument(readFileRequired(filePath));
+  if (!frontmatter) {
+    errors.push(`${label} missing YAML frontmatter`);
+    return null;
+  }
+
+  for (const field of ['doc_type', 'title', 'status', 'workspace', 'module_scope', 'system_scope', 'convention_scope', 'ownership', 'information_class', 'topics', 'related_docs', 'archive_target', 'created', 'updated']) {
+    if (frontmatter[field] === undefined || frontmatter[field] === null || frontmatter[field] === '') {
+      errors.push(`${label} missing ${field}`);
+    }
+  }
+
+  if (expectedDocType && frontmatter.doc_type !== expectedDocType) {
+    errors.push(`${label} doc_type must be ${expectedDocType}, got ${frontmatter.doc_type}`);
+  }
+
+  for (const field of ['module_scope', 'system_scope', 'convention_scope', 'topics', 'related_docs']) {
+    if (frontmatter[field] !== undefined && !Array.isArray(frontmatter[field])) {
+      errors.push(`${label} ${field} must be an array`);
+    }
+  }
+
+  if (frontmatter.ownership !== undefined && !Array.isArray(frontmatter.ownership)) {
+    errors.push(`${label} ownership must be an array`);
+  }
+
+  if (frontmatter.archive_target === undefined) {
+    errors.push(`${label} missing archive_target`);
+  }
+
+  if (options.allowedStatuses && frontmatter.status && !options.allowedStatuses.has(frontmatter.status)) {
+    errors.push(`${label} has invalid status ${frontmatter.status}`);
+  }
+
+  if (options.requireBodyHeading && body && !body.includes(options.requireBodyHeading)) {
+    warnings.push(`${label} should include body heading: ${options.requireBodyHeading}`);
+  }
+
+  return frontmatter;
+}
+
+function frontmatterDocRef(workspaceName, relativePath) {
+  if (!relativePath) return 'none';
+  return workspaceDocRef(workspaceName, relativePath);
 }
 
 function renderTemplate(templateText, replacements) {
@@ -846,7 +1063,7 @@ function isTemplatePlaceholder(value) {
 function validateProposalContext(context, cwd = process.cwd()) {
   const errors = [];
   const warnings = [];
-  const { meta, taskMap, proposalDir, designPath, modelPath, notesPath } = context;
+  const { meta, taskMap, proposalDir, taskMapPath, designPath, modelPath, notesPath } = context;
 
   const proposalRoot = path.dirname(proposalDir);
 
@@ -1097,6 +1314,96 @@ function validateProposalContext(context, cwd = process.cwd()) {
         }
       }
     }
+
+    const proposalFrontmatter = validateDocumentFrontmatter(path.join(proposalDir, 'proposal.md'), 'proposal', errors, warnings, {
+      label: 'proposal.md',
+      allowedStatuses: STATUS_VALUES,
+    });
+    if (proposalFrontmatter) {
+      if (proposalFrontmatter.proposal_id && proposalFrontmatter.proposal_id !== meta.id) {
+        errors.push(`proposal.md proposal_id must match meta.yaml id: ${proposalFrontmatter.proposal_id}`);
+      }
+      if (proposalFrontmatter.size_class && proposalFrontmatter.size_class !== meta.size_class) {
+        errors.push(`proposal.md size_class must match meta.yaml size_class: ${proposalFrontmatter.size_class}`);
+      }
+      const primaryArchiveTarget = meta.archive_targets.find((target) => target.role === 'primary');
+      if (primaryArchiveTarget && proposalFrontmatter.archive_target && proposalFrontmatter.archive_target !== workspaceDocRef(primaryArchiveTarget.workspace, primaryArchiveTarget.ref)) {
+        warnings.push(`proposal.md archive_target does not match the primary archive target: ${proposalFrontmatter.archive_target}`);
+      }
+      if (proposalFrontmatter.ownership_primary && primaryOwnership[0]) {
+        const expectedPrimary = `${primaryOwnership[0].type}:${primaryOwnership[0].target}`;
+        if (proposalFrontmatter.ownership_primary !== expectedPrimary) {
+          warnings.push(`proposal.md ownership_primary does not match meta.yaml primary ownership: ${proposalFrontmatter.ownership_primary}`);
+        }
+      }
+    }
+
+    const taskMapFrontmatter = validateDocumentFrontmatter(taskMapPath, 'task-map', errors, warnings, {
+      label: 'task-map.md',
+      allowedStatuses: STATUS_VALUES,
+    });
+    if (taskMapFrontmatter && taskMapFrontmatter.proposal_id && taskMapFrontmatter.proposal_id !== meta.id) {
+      errors.push(`task-map.md proposal_id must match meta.yaml id: ${taskMapFrontmatter.proposal_id}`);
+    }
+    if (taskMapFrontmatter && taskMapFrontmatter.task_backend && taskMapFrontmatter.task_backend !== meta.task_backend) {
+      errors.push(`task-map.md task_backend must match meta.yaml task_backend: ${taskMapFrontmatter.task_backend}`);
+    }
+
+    const notesFrontmatter = validateDocumentFrontmatter(notesPath, 'note', errors, warnings, {
+      label: 'notes.md',
+      allowedStatuses: STATUS_VALUES,
+    });
+    if (notesFrontmatter && notesFrontmatter.proposal_id && notesFrontmatter.proposal_id !== meta.id) {
+      errors.push(`notes.md proposal_id must match meta.yaml id: ${notesFrontmatter.proposal_id}`);
+    }
+
+    if (designLayout === 'single') {
+      const designDoc = validateDocumentFrontmatter(path.join(proposalDir, 'design.md'), 'design', errors, warnings, {
+        label: 'design.md',
+        allowedStatuses: STATUS_VALUES,
+      });
+      if (designDoc && designDoc.proposal_id && designDoc.proposal_id !== meta.id) {
+        errors.push(`design.md proposal_id must match meta.yaml id: ${designDoc.proposal_id}`);
+      }
+    } else {
+      const designReadme = validateDocumentFrontmatter(path.join(proposalDir, 'design', 'README.md'), 'design', errors, warnings, {
+        label: 'design/README.md',
+        allowedStatuses: STATUS_VALUES,
+      });
+      if (designReadme && designReadme.proposal_id && designReadme.proposal_id !== meta.id) {
+        errors.push(`design/README.md proposal_id must match meta.yaml id: ${designReadme.proposal_id}`);
+      }
+      for (const filePath of listMarkdownFiles(path.join(proposalDir, 'design'), { recursive: false })) {
+        if (path.basename(filePath) === 'README.md') continue;
+        const sectionDoc = validateDocumentFrontmatter(filePath, 'design', errors, warnings, {
+          label: path.relative(proposalDir, filePath).split(path.sep).join('/'),
+          allowedStatuses: STATUS_VALUES,
+        });
+        if (sectionDoc && sectionDoc.proposal_id && sectionDoc.proposal_id !== meta.id) {
+          errors.push(`${path.relative(proposalDir, filePath).split(path.sep).join('/')} proposal_id must match meta.yaml id: ${sectionDoc.proposal_id}`);
+        }
+      }
+    }
+
+    if (modelLayout === 'split') {
+      const modelReadme = validateDocumentFrontmatter(path.join(proposalDir, 'model', 'README.md'), 'model', errors, warnings, {
+        label: 'model/README.md',
+        allowedStatuses: STATUS_VALUES,
+      });
+      if (modelReadme && modelReadme.proposal_id && modelReadme.proposal_id !== meta.id) {
+        errors.push(`model/README.md proposal_id must match meta.yaml id: ${modelReadme.proposal_id}`);
+      }
+      for (const filePath of listMarkdownFiles(path.join(proposalDir, 'model'), { recursive: true, ignoreDirs: ['parts'] })) {
+        if (path.basename(filePath) === 'README.md') continue;
+        const modelDoc = validateDocumentFrontmatter(filePath, 'model', errors, warnings, {
+          label: path.relative(proposalDir, filePath).split(path.sep).join('/'),
+          allowedStatuses: STATUS_VALUES,
+        });
+        if (modelDoc && modelDoc.proposal_id && modelDoc.proposal_id !== meta.id) {
+          errors.push(`${path.relative(proposalDir, filePath).split(path.sep).join('/')} proposal_id must match meta.yaml id: ${modelDoc.proposal_id}`);
+        }
+      }
+    }
   } else {
     for (const field of META_REQUIRED_FIELDS) {
       if (meta[field] === undefined || meta[field] === null || meta[field] === '') {
@@ -1245,18 +1552,6 @@ function validateProposalContext(context, cwd = process.cwd()) {
       }
     }
 
-    validateRenderedDocMarker(path.join(proposalDir, 'proposal.md'), '- Ownership summary:', warnings, 'proposal.md');
-    validateRenderedDocMarker(notesPath, '## Classification context', warnings, 'notes.md');
-
-    if (designLayout === 'single') {
-      validateRenderedDocMarker(path.join(proposalDir, 'design.md'), '## Ownership summary', warnings, 'design.md');
-    }
-    if (designLayout === 'split') {
-      validateRenderedDocMarker(path.join(proposalDir, 'design', 'README.md'), '## Ownership summary', warnings, 'design/README.md');
-    }
-    if (modelLayout === 'split') {
-      validateRenderedDocMarker(path.join(proposalDir, 'model', 'README.md'), '## Ownership summary', warnings, 'model/README.md');
-    }
   } else if (meta.source_exploration) {
     const sourcePath = path.isAbsolute(meta.source_exploration)
       ? meta.source_exploration
@@ -1600,12 +1895,112 @@ function renderOwnershipTargetList(ownership, types) {
     .join(', ');
 }
 
-function validateRenderedDocMarker(filePath, marker, warnings, label) {
-  if (!fileExists(filePath)) return;
-  const text = readFileRequired(filePath);
-  if (!text.includes(marker)) {
-    warnings.push(`${label} should include marker: ${marker}`);
+function renderScopeListFromOwnership(ownership, types) {
+  return normalizeRefList((ownership || [])
+    .filter((entry) => types.includes(entry.type))
+    .map((entry) => entry.target));
+}
+
+function ownershipEntryToFrontmatter(entry) {
+  if (!entry) return null;
+  return {
+    type: entry.type,
+    target: entry.target,
+    role: entry.role || 'secondary',
+  };
+}
+
+function normalizeOwnershipForFrontmatter(ownership) {
+  return (ownership || [])
+    .map((entry) => ownershipEntryToFrontmatter(entry))
+    .filter(Boolean);
+}
+
+function ownershipEntriesForTypes(ownership, types) {
+  return (ownership || []).filter((entry) => types.includes(entry.type));
+}
+
+function buildArchiveDocumentOwnership(targetType, context, targetRef) {
+  const proposalOwnership = context.meta.ownership || [];
+  const target = targetRef;
+  if (targetType === 'module') {
+    return [{ type: 'module', target, role: 'primary' }];
   }
+
+  if (targetType === 'architecture') {
+    const preferred = primaryOwnershipEntries(ownershipEntriesForTypes(proposalOwnership, ['system', 'cross-module']))[0];
+    return [preferred ? { type: preferred.type, target: preferred.target, role: 'primary' } : { type: 'system', target, role: 'primary' }];
+  }
+
+  if (targetType === 'convention') {
+    return [{ type: 'convention', target, role: 'primary' }];
+  }
+
+  if (targetType === 'decision') {
+    const preferred = primaryOwnershipEntries(proposalOwnership)[0];
+    return [preferred ? { type: preferred.type, target: preferred.target, role: 'primary' } : { type: 'system', target, role: 'primary' }];
+  }
+
+  return normalizeOwnershipForFrontmatter(proposalOwnership);
+}
+
+function makeDocFrontmatter({
+  docType,
+  title,
+  status,
+  workspace,
+  fileRef,
+  ownership = [],
+  informationClass,
+  topics = [],
+  relatedDocs = [],
+  archiveTarget = null,
+  extra = {},
+  created,
+  updated,
+}) {
+  const timestamp = nowIso();
+  const moduleScope = renderScopeListFromOwnership(ownership, ['module']);
+  const systemScope = renderScopeListFromOwnership(ownership, ['system', 'cross-module']);
+  const conventionScope = renderScopeListFromOwnership(ownership, ['convention']);
+
+  return buildDocumentFrontmatter({
+    doc_type: docType,
+    title,
+    status,
+    workspace,
+    module_scope: moduleScope,
+    system_scope: systemScope,
+    convention_scope: conventionScope,
+    ownership: normalizeOwnershipForFrontmatter(ownership),
+    information_class: informationClass || docType,
+    topics,
+    related_docs: relatedDocs,
+    archive_target: archiveTarget || workspaceDocRef(workspace, fileRef),
+    created: created || timestamp,
+    updated: updated || timestamp,
+    ...extra,
+  });
+}
+
+function listMarkdownFiles(dirPath, options = {}) {
+  if (!fileExists(dirPath)) return [];
+  const recursive = options.recursive || false;
+  const ignoreDirs = new Set(options.ignoreDirs || []);
+  const results = [];
+
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (!recursive || ignoreDirs.has(entry.name)) continue;
+      results.push(...listMarkdownFiles(path.join(dirPath, entry.name), options));
+      continue;
+    }
+
+    if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+    results.push(path.join(dirPath, entry.name));
+  }
+
+  return results;
 }
 
 
@@ -1643,6 +2038,7 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
   if (!DESIGN_LAYOUTS.has(designLayout)) {
     throw new Error(`invalid design layout: ${designLayout}`);
   }
+  const modelLayout = designLayout === 'split' ? 'split' : 'none';
   if (sizeClass === 'small' && designLayout !== 'single') {
     throw new Error('small proposals must use the single-file design layout');
   }
@@ -1724,6 +2120,111 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
     'tradeoffs.md': loadTemplate(cwd, path.join('proposals', 'design', 'tradeoffs.md')),
   };
   const modelReadmeTemplate = loadTemplate(cwd, path.join('proposals', 'model', 'README.md'));
+  const proposalFileRef = toPosixPath(path.relative(docsRoot, path.join(proposalDir, 'proposal.md')));
+  const taskMapFileRef = toPosixPath(path.relative(docsRoot, path.join(proposalDir, 'task-map.md')));
+  const notesFileRef = toPosixPath(path.relative(docsRoot, path.join(proposalDir, 'notes.md')));
+  const designReadmeRef = toPosixPath(path.relative(docsRoot, path.join(proposalDir, designLayout === 'split' ? 'design/README.md' : 'design.md')));
+  const modelReadmeRef = toPosixPath(path.relative(docsRoot, path.join(proposalDir, 'model/README.md')));
+  const relatedDocRefs = normalizeRefList([
+    ...sourceExplorations.map((source) => workspaceDocRef(source.workspace || workspaceName, source.ref)),
+    ...canonicalCorpus.map((entry) => workspaceDocRef(entry.workspace, entry.ref)),
+  ]);
+  const proposalFrontmatter = makeDocFrontmatter({
+    docType: 'proposal',
+    title,
+    status: meta.status,
+    workspace: workspaceName,
+    fileRef: proposalFileRef,
+    ownership,
+    informationClass: 'proposal',
+    topics: options.tags || [],
+    relatedDocs: relatedDocRefs,
+    archiveTarget: primaryTarget ? workspaceDocRef(primaryTarget.workspace, primaryTarget.ref) : proposalFileRef,
+    extra: {
+      proposal_id: id,
+      size_class: sizeClass,
+      ownership_primary: primaryOwnership ? `${primaryOwnership.type}:${primaryOwnership.target}` : undefined,
+      design_layout: designLayout,
+    },
+    created: createdAt,
+    updated: createdAt,
+  });
+  const taskMapFrontmatter = makeDocFrontmatter({
+    docType: 'task-map',
+    title: `${title} Task Map`,
+    status: meta.status,
+    workspace: workspaceName,
+    fileRef: taskMapFileRef,
+    ownership,
+    informationClass: 'task-map',
+    topics: options.tags || [],
+    relatedDocs: [proposalFileRef],
+    archiveTarget: taskMapFileRef,
+    extra: {
+      proposal_id: id,
+      task_backend: taskBackend,
+    },
+    created: createdAt,
+    updated: createdAt,
+  });
+  const notesFrontmatter = makeDocFrontmatter({
+    docType: 'note',
+    title: `${title} Notes`,
+    status: meta.status,
+    workspace: workspaceName,
+    fileRef: notesFileRef,
+    ownership,
+    informationClass: 'note',
+    topics: options.tags || [],
+    relatedDocs: [proposalFileRef],
+    archiveTarget: notesFileRef,
+    extra: {
+      proposal_id: id,
+      note_kind: 'progress',
+    },
+    created: createdAt,
+    updated: createdAt,
+  });
+  const designFrontmatter = makeDocFrontmatter({
+    docType: 'design',
+    title: `${title} Design`,
+    status: meta.status,
+    workspace: workspaceName,
+    fileRef: designReadmeRef,
+    ownership,
+    informationClass: 'design',
+    topics: options.tags || [],
+    relatedDocs: [proposalFileRef, modelLayout === 'split' ? modelReadmeRef : null],
+    archiveTarget: primaryTarget ? workspaceDocRef(primaryTarget.workspace, primaryTarget.ref) : designReadmeRef,
+    extra: {
+      proposal_id: id,
+      design_section: 'entry',
+      canonical_entry_point: proposalFileRef,
+    },
+    created: createdAt,
+    updated: createdAt,
+  });
+  const modelReadmeFrontmatter = makeDocFrontmatter({
+    docType: 'model',
+    title: `${title} Models`,
+    status: meta.status,
+    workspace: workspaceName,
+    fileRef: modelReadmeRef,
+    ownership,
+    informationClass: 'model',
+    topics: options.tags || [],
+    relatedDocs: [proposalFileRef, designReadmeRef],
+    archiveTarget: primaryTarget ? workspaceDocRef(primaryTarget.workspace, primaryTarget.ref) : modelReadmeRef,
+    extra: {
+      proposal_id: id,
+      model_name: 'index',
+      model_role: 'shared',
+      data_scope: 'derived',
+      model_status_in_proposal: 'retained',
+    },
+    created: createdAt,
+    updated: createdAt,
+  });
 
   const replacements = {
     '<Proposal Title>': title,
@@ -1751,22 +2252,41 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
   };
 
   writeText(path.join(proposalDir, 'meta.yaml'), `${serializeYaml(meta)}\n`);
-  writeText(path.join(proposalDir, 'proposal.md'), renderTemplate(proposalTemplate, replacements));
+  writeText(path.join(proposalDir, 'proposal.md'), renderDocumentTemplate(proposalTemplate, proposalFrontmatter, replacements));
   if (designLayout === 'single') {
-    writeText(path.join(proposalDir, 'design.md'), renderTemplate(singleDesignTemplate, replacements));
+    writeText(path.join(proposalDir, 'design.md'), renderDocumentTemplate(singleDesignTemplate, designFrontmatter, replacements));
   } else {
     const designDir = path.join(proposalDir, 'design');
     const modelDir = path.join(proposalDir, 'model');
     ensureDir(designDir);
     ensureDir(modelDir);
-    writeText(path.join(designDir, 'README.md'), renderTemplate(designReadmeTemplate, replacements));
+    writeText(path.join(designDir, 'README.md'), renderDocumentTemplate(designReadmeTemplate, designFrontmatter, replacements));
     for (const [fileName, templateText] of Object.entries(designSectionTemplates)) {
-      writeText(path.join(designDir, fileName), renderTemplate(templateText, replacements));
+      const sectionFrontmatter = makeDocFrontmatter({
+        docType: 'design',
+        title: `${title} ${fileName.replace(/\.md$/, '')}`,
+        status: meta.status,
+        workspace: workspaceName,
+        fileRef: toPosixPath(path.relative(docsRoot, path.join(designDir, fileName))),
+        ownership,
+        informationClass: 'design',
+        topics: options.tags || [],
+        relatedDocs: [proposalFileRef, designReadmeRef],
+        archiveTarget: primaryTarget ? workspaceDocRef(primaryTarget.workspace, primaryTarget.ref) : toPosixPath(path.relative(docsRoot, path.join(designDir, fileName))),
+        extra: {
+          proposal_id: id,
+          design_section: fileName.replace(/\.md$/, ''),
+          canonical_entry_point: designReadmeRef,
+        },
+        created: createdAt,
+        updated: createdAt,
+      });
+      writeText(path.join(designDir, fileName), renderDocumentTemplate(templateText, sectionFrontmatter, replacements));
     }
-    writeText(path.join(modelDir, 'README.md'), renderTemplate(modelReadmeTemplate, replacements));
+    writeText(path.join(modelDir, 'README.md'), renderDocumentTemplate(modelReadmeTemplate, modelReadmeFrontmatter, replacements));
   }
-  writeText(path.join(proposalDir, 'task-map.md'), renderTaskMapTemplate(taskMapTemplate, replacements, taskBackend));
-  writeText(path.join(proposalDir, 'notes.md'), renderTemplate(notesTemplate, replacements));
+  writeText(path.join(proposalDir, 'task-map.md'), renderDocumentTemplate(taskMapTemplate, taskMapFrontmatter, replacements));
+  writeText(path.join(proposalDir, 'notes.md'), renderDocumentTemplate(notesTemplate, notesFrontmatter, replacements));
 
   return {
     id,
@@ -1799,11 +2319,30 @@ function transitionProposalStatus(context, nextStatus) {
 function ensureNotesFile(context, cwd = process.cwd()) {
   if (fileExists(context.notesPath)) return false;
   const template = loadTemplate(cwd, path.join('proposals', 'notes.md'));
-  const content = renderTemplate(template, {
+  const body = renderTemplate(template, {
     '<Proposal Title>': context.meta.title,
     '2026-05-20': todayDate(),
   });
-  writeText(context.notesPath, content);
+  const relativeRef = toPosixPath(path.relative(getDocsRoot(cwd, context.meta.workspace), context.notesPath));
+  const frontmatter = makeDocFrontmatter({
+    docType: 'note',
+    title: `${context.meta.title} Notes`,
+    status: context.meta.status,
+    workspace: context.meta.workspace,
+    fileRef: relativeRef,
+    ownership: context.meta.ownership || [],
+    informationClass: 'note',
+    topics: context.meta.tags || [],
+    relatedDocs: [workspaceDocRef(context.meta.workspace, toPosixPath(path.relative(getDocsRoot(cwd, context.meta.workspace), context.proposalDir)) + '/proposal.md')],
+    archiveTarget: relativeRef,
+    extra: {
+      proposal_id: context.meta.id,
+      note_kind: 'progress',
+    },
+    created: context.meta.created_at || nowIso(),
+    updated: nowIso(),
+  });
+  writeText(context.notesPath, renderDocumentWithFrontmatter(frontmatter, body));
   return true;
 }
 
@@ -1823,6 +2362,7 @@ function appendImplementationNote(context, note, cwd = process.cwd()) {
     '',
   ].join('\n');
   appendText(context.notesPath, block);
+  updateDocumentFrontmatter(context.notesPath, { updated: timestamp });
   context.meta.updated_at = nowIso();
   writeProposalMeta(context.metaPath, context.meta);
   return {
@@ -1968,12 +2508,23 @@ function appendArchiveBlock(filePath, proposalId, block) {
     return false;
   }
   appendText(filePath, `\n${marker}\n${block}`);
+  updateDocumentFrontmatter(filePath, { updated: nowIso() });
   return true;
 }
 
 function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
   const moduleDir = path.extname(targetPath) === '.md' ? path.dirname(targetPath) : targetPath;
   ensureDir(moduleDir);
+  const docsRoot = getDocsRoot(cwd, context.meta.workspace);
+  const moduleDirRef = toPosixPath(path.relative(docsRoot, moduleDir));
+  const readmeRef = toPosixPath(path.relative(docsRoot, path.join(moduleDir, 'README.md')));
+  const designRef = toPosixPath(path.relative(docsRoot, path.join(moduleDir, 'design.md')));
+  const apiRef = toPosixPath(path.relative(docsRoot, path.join(moduleDir, 'api.md')));
+  const historyRef = toPosixPath(path.relative(docsRoot, path.join(moduleDir, 'history.md')));
+  const ownership = buildArchiveDocumentOwnership('module', context, moduleDirRef);
+  const commonRelatedDocs = normalizeRefList([
+    workspaceDocRef(context.meta.workspace, toPosixPath(path.relative(docsRoot, context.proposalDir)) + '/proposal.md'),
+  ]);
 
   const templateFiles = [
     ['README.md', path.join('modules', 'README.md')],
@@ -1987,10 +2538,48 @@ function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
     if (fileExists(absolutePath)) continue;
     let rendered;
     if (fileName === 'history.md') {
-      rendered = `# ${path.basename(moduleDir)} History\n`;
+      const frontmatter = makeDocFrontmatter({
+        docType: 'module',
+        title: `${path.basename(moduleDir)} History`,
+        status: 'active',
+        workspace: context.meta.workspace,
+        fileRef: historyRef,
+        ownership,
+        informationClass: 'module',
+        topics: context.meta.tags || [],
+        relatedDocs: commonRelatedDocs,
+        archiveTarget: historyRef,
+        extra: {
+          module_name: path.basename(moduleDir),
+          module_status: 'active',
+          primary_proposal: context.meta.id,
+        },
+        created: todayDate(),
+        updated: todayDate(),
+      });
+      rendered = renderDocumentWithFrontmatter(frontmatter, `# ${path.basename(moduleDir)} History\n`);
     } else {
       const template = loadTemplate(cwd, templatePath);
-      rendered = renderTemplate(template, {
+      const frontmatter = makeDocFrontmatter({
+        docType: 'module',
+        title: path.basename(moduleDir),
+        status: 'active',
+        workspace: context.meta.workspace,
+        fileRef: fileName === 'README.md' ? readmeRef : fileName === 'api.md' ? apiRef : designRef,
+        ownership,
+        informationClass: 'module',
+        topics: context.meta.tags || [],
+        relatedDocs: commonRelatedDocs,
+        archiveTarget: fileName === 'README.md' ? readmeRef : fileName === 'api.md' ? apiRef : designRef,
+        extra: {
+          module_name: path.basename(moduleDir),
+          module_status: 'active',
+          primary_proposal: context.meta.id,
+        },
+        created: todayDate(),
+        updated: todayDate(),
+      });
+      rendered = renderDocumentTemplate(template, frontmatter, {
         '<Module Name>': path.basename(moduleDir),
         '<proposal id>': context.meta.id,
         'CR26052001': context.meta.id,
@@ -2027,9 +2616,30 @@ function ensureModuleArchiveTarget(targetPath, context, cwd = process.cwd()) {
 }
 
 function ensureArchitectureArchiveTarget(targetPath, context, cwd = process.cwd()) {
+  const docsRoot = getDocsRoot(cwd, context.meta.workspace);
+  const fileRef = toPosixPath(path.relative(docsRoot, targetPath));
+  const ownership = buildArchiveDocumentOwnership('architecture', context, fileRef);
   if (!fileExists(targetPath)) {
     const template = loadTemplate(cwd, path.join('architecture', 'system.md'));
-    const rendered = renderTemplate(template, {
+    const rendered = renderDocumentTemplate(template, makeDocFrontmatter({
+      docType: 'architecture',
+      title: path.basename(targetPath, path.extname(targetPath)),
+      status: 'active',
+      workspace: context.meta.workspace,
+      fileRef,
+      ownership,
+      informationClass: 'architecture',
+      topics: context.meta.tags || [],
+      relatedDocs: [workspaceDocRef(context.meta.workspace, toPosixPath(path.relative(docsRoot, context.proposalDir)) + '/proposal.md')],
+      archiveTarget: fileRef,
+      extra: {
+        architecture_topic: path.basename(targetPath, path.extname(targetPath)),
+        architecture_status: 'active',
+        primary_proposal: context.meta.id,
+      },
+      created: todayDate(),
+      updated: todayDate(),
+    }), {
       '<System Topic>': path.basename(targetPath, path.extname(targetPath)),
       '<proposal id>': context.meta.id,
     });
@@ -2057,9 +2667,30 @@ function ensureArchitectureArchiveTarget(targetPath, context, cwd = process.cwd(
 }
 
 function ensureDecisionArchiveTarget(targetPath, context, cwd = process.cwd()) {
+  const docsRoot = getDocsRoot(cwd, context.meta.workspace);
+  const fileRef = toPosixPath(path.relative(docsRoot, targetPath));
+  const ownership = buildArchiveDocumentOwnership('decision', context, fileRef);
   if (!fileExists(targetPath)) {
     const template = loadTemplate(cwd, path.join('decisions', 'ADR-template.md'));
-    const rendered = renderTemplate(template, {
+    const rendered = renderDocumentTemplate(template, makeDocFrontmatter({
+      docType: 'adr',
+      title: path.basename(targetPath, path.extname(targetPath)),
+      status: 'proposed',
+      workspace: context.meta.workspace,
+      fileRef,
+      ownership,
+      informationClass: 'adr',
+      topics: context.meta.tags || [],
+      relatedDocs: [workspaceDocRef(context.meta.workspace, toPosixPath(path.relative(docsRoot, context.proposalDir)) + '/proposal.md')],
+      archiveTarget: fileRef,
+      extra: {
+        adr_id: path.basename(targetPath, path.extname(targetPath)),
+        adr_status: 'proposed',
+        primary_proposal: context.meta.id,
+      },
+      created: todayDate(),
+      updated: todayDate(),
+    }), {
       'ADR-001: <Title>': `${path.basename(targetPath, path.extname(targetPath))}: ${context.meta.title}`,
       'CR26052001': context.meta.id,
       '2026-05-20': todayDate(),
@@ -2085,9 +2716,31 @@ function ensureDecisionArchiveTarget(targetPath, context, cwd = process.cwd()) {
 }
 
 function ensureConventionArchiveTarget(targetPath, context, cwd = process.cwd()) {
+  const docsRoot = getDocsRoot(cwd, context.meta.workspace);
+  const fileRef = toPosixPath(path.relative(docsRoot, targetPath));
+  const ownership = buildArchiveDocumentOwnership('convention', context, fileRef);
   if (!fileExists(targetPath)) {
     const template = loadTemplate(cwd, path.join('conventions', 'convention.md'));
-    const rendered = renderTemplate(template, {
+    const rendered = renderDocumentTemplate(template, makeDocFrontmatter({
+      docType: 'convention',
+      title: path.basename(targetPath, path.extname(targetPath)),
+      status: 'active',
+      workspace: context.meta.workspace,
+      fileRef,
+      ownership,
+      informationClass: 'convention',
+      topics: context.meta.tags || [],
+      relatedDocs: [workspaceDocRef(context.meta.workspace, toPosixPath(path.relative(docsRoot, context.proposalDir)) + '/proposal.md')],
+      archiveTarget: fileRef,
+      extra: {
+        convention_status: 'active',
+        enforcement: 'must',
+        applies_to: [path.basename(targetPath, path.extname(targetPath))],
+        origin_proposal: context.meta.id,
+      },
+      created: nowIso(),
+      updated: nowIso(),
+    }), {
       '<Convention Title>': path.basename(targetPath, path.extname(targetPath)),
       '<proposal id>': context.meta.id,
       '<name or team>': context.meta.owner || 'unknown-owner',
@@ -2315,43 +2968,84 @@ function loadExplorationContext(target, cwd = process.cwd()) {
 function validateExplorationContext(context, cwd = process.cwd()) {
   const errors = [];
   const warnings = [];
-  const { parsed, text, explorationDir } = context;
+  const { explorationDir } = context;
+  const frontmatter = validateDocumentFrontmatter(context.indexPath, 'exploration', errors, warnings, {
+    label: 'index.md',
+    allowedStatuses: new Set(['active', 'validated', 'parked', 'rejected', 'archived']),
+  });
 
-  if (!parsed.title) errors.push('index.md missing title');
-  if (!parsed.status) errors.push('index.md missing Status');
-  if (!parsed.created) errors.push('index.md missing Created');
-  if (!parsed.updated) errors.push('index.md missing Updated');
-  if (!parsed.expected_size_class) errors.push('index.md missing expected size class');
-  if (parsed.expected_size_class && !SIZE_CLASSES.has(parsed.expected_size_class)) {
-    errors.push(`invalid exploration expected size class: ${parsed.expected_size_class}`);
-  }
-
-  if (!Array.isArray(parsed.ownership) || parsed.ownership.length === 0) {
-    errors.push('index.md must declare at least one ownership entry');
-  } else {
-    const primaryCount = parsed.ownership.filter((entry) => entry.role === 'primary').length;
-    if (primaryCount !== 1) {
-      errors.push(`index.md must declare exactly one primary ownership entry, found ${primaryCount}`);
+  if (frontmatter) {
+    if (!frontmatter.expected_size_class) errors.push('index.md missing expected_size_class');
+    if (frontmatter.expected_size_class && !SIZE_CLASSES.has(frontmatter.expected_size_class)) {
+      errors.push(`invalid exploration expected size class: ${frontmatter.expected_size_class}`);
     }
-    for (const entry of parsed.ownership) {
-      if (!entry.type) {
-        errors.push(`ownership entry could not be parsed: ${entry.target}`);
-        continue;
-      }
-      if (!OWNERSHIP_TYPES.has(entry.type)) {
-        errors.push(`invalid exploration ownership type: ${entry.type}`);
+
+    if (frontmatter.reusable_rules !== undefined) {
+      if (!Array.isArray(frontmatter.reusable_rules)) {
+        errors.push('index.md reusable_rules must be an array');
+      } else {
+        for (const [index, rule] of frontmatter.reusable_rules.entries()) {
+          if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
+            errors.push(`index.md reusable_rules[${index}] must be an object`);
+            continue;
+          }
+          if (!rule.title) {
+            errors.push(`index.md reusable_rules[${index}] missing title`);
+          }
+        }
       }
     }
-  }
 
-  if (!text.includes('- Ownership summary:')) {
-    warnings.push('index.md should include an Ownership summary block');
+    if (!Array.isArray(frontmatter.ownership) || frontmatter.ownership.length === 0) {
+      errors.push('index.md must declare at least one ownership entry');
+    } else {
+      const primaryCount = frontmatter.ownership.filter((entry) => entry.role === 'primary').length;
+      if (primaryCount !== 1) {
+        errors.push(`index.md must declare exactly one primary ownership entry, found ${primaryCount}`);
+      }
+      for (const entry of frontmatter.ownership) {
+        if (!entry.type) {
+          errors.push(`ownership entry could not be parsed: ${entry.target}`);
+          continue;
+        }
+        if (!OWNERSHIP_TYPES.has(entry.type)) {
+          errors.push(`invalid exploration ownership type: ${entry.type}`);
+        }
+      }
+    }
   }
 
   for (const requiredDir of ['journal', 'findings', 'decisions', 'artifacts']) {
     const absolutePath = path.join(explorationDir, requiredDir);
     if (!fileExists(absolutePath)) {
       warnings.push(`exploration missing directory: ${absolutePath}`);
+    }
+  }
+
+  for (const filePath of listMarkdownFiles(path.join(explorationDir, 'findings'))) {
+    const finding = validateDocumentFrontmatter(filePath, 'finding', errors, warnings, {
+      label: path.relative(explorationDir, filePath).split(path.sep).join('/'),
+    });
+    if (finding && finding.exploration_slug && finding.exploration_slug !== path.basename(explorationDir)) {
+      errors.push(`${path.relative(explorationDir, filePath).split(path.sep).join('/')} exploration_slug must match the directory slug`);
+    }
+  }
+
+  for (const filePath of listMarkdownFiles(path.join(explorationDir, 'decisions'))) {
+    const decision = validateDocumentFrontmatter(filePath, 'decision', errors, warnings, {
+      label: path.relative(explorationDir, filePath).split(path.sep).join('/'),
+    });
+    if (decision && decision.exploration_slug && decision.exploration_slug !== path.basename(explorationDir)) {
+      errors.push(`${path.relative(explorationDir, filePath).split(path.sep).join('/')} exploration_slug must match the directory slug`);
+    }
+  }
+
+  for (const filePath of listMarkdownFiles(path.join(explorationDir, 'journal'))) {
+    const journal = validateDocumentFrontmatter(filePath, 'journal', errors, warnings, {
+      label: path.relative(explorationDir, filePath).split(path.sep).join('/'),
+    });
+    if (journal && journal.exploration_slug && journal.exploration_slug !== path.basename(explorationDir)) {
+      errors.push(`${path.relative(explorationDir, filePath).split(path.sep).join('/')} exploration_slug must match the directory slug`);
     }
   }
 

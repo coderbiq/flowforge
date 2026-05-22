@@ -1,8 +1,33 @@
+---
+doc_type: "adr"
+title: "ADR-002: Archived knowledge base as the default exploration baseline"
+status: "accepted"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "decisions/ADR-002-archived-knowledge-base-as-default-exploration-baseline.md"
+    role: "primary"
+information_class: "adr"
+topics: []
+related_docs: []
+archive_target: "default:decisions/ADR-002-archived-knowledge-base-as-default-exploration-baseline.md"
+created: "2026-05-21"
+updated: "2026-05-21"
+adr_id: "ADR-002-archived-knowledge-base-as-default-exploration-baseline"
+adr_status: "accepted"
+---
+
 # ADR-002: Archived knowledge base as the default exploration baseline
 
-- Status: accepted
-- Date: 2026-05-21
-- Source exploration: docs/explorations/proposal-archive-document-structure
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: decisions/ADR-002-archived-knowledge-base-as-default-exploration-baseline.md
+- Convention targets: none
+- Canonical reading path: ADR-002-archived-knowledge-base-as-default-exploration-baseline.md
 
 ## Context
 

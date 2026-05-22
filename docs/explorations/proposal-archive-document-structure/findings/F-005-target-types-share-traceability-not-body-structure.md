@@ -1,13 +1,38 @@
+---
+doc_type: "finding"
+title: "F-005 三类归档目标共享的是追踪信息层，而不是同一套正文结构"
+status: "validated"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/proposal-archive-document-structure.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/proposal-archive-document-structure/index.md"
+archive_target: "default:architecture/proposal-archive-document-structure.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "proposal-archive-document-structure"
+finding_id: "F-005-target-types-share-traceability-not-body-structure"
+evidence_sources: []
+---
+
 # F-005 三类归档目标共享的是追踪信息层，而不是同一套正文结构
 
-- Status: validated
-- Sources:
-  - `workflow/templates/docs/modules/README.md`
-  - `workflow/templates/docs/modules/design.md`
-  - `workflow/templates/docs/modules/api.md`
-  - `workflow/templates/docs/modules/history.md`
-  - `workflow/templates/docs/architecture/system.md`
-  - `workflow/templates/docs/decisions/ADR-template.md`
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/proposal-archive-document-structure.md
+- Convention targets: none
+- Canonical reading path: proposal-archive-document-structure/findings/F-005-target-types-share-traceability-not-body-structure.md
 
 ## Statement
 

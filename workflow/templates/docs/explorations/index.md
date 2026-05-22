@@ -1,24 +1,35 @@
+---
+doc_type: exploration
+title: <Exploration Title>
+status: active
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: module
+    target: <type:target>
+    role: primary
+information_class: exploration
+topics: []
+reusable_rules: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+exploration_slug: <slug>
+question: <What are we trying to understand?>
+expected_size_class: small
+---
+
 # <Exploration Title>
 
-- Status: active
-- Question: <What are we trying to understand?>
-- Owner: <name>
-- Created: <ISO-8601 timestamp>
-- Updated: <ISO-8601 timestamp>
+## Ownership summary
 
-## Classification
-
-- Expected size class for the resulting proposal: small | medium | large
-- Ownership:
-  - primary: <type:target>
-  - secondary: <type:target>
-- Ownership summary:
-  - owning modules: <module targets or none>
-  - system / architecture targets: <system or cross-module targets or none>
-  - reusable conventions: <convention targets or none>
-
-Ownership types: `module`, `system`, `cross-module`, `convention`.
-See `workflow/guides/ownership.md` and `workflow/guides/sizing.md`.
+- Primary module: <type:target>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this exploration index
 
 ## Context
 

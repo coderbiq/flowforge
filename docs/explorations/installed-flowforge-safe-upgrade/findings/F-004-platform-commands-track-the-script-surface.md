@@ -1,7 +1,38 @@
+---
+doc_type: "finding"
+title: "F-004 平台 commands 只是脚本 surface 的适配层"
+status: "validated"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/installed-flowforge-safe-upgrade/index.md"
+archive_target: "default:architecture/installed-flowforge-upgrade-policy.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "installed-flowforge-safe-upgrade"
+finding_id: "F-004-platform-commands-track-the-script-surface"
+evidence_sources: []
+---
+
 # F-004 平台 commands 只是脚本 surface 的适配层
 
-- Status: validated
-- Source: `configs/claude/commands/flowforge/`, `configs/opencode/commands/flowforge/`, `workflow/guides/adapter-contract.md`
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/installed-flowforge-upgrade-policy.md
+- Convention targets: none
+- Canonical reading path: installed-flowforge-safe-upgrade/findings/F-004-platform-commands-track-the-script-surface.md
 
 ## Statement
 

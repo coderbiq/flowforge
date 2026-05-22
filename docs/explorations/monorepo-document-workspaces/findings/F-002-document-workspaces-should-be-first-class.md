@@ -1,7 +1,38 @@
+---
+doc_type: "finding"
+title: "F-002 文档工作区应当是一等概念"
+status: "validated"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/monorepo-document-workspaces/index.md"
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "monorepo-document-workspaces"
+finding_id: "F-002-document-workspaces-should-be-first-class"
+evidence_sources: []
+---
+
 # F-002 文档工作区应当是一等概念
 
-- Status: validated
-- Source: 在 monorepo 场景下对当前工作流行为的设计分析
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: monorepo-document-workspaces/findings/F-002-document-workspaces-should-be-first-class.md
 
 ## 结论
 

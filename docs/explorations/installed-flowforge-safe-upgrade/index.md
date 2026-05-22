@@ -1,10 +1,38 @@
+---
+doc_type: "exploration"
+title: "已安装 FlowForge 安全升级"
+status: "archived"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs: []
+archive_target: "default:architecture/installed-flowforge-upgrade-policy.md"
+created: "2026-05-21T12:22:04Z"
+updated: "2026-05-21T12:40:09Z"
+exploration_slug: "installed-flowforge-safe-upgrade"
+question: "已安装到项目中的 FlowForge 应该如何安全升级到最新版本，同时保留项目级配置和运行态数据？"
+reusable_rules: []
+expected_size_class: medium
+---
+
 # 已安装 FlowForge 安全升级
 
-- Status: archived
-- Question: 已安装到项目中的 FlowForge 应该如何安全升级到最新版本，同时保留项目级配置和运行态数据？
-- Owner: Jon.Bi
-- Created: 2026-05-21T12:22:04Z
-- Updated: 2026-05-21T12:40:09Z
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/installed-flowforge-upgrade-policy.md
+- Convention targets: none
+- Canonical reading path: installed-flowforge-safe-upgrade/index.md
 
 ## Context
 

@@ -1,6 +1,6 @@
 # Proposal Sizing
 
-`FlowForge` requires every proposal to declare a `size_class` before design work starts. Sizing controls how the design surface is structured, not how important the change is.
+`FlowForge` requires every proposal to declare a `size_class` before design work starts. Sizing controls how the design surface is structured, not how important the change is. The same `size_class` is mirrored in proposal frontmatter so the design surface can be indexed independently from `meta.yaml`.
 
 ## Size classes
 
@@ -42,7 +42,7 @@ A proposal is `small` if it only adjusts existing behavior, fields, or wording i
 
 ## Choosing the size class
 
-The size class is declared in `meta.yaml` (`size_class`) and mirrored in `proposal.md`.
+The size class is declared in `meta.yaml` (`size_class`) and mirrored in proposal frontmatter and `proposal.md`.
 
 Explorations should predict the size class via `expected_size_class` in `index.md`. The proposal author may override it when the scope changes between exploration and proposal.
 

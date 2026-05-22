@@ -1,6 +1,28 @@
+---
+doc_type: "note"
+title: "Getting Started"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: "note"
+topics: []
+related_docs: []
+archive_target: "default:GETTING-STARTED.md"
+created: "2026-05-22T08:16:57.269Z"
+updated: "2026-05-22T08:16:57.269Z"
+---
+
 # Getting Started
 
-This guide installs `FlowForge` into a project with both the canonical workflow core and the optional platform adapters.
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: GETTING-STARTED.md
 
 ## Requirements
 
@@ -166,7 +188,7 @@ If one user needs different tokens for different projects, use the user-level co
 /flowforge:archive CR26052001
 ```
 
-When opening an exploration, declare `ownership` and `expected_size_class` in `index.md`. When creating the proposal, lock `size_class` and `ownership` in `meta.yaml`.
+When opening an exploration, declare `ownership`, `expected_size_class`, and any `reusable_rules` in `index.md` frontmatter. Every exploration, proposal, design, model, and support doc carries its own frontmatter. `meta.yaml` remains the proposal bundle manifest; the generated proposal docs mirror the routing fields that matter to their own document-level indexing. See [`workflow/guides/doc-properties.md`](../workflow/guides/doc-properties.md) for the canonical property contract.
 
 ## 7. Create a proposal skeleton
 

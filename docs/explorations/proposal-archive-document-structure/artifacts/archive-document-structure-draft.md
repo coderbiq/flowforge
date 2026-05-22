@@ -1,10 +1,34 @@
+---
+doc_type: "note"
+title: "提案归档生成文档结构草案"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/proposal-archive-document-structure.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs: []
+archive_target: "default:architecture/proposal-archive-document-structure.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+---
+
 # 提案归档生成文档结构草案
 
-- Status: draft
-- Scope: proposal archive target structures
-- Owner: Codex
-- Based on exploration:
-  - `proposal-archive-document-structure`
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/proposal-archive-document-structure.md
+- Convention targets: none
+- Canonical reading path: proposal-archive-document-structure/artifacts/archive-document-structure-draft.md
 
 ## 1. Purpose
 

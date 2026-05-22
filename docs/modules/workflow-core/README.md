@@ -1,7 +1,34 @@
+---
+doc_type: "module"
+title: "workflow-core"
+status: "active"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "primary"
+information_class: "module"
+topics: []
+related_docs:
+  - "default:proposals/CR26052001"
+archive_target: "default:modules/workflow-core"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+module_name: "workflow-core"
+module_status: "active"
+---
+
 # workflow-core
 
-- Status: active
-- Primary proposal: CR26052001
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: workflow-core/README.md
 
 ## Purpose
 

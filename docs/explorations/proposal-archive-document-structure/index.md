@@ -1,10 +1,38 @@
+---
+doc_type: "exploration"
+title: "提案归档时生成模块和架构文档的结构"
+status: "archived"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/proposal-archive-document-structure.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs: []
+archive_target: "default:architecture/proposal-archive-document-structure.md"
+created: "2026-05-21T00:00:00+08:00"
+updated: "2026-05-21T19:43:04+08:00"
+exploration_slug: "proposal-archive-document-structure"
+question: "提案归档时生成模块和架构文档时，具体的文档结构是什么？"
+reusable_rules: []
+expected_size_class: medium
+---
+
 # 提案归档时生成模块和架构文档的结构
 
-- Status: archived
-- Question: 提案归档时生成模块和架构文档时，具体的文档结构是什么？
-- Owner: Codex
-- Created: 2026-05-21T00:00:00+08:00
-- Updated: 2026-05-21T19:43:04+08:00
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/proposal-archive-document-structure.md
+- Convention targets: none
+- Canonical reading path: proposal-archive-document-structure/index.md
 
 ## Context
 

@@ -1,7 +1,36 @@
+---
+doc_type: "journal"
+title: "过程记录"
+status: "active"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/monorepo-document-workspaces/index.md"
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+journal_date: "2026-05-20"
+---
+
 # 过程记录
 
-- Timestamp: 2026-05-20T00:00:00Z
-- Actor: Codex
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: monorepo-document-workspaces/journal/2026-05-20-initial-monorepo-assessment.md
 
 ## 本次变化
 

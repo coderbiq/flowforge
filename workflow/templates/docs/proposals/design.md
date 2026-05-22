@@ -1,3 +1,22 @@
+---
+doc_type: design
+title: Design: <Proposal Title>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: design
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+proposal_id: <CRYYMMDDNN id>
+design_section: entry
+---
+
 # Design: <Proposal Title>
 
 This single-file design is intended for `small` and `medium` proposals.
@@ -8,12 +27,14 @@ For `medium` proposals that opt into the split layout, also use the `design/` di
 > - `small`: sections marked OPTIONAL may be omitted.
 > - `medium`: all sections should be present, but may be brief.
 
+Frontmatter carries the design properties used by Obsidian and FlowForge.
+
 ## Ownership summary
 
-- Primary reading path: <Primary ownership>
-- Owning modules: <Owning modules>
-- System / architecture targets: <Owning systems>
-- Reusable conventions: <Owning conventions>
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this design surface
 
 ## Canonical corpus reviewed
 

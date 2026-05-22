@@ -1,6 +1,30 @@
+---
+doc_type: note
+title: Model Parts
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: model
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+---
+
 # Model Parts
 
 These files are the building blocks for a model document.
+
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this model-parts overview
 
 They are not a template engine. They exist so a project can either:
 

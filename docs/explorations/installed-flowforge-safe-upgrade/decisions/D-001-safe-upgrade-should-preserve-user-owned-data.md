@@ -1,7 +1,38 @@
+---
+doc_type: "decision"
+title: "D-001 升级应区分受管 payload 和用户态数据"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/installed-flowforge-safe-upgrade/index.md"
+archive_target: "default:architecture/installed-flowforge-upgrade-policy.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "installed-flowforge-safe-upgrade"
+decision_id: "D-001-safe-upgrade-should-preserve-user-owned-data"
+decision_status: "candidate"
+---
+
 # D-001 升级应区分受管 payload 和用户态数据
 
-- Status: draft
-- Driver: 已安装项目需要重复升级到最新版本，但不能丢失项目级配置和运行态数据。
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/installed-flowforge-upgrade-policy.md
+- Convention targets: none
+- Canonical reading path: installed-flowforge-safe-upgrade/decisions/D-001-safe-upgrade-should-preserve-user-owned-data.md
 
 ## Decision
 

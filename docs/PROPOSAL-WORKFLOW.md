@@ -1,6 +1,28 @@
+---
+doc_type: "note"
+title: "Workflow Guide"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: "note"
+topics: []
+related_docs: []
+archive_target: "default:PROPOSAL-WORKFLOW.md"
+created: "2026-05-22T08:16:57.269Z"
+updated: "2026-05-22T08:16:57.269Z"
+---
+
 # Workflow Guide
 
-This document is the high-level guide to `FlowForge`. The canonical operational details live under [`workflow/guides/`](../workflow/guides/lifecycle.md) and [`workflow/schema/`](../workflow/schema/proposal.schema.yaml).
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: PROPOSAL-WORKFLOW.md
 
 ## Canonical directories
 
@@ -27,7 +49,7 @@ docs/explorations/<slug>/
 └── artifacts/
 ```
 
-`index.md` must declare `ownership`, `expected_size_class`, and any `reusable_rules` surfaced during exploration. It must also summarize that ownership in plain language so the reader can see the owning module, any system or architecture target, and any convention target without parsing metadata syntax.
+`index.md` must declare its own YAML frontmatter with `ownership`, `expected_size_class`, and any `reusable_rules` surfaced during exploration. The body should still summarize the exploration in plain language so the reader can see the owning module, any system or architecture target, and any convention target without parsing metadata syntax.
 
 ## Template customization
 
@@ -77,6 +99,7 @@ docs/proposals/<proposal-id>/
 - `medium` proposals may use either layout. When two or more business models are introduced, the `model/` directory is required regardless of which design layout is chosen.
 - `large` proposals must use the directory layout and must include one document per core business model under `model/`.
 - `meta.yaml` sets `links.design` to `design.md` or `design/README.md` accordingly, and may set `links.model` to `model/README.md`.
+- Every Markdown artifact in the proposal bundle carries its own frontmatter. `meta.yaml` is only the proposal bundle manifest.
 
 `task-map.md` should follow the canonical task-splitting rules in [`workflow/guides/task-splitting.md`](../workflow/guides/task-splitting.md).
 
@@ -87,13 +110,15 @@ Every exploration and proposal declares:
 - `size_class`: `small`, `medium`, or `large`. See [`workflow/guides/sizing.md`](../workflow/guides/sizing.md).
 - `ownership`: one or more entries of type `module`, `system`, `cross-module`, or `convention`. See [`workflow/guides/ownership.md`](../workflow/guides/ownership.md).
 
-These two fields determine the document skeleton and the archive destination. They must be locked before design starts.
+These two fields determine the document skeleton and the archive destination. They must be locked before design starts and mirrored in document frontmatter.
 
 Human-readable docs must not leave this information only in machine metadata. Exploration, proposal, design, task-map, and model entry docs should all surface an ownership summary that answers:
 
 - what module this belongs to
 - what system or architecture surface it affects
 - what reusable conventions it introduces or updates
+
+For any Markdown artifact in the workflow, the first place to look is its frontmatter. That is where you can tell whether the file is an exploration, proposal, design subdoc, model doc, convention, module, architecture note, or ADR, and which module or system scope it belongs to. The body then explains the reasoning, constraints, and content in plain language.
 
 ## Lifecycle summary
 

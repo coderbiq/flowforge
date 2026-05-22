@@ -1,0 +1,112 @@
+schema: flowforge/doc-frontmatter@v1
+description: |
+  Universal frontmatter contract for FlowForge Markdown artifacts.
+  Per-document frontmatter is required on every artifact. Type-specific
+  extensions are defined in workflow/guides/doc-properties.md.
+type: object
+required:
+  - doc_type
+  - title
+  - status
+  - workspace
+  - module_scope
+  - system_scope
+  - convention_scope
+  - ownership
+  - information_class
+  - topics
+  - related_docs
+  - archive_target
+  - created
+  - updated
+properties:
+  doc_type:
+    type: string
+    enum:
+      - exploration
+      - proposal
+      - design
+      - model
+      - finding
+      - decision
+      - journal
+      - note
+      - task-map
+      - convention
+      - module
+      - architecture
+      - adr
+  title:
+    type: string
+  status:
+    type: string
+    description: Lifecycle state. Allowed values depend on doc_type.
+  workspace:
+    type: string
+  module_scope:
+    type: array
+    items:
+      type: string
+  system_scope:
+    type: array
+    items:
+      type: string
+  convention_scope:
+    type: array
+    items:
+      type: string
+  ownership:
+    type: array
+    minItems: 0
+    items:
+      type: object
+      required: [type, target, role]
+      properties:
+        type:
+          type: string
+          enum:
+            - module
+            - system
+            - cross-module
+            - convention
+        target:
+          type: string
+        role:
+          type: string
+          enum: [primary, secondary]
+  information_class:
+    type: string
+  topics:
+    type: array
+    items:
+      type: string
+  reusable_rules:
+    type: array
+    description: |
+      Candidate convention-level rules surfaced during an exploration.
+      Each item should be a short reusable rule statement, with an
+      optional summary and target hint for later promotion.
+    items:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        target:
+          type: string
+  related_docs:
+    type: array
+    items:
+      type: string
+      description: workspace:ref reference, e.g. default:modules/foo
+  archive_target:
+    type: string
+    description: workspace:ref destination, or "none" for transient docs.
+  created:
+    type: string
+    format: date-time
+  updated:
+    type: string
+    format: date-time

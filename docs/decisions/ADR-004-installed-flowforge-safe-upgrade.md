@@ -1,8 +1,34 @@
+---
+doc_type: "adr"
+title: "ADR-004: Installed FlowForge Safe Upgrade"
+status: "accepted"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "decisions/ADR-004-installed-flowforge-safe-upgrade.md"
+    role: "primary"
+information_class: "adr"
+topics: []
+related_docs:
+  - "default:proposals/CR26052101"
+archive_target: "default:decisions/ADR-004-installed-flowforge-safe-upgrade.md"
+created: "2026-05-21"
+updated: "2026-05-21"
+adr_id: "ADR-004-installed-flowforge-safe-upgrade"
+adr_status: "accepted"
+---
+
 # ADR-004: Installed FlowForge Safe Upgrade
 
-- Status: accepted
-- Date: 2026-05-21
-- Source proposal: CR26052101
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: decisions/ADR-004-installed-flowforge-safe-upgrade.md
+- Convention targets: none
+- Canonical reading path: ADR-004-installed-flowforge-safe-upgrade.md
 
 ## Context
 

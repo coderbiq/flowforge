@@ -1,8 +1,25 @@
+---
+doc_type: "note"
+title: "Decisions"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: "adr"
+topics: []
+related_docs: []
+archive_target: "default:decisions/README.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+---
+
 # 决策
 
-提案批准并实施后，稳定的架构决策和 ADR 会记录在这里。
+## Ownership summary
 
-- [ADR-001 Deliverable-first task splitting with explicit checkpoints](./ADR-001-task-splitting-deliverable-first.md)
-- [ADR-002 Archived knowledge base as the default exploration baseline](./ADR-002-archived-knowledge-base-as-default-exploration-baseline.md)
-- [ADR-003 Monorepo Document Workspaces](./ADR-003-monorepo-document-workspaces.md)
-- [ADR-004 Installed FlowForge Safe Upgrade](./ADR-004-installed-flowforge-safe-upgrade.md)
+- Primary module: none
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: README.md

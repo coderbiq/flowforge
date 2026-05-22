@@ -1,4 +1,37 @@
+---
+doc_type: "design"
+title: "设计：Monorepo 文档工作区支持"
+status: "archived"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "proposal"
+topics: []
+related_docs:
+  - "default:proposals/CR26052001-monorepo-document-workspace-support/proposal.md"
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+proposal_id: "CR26052001"
+design_section: "entry"
+---
+
 # 设计：Monorepo 文档工作区支持
+
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: CR26052001-monorepo-document-workspace-support/design.md
 
 ## 核心结论
 

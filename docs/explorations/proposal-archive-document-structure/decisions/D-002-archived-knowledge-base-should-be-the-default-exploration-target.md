@@ -1,7 +1,38 @@
+---
+doc_type: "decision"
+title: "D-002 已归档知识库应成为后续探索的默认目标"
+status: "accepted"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/proposal-archive-document-structure.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/proposal-archive-document-structure/index.md"
+archive_target: "default:architecture/proposal-archive-document-structure.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "proposal-archive-document-structure"
+decision_id: "D-002-archived-knowledge-base-should-be-the-default-exploration-target"
+decision_status: "candidate"
+---
+
 # D-002 已归档知识库应成为后续探索的默认目标
 
-- Status: accepted
-- Driver: 让最终产物从“归档结果”升级为“持续演进的知识基础设施”。
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/proposal-archive-document-structure.md
+- Convention targets: none
+- Canonical reading path: proposal-archive-document-structure/decisions/D-002-archived-knowledge-base-should-be-the-default-exploration-target.md
 
 ## Decision
 

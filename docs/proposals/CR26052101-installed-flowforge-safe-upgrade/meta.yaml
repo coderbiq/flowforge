@@ -3,6 +3,7 @@ id: "CR26052101"
 slug: "installed-flowforge-safe-upgrade"
 title: "已安装 FlowForge 安全升级策略"
 status: "archived"
+size_class: "medium"
 created_at: "2026-05-21T12:22:04Z"
 updated_at: "2026-05-21T12:41:31Z"
 workspace: "default"
@@ -34,6 +35,13 @@ canonical_corpus:
 owner: "Jon.Bi"
 task_backend: "beads"
 task_epic_id: null
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
 archive_targets:
   - key: "installed-flowforge-upgrade-architecture"
     type: "architecture"

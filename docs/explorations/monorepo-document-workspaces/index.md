@@ -1,10 +1,38 @@
+---
+doc_type: "exploration"
+title: "Monorepo 文档工作区支持"
+status: "active"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs: []
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-20T00:00:00Z"
+updated: "2026-05-20T00:00:00Z"
+exploration_slug: "monorepo-document-workspaces"
+question: "`tg-workflow` 应该如何同时支持单一文档根目录和 monorepo 中多个文档根目录的场景？"
+reusable_rules: []
+expected_size_class: medium
+---
+
 # Monorepo 文档工作区支持
 
-- Status: active
-- Question: `tg-workflow` 应该如何同时支持单一文档根目录和 monorepo 中多个文档根目录的场景？
-- Owner: Codex
-- Created: 2026-05-20T00:00:00Z
-- Updated: 2026-05-20T00:00:00Z
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: monorepo-document-workspaces/index.md
 
 ## 背景
 

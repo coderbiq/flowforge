@@ -1,7 +1,38 @@
+---
+doc_type: "decision"
+title: "D-001 引入文档工作区"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/monorepo-document-workspaces/index.md"
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "monorepo-document-workspaces"
+decision_id: "D-001-introduce-document-workspaces"
+decision_status: "candidate"
+---
+
 # D-001 引入文档工作区
 
-- Status: draft
-- Driver: 工作流必须同时支持简单单文档项目，以及同时存在根级和子项目级文档的 monorepo。
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: monorepo-document-workspaces/decisions/D-001-introduce-document-workspaces.md
 
 ## 决策
 

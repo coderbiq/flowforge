@@ -1,7 +1,37 @@
+---
+doc_type: "task-map"
+title: "任务映射：Monorepo 文档工作区支持"
+status: "archived"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "proposal"
+topics: []
+related_docs:
+  - "default:proposals/CR26052001-monorepo-document-workspace-support/proposal.md"
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+proposal_id: "CR26052001"
+task_backend: "beads"
+---
+
 # 任务映射：Monorepo 文档工作区支持
 
-- Backend: beads
-- Proposal ID: CR26052001
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: CR26052001-monorepo-document-workspace-support/task-map.md
 
 ## 任务
 

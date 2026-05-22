@@ -1,6 +1,32 @@
+---
+doc_type: design
+title: Tradeoffs
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: design
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+proposal_id: <CRYYMMDDNN id>
+design_section: tradeoffs
+---
+
 # Tradeoffs
 
 For each significant decision the proposal locks in, record:
+
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this tradeoffs section
 
 ## <Decision title>
 

@@ -1,4 +1,28 @@
+---
+doc_type: note
+title: Minimal Project Template
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: note
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+---
+
 # Minimal Project Template
+
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: this project scaffold
 
 This directory contains the smallest recommended project skeleton for adopting `FlowForge`.
 

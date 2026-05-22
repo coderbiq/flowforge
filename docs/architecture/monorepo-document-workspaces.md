@@ -1,7 +1,34 @@
+---
+doc_type: "architecture"
+title: "Monorepo Document Workspaces"
+status: "active"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+information_class: "architecture"
+topics: []
+related_docs:
+  - "default:proposals/CR26052001"
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+architecture_topic: "monorepo-document-workspaces"
+architecture_status: "active"
+---
+
 # Monorepo Document Workspaces
 
-- Status: active
-- Primary proposal: CR26052001
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: monorepo-document-workspaces.md
 
 ## Scope
 

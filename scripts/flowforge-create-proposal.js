@@ -5,6 +5,7 @@ const {
   createProposalSkeleton,
   parseCliArgs,
   parseOwnershipEntry,
+  loadExplorationContext,
   validateProposalContext,
   loadProposalContext,
 } = require('./lib/flowforge');
@@ -93,6 +94,10 @@ function main() {
         summary: summary || undefined,
       };
     }).filter((rule) => rule.title);
+    const explorationContext = loadExplorationContext(sourceExploration, process.cwd());
+    const inheritedReusableRules = reusableRules.length > 0
+      ? reusableRules
+      : (explorationContext.parsed?.reusable_rules || []);
     const created = createProposalSkeleton({
       title,
       slug: args.slug,
@@ -102,7 +107,7 @@ function main() {
       sizeClass: args['size-class'],
       designLayout: args['design-layout'],
       ownership: ownership.length > 0 ? ownership : undefined,
-      reusableRules: reusableRules.length > 0 ? reusableRules : undefined,
+      reusableRules: inheritedReusableRules.length > 0 ? inheritedReusableRules : undefined,
       sourceExploration,
       taskBackend: args['task-backend'],
       status: args.status,

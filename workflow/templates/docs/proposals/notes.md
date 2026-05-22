@@ -1,11 +1,33 @@
+---
+doc_type: note
+title: Implementation Notes: <Proposal Title>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: note
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+proposal_id: <CRYYMMDDNN id>
+note_kind: progress
+---
+
 # Implementation Notes: <Proposal Title>
 
-## Classification context
+Frontmatter carries the proposal reference and note metadata. This file
+is for implementation history only.
 
-- Primary ownership: <Primary ownership>
-- Owning modules: <Owning modules>
-- System / architecture targets: <Owning systems>
-- Reusable conventions: <Owning conventions>
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this implementation note
 
 ## 2026-05-20
 

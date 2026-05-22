@@ -1,7 +1,32 @@
+---
+doc_type: architecture
+title: <System Topic>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: architecture
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+architecture_topic: <topic>
+architecture_status: active
+---
+
 # <System Topic>
 
-- Status: active
-- Primary proposal: <proposal id>
+Frontmatter carries the architecture properties used by Obsidian and FlowForge.
+
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: this document
+- Convention targets: <type:target or none>
+- Canonical reading path: this architecture page
 
 ## Scope
 

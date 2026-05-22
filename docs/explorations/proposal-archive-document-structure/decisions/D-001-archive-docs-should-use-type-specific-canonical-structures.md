@@ -1,7 +1,38 @@
+---
+doc_type: "decision"
+title: "D-001 归档文档应采用按目标类型区分的规范结构"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/proposal-archive-document-structure.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/proposal-archive-document-structure/index.md"
+archive_target: "default:architecture/proposal-archive-document-structure.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "proposal-archive-document-structure"
+decision_id: "D-001-archive-docs-should-use-type-specific-canonical-structures"
+decision_status: "candidate"
+---
+
 # D-001 归档文档应采用按目标类型区分的规范结构
 
-- Status: draft
-- Driver: 归档需要稳定、可复用、可校验的长期文档结构。
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/proposal-archive-document-structure.md
+- Convention targets: none
+- Canonical reading path: proposal-archive-document-structure/decisions/D-001-archive-docs-should-use-type-specific-canonical-structures.md
 
 ## Decision
 

@@ -1,6 +1,28 @@
+---
+doc_type: "note"
+title: "Proposals"
+status: "draft"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: "proposal"
+topics: []
+related_docs: []
+archive_target: "default:proposals/README.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+---
+
 # 提案
 
-这里存放由探索转化而来的提案工作集。
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: none
+- Convention targets: none
+- Canonical reading path: README.md
 
 ## 进行中
 

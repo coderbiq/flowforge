@@ -1,7 +1,38 @@
+---
+doc_type: "finding"
+title: "F-002 `config.json` 已经形成项目级持久配置边界"
+status: "validated"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/installed-flowforge-safe-upgrade/index.md"
+archive_target: "default:architecture/installed-flowforge-upgrade-policy.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "installed-flowforge-safe-upgrade"
+finding_id: "F-002-config-json-is-user-owned"
+evidence_sources: []
+---
+
 # F-002 `config.json` 已经形成项目级持久配置边界
 
-- Status: validated
-- Source: `scripts/install.sh`, `workflow/guides/configuration.md`, `workflow/guides/adapter-contract.md`
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/installed-flowforge-upgrade-policy.md
+- Convention targets: none
+- Canonical reading path: installed-flowforge-safe-upgrade/findings/F-002-config-json-is-user-owned.md
 
 ## Statement
 

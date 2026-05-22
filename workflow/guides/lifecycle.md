@@ -5,7 +5,7 @@
 1. `explore`
 2. `propose`
 3. `approve`
-4. `apply`
+ 4. `apply`
 5. `implement`
 6. `archive`
 
@@ -17,7 +17,7 @@
 - Produce durable findings before any implementation starts.
 - Start from the existing final knowledge base first: modules, architecture docs, conventions, and ADRs are the default reference corpus.
 - Open a new exploration only for gaps, conflicts, or materially new questions that the final corpus does not already answer.
-- Declare ownership tags and an expected size class as soon as the question is scoped. See `workflow/guides/ownership.md` and `workflow/guides/sizing.md`.
+- Declare ownership tags and an expected size class as soon as the question is scoped. Capture them in exploration frontmatter and keep the frontmatter in sync with the proposal bundle. Every durable Markdown artifact should carry its own frontmatter so the document can be routed without reading the bundle first. See `workflow/guides/doc-properties.md`, `workflow/guides/ownership.md`, and `workflow/guides/sizing.md`.
 - Surface candidate convention-level rules in `reusable_rules` so they are visible before proposal creation.
 - Output lives under `docs/explorations/<slug>/`.
 
@@ -25,7 +25,7 @@
 
 - Convert a validated exploration into a decision-ready proposal.
 - Define scope, success criteria, capabilities, constraints, and archive targets.
-- Lock the `size_class` and the `ownership` graph before writing the design. These two fields determine the document skeleton.
+- Lock the `size_class` and the `ownership` graph before writing the design. These two fields determine the document skeleton, and they must be reflected both in proposal frontmatter and in `meta.yaml`.
 - Treat the archived knowledge base as the baseline; proposals should describe deltas against existing canonical docs, not rewrite the corpus from scratch.
 - Output lives under `docs/proposals/<proposal-id>/`.
 

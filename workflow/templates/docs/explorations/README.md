@@ -1,3 +1,20 @@
+---
+doc_type: note
+title: Exploration Template
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: exploration
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+---
+
 # Exploration Template
 
 Canonical structure for a new exploration:
@@ -15,6 +32,13 @@ docs/explorations/<slug>/
 ```
 
 Use `index.md` as the main reading surface.
+
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this exploration overview
 
 When starting a new exploration, review the existing canonical corpus first:
 

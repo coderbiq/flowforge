@@ -1,10 +1,38 @@
+---
+doc_type: "exploration"
+title: "任务拆分标准与大型提案分阶段执行"
+status: "archived"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "convention"
+    target: "conventions/task-splitting.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs: []
+archive_target: "default:conventions/task-splitting.md"
+created: "2026-05-21T00:00:00+08:00"
+updated: "2026-05-21T00:00:00+08:00"
+exploration_slug: "task-splitting-standards-and-phased-execution"
+question: "任务拆分应该有哪些标准，大型提案如何分阶段执行任务和跟踪？"
+reusable_rules: []
+expected_size_class: medium
+---
+
 # 任务拆分标准与大型提案分阶段执行
 
-- Status: archived
-- Question: 任务拆分应该有哪些标准，大型提案如何分阶段执行任务和跟踪？
-- Owner: Codex
-- Created: 2026-05-21T00:00:00+08:00
-- Updated: 2026-05-21T00:00:00+08:00
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: none
+- Convention targets: conventions/task-splitting.md
+- Canonical reading path: task-splitting-standards-and-phased-execution/index.md
 
 ## Context
 

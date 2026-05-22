@@ -20,8 +20,9 @@
 
 ## Proposals
 
-- `meta.yaml` is the machine contract.
-- `proposal.md` answers why and what, and surfaces `size_class`, `ownership`, and any promoted `reusable_rules`.
+- `meta.yaml` is the proposal bundle manifest.
+- Each Markdown artifact carries its own YAML frontmatter for Obsidian-style indexing and doc-local routing.
+- `proposal.md` answers why and what, and surfaces `size_class`, `ownership`, and any promoted `reusable_rules` in its frontmatter and body.
 - Human-readable proposal docs must summarize the ownership graph explicitly:
   - which module docs this work belongs to
   - which system or architecture docs it affects

@@ -1,4 +1,40 @@
+---
+doc_type: "proposal"
+title: "已安装 FlowForge 安全升级策略"
+status: "archived"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "proposal"
+topics: []
+related_docs:
+  - "default:proposals/CR26052101-installed-flowforge-safe-upgrade/task-map.md"
+  - "default:proposals/CR26052101-installed-flowforge-safe-upgrade/notes.md"
+archive_target: "default:architecture/installed-flowforge-upgrade-policy.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+proposal_id: "CR26052101"
+size_class: "medium"
+ownership_primary: "system:architecture/installed-flowforge-upgrade-policy.md"
+design_layout: "single"
+---
+
 # 已安装 FlowForge 安全升级策略
+
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/installed-flowforge-upgrade-policy.md
+- Convention targets: none
+- Canonical reading path: CR26052101-installed-flowforge-safe-upgrade/proposal.md
 
 ## Why
 

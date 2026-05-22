@@ -1,11 +1,33 @@
+---
+doc_type: task-map
+title: Task Map: <Proposal Title>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: task-map
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+proposal_id: <CRYYMMDDNN id>
+task_backend: beads
+---
+
 # Task Map: <Proposal Title>
 
-- Backend: beads
-- Proposal ID: CR26052001
-- Ownership summary:
-  - owning modules: <Owning modules>
-  - system / architecture targets: <Owning systems>
-  - reusable conventions: <Owning conventions>
+Frontmatter carries the proposal and backend properties used by Obsidian
+and FlowForge. This file remains the authoritative task decomposition.
+
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this task map
 
 ## Milestones
 

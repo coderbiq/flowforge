@@ -1,16 +1,35 @@
+---
+doc_type: proposal
+title: <Proposal Title>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: proposal
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+proposal_id: <CRYYMMDDNN id>
+size_class: <small | medium | large>
+ownership_primary: <type:target>
+design_layout: <single | split>
+---
+
 # <Proposal Title>
 
-## Classification
+Frontmatter carries the proposal properties used by Obsidian and FlowForge.
+The body captures the reasoning, deltas, and delivery plan.
 
-- Size class: <Size class>
-- Ownership:
-  - primary: <Primary ownership>
-  - secondary: <Secondary ownership>
-- Ownership summary:
-  - owning modules: <Owning modules>
-  - system / architecture targets: <Owning systems>
-  - reusable conventions: <Owning conventions>
-- Promotes reusable rules: <Promotes reusable rules>
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this proposal
 
 ## Why
 
@@ -53,8 +72,6 @@ Summarize the relevant findings and constraints.
 List any candidate or confirmed conventions promoted by this proposal.
 Each entry should map to a `docs/conventions/<topic>.md` archive target.
 If there are no reusable rules, write `- none`.
-
-<Reusable rules block>
 
 ## Delivery phases
 

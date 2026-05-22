@@ -1,16 +1,37 @@
+---
+doc_type: model
+title: <ModelName>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: model
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+proposal_id: <CRYYMMDDNN id>
+model_name: <ModelName>
+model_role: <core | lifecycle | view-facing | shared>
+data_scope: <single-record | master-table | event | derived>
+model_status_in_proposal: <new | modified | retained>
+---
+
 # <ModelName>
+
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: <type:target or none>
+- Canonical reading path: this model document
 
 This is the default business-model template.
 
 Use this file when the model can stay in the standard shape. If a project needs extra data-structure columns, like `Master table`, or wants to reorganize several sections at once, copy this template or the relevant part files into the workspace-local template area and edit the copies directly.
-
-## Identity
-
-- Role: core | lifecycle | view-facing
-- Owning modules: <Owning modules>
-- Related system / architecture targets: <Owning systems>
-- Related conventions: <Owning conventions>
-- Status in proposal: new | modified | retained
 
 ## Reading order
 

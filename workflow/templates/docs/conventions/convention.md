@@ -1,10 +1,34 @@
+---
+doc_type: convention
+title: <Convention Title>
+status: draft
+workspace: default
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership: []
+information_class: convention
+topics: []
+related_docs: []
+archive_target: none
+created: <ISO-8601 timestamp>
+updated: <ISO-8601 timestamp>
+convention_status: active
+enforcement: should
+applies_to: []
+origin_proposal: <proposal id>
+---
+
 # <Convention Title>
 
-- Status: active
-- Enforcement: must | should | may
-- Owner: <name or team>
-- Origin proposal: <proposal id>
-- Updated: <ISO-8601 timestamp>
+Frontmatter carries the convention properties used by Obsidian and FlowForge.
+
+## Ownership summary
+
+- Primary module: <type:target or none>
+- System / architecture targets: <type:target or none>
+- Convention targets: this convention
+- Canonical reading path: this convention page
 
 ## Applies to
 

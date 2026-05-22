@@ -1,7 +1,38 @@
+---
+doc_type: "finding"
+title: "F-003 Workspace 感知必须贯穿整个生命周期"
+status: "validated"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/monorepo-document-workspaces.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "exploration"
+topics: []
+related_docs:
+  - "default:explorations/monorepo-document-workspaces/index.md"
+archive_target: "default:architecture/monorepo-document-workspaces.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+exploration_slug: "monorepo-document-workspaces"
+finding_id: "F-003-workspace-awareness-must-propagate-through-the-lifecycle"
+evidence_sources: []
+---
+
 # F-003 Workspace 感知必须贯穿整个生命周期
 
-- Status: validated
-- Source: 对 proposal、archive、tasks、memory 和 agent guidance 的生命周期审视
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/monorepo-document-workspaces.md
+- Convention targets: none
+- Canonical reading path: monorepo-document-workspaces/findings/F-003-workspace-awareness-must-propagate-through-the-lifecycle.md
 
 ## 结论
 

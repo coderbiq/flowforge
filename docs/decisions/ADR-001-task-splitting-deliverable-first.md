@@ -1,8 +1,33 @@
+---
+doc_type: "adr"
+title: "ADR-001: Deliverable-first task splitting with explicit checkpoints"
+status: "accepted"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "decisions/ADR-001-task-splitting-deliverable-first.md"
+    role: "primary"
+information_class: "adr"
+topics: []
+related_docs: []
+archive_target: "default:decisions/ADR-001-task-splitting-deliverable-first.md"
+created: "2026-05-21"
+updated: "2026-05-21"
+adr_id: "ADR-001-task-splitting-deliverable-first"
+adr_status: "accepted"
+---
+
 # ADR-001: Deliverable-first task splitting with explicit checkpoints
 
-- Status: accepted
-- Date: 2026-05-21
-- Source exploration: docs/explorations/task-splitting-standards-and-phased-execution
+## Ownership summary
+
+- Primary module: none
+- System / architecture targets: decisions/ADR-001-task-splitting-deliverable-first.md
+- Convention targets: none
+- Canonical reading path: ADR-001-task-splitting-deliverable-first.md
 
 ## Context
 

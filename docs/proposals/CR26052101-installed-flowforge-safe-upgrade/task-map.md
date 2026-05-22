@@ -1,7 +1,37 @@
+---
+doc_type: "task-map"
+title: "Task Map: 已安装 FlowForge 安全升级策略"
+status: "archived"
+workspace: "default"
+module_scope: []
+system_scope: []
+convention_scope: []
+ownership:
+  - type: "system"
+    target: "architecture/installed-flowforge-upgrade-policy.md"
+    role: "primary"
+  - type: "module"
+    target: "modules/workflow-core"
+    role: "secondary"
+information_class: "proposal"
+topics: []
+related_docs:
+  - "default:proposals/CR26052101-installed-flowforge-safe-upgrade/proposal.md"
+archive_target: "default:architecture/installed-flowforge-upgrade-policy.md"
+created: "2026-05-22T08:17:52.067Z"
+updated: "2026-05-22T08:17:52.067Z"
+proposal_id: "CR26052101"
+task_backend: "beads"
+---
+
 # Task Map: 已安装 FlowForge 安全升级策略
 
-- Backend: beads
-- Proposal ID: CR26052101
+## Ownership summary
+
+- Primary module: modules/workflow-core
+- System / architecture targets: architecture/installed-flowforge-upgrade-policy.md
+- Convention targets: none
+- Canonical reading path: CR26052101-installed-flowforge-safe-upgrade/task-map.md
 
 ## Milestones
 
