@@ -2,6 +2,10 @@
 
 - Backend: beads
 - Proposal ID: CR26052001
+- Ownership summary:
+  - owning modules: <Owning modules>
+  - system / architecture targets: <Owning systems>
+  - reusable conventions: <Owning conventions>
 
 ## Milestones
 

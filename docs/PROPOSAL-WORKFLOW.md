@@ -27,7 +27,7 @@ docs/explorations/<slug>/
 └── artifacts/
 ```
 
-`index.md` must declare `ownership`, `expected_size_class`, and any `reusable_rules` surfaced during exploration.
+`index.md` must declare `ownership`, `expected_size_class`, and any `reusable_rules` surfaced during exploration. It must also summarize that ownership in plain language so the reader can see the owning module, any system or architecture target, and any convention target without parsing metadata syntax.
 
 ## Template customization
 
@@ -89,6 +89,12 @@ Every exploration and proposal declares:
 
 These two fields determine the document skeleton and the archive destination. They must be locked before design starts.
 
+Human-readable docs must not leave this information only in machine metadata. Exploration, proposal, design, task-map, and model entry docs should all surface an ownership summary that answers:
+
+- what module this belongs to
+- what system or architecture surface it affects
+- what reusable conventions it introduces or updates
+
 ## Lifecycle summary
 
 1. `explore`: create durable findings, declare ownership and expected size
@@ -132,6 +138,7 @@ Platform commands are wrappers. They should load workflow guidance instead of ow
 ## Script surface
 
 - `.flowforge/scripts/flowforge-create-proposal.js`
+- `.flowforge/scripts/flowforge-validate-exploration.js`
 - `.flowforge/scripts/flowforge-approve-proposal.js`
 - `.flowforge/scripts/flowforge-apply-proposal.js`
 - `.flowforge/scripts/flowforge-add-note.js`

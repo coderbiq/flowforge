@@ -13,6 +13,7 @@
 - `findings/` contains atomic statements worth reusing.
 - `decisions/` contains candidate decisions with status.
 - Declare `ownership`, `expected_size_class`, and `reusable_rules` in `index.md` once the question is scoped. These propagate into the resulting proposal.
+- Mirror the ownership graph in human-readable form inside `index.md`: explicitly summarize owning modules, system or architecture targets, and reusable conventions instead of relying only on raw `type:target` lines.
 - Use the archived knowledge base as the first source of truth for exploration research, including `docs/conventions/`.
 - Treat proposals and explorations as delta records against the existing final corpus, not as replacements for it.
 - Do not mix implementation logs into exploration files.
@@ -21,6 +22,10 @@
 
 - `meta.yaml` is the machine contract.
 - `proposal.md` answers why and what, and surfaces `size_class`, `ownership`, and any promoted `reusable_rules`.
+- Human-readable proposal docs must summarize the ownership graph explicitly:
+  - which module docs this work belongs to
+  - which system or architecture docs it affects
+  - which reusable conventions it introduces or updates
 - Design lives in either `design.md` or a `design/` directory depending on `size_class`. See `workflow/guides/sizing.md`.
 - Template customization follows the reference-copy rule in `workflow/guides/templates.md`: projects may copy the whole template or the relevant part files and edit the copies directly.
 - `task-map.md` is authoritative for task decomposition.
@@ -50,6 +55,7 @@
 - One document per core business model when the `model/` directory is in use.
 - Each model document describes: data structure, responsibilities, lifecycle, validation, referenced conventions, and links to related models.
 - `model/README.md` lists every model in the proposal and groups them by role (core configuration, lifecycle, view-facing helper, etc).
+- Model docs should state their owning module and any related convention targets as part of the model identity block.
 - The model template is split into readable parts so projects can customize the data-structure section, including project-specific columns such as `Master table`, by copying the template or the relevant part file.
 
 ### Convention authoring

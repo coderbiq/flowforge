@@ -33,6 +33,7 @@ Every exploration and proposal must declare:
 
 - `size_class`: `small`, `medium`, or `large`. See `.flowforge/workflow/guides/sizing.md`.
 - `ownership`: one or more entries of type `module`, `system`, `cross-module`, or `convention`. See `.flowforge/workflow/guides/ownership.md`.
+- Human-readable docs must mirror the ownership graph with an explicit summary of owning modules, system or architecture targets, and reusable conventions.
 - Template customization is copy-and-edit only. If a workspace needs project-specific template variants, place them in `docs/<workspace>/_templates/` and make the customization explicit in the copied files.
 
 Document layout follows the size class:
@@ -70,6 +71,7 @@ Document layout follows the size class:
 
 ## Validation commands
 
+- `.flowforge/scripts/flowforge-validate-exploration.js <exploration-slug|exploration-dir>`
 - `.flowforge/scripts/flowforge-create-proposal.js --title ... --source-exploration ... --size-class ... --ownership ... --archive-target ...`
 - `.flowforge/scripts/flowforge-approve-proposal.js <proposal-id|proposal-dir>`
 - `.flowforge/scripts/flowforge-add-note.js <proposal-id|proposal-dir> <note text>`

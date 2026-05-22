@@ -12,6 +12,10 @@
 - Ownership:
   - primary: <type:target>
   - secondary: <type:target>
+- Ownership summary:
+  - owning modules: <module targets or none>
+  - system / architecture targets: <system or cross-module targets or none>
+  - reusable conventions: <convention targets or none>
 
 Ownership types: `module`, `system`, `cross-module`, `convention`.
 See `workflow/guides/ownership.md` and `workflow/guides/sizing.md`.

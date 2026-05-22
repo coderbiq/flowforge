@@ -20,6 +20,13 @@ If a proposal only needs a small change, keep the single-file `design.md` layout
 6. [Constraints](./constraints.md)
 7. [Tradeoffs](./tradeoffs.md)
 
+## Ownership summary
+
+- Primary reading path: <Primary ownership>
+- Owning modules: <Owning modules>
+- System / architecture targets: <Owning systems>
+- Reusable conventions: <Owning conventions>
+
 ## Canonical corpus reviewed
 
 <Canonical corpus reviewed>

@@ -5,9 +5,10 @@ Use this part for the model's metadata block.
 Typical fields:
 
 - Role: core | lifecycle | view-facing
-- Owning module: <module name>
-- Status in proposal: new | modified | retained
+- Owning modules: <module target(s)>
+- Related system / architecture targets: <system or cross-module target(s)>
 - Related conventions: links to `docs/conventions/<topic>.md`
+- Status in proposal: new | modified | retained
 
 ## When to customize
 

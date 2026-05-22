@@ -134,6 +134,8 @@ Every exploration and proposal carries two classification axes:
 
 These axes are independent. A `small` proposal can still introduce a `convention` archive target, and a `large` module proposal can still carry zero conventions.
 
+These axes also need a human-readable mirror in the document bodies. Readers should not have to reconstruct module or architecture ownership by inspecting only `meta.yaml`.
+
 ## Archive model
 
 The archive view has four first-class destinations:

@@ -8,6 +8,13 @@ For `medium` proposals that opt into the split layout, also use the `design/` di
 > - `small`: sections marked OPTIONAL may be omitted.
 > - `medium`: all sections should be present, but may be brief.
 
+## Ownership summary
+
+- Primary reading path: <Primary ownership>
+- Owning modules: <Owning modules>
+- System / architecture targets: <Owning systems>
+- Reusable conventions: <Owning conventions>
+
 ## Canonical corpus reviewed
 
 <Canonical corpus reviewed>

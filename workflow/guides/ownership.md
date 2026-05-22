@@ -27,6 +27,21 @@ Each ownership entry has three fields:
 
 There must be exactly one ownership entry with `role: primary`.
 
+## Human-readable ownership summary
+
+Machine-readable `ownership` in metadata is not enough on its own. The exploration and proposal reading surfaces must also summarize ownership in plain language so a reader can immediately answer:
+
+- which module this work belongs to
+- whether it also belongs to a system or architecture surface
+- whether it introduces or updates reusable conventions
+
+At minimum, the human-readable docs should surface:
+
+- owning modules
+- system or cross-module targets
+- reusable convention targets
+- the primary reading path
+
 ## Conventions as a first-class category
 
 Conventions are reusable consensus rules that survive beyond the proposal that introduced them. Typical examples:

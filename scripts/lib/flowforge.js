@@ -341,21 +341,29 @@ function parseExplorationIndex(text) {
 
     const primaryOwnershipMatch = trimmed.match(/^-\s*primary:\s*(.+)$/i);
     if (primaryOwnershipMatch) {
-      result.ownership.push({
-        type: null,
-        target: primaryOwnershipMatch[1].trim(),
-        role: 'primary',
-      });
+      try {
+        result.ownership.push(parseOwnershipEntry(`${primaryOwnershipMatch[1].trim()}:primary`, 0));
+      } catch (error) {
+        result.ownership.push({
+          type: null,
+          target: primaryOwnershipMatch[1].trim(),
+          role: 'primary',
+        });
+      }
       continue;
     }
 
     const secondaryOwnershipMatch = trimmed.match(/^-\s*secondary:\s*(.+)$/i);
     if (secondaryOwnershipMatch) {
-      result.ownership.push({
-        type: null,
-        target: secondaryOwnershipMatch[1].trim(),
-        role: 'secondary',
-      });
+      try {
+        result.ownership.push(parseOwnershipEntry(`${secondaryOwnershipMatch[1].trim()}:secondary`, 1));
+      } catch (error) {
+        result.ownership.push({
+          type: null,
+          target: secondaryOwnershipMatch[1].trim(),
+          role: 'secondary',
+        });
+      }
     }
   }
 
@@ -845,6 +853,8 @@ function validateProposalContext(context, cwd = process.cwd()) {
   const schemaVersion = meta.schema_version || 'v1';
   const workspaceConfig = getWorkflowConfig(cwd).docs || {};
   const workspaceNames = new Set(Object.keys(workspaceConfig.workspaces || {}));
+  const designLayout = getProposalDesignLayout(proposalDir, meta);
+  const modelLayout = getProposalModelLayout(proposalDir, meta);
 
   if (schemaVersion === 'v2') {
     const v2Required = [
@@ -1024,9 +1034,6 @@ function validateProposalContext(context, cwd = process.cwd()) {
         }
       }
     }
-
-    const designLayout = getProposalDesignLayout(proposalDir, meta);
-    const modelLayout = getProposalModelLayout(proposalDir, meta);
 
     if (meta.size_class === 'small') {
       if (!fileExists(path.join(proposalDir, 'design.md'))) {
@@ -1236,6 +1243,19 @@ function validateProposalContext(context, cwd = process.cwd()) {
       if (!fileExists(sourcePath)) {
         warnings.push(`source exploration path does not exist locally: ${source.workspace}:${source.ref}`);
       }
+    }
+
+    validateRenderedDocMarker(path.join(proposalDir, 'proposal.md'), '- Ownership summary:', warnings, 'proposal.md');
+    validateRenderedDocMarker(notesPath, '## Classification context', warnings, 'notes.md');
+
+    if (designLayout === 'single') {
+      validateRenderedDocMarker(path.join(proposalDir, 'design.md'), '## Ownership summary', warnings, 'design.md');
+    }
+    if (designLayout === 'split') {
+      validateRenderedDocMarker(path.join(proposalDir, 'design', 'README.md'), '## Ownership summary', warnings, 'design/README.md');
+    }
+    if (modelLayout === 'split') {
+      validateRenderedDocMarker(path.join(proposalDir, 'model', 'README.md'), '## Ownership summary', warnings, 'model/README.md');
     }
   } else if (meta.source_exploration) {
     const sourcePath = path.isAbsolute(meta.source_exploration)
@@ -1569,6 +1589,25 @@ function renderKnowledgeImpact(entries) {
   ].join('\n');
 }
 
+function renderOwnershipTargetList(ownership, types) {
+  const matches = (ownership || []).filter((entry) => types.includes(entry.type));
+  if (matches.length === 0) {
+    return 'none';
+  }
+
+  return matches
+    .map((entry) => `${entry.target}${entry.role === 'primary' ? ' (primary)' : ''}`)
+    .join(', ');
+}
+
+function validateRenderedDocMarker(filePath, marker, warnings, label) {
+  if (!fileExists(filePath)) return;
+  const text = readFileRequired(filePath);
+  if (!text.includes(marker)) {
+    warnings.push(`${label} should include marker: ${marker}`);
+  }
+}
+
 
 function getDefaultOwner() {
   const fromGit = runCommand('git', ['config', 'user.name'], process.cwd(), 5000);
@@ -1691,6 +1730,9 @@ function createProposalSkeleton(options, cwd = process.cwd()) {
     '<Size class>': sizeClass,
     '<Primary ownership>': primaryOwnership ? `${primaryOwnership.type}:${primaryOwnership.target}` : '<Primary ownership>',
     '<Secondary ownership>': ownership.filter((entry) => entry.role === 'secondary').map((entry) => `${entry.type}:${entry.target}`).join(', ') || 'none',
+    '<Owning modules>': renderOwnershipTargetList(ownership, ['module']),
+    '<Owning systems>': renderOwnershipTargetList(ownership, ['system', 'cross-module']),
+    '<Owning conventions>': renderOwnershipTargetList(ownership, ['convention']),
     '<Promotes reusable rules>': reusableRules.length > 0 ? 'yes' : 'no',
     '<Document layout>': designLayout === 'split'
       ? 'design/README.md plus model/README.md and supporting section files'
@@ -2228,6 +2270,94 @@ function listExplorationSummaries(cwd = process.cwd(), workspaceName = null) {
   return summaries.sort((a, b) => a.title.localeCompare(b.title, 'zh-Hans-CN'));
 }
 
+function resolveExplorationDir(target, cwd = process.cwd()) {
+  const absoluteTarget = path.resolve(cwd, target);
+  if (fileExists(path.join(absoluteTarget, 'index.md'))) {
+    return absoluteTarget;
+  }
+
+  const matches = [];
+  for (const workspace of listDocsWorkspaces(cwd)) {
+    const explorationsRoot = path.join(getWorkspaceDocsRoot(workspace.name, cwd), 'explorations');
+    if (!fileExists(explorationsRoot)) continue;
+
+    for (const entry of fs.readdirSync(explorationsRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const explorationDir = path.join(explorationsRoot, entry.name);
+      if (!fileExists(path.join(explorationDir, 'index.md'))) continue;
+      if (entry.name === target) {
+        matches.push(explorationDir);
+      }
+    }
+  }
+
+  if (matches.length === 1) {
+    return matches[0];
+  }
+  if (matches.length > 1) {
+    throw new Error(`Exploration ${target} resolved to multiple directories: ${matches.join(', ')}`);
+  }
+
+  throw new Error(`Exploration directory not found: ${target}`);
+}
+
+function loadExplorationContext(target, cwd = process.cwd()) {
+  const explorationDir = resolveExplorationDir(target, cwd);
+  const indexPath = path.join(explorationDir, 'index.md');
+  return {
+    explorationDir,
+    indexPath,
+    parsed: parseExplorationIndex(readFileRequired(indexPath)),
+    text: readFileRequired(indexPath),
+  };
+}
+
+function validateExplorationContext(context, cwd = process.cwd()) {
+  const errors = [];
+  const warnings = [];
+  const { parsed, text, explorationDir } = context;
+
+  if (!parsed.title) errors.push('index.md missing title');
+  if (!parsed.status) errors.push('index.md missing Status');
+  if (!parsed.created) errors.push('index.md missing Created');
+  if (!parsed.updated) errors.push('index.md missing Updated');
+  if (!parsed.expected_size_class) errors.push('index.md missing expected size class');
+  if (parsed.expected_size_class && !SIZE_CLASSES.has(parsed.expected_size_class)) {
+    errors.push(`invalid exploration expected size class: ${parsed.expected_size_class}`);
+  }
+
+  if (!Array.isArray(parsed.ownership) || parsed.ownership.length === 0) {
+    errors.push('index.md must declare at least one ownership entry');
+  } else {
+    const primaryCount = parsed.ownership.filter((entry) => entry.role === 'primary').length;
+    if (primaryCount !== 1) {
+      errors.push(`index.md must declare exactly one primary ownership entry, found ${primaryCount}`);
+    }
+    for (const entry of parsed.ownership) {
+      if (!entry.type) {
+        errors.push(`ownership entry could not be parsed: ${entry.target}`);
+        continue;
+      }
+      if (!OWNERSHIP_TYPES.has(entry.type)) {
+        errors.push(`invalid exploration ownership type: ${entry.type}`);
+      }
+    }
+  }
+
+  if (!text.includes('- Ownership summary:')) {
+    warnings.push('index.md should include an Ownership summary block');
+  }
+
+  for (const requiredDir of ['journal', 'findings', 'decisions', 'artifacts']) {
+    const absolutePath = path.join(explorationDir, requiredDir);
+    if (!fileExists(absolutePath)) {
+      warnings.push(`exploration missing directory: ${absolutePath}`);
+    }
+  }
+
+  return { errors, warnings };
+}
+
 module.exports = {
   appendImplementationNote,
   archiveProposal,
@@ -2252,6 +2382,7 @@ module.exports = {
   listProposalSummaries,
   listExplorationSummaries,
   listDocsWorkspaces,
+  loadExplorationContext,
   loadProposalContext,
   nowIso,
   parseCliArgs,
@@ -2259,11 +2390,13 @@ module.exports = {
   parseSimpleYaml,
   parseTaskMap,
   resolveProposalDir,
+  resolveExplorationDir,
   resolveWorkspaceForCwd,
   serializeYaml,
   slugify,
   todayDate,
   transitionProposalStatus,
+  validateExplorationContext,
   validateProposalContext,
   writeProposalMeta,
 };

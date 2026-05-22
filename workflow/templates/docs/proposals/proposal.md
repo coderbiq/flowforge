@@ -6,6 +6,10 @@
 - Ownership:
   - primary: <Primary ownership>
   - secondary: <Secondary ownership>
+- Ownership summary:
+  - owning modules: <Owning modules>
+  - system / architecture targets: <Owning systems>
+  - reusable conventions: <Owning conventions>
 - Promotes reusable rules: <Promotes reusable rules>
 
 ## Why
