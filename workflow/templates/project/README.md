@@ -31,6 +31,16 @@ Suggested target layout:
 ```text
 your-project/
 ├── AGENTS.md
+├── docs/
+│   ├── intake/
+│   ├── flowforge/
+│   │   ├── _rules/
+│   │   └── _templates/
+│   ├── explorations/
+│   ├── proposals/
+│   ├── modules/
+│   ├── architecture/
+│   └── decisions/
 ├── .flowforge/
 │   ├── config.json
 │   ├── workflow/
@@ -39,15 +49,17 @@ your-project/
 │   └── adapters/
 ├── .claude/
 ├── .codex/
-├── docs/
-│   ├── explorations/
-│   ├── proposals/
-│   ├── modules/
-│   ├── architecture/
-│   └── decisions/
 └── .flowforge/state/
 ```
 
 Use this template when bootstrapping a new repository or normalizing an existing one.
+
+The installer seeds `docs/flowforge/_rules/` as the initial project-editable
+workflow rules bundle. `docs/flowforge/_templates/` remains the place for
+workspace-local template copies when a project needs to tailor document shapes.
+For model documents, the default template is the single-file `model.md`
+document rather than a split parts tree.
+`docs/intake/` is the recommended entry point for pre-exploration input
+packages.
 
 This layout is also the expected Codex project shape, because Codex reads project instructions from `AGENTS.md` and operates directly on the installed workflow scripts.

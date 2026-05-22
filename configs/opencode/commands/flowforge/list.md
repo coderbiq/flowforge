@@ -4,6 +4,7 @@ allowed-tools: Skill(flowforge)
 ---
 
 Use the `FlowForge` skill to list proposals and explorations.
+Before proceeding, follow `workflow/guides/rule-loading.md`.
 
 ## 输出格式
 

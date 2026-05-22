@@ -102,6 +102,7 @@ At minimum, create:
 
 ```text
 AGENTS.md
+docs/intake
 docs/explorations
 docs/proposals
 docs/modules
@@ -116,6 +117,12 @@ If a workspace needs its own template variants, add a workspace-local template c
 ```text
 docs/flowforge/_templates
 ```
+
+The installer also seeds `docs/flowforge/_rules/` as the project's editable
+default workflow rules bundle. Use that directory for project-level working
+defaults that should not live in the core workflow guides.
+Use `docs/intake/` for pre-exploration input packages, and `docs/flowforge/_rules/`
+for the project defaults that interpret them.
 
 Use:
 
@@ -135,7 +142,7 @@ bd init
 
 Task maps should follow [`workflow/guides/task-splitting.md`](../workflow/guides/task-splitting.md): split by deliverable, not by file list, and insert explicit checkpoints for long-running proposals.
 
-Template customization is copy-and-edit only. If a workspace needs a specialized model field layout, copy the default model template or the relevant part file into the workspace-local `_templates` area and adjust the copy there.
+Template customization is copy-and-edit only. If a workspace needs a specialized model field layout, copy the default `model.md` template into the workspace-local `_templates` area and adjust the copy there.
 
 ## 5. Configure memory
 

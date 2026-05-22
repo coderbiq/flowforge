@@ -31,21 +31,58 @@ model_status_in_proposal: <new | modified | retained>
 
 This is the default business-model template.
 
-Use this file when the model can stay in the standard shape. If a project needs extra data-structure columns, like `Master table`, or wants to reorganize several sections at once, copy this template or the relevant part files into the workspace-local template area and edit the copies directly.
+Use this file when the model can stay in the standard shape. If a project needs
+extra data-structure columns, like `Master table`, or wants to reorganize the
+sections, copy this whole template into the workspace-local template area and
+edit the copy directly.
 
-## Reading order
+## Purpose
 
-This model template is split into parts so an agent can understand and reuse each section separately.
+State what this model represents and why it exists as a separate model.
 
-- [Header](./parts/header.md)
-- [Purpose](./parts/purpose.md)
-- [Data structure](./parts/data-structure.md)
-- [Responsibilities](./parts/responsibilities.md)
-- [Lifecycle](./parts/lifecycle.md)
-- [Validation rules](./parts/validation.md)
-- [References](./parts/references.md)
-- [Open questions](./parts/open-questions.md)
+## Data Structure
 
-## Default authoring rule
+Use this section for the model's field table and any table-level notes.
 
-When a project uses this template as-is, preserve the section order above. When a project copies and edits the template, keep the README or the section headers updated so the agent can still understand the customization.
+Default columns:
+
+| Field | Type | Physical/JSON | Nullable | Description | Convention ref |
+| ----- | ---- | ------------- | -------- | ----------- | -------------- |
+| id | varchar(50) | Physical | no | Primary key | conventions/id-fields.md |
+
+Column notes:
+
+- `Physical` means the field becomes a real column.
+- `JSON` means the field is stored inside a JSON details column on the same record.
+- `Convention ref` links to the convention that governs this field type or shape, when one exists.
+
+## Responsibilities
+
+- What this model is allowed to decide
+- What this model must delegate to other models or services
+
+## Lifecycle
+
+- States this model can be in
+- Transitions and who can trigger them
+- Audit footprint
+
+## Validation Rules
+
+- Required combinations of fields
+- Cross-field constraints
+- External constraints such as uniqueness, referential integrity, or dictionary membership
+
+## References
+
+### Referenced by
+
+- `<OtherModel>` - relationship description
+
+### References
+
+- `<OtherModel>` - relationship description
+
+## Open Questions
+
+- Question that should be resolved before implementation

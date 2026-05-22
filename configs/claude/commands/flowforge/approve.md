@@ -4,6 +4,7 @@ allowed-tools: Skill(flowforge)
 ---
 
 Use the `FlowForge` skill to approve a proposal.
+Before proceeding, follow `workflow/guides/rule-loading.md`.
 
 ## 执行流程
 

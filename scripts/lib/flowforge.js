@@ -664,6 +664,14 @@ function getProposalsRoot(cwd = process.cwd(), workspaceName = null) {
   return path.join(getWorkspaceDocsRoot(workspaceName, cwd), 'proposals');
 }
 
+function getProjectRulesRoot(cwd = process.cwd(), workspaceName = null) {
+  return path.join(getWorkspaceDocsRoot(workspaceName, cwd), 'flowforge', '_rules');
+}
+
+function getIntakeRoot(cwd = process.cwd(), workspaceName = null) {
+  return path.join(getWorkspaceDocsRoot(workspaceName, cwd), 'intake');
+}
+
 function getTemplateRoot(cwd = process.cwd()) {
   return path.join(getToolRoot(cwd), 'workflow', 'templates', 'docs');
 }
@@ -2965,6 +2973,103 @@ function loadExplorationContext(target, cwd = process.cwd()) {
   };
 }
 
+function loadProjectRuleBundle(cwd = process.cwd(), workspaceName = null) {
+  const workspace = workspaceName ? getDocsWorkspace(workspaceName, cwd) : resolveWorkspaceForCwd(cwd);
+  const rulesRoot = getProjectRulesRoot(cwd, workspace.name);
+  const orderedFiles = [
+    'README.md',
+    'workflow.md',
+    'intake.md',
+    'explore.md',
+    'propose.md',
+    'archive.md',
+  ];
+
+  const files = orderedFiles.map((fileName) => {
+    const filePath = path.join(rulesRoot, fileName);
+    const exists = fileExists(filePath);
+    return {
+      file_name: fileName,
+      path: filePath,
+      exists,
+      content: exists ? readFileRequired(filePath) : null,
+    };
+  });
+
+  return {
+    workspace,
+    rulesRoot,
+    files,
+    missing_files: files.filter((file) => !file.exists).map((file) => file.file_name),
+    available: fileExists(rulesRoot),
+  };
+}
+
+function resolveIntakeDir(target, cwd = process.cwd()) {
+  const absoluteTarget = path.isAbsolute(target)
+    ? target
+    : path.resolve(cwd, target);
+
+  if (fileExists(path.join(absoluteTarget, 'index.md'))) {
+    return absoluteTarget;
+  }
+
+  const workspaces = listDocsWorkspaces(cwd);
+  const matches = [];
+  for (const workspace of workspaces) {
+    const intakeRoot = path.join(getWorkspaceDocsRoot(workspace.name, cwd), 'intake');
+    if (!fileExists(intakeRoot)) continue;
+    const candidate = path.join(intakeRoot, target);
+    if (fileExists(path.join(candidate, 'index.md'))) {
+      matches.push(candidate);
+    }
+  }
+
+  if (matches.length === 1) return matches[0];
+  if (matches.length > 1) {
+    throw new Error(`Intake package ${target} resolved to multiple directories: ${matches.join(', ')}`);
+  }
+
+  throw new Error(`Intake package directory not found: ${target}`);
+}
+
+function loadIntakeContext(target, cwd = process.cwd()) {
+  const intakeDir = resolveIntakeDir(target, cwd);
+  const indexPath = path.join(intakeDir, 'index.md');
+  const parsed = parseFrontmatterDocument(readFileRequired(indexPath));
+  const markdownFiles = listMarkdownFiles(intakeDir)
+    .filter((filePath) => path.basename(filePath) !== 'index.md')
+    .sort((a, b) => a.localeCompare(b));
+
+  const files = [
+    {
+      file_name: 'index.md',
+      path: indexPath,
+      exists: true,
+      content: readFileRequired(indexPath),
+      frontmatter: parsed.frontmatter || null,
+    },
+    ...markdownFiles.map((filePath) => ({
+      file_name: path.relative(intakeDir, filePath).split(path.sep).join('/'),
+      path: filePath,
+      exists: true,
+      content: readFileRequired(filePath),
+      frontmatter: parseFrontmatterDocument(readFileRequired(filePath)).frontmatter || null,
+    })),
+  ];
+
+  return {
+    intakeDir,
+    indexPath,
+    parsed: parsed.frontmatter || {},
+    text: readFileRequired(indexPath),
+    files,
+    assets: fileExists(path.join(intakeDir, 'assets'))
+      ? fs.readdirSync(path.join(intakeDir, 'assets')).sort((a, b) => a.localeCompare(b))
+      : [],
+  };
+}
+
 function validateExplorationContext(context, cwd = process.cwd()) {
   const errors = [];
   const warnings = [];
@@ -3068,6 +3173,8 @@ module.exports = {
   getDocsWorkspace,
   getDocsRoot,
   getProjectRoot,
+  getProjectRulesRoot,
+  getIntakeRoot,
   getToolRoot,
   getWorkflowConfigPath,
   getWorkflowConfig,
@@ -3077,6 +3184,8 @@ module.exports = {
   listExplorationSummaries,
   listDocsWorkspaces,
   loadExplorationContext,
+  loadIntakeContext,
+  loadProjectRuleBundle,
   loadProposalContext,
   nowIso,
   parseCliArgs,
@@ -3084,6 +3193,7 @@ module.exports = {
   parseSimpleYaml,
   parseTaskMap,
   resolveProposalDir,
+  resolveIntakeDir,
   resolveExplorationDir,
   resolveWorkspaceForCwd,
   serializeYaml,

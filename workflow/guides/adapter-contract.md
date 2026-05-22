@@ -8,6 +8,8 @@ Platform integrations must adapt `FlowForge` without redefining workflow behavio
 
 - expose platform-native commands or prompts
 - load workflow guides and templates
+- load project rules using `scripts/flowforge-rules-context.js` and
+  `workflow/guides/rule-loading.md`
 - load project configuration
 - update local state snapshots
 - call task and memory providers

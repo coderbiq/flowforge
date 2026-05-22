@@ -4,6 +4,10 @@ allowed-tools: Skill(flowforge)
 ---
 
 Use the `FlowForge` skill to create or extend an exploration.
+Before proceeding, follow `workflow/guides/rule-loading.md` and materialize
+the current intake package with `scripts/flowforge-explore-context.js` when
+one exists. If no intake package exists yet, use the helper without an intake
+argument so the exploration still starts from the rule bundle.
 
 ## 执行流程
 

@@ -5,7 +5,7 @@
 ## Core rule
 
 - If a project only needs the standard shape, use the default templates as-is.
-- If a project needs project-specific wording, extra columns, or extra sections, copy the whole template or the relevant part files into the workspace-local template area and edit the copies directly.
+- If a project needs project-specific wording, extra columns, or extra sections, copy the whole template or the relevant section files into the workspace-local template area and edit the copies directly.
 - Do not rely on line-level or section-level merge semantics. Template customization is explicit copy-and-edit work.
 
 ## Recommended workspace-local location
@@ -16,14 +16,28 @@ Workspace-local template copies should live under the workspace docs root, for e
 
 This keeps project-specific template variants visible to the team without turning them into a hidden tool configuration.
 
+## Project seed rules
+
+Projects also receive an install-time seed rules bundle, usually under
+`docs/flowforge/_rules/`.
+
+- Use the bundle as the editable project-default working policy.
+- Keep it separate from the core workflow guides so projects can tune analysis
+  and writing defaults without forking the platform rules.
+- If a project needs different behavior, edit the copied rules bundle directly
+  instead of patching the core workflow first.
+- Adapters should load the bundle according to
+  `workflow/guides/rule-loading.md`.
+
 ## Model templates
 
-The model template is intentionally split into parts so projects can customize the data-structure section, add model-specific notes such as master-table columns, or copy the entire model template and adjust it as a unit.
+The default model template is a single document, `model.md`.
 
-Use the split parts when:
+Use the single-file template when:
 
-- the project only needs to tweak one section
-- the agent needs a clear explanation of what each section does
+- the project wants the standard model shape
+- the model can be described in one coherent reading surface
+- the project wants customization to stay explicit and easy to review
 
 Copy the whole template when:
 

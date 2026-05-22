@@ -17,7 +17,8 @@ updated: <ISO-8601 timestamp>
 
 # Models
 
-This directory contains one document per business model introduced or modified by the proposal.
+This directory contains one document per business model introduced or modified
+by the proposal.
 
 ## Ownership summary
 
@@ -26,11 +27,13 @@ This directory contains one document per business model introduced or modified b
 - Convention targets: <type:target or none>
 - Canonical reading path: this model index
 
-Use the directory when the proposal is `large`, or when a `medium` proposal introduces two or more business models. Single-model `small` proposals may describe the model inline in `design.md` instead.
+Use the directory when the proposal is `large`, or when a `medium` proposal
+introduces two or more business models. Single-model `small` proposals may
+describe the model inline in `design.md` instead.
 
-The model template is intentionally split into parts under `parts/` so a project can reuse only the sections it needs or copy the whole template and adapt it. Projects that need a specialized field table, such as an extra `Master table` column, should edit the copied data-structure part or the copied full template rather than expecting automatic template merging.
-
-See [`parts/README.md`](./parts/README.md) for the section order and customization guidance.
+The default model template is the single-file `model.md` document. Copy the
+whole file into the workspace-local template area and edit the copy directly
+when a project needs a specialized field table or different section ordering.
 
 ## Model index
 
@@ -50,5 +53,7 @@ See [`parts/README.md`](./parts/README.md) for the section order and customizati
 
 - One file per business model.
 - Each file follows `workflow/templates/docs/proposals/model/model.md`.
-- Cross-model relationships live in `design/model.md`, not duplicated inside each model file.
-- Use the `parts/` directory as the default explanation of model sections and customization points.
+- Cross-model relationships live in `design/model.md`, not duplicated inside
+  each model file.
+- The default template is a single file; do not rely on `parts/` for the
+  standard shape.

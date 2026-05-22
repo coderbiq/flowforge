@@ -4,6 +4,7 @@ allowed-tools: Skill(flowforge)
 ---
 
 Use the `FlowForge` skill to check proposal status.
+Before proceeding, follow `workflow/guides/rule-loading.md`.
 
 ## 输出内容
 

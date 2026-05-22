@@ -8,12 +8,15 @@ description: |
 
 # FlowForge
 
-This skill is a thin adapter over the canonical workflow specification in `workflow/`.
+This skill is a thin adapter over the canonical workflow specification in
+`workflow/` and the installed project rule bundle when one exists.
 
 ## Source of truth
 
 Always load and follow:
 
+- `workflow/guides/rule-loading.md`
+- `workflow/guides/intake-packages.md`
 - `workflow/guides/lifecycle.md`
 - `workflow/guides/authoring-rules.md`
 - `workflow/guides/archive-rules.md`
@@ -27,11 +30,25 @@ When metadata shape matters, use:
 
 ## Responsibilities
 
+- create and maintain intake packages
 - create and maintain exploration artifacts
 - convert validated exploration into proposals
 - maintain proposal metadata and task maps
 - keep implementation notes aligned with execution
 - archive to modules, architecture docs, and ADRs
+
+## Project rule bundle
+
+If the current project contains `docs/flowforge/_rules/`, treat that bundle as
+the project-default working policy on top of the canonical workflow.
+
+- Materialize the bundle with `scripts/flowforge-rules-context.js` when you
+  need the actual rule text in context, following
+  `workflow/guides/rule-loading.md`.
+- Use the bundle to refine analysis posture, writing posture, and archive
+  emphasis.
+- Do not let the project bundle override lifecycle, schema, or validation
+  requirements from the core workflow.
 
 ## Workflow rules
 
@@ -44,6 +61,7 @@ When metadata shape matters, use:
 ## Default command intents
 
 - `/flowforge:explore`: create or extend an exploration
+- `/flowforge:intake`: create or revise an intake package before exploration
 - `/flowforge:propose`: create or revise a proposal from an exploration
 - `/flowforge:approve`: move a valid proposal into approved state
 - `/flowforge:apply`: create backend tasks and switch to active execution
@@ -57,6 +75,9 @@ When metadata shape matters, use:
 Before reporting a proposal as ready or archivable, use:
 
 - `.flowforge/scripts/flowforge-create-proposal.js --title ... --source-exploration ... --archive-target ...`
+- `.flowforge/scripts/flowforge-create-intake.js --title ...`
+- `.flowforge/scripts/flowforge-intake-context.js <intake-slug|intake-dir>`
+- `.flowforge/scripts/flowforge-explore-context.js <intake-slug|intake-dir>`
 - `.flowforge/scripts/flowforge-approve-proposal.js <proposal-id|proposal-dir>`
 - `.flowforge/scripts/flowforge-apply-proposal.js <proposal-id|proposal-dir>`
 - `.flowforge/scripts/flowforge-add-note.js <proposal-id|proposal-dir> <note text>`

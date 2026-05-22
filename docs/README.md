@@ -26,6 +26,7 @@ updated: "2026-05-22T08:17:52.067Z"
 
 ## 结构
 
+- `intake/`：探索开始前的输入包和需求材料
 - `explorations/`：提案创建前的探索工件
 - `proposals/`：进行中和已归档的变更提案工作集
 - `modules/`：按模块组织的最终文档
@@ -43,6 +44,7 @@ updated: "2026-05-22T08:17:52.067Z"
 - [Monorepo Document Workspaces](./architecture/monorepo-document-workspaces.md)
 - [workflow-core](./modules/workflow-core/README.md)
 - [Monorepo Document Workspaces ADR](./decisions/ADR-003-monorepo-document-workspaces.md)
+- [Input packages, workflow rules, and seed bundles ADR](./decisions/ADR-005-input-package-workflow-rules-and-seed-bundle.md)
 - [CR26052001 Monorepo 文档工作区支持](./proposals/CR26052001-monorepo-document-workspace-support/proposal.md)
 - [Task Splitting canonical guide](../workflow/guides/task-splitting.md)
 - [Monorepo 文档工作区支持](./explorations/monorepo-document-workspaces/index.md)

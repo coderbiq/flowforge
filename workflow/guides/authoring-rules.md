@@ -6,6 +6,18 @@
 - Every durable statement should be attributable to a finding, decision, or explicit assumption.
 - Use relative links between artifacts to keep references navigable in Git.
 
+## Core versus seed rules
+
+The core workflow keeps the stable lifecycle, schema, and validation mechanics.
+Project-specific working posture now starts from the install-time seed rules
+bundle under `docs/flowforge/_rules/`.
+
+- Use the core guides for mechanics that must stay identical across projects.
+- Use the seed bundle for default analysis, writing, intake, and archive
+  posture that a project may tune after installation.
+- If a project needs to change its working defaults, edit the seed bundle
+  rather than bending the core workflow guides first.
+
 ## Explorations
 
 - `index.md` is the reading surface.
@@ -28,7 +40,7 @@
   - which system or architecture docs it affects
   - which reusable conventions it introduces or updates
 - Design lives in either `design.md` or a `design/` directory depending on `size_class`. See `workflow/guides/sizing.md`.
-- Template customization follows the reference-copy rule in `workflow/guides/templates.md`: projects may copy the whole template or the relevant part files and edit the copies directly.
+- Template customization follows the reference-copy rule in `workflow/guides/templates.md`: projects may copy the whole template or the relevant section files and edit the copies directly.
 - `task-map.md` is authoritative for task decomposition.
 - `task-map.md` must follow `task-splitting.md` for deliverable-first decomposition, milestone boundaries, and checkpoint rules.
 - `notes.md` is for execution history only.
@@ -57,7 +69,8 @@
 - Each model document describes: data structure, responsibilities, lifecycle, validation, referenced conventions, and links to related models.
 - `model/README.md` lists every model in the proposal and groups them by role (core configuration, lifecycle, view-facing helper, etc).
 - Model docs should state their owning module and any related convention targets as part of the model identity block.
-- The model template is split into readable parts so projects can customize the data-structure section, including project-specific columns such as `Master table`, by copying the template or the relevant part file.
+- The model template is a single file. Projects customize the data-structure section, including project-specific columns such as `Master table`, by copying the whole template and editing the copy directly.
+- The default model template is a single file. Projects customize it by copying the whole `model.md` template and editing the copy directly.
 
 ### Convention authoring
 
@@ -77,3 +90,14 @@
 - Secondary targets exist to preserve alternate reading paths.
 - Ownership entries and archive targets must align: every ownership entry should have a corresponding archive target.
 - The archived target corpus is the default baseline for future explorations, so archive targets should be kept navigable and up to date.
+
+## Seed bundle mapping
+
+The following default behaviors are now seeded into the project-local rules
+bundle and may be adjusted there:
+
+- global workflow posture
+- input package handling
+- exploration analysis defaults
+- proposal writing defaults
+- archive maintenance defaults

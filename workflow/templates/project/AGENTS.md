@@ -39,6 +39,8 @@ This repository uses `FlowForge` as the default design and delivery workflow.
 - Workflow rules: `.flowforge/workflow/guides/`
 - Schemas: `.flowforge/workflow/schema/`
 - Project docs: `docs/`
+- Intake packages: `docs/intake/`
+- Project seed rules: `docs/flowforge/_rules/`
 - Local work-restoration state: `.flowforge/state/`
 - Workspace-local template copies, when needed: `docs/<workspace>/_templates/`
 
@@ -60,6 +62,9 @@ Every exploration, proposal, and durable subdocument must declare frontmatter pr
 - `meta.yaml` remains the proposal bundle contract; document frontmatter is the document-level contract.
 - Human-readable docs must mirror the ownership graph with an explicit summary of owning modules, system or architecture targets, and reusable conventions.
 - Template customization is copy-and-edit only. If a workspace needs project-specific template variants, place them in `docs/<workspace>/_templates/` and make the customization explicit in the copied files.
+- Project workflow defaults start from the installed seed rules in `docs/flowforge/_rules/`; edit those files directly when the project needs different working posture or analysis defaults.
+- Model document customization starts from the single-file model template, not a split parts tree.
+- Pre-exploration input material belongs in `docs/intake/<slug>/` and should be materialized with the intake helper before exploration starts.
 
 Document layout follows the size class:
 

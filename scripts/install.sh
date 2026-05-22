@@ -44,6 +44,10 @@ sync_script_bundle() {
   cp "$source_root/flowforge-validate-proposal.js" "$target_root/"
   cp "$source_root/flowforge-proposal-status.js" "$target_root/"
   cp "$source_root/flowforge-check-archive.js" "$target_root/"
+  cp "$source_root/flowforge-rules-context.js" "$target_root/"
+  cp "$source_root/flowforge-create-intake.js" "$target_root/"
+  cp "$source_root/flowforge-intake-context.js" "$target_root/"
+  cp "$source_root/flowforge-explore-context.js" "$target_root/"
   cp "$source_root/flowforge-create-proposal.js" "$target_root/"
   cp "$source_root/flowforge-apply-proposal.js" "$target_root/"
   cp "$source_root/flowforge-approve-proposal.js" "$target_root/"
@@ -51,6 +55,21 @@ sync_script_bundle() {
   cp "$source_root/flowforge-list-proposals.js" "$target_root/"
   cp "$source_root/flowforge-archive-proposal.js" "$target_root/"
   cp "$source_root/lib/flowforge.js" "$target_root/lib/"
+}
+
+install_project_seed_rules() {
+  local target="${1:-$(pwd)}"
+  local target_rules_root="$target/docs/flowforge/_rules"
+  local source_rules_root="$WORKFLOW_DIR/templates/docs/rules"
+
+  if [[ -e "$target_rules_root" ]]; then
+    warn "Project seed rules already exist; leaving them unchanged"
+    return
+  fi
+
+  mkdir -p "$(dirname "$target_rules_root")"
+  cp -R "$source_rules_root" "$target_rules_root"
+  info "Created project seed rules at docs/flowforge/_rules"
 }
 
 # 安装 Claude Code 配置
@@ -178,6 +197,7 @@ install_workflow_core() {
   sync_dir "$AGENTS_DIR" "$target_agents"
   sync_script_bundle "$SCRIPTS_DIR" "$target_scripts"
   chmod +x "$target_scripts"/flowforge-*.js
+  install_project_seed_rules "$target"
 
   if [[ ! -f "$target_tool_root/config.json" ]]; then
     cp "$WORKFLOW_DIR/templates/project/config.json" "$target_tool_root/config.json"
