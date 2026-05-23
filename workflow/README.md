@@ -7,6 +7,7 @@ It is the source of truth for:
 - lifecycle and authoring rules
 - task splitting and checkpoint rules
 - metadata schemas
+- exploration classification and routing rules
 - archive behavior
 - intake package guidance
 - template usage and customization guidance

@@ -66,6 +66,31 @@ properties:
       Predicted size class for the future proposal. Used as the default
       when a proposal is generated from this exploration. May be overridden
       at proposal time. See workflow/guides/sizing.md.
+  classification_bucket:
+    type: string
+    enum:
+      - module
+      - system
+      - cross-module
+      - convention
+      - decision
+      - exploration
+  module_name:
+    type: string
+  needs_review:
+    type: boolean
+  review_status:
+    type: string
+    enum:
+      - pending
+      - reviewed
+      - waived
+  confidence:
+    type: string
+    enum:
+      - high
+      - medium
+      - low
   reusable_rules:
     type: array
     description: |

@@ -119,6 +119,14 @@ fields should be used to store body content.
   promoted into `docs/conventions/`.
 - `expected_size_class`: predicted size class for the resulting
   proposal (`small | medium | large`).
+- `classification_bucket`: the canonical bucket assigned to a newly
+  discovered finding (`module | system | cross-module | convention |
+  decision | exploration`).
+- `module_name`: canonical module identifier when the finding is
+  module-scoped.
+- `needs_review`: whether the item should be surfaced for later review.
+- `review_status`: `pending | reviewed | waived`.
+- `confidence`: `high | medium | low`.
 
 ### proposal
 

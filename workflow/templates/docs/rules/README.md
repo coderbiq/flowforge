@@ -28,8 +28,8 @@ into `docs/flowforge/_rules/`.
 - Canonical reading path: this workflow-rules bundle
 
 Use these files as the initial project-editable defaults for workflow posture,
-input-package handling, exploration analysis, proposal writing, and archive
-behavior.
+project classification configuration, input-package handling, exploration
+analysis, proposal writing, and archive behavior.
 
 This bundle is meant to be loaded by the workflow skill and command surfaces
 before they reason about a project task. It is not passive documentation.
@@ -37,10 +37,11 @@ before they reason about a project task. It is not passive documentation.
 ## File order
 
 1. `workflow.md`
-2. `intake.md`
-3. `explore.md`
-4. `propose.md`
-5. `archive.md`
+2. `classification.md`
+3. `intake.md`
+4. `explore.md`
+5. `propose.md`
+6. `archive.md`
 
 ## Guidance
 

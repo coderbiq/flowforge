@@ -96,6 +96,31 @@ properties:
           type: string
         target:
           type: string
+  classification_bucket:
+    type: string
+    enum:
+      - module
+      - system
+      - cross-module
+      - convention
+      - decision
+      - exploration
+  module_name:
+    type: string
+  needs_review:
+    type: boolean
+  review_status:
+    type: string
+    enum:
+      - pending
+      - reviewed
+      - waived
+  confidence:
+    type: string
+    enum:
+      - high
+      - medium
+      - low
   related_docs:
     type: array
     items:

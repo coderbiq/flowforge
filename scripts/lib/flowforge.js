@@ -2979,6 +2979,7 @@ function loadProjectRuleBundle(cwd = process.cwd(), workspaceName = null) {
   const orderedFiles = [
     'README.md',
     'workflow.md',
+    'classification.md',
     'intake.md',
     'explore.md',
     'propose.md',
