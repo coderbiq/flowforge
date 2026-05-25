@@ -190,8 +190,8 @@ If one user needs different tokens for different projects, use the user-level co
 /flowforge:explore "topic"
 /flowforge:propose "proposal title"
 /flowforge:upgrade
-/flowforge:approve CR26052001
-/flowforge:apply CR26052001
+/flowforge:approve CR26052001   # optional review gate
+/flowforge:apply CR26052001     # create tasks and begin execution immediately
 /flowforge:archive CR26052001
 ```
 
@@ -213,19 +213,19 @@ Use the generator instead of creating proposal files by hand:
 
 This creates `docs/proposals/CRYYMMDDNN-<slug>/` with a valid initial skeleton.
 
-## 8. Approve a proposal
+## 8. Optionally approve a proposal
 
-Once the proposal content and archive targets are ready:
+Use this only when you want a separate review gate before execution:
 
 ```bash
 .flowforge/scripts/flowforge-approve-proposal.js CR26052001
 ```
 
-This moves a valid proposal into `approved` state.
+This moves a valid proposal into `approved` state. You can skip this step and let `/flowforge:apply` approve a `proposed` proposal inline.
 
-## 9. Apply an approved proposal
+## 9. Apply a proposal
 
-Once `meta.yaml` status is `approved`, apply it:
+When you are ready to create tasks and start execution, apply the proposal:
 
 ```bash
 .flowforge/scripts/flowforge-apply-proposal.js CR26052001

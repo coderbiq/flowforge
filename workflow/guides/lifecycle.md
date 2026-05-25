@@ -4,17 +4,16 @@
 
 1. `explore`
 2. `propose`
-3. `approve`
- 4. `apply`
-5. `implement`
-6. `archive`
+3. `approve` (optional)
+4. `apply`
+5. `archive`
 
 ## Phase intent
 
 ### Explore
 
 - Capture the problem, context, evidence, unknowns, and candidate directions.
-- Produce durable findings before any implementation starts.
+- Produce durable findings before any execution starts.
 - Start from the existing final knowledge base first: modules, architecture docs, conventions, and ADRs are the default reference corpus.
 - Open a new exploration only for gaps, conflicts, or materially new questions that the final corpus does not already answer.
 - Declare ownership tags and an expected size class as soon as the question is scoped. Capture them in exploration frontmatter and keep the frontmatter in sync with the proposal bundle. Every durable Markdown artifact should carry its own frontmatter so the document can be routed without reading the bundle first. See `workflow/guides/doc-properties.md`, `workflow/guides/ownership.md`, and `workflow/guides/sizing.md`.
@@ -31,21 +30,18 @@
 
 ### Approve
 
-- Lock the chosen approach before work starts.
+- Optional: lock the chosen approach before work starts.
 - Confirm task backend, archive destinations, and the declared size class.
 - Proposal status changes from `proposed` to `approved`.
+- If you skip this step, `apply` will perform the approval checks inline and continue into execution.
 
 ### Apply
 
-- Create tasks from `task-map.md` and transition the proposal into execution.
+- Create tasks from `task-map.md`, transition the proposal into execution, and immediately hand off to the ready task queue.
 - Task decomposition must follow `task-splitting.md`, including milestone boundaries and checkpoint rules for long-running work.
-- Proposal status changes from `approved` to `active`.
-
-### Implement
-
-- Execute tasks, keep `notes.md` current, and write back scope changes into the proposal.
-- Stop at declared checkpoints for verification when a proposal spans multiple sessions or days.
-- Major scope changes require returning to exploration/proposal, not just implementation notes. Changing `size_class` or `ownership` mid-flight is a scope change.
+- Proposal status changes from `proposed` or `approved` to `active`.
+- Keep `notes.md` current, and stop at declared checkpoints for verification when a proposal spans multiple sessions or days.
+- Major scope changes require returning to exploration/proposal, not just execution notes. Changing `size_class` or `ownership` mid-flight is a scope change.
 
 ### Archive
 

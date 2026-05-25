@@ -1,5 +1,4 @@
----
-description: Move a valid proposal into approved state before task application.
+description: Optional review gate that can move a valid proposal into approved state before task application.
 allowed-tools: Skill(flowforge)
 ---
 
@@ -12,6 +11,8 @@ Before proceeding, follow `workflow/guides/rule-loading.md`.
 2. Require proposal status `draft` or `proposed`
 3. Run `.flowforge/scripts/flowforge-approve-proposal.js`
 4. Confirm proposal state changed to `approved`
+
+This command is optional. `/flowforge:apply` can approve a proposed proposal inline and move straight into execution.
 
 ## 参数
 

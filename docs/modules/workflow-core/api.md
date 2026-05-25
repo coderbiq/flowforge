@@ -35,9 +35,9 @@ module_status: "active"
   - create a proposal skeleton
   - accept archive targets and canonical corpus entries
 - `scripts/flowforge-approve-proposal.js`
-  - move a proposal from `draft` or `proposed` to `approved`
+  - optional review gate before apply
 - `scripts/flowforge-apply-proposal.js`
-  - prepare execution notes and transition to `active`
+  - create backend tasks and move straight into execution
 - `scripts/flowforge-validate-proposal.js`
   - validate proposal metadata and task map consistency
 - `scripts/flowforge-proposal-status.js`
@@ -51,4 +51,3 @@ module_status: "active"
 - `archive_targets[].key` is the stable reference for task mapping
 - `canonical_corpus` records the final docs reviewed as the baseline
 - `scope` distinguishes `workspace`, `cross-workspace`, and `monorepo`
-

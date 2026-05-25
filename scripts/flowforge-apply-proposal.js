@@ -29,9 +29,13 @@ function main() {
       process.exit(1);
     }
 
-    if (!['approved', 'active'].includes(context.meta.status)) {
-      console.error(`ERROR proposal status must be approved before apply, got ${context.meta.status}`);
+    if (!['proposed', 'approved', 'active'].includes(context.meta.status)) {
+      console.error(`ERROR proposal status must be proposed, approved, or active before apply, got ${context.meta.status}`);
       process.exit(1);
+    }
+
+    if (context.meta.status === 'proposed') {
+      transitionProposalStatus(context, 'approved');
     }
 
     let backendSummary = null;

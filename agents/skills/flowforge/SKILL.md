@@ -52,19 +52,20 @@ the project-default working policy on top of the canonical workflow.
 
 ## Workflow rules
 
-- Exploration persists important findings before implementation.
+- Exploration persists important findings before execution.
 - Proposal metadata is authoritative for lifecycle state.
 - Task maps are authoritative for backend task decomposition.
 - Notes are operational history, not a replacement for proposal/design changes.
 - Archive targets must be updated before a proposal is marked archived.
+- Approve is an optional review gate; apply can promote a proposed proposal inline and then move straight into execution.
 
 ## Default command intents
 
 - `/flowforge:explore`: create or extend an exploration
 - `/flowforge:intake`: create or revise an intake package before exploration
 - `/flowforge:propose`: create or revise a proposal from an exploration
-- `/flowforge:approve`: move a valid proposal into approved state
-- `/flowforge:apply`: create backend tasks and switch to active execution
+- `/flowforge:approve`: optional review gate that can move a valid proposal into approved state
+- `/flowforge:apply`: create backend tasks, auto-promote a proposed proposal if needed, and switch straight into active execution
 - `/flowforge:archive`: complete archive updates and close the proposal
 - `/flowforge:status`: summarize proposal and task state
 - `/flowforge:list`: list proposals by lifecycle status

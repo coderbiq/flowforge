@@ -8,16 +8,16 @@ This guide is part of the canonical workflow spec. It defines how proposal work 
 
 - `explore`: capture context, evidence, ownership tags, expected size, and open questions before any execution plan is finalized.
 - `propose`: define scope, success criteria, archive targets, the size class, and the high-level delivery path.
-- `approve`: lock the chosen approach, size class, and task backend before execution starts.
-- `apply`: materialize the task map into the backend.
-- `implement`: execute tasks, keep notes current, and stop at declared checkpoints.
+- `approve`: optional review gate that can lock the chosen approach, size class, and task backend before execution starts.
+- `apply`: materialize the task map into the backend and begin execution on ready work.
+- execution: keep notes current and stop at declared checkpoints.
 - `archive`: verify completion and write back durable docs, including any promoted conventions.
 
-Task splitting belongs primarily to `propose` and `apply`, but its rules continue to govern `implement` and `archive`.
+Task splitting belongs primarily to `propose` and `apply`, but its rules continue to govern execution and `archive`.
 
 ## Core principle
 
-Tasks are defined by **deliverable**, not by file list, implementation step, or module boundary alone.
+Tasks are defined by **deliverable**, not by file list, execution step, or module boundary alone.
 
 Each task should describe a result that can be verified independently. If a task cannot be checked without reading the entire proposal history, it is too large.
 
@@ -25,16 +25,16 @@ Each task should describe a result that can be verified independently. If a task
 
 Task density follows the proposal `size_class`:
 
-- `small`: usually one milestone with a handful of implementation tasks. A milestone may be skipped when the entire proposal fits in a single review session.
+- `small`: usually one milestone with a handful of execution tasks. A milestone may be skipped when the entire proposal fits in a single review session.
 - `medium`: multiple milestones, each producing a verifiable phase output. Model and convention work should appear as named tasks when present.
-- `large`: milestones must cover architecture, model documents, lifecycle, and any introduced conventions. Each business model under the `model/` directory should map to at least one implementation task.
+- `large`: milestones must cover architecture, model documents, lifecycle, and any introduced conventions. Each business model under the `model/` directory should map to at least one execution task.
 
 ## Task hierarchy
 
 ### 1. Milestone task
 
 A milestone task represents a phase boundary in a proposal.
-Milestone tasks are allowed to act as structural separators and may omit capability refs when they are not implementation work.
+Milestone tasks are allowed to act as structural separators and may omit capability refs when they are not execution work.
 
 Use a milestone task when:
 
@@ -45,17 +45,17 @@ Use a milestone task when:
 
 Milestone tasks should not be used for single-file edits or tiny mechanical changes.
 
-### 2. Implementation task
+### 2. Execution task
 
-An implementation task is the atomic work unit for an agent.
+An execution task is the atomic work unit for an agent.
 
-Use an implementation task when:
+Use an execution task when:
 
 - the work can be completed in one focused session
 - the scope is narrow enough to review directly
 - the output is a verifiable intermediate or final result
 
-Implementation tasks should be small enough that the agent can complete them without inventing a new plan midstream.
+Execution tasks should be small enough that the agent can complete them without inventing a new plan midstream.
 
 ### 3. Checkpoint
 
@@ -81,7 +81,7 @@ For execution-grade tasks, the completion definition should be written as concre
 
 When the proposal carries model or convention work, tasks should also state:
 
-- `model_refs`: which `model/<Model>.md` documents are implemented or modified
+- `model_refs`: which `model/<Model>.md` documents are affected
 - `convention_refs`: which `docs/conventions/<topic>.md` documents the task establishes, enforces, or modifies
 
 Recommended structure for each task:
@@ -97,7 +97,7 @@ Split a task again if any of the following are true:
 
 - it cannot be verified without also checking unrelated parts of the proposal
 - it spans multiple independent subsystems
-- it requires multiple design decisions before implementation can start
+- it requires multiple design decisions before execution can start
 - it is likely to exceed one working session
 - it would be unsafe to let an agent run it without a human checkpoint
 - it bundles multiple business models into one task in a `large` proposal
@@ -122,7 +122,7 @@ Use `task-map.md` as the executable decomposition of the proposal.
 
 Rules:
 
-- organize tasks by milestone first, then by implementation work
+- organize tasks by milestone first, then by execution work
 - keep each task outcome-oriented
 - avoid file-by-file task lists unless the file itself is the deliverable
 - include enough verification detail that an agent can self-check progress
@@ -145,7 +145,7 @@ Rules:
 
 ### TASK-002
 
-- Title: <next implementation unit>
+- Title: <next execution unit>
 - Outcome: <what this smaller task produces>
 - Priority: P1
 - Depends on: TASK-001

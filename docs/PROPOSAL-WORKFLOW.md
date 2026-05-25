@@ -124,10 +124,9 @@ For any Markdown artifact in the workflow, the first place to look is its frontm
 
 1. `explore`: create durable findings, declare ownership and expected size
 2. `propose`: convert validated exploration into a scoped proposal, lock size class and ownership
-3. `approve`: lock scope, backend, and archive targets
-4. `apply`: create executable tasks from `task-map.md`
-5. `implement`: execute tasks and keep notes current
-6. `archive`: update the declared primary and secondary archive targets, promote validated reusable rules into `docs/conventions/`
+3. `approve` (optional): lock scope, backend, and archive targets before execution
+4. `apply`: create executable tasks from `task-map.md` and immediately begin execution on ready work
+5. `archive`: update the declared primary and secondary archive targets, promote validated reusable rules into `docs/conventions/`
 
 ## Archive behavior
 
