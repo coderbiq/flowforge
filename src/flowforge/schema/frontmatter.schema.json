@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "flowforge:frontmatter@v1",
+  "title": "文档 Frontmatter 契约",
+  "description": "每个 wiki 文档必须携带的通用 frontmatter 字段。类型专属字段由各自的 schema 补充。",
+  "type": "object",
+  "required": ["doc_type", "title", "status", "created", "updated"],
+  "properties": {
+    "doc_type": {
+      "type": "string",
+      "description": "文档类型，决定文档在 wiki 中的角色和存放位置",
+      "enum": [
+        "intake",
+        "exploration",
+        "finding",
+        "decision",
+        "proposal",
+        "design",
+        "model",
+        "task-map",
+        "notes",
+        "module",
+        "architecture",
+        "convention",
+        "adr"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "人类可读标题"
+    },
+    "status": {
+      "type": "string",
+      "description": "生命周期状态，不同 doc_type 有各自的合法值集合",
+      "enum": [
+        "draft",
+        "active",
+        "archived",
+        "rejected",
+        "superseded",
+        "deprecated",
+        "accepted"
+      ]
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time",
+      "description": "创建时间，ISO-8601"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "最后更新时间，ISO-8601"
+    },
+    "topics": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "用于搜索和图谱的自由标签"
+    },
+    "archive_target": {
+      "type": "string",
+      "description": "归档后的目标路径，如 library/modules/xxx/design.md。transient 文档使用 none"
+    },
+    "related": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ref"],
+        "properties": {
+          "ref": { "type": "string", "description": "关联文档的相对路径引用" },
+          "role": { "type": "string", "description": "关联角色，如 source、derived、reference" }
+        }
+      },
+      "description": "关联的其他文档引用"
+    }
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "flowforge:proposal-meta@v1",
+  "title": "提案 Meta 契约",
+  "description": "proposal 目录下 meta.yaml 的结构定义，描述提案容器级别的元信息。",
+  "type": "object",
+  "required": ["id", "title", "status", "created_at", "updated_at"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^CR[0-9]{8}$",
+      "description": "变更请求 ID，格式 CRYYMMDDNN"
+    },
+    "title": {
+      "type": "string",
+      "description": "提案标题"
+    },
+    "status": {
+      "type": "string",
+      "description": "提案状态，可在以下状态间任意流转",
+      "enum": ["draft", "active", "implemented", "archived", "rejected"]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "size_class": {
+      "type": "string",
+      "enum": ["small", "medium", "large"],
+      "description": "提案规模，影响 design 文档的拆分方式"
+    },
+    "ownership": {
+      "type": "array",
+      "minItems": 1,
+      "description": "所有权标签，驱动 library 中的归档路由。至少一项 role: primary",
+      "items": {
+        "type": "object",
+        "required": ["type", "target", "role"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["module", "system", "cross-module", "convention", "decision"]
+          },
+          "target": { "type": "string", "description": "目标在 wiki 中的路径" },
+          "role": {
+            "type": "string",
+            "enum": ["primary", "secondary"]
+          }
+        }
+      }
+    },
+    "source_explorations": {
+      "type": "array",
+      "description": "提案来源的 exploration 引用",
+      "items": {
+        "type": "object",
+        "required": ["ref"],
+        "properties": {
+          "ref": { "type": "string", "description": "exploration 的相对路径引用" }
+        }
+      }
+    },
+    "archive_targets": {
+      "type": "array",
+      "minItems": 1,
+      "description": "归档目标，与 ownership 一一对应",
+      "items": {
+        "type": "object",
+        "required": ["type", "ref"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["module", "architecture", "decision", "convention"]
+          },
+          "ref": { "type": "string", "description": "归档文件在 wiki 中的路径" },
+          "role": {
+            "type": "string",
+            "enum": ["primary", "secondary"]
+          }
+        }
+      }
+    },
+    "task_backend": {
+      "type": "object",
+      "description": "任务跟踪后端",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["beads", "github", "linear", "jira", "none"],
+          "default": "none"
+        },
+        "epic_id": { "type": "string" }
+      }
+    },
+    "links": {
+      "type": "object",
+      "description": "提案目录内各文件的链接",
+      "properties": {
+        "proposal": { "type": "string", "default": "proposal.md" },
+        "design": { "type": "string", "default": "design.md" },
+        "task_map": { "type": "string", "default": "task-map.md" },
+        "notes": { "type": "string", "default": "notes.md" }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "自由标签"
+    }
+  }
+}

@@ -1,0 +1,101 @@
+# FlowForge 项目配置
+# 安装后根据项目特点修改此文件
+
+project:
+  id: my-project
+  name: My Project
+
+wiki:
+  root: ff-wiki
+
+modules: {}
+# modules:
+#   my-module:
+#     path: library/modules/my-module/
+#     aliases: []
+
+taskBackend:
+  type: none
+
+memoryProvider:
+  enabled: false
+
+rules:
+  # ── 工作流路由：定义场景识别条件 ──
+  # Agent 按 scenes 列表顺序逐一匹配，首个匹配到的场景即被激活
+  # match 条件是自然语言提示，由 Agent 根据项目上下文自行判断
+  workflow:
+    scenes:
+      - id: status-query
+        priority: 1
+        match:
+          - 用户询问当前有哪些 proposal、某个任务的进度、项目状态
+        route_to: self
+
+      - id: complete-and-archive
+        priority: 2
+        match:
+          - 当前存在一个状态为 implemented 或内容已稳定的 proposal
+          - 用户表达了总结、归档、沉淀知识的意图
+        route_to: flowforge-archive
+
+      - id: continue-active-proposal
+        priority: 3
+        match:
+          - 当前存在一个 draft 或 active 状态的 proposal
+          - 用户表达了继续推进、补充设计、拆分任务等意图（注意：如果用户明确要"执行任务"、"开始实施"，会匹配到 implement-active 场景）
+        route_to: flowforge-design
+
+      - id: implement-active
+        priority: 4
+        match:
+          - 当前存在一个 active 状态的 proposal，且其 task-map 中有待执行的任务
+          - 用户表达了执行任务、开始实施、编码实现的意图
+        route_to: flowforge-implement
+
+      - id: new-requirement-or-exploration
+        priority: 5
+        match:
+          - 用户提出了一个新的需求、想法、问题或变更意图
+          - 或者用户提供了参考资料、需求材料希望进行分析
+        route_to: flowforge-design
+
+      - id: fallback
+        priority: 100
+        match:
+          - catch-all 场景
+          - 用户输入与上述场景均不匹配
+        route_to: self
+        # 路由到 self 意味着 workflow SKILL 将直接询问用户意图
+
+  # ── 读取 intake 时的分析步骤 ──
+  intake:
+    steps:
+      - id: understand-request
+        action: 理解用户的核心诉求和背景上下文
+      - id: identify-constraints
+        action: 识别技术约束、时间要求、已有系统限制
+      - id: determine-scope
+        action: 判断变更涉及的范围和影响面
+
+  # ── 探索策略 ──
+  exploration:
+    strategy: |
+      优先从 library 中查找已有知识和决策，避免重复探索；
+      然后检查当前代码库的相关模块；
+      最后才考虑外部资料搜索。
+
+  # ── 设计文档章节 ──
+  design:
+    sections:
+      - 背景与目标
+      - 方案概述
+      - 架构设计
+      - 接口与数据模型
+      - 影响分析
+      - 风险与权衡
+
+  # ── 归档行为 ──
+  library:
+    requireReview: false
+    autoUpdateHistory: true

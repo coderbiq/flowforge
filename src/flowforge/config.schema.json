@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "flowforge:config@v1",
+  "title": "FlowForge 项目配置",
+  "description": "安装到 .flowforge/config.yaml 的项目级配置，定义 wiki 设置、模块注册表、扩展规则等。",
+  "type": "object",
+  "required": ["project"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "description": "项目唯一标识" },
+        "name": { "type": "string", "description": "项目名称" }
+      }
+    },
+    "wiki": {
+      "type": "object",
+      "description": "wiki 知识库配置",
+      "properties": {
+        "root": {
+          "type": "string",
+          "description": "wiki 根目录名称",
+          "default": "ff-wiki"
+        }
+      },
+      "default": { "root": "ff-wiki" }
+    },
+    "modules": {
+      "type": "object",
+      "description": "模块注册表，将模块名映射到 library 路径，用于 Agent 确定归档目标",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": { "type": "string", "description": "模块在 wiki 中的路径" },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "模块的别名列表"
+          }
+        }
+      }
+    },
+    "taskBackend": {
+      "type": "object",
+      "description": "任务跟踪后端配置",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["beads", "github", "linear", "jira", "none"],
+          "default": "none"
+        },
+        "config": {
+          "type": "object",
+          "description": "后端特定的配置参数"
+        }
+      }
+    },
+    "memoryProvider": {
+      "type": "object",
+      "description": "外部记忆提供者配置",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "type": { "type": "string", "description": "提供者类型，如 memory-mcp" },
+        "config": { "type": "object" }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "description": "项目级规则扩展，覆盖核心机制之上的场景条件、分析策略和设计风格",
+      "properties": {
+        "workflow": {
+          "type": "object",
+          "description": "工作流路由配置。定义场景识别条件和路由目标。",
+          "properties": {
+            "scenes": {
+              "type": "array",
+              "description": "场景列表，按顺序匹配，首个匹配到的场景即被激活",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["id", "match", "route_to"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "场景标识，如 new-requirement、continue-active、complete"
+                  },
+                  "match": {
+                    "type": "array",
+                    "description": "匹配条件列表（自然语言提示，由 Agent 理解判断）。全部条件满足才匹配成功。",
+                    "minItems": 1,
+                    "items": { "type": "string" }
+                  },
+                  "route_to": {
+                    "type": "string",
+                    "description": "匹配后路由到的目标 SKILL，如 flowforge-design、flowforge-implement、flowforge-archive。self 表示在当前 SKILL 内处理。"
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "优先级（数字越小越优先），用于项目覆盖默认场景"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "intake": {
+          "type": "object",
+          "description": "读取 intake 时的分析步骤和方法",
+          "properties": {
+            "steps": {
+              "type": "array",
+              "description": "分析步骤列表",
+              "items": {
+                "type": "object",
+                "required": ["id", "action"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "action": { "type": "string", "description": "步骤描述" },
+                  "prompt": { "type": "string", "description": "可选的步骤提示词" }
+                }
+              }
+            }
+          }
+        },
+        "exploration": {
+          "type": "object",
+          "description": "探索策略配置",
+          "properties": {
+            "strategy": { "type": "string", "description": "探索策略类型" },
+            "focusAreas": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "优先关注的领域"
+            }
+          }
+        },
+        "design": {
+          "type": "object",
+          "description": "设计文档风格配置",
+          "properties": {
+            "sections": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "design.md 需要的章节列表"
+            },
+            "checklist": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "提案完成前需检查的项目"
+            }
+          }
+        },
+        "library": {
+          "type": "object",
+          "description": "知识沉淀到 library 的行为配置",
+          "properties": {
+            "requireReview": { "type": "boolean", "default": false },
+            "autoUpdateHistory": { "type": "boolean", "default": true }
+          }
+        }
+      }
+    }
+  }
+}

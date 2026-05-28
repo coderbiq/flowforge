@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "flowforge:exploration@v1",
+  "title": "探索 Meta 契约",
+  "description": "exploration 目录下 index.md 的 frontmatter 结构定义，以及在目录层级上需要的文件约束。",
+  "type": "object",
+  "required": ["slug", "title", "status", "created_at", "updated_at", "question"],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "探索目录的 kebab-case slug"
+    },
+    "title": {
+      "type": "string",
+      "description": "探索标题"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "archived", "rejected"],
+      "description": "探索状态"
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "question": {
+      "type": "string",
+      "description": "本次探索要回答的核心问题"
+    },
+    "ownership": {
+      "type": "array",
+      "minItems": 1,
+      "description": "探索预期流向的模块/系统/规范所有权",
+      "items": {
+        "type": "object",
+        "required": ["type", "target", "role"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["module", "system", "cross-module", "convention"]
+          },
+          "target": { "type": "string" },
+          "role": {
+            "type": "string",
+            "enum": ["primary", "secondary"]
+          }
+        }
+      }
+    },
+    "expected_size_class": {
+      "type": "string",
+      "enum": ["small", "medium", "large"],
+      "description": "预期后续提案的规模"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "探索结论的置信度"
+    }
+  }
+}
