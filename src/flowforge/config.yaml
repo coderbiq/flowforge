@@ -29,44 +29,35 @@ rules:
       - id: status-query
         priority: 1
         match:
-          - 用户询问当前有哪些 proposal、某个任务的进度、项目状态
+          - 用户询问项目状态、有哪些 proposal、某个任务的进度
         route_to: self
 
-      - id: complete-and-archive
+      - id: continue-proposal
         priority: 2
         match:
-          - 当前存在一个状态为 implemented 或内容已稳定的 proposal
-          - 用户表达了总结、归档、沉淀知识的意图
-        route_to: flowforge-archive
-
-      - id: continue-active-proposal
-        priority: 3
-        match:
           - 当前存在一个 draft 或 active 状态的 proposal
-          - 用户表达了继续推进、补充设计、拆分任务等意图（注意：如果用户明确要"执行任务"、"开始实施"，会匹配到 implement-active 场景）
+          - 用户表达了继续推进的意图（包括补充设计、修改方案、拆分任务、执行实施、跟踪进度等）
         route_to: flowforge-design
 
-      - id: implement-active
-        priority: 4
-        match:
-          - 当前存在一个 active 状态的 proposal，且其 task-map 中有待执行的任务
-          - 用户表达了执行任务、开始实施、编码实现的意图
-        route_to: flowforge-implement
-
-      - id: new-requirement-or-exploration
-        priority: 5
+      - id: new-requirement
+        priority: 3
         match:
           - 用户提出了一个新的需求、想法、问题或变更意图
           - 或者用户提供了参考资料、需求材料希望进行分析
         route_to: flowforge-design
 
+      - id: archive
+        priority: 4
+        match:
+          - 当前存在一个 status 为 implemented 的 proposal
+          - 用户明确表达了"归档"、"沉淀"、"总结到 library"等意图
+        route_to: flowforge-archive
+
       - id: fallback
         priority: 100
         match:
-          - catch-all 场景
           - 用户输入与上述场景均不匹配
         route_to: self
-        # 路由到 self 意味着 workflow SKILL 将直接询问用户意图
 
   # ── 读取 intake 时的分析步骤 ──
   intake:
@@ -87,6 +78,9 @@ rules:
 
   # ── 设计文档章节 ──
   design:
+    naming:
+      proposal_id: "CR{YYMMDD}{NN}"
+      exploration_slug: "kebab-case"
     sections:
       - 背景与目标
       - 方案概述
@@ -94,6 +88,18 @@ rules:
       - 接口与数据模型
       - 影响分析
       - 风险与权衡
+    proposal_sections:
+      - 背景与动机
+      - 方案概述
+      - 影响范围
+    task_rules:
+      fields:
+        - id
+        - title
+        - description
+        - deliverable
+        - dependencies
+      time_estimate: "2-5 分钟每个任务"
 
   # ── 归档行为 ──
   library:

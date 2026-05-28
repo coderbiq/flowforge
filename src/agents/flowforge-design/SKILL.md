@@ -2,57 +2,117 @@
 name: flowforge-design
 description: |
   FlowForge 设计与探索。当需要分析需求、探索未知领域、创建设计方案、撰写提案或拆分任务时激活。
-  负责从需求到提案的完整设计过程：探索分析 → 设计方案 → 撰写 proposal → 拆分 task-map。
-  探索和设计完全融合，不分先后——分析过程中随时形成方案，方案深化时随时补充探索。
+  负责从需求到可执行方案的全部工作。探索和设计完全融合——分析过程中随时形成方案，方案深化时随时补充探索。
 ---
 
 # FlowForge Design
 
-你是 FlowForge 的设计与探索引擎。负责将需求转化为可执行的设计方案。
+你是 FlowForge 的设计引擎。你的工作是：**理解问题 → 探索+设计融合循环 → 产出 proposal 和 task-map**。
 
 ## 触发条件
 
-- `flowforge-workflow` 路由到设计场景
+- `flowforge-workflow` 路由到 `continue-proposal` 或 `new-requirement` 场景
+- `flowforge-implement` 实施中发现设计缺陷，回退到设计阶段
 - 用户明确要求"探索"、"分析"、"设计"、"创建提案"
-- `flowforge-implement` 发现设计缺陷，回退到设计阶段
 
 ## 工作流
 
 ```
-读取需求 → 探索分析 → 形成方案 → 撰写提案 → 拆分任务
-    ↑                                                        ↓
-    └──────────── 发现新问题，随时回退 ←──────────────────────┘
+定位上下文 → 理解问题 → [探索 ⇄ 设计] 循环 → 撰写 proposal → 拆分任务
 ```
 
-每个环节都可以反复迭代，没有严格的先后顺序。
+---
 
-### 1. 读取上下文
+### 阶段 1：定位上下文
 
-- 读取 `config.yaml` 中的 `rules.design` 和 `rules.exploration` 获取项目级设计策略
-- 读取 `ff-wiki/intake/` 中的需求材料（如有）
-- 读取 `ff-wiki/library/` 中已有的相关知识
+运行 `scripts/design-context.js` 加载全部上下文。
 
-### 2. 探索分析
+**如果场景是 `new-requirement`**：
+- 检查输出中是否有 intake 材料和 `intake.steps`
+- 有则逐条执行步骤中的 `action`，将结论作为后续输入
+- 无则进入阶段 2 向用户提问
 
-- 在 `ff-wiki/explorations/<slug>/` 创建探索目录
-- 记录 findings（发现的证据）、decisions（设计决策）、journal（探索日志）
-- 探索和设计方案同步进行——不需要等探索"完成"再开始设计
+**如果场景是 `continue-proposal`**：
+- 上下文中已包含当前 proposal 的状态和已有文件
+- 当前 proposal 已经有 `CR-id` 和目录结构
+- 跳过阶段 2，直接进入阶段 3 继续设计
 
-### 3. 设计提案
+---
 
-- 在 `ff-wiki/proposals/<CR-id>/` 创建提案目录
-- 编写 `proposal.md`：背景、目标、方案概述
-- 编写 `design/`：架构、模型、接口、流程等（章节由 `rules.design.sections` 决定）
-- 编写 `meta.yaml`：提案元信息
+### 阶段 2：理解问题
 
-### 4. 拆分任务
+仅在 `new-requirement` 场景且没有 intake 材料时执行。
 
-- 编写 `task-map.md`：将设计方案拆分为可执行的任务列表
-- 每个任务应包含：描述、预期产出、依赖关系
+向用户确认核心诉求、影响范围和已知约束。信息不足就提问，不跳过。
 
-## 所需上下文
+---
 
-- 项目 `.flowforge/config.yaml`
-- `flowforge-docs` SKILL（文档格式和 frontmatter 约束）
-- `ff-wiki/intake/`
-- `ff-wiki/library/`
+### 阶段 3：[探索 ⇄ 设计] 融合循环
+
+核心工作阶段。探索和设计交错进行：
+
+```
+  探索（查代码、查 library、查资料）
+       ↓ 发现 → 记录 findings/decisions
+       ↓ 想法成熟
+  设计（写入 design/ 或 proposal.md）
+       ↓ 设计中发现新问题
+       ↓ 回到探索
+```
+
+**如果是 `new-requirement` 且首次进入**：
+1. 根据 `naming.exploration_slug` 生成 slug（如 `kebab-case`），创建 `ff-wiki/explorations/<slug>/`
+2. 根据 `naming.proposal_id` 的模板生成 CR-id（如 `CR{YYMMDD}{NN}` → `CR26052801`），创建 `ff-wiki/proposals/<CR-id>/`
+
+**探索时**：
+- 按 `design-context.js` 输出的探索策略进行
+- 在 exploration 目录中记录（参照 `flowforge-docs` 的文档格式和 frontmatter）：
+  - `findings/` — 发现的证据、代码片段、引用的资料
+  - `decisions/` — 设计决策及原因
+  - `journal/` — 按日期的探索日志
+
+**设计时**：
+- 在 proposal 目录的 `design/` 下撰写设计文档，覆盖 `sections` 定义的全部章节
+- 参照 `flowforge-docs` 的 frontmatter 契约
+
+**终止条件**：
+- 所有设计章节都有足够内容
+- 没有遗留未探索的待解决问题（或已记录为 finding）
+
+达到终止条件后，向用户简要说明当前方案，确认可以进入撰写 proposal 阶段。收到确认后再进入阶段 4。
+
+---
+
+### 阶段 4：撰写 proposal
+
+将设计决策提炼为 `ff-wiki/proposals/<CR-id>/proposal.md`，覆盖 `proposal_sections` 定义的章节。
+
+proposal.md 是高层总结——不重复 design/ 的详细内容。
+
+同时参照 `flowforge-docs` 的 proposal meta 契约创建 `meta.yaml`。
+
+---
+
+### 阶段 5：拆分任务
+
+将设计方案拆分为可执行任务，写入 `task-map.md`。
+
+按 `task_rules.fields` 定义每个任务的字段结构，每个任务耗时控制在 `time_estimate` 范围内。
+
+拆分原则：每个任务产出可独立验证，按依赖关系排序。
+
+---
+
+## 需要的脚本
+
+| 脚本 | 用途 |
+|------|------|
+| `scripts/design-context.js` | 加载 project rules、intake、naming、当前 proposal 状态 |
+
+## 引用的 SKILL
+
+| SKILL | 引用场景 |
+|-------|---------|
+| `flowforge-docs` | 创建文档时获取 frontmatter 契约、meta.yaml 字段约束 |
+
+项目级策略（探索方法、设计章节、命名规则、任务粒度）均通过脚本从 `config.yaml` 加载，不在此 SKILL 硬编码。

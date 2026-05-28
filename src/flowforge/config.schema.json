@@ -139,12 +139,46 @@
         },
         "design": {
           "type": "object",
-          "description": "设计文档风格配置",
+          "description": "设计文档风格和提案结构配置",
           "properties": {
+            "naming": {
+              "type": "object",
+              "description": "proposal 和 exploration 的命名规则",
+              "properties": {
+                "proposal_id": {
+                  "type": "string",
+                  "description": "proposal id 的生成模板，{YYMMDD} 替换为当前日期，{NN} 替换为序号"
+                },
+                "exploration_slug": {
+                  "type": "string",
+                  "description": "exploration slug 的格式，如 kebab-case"
+                }
+              }
+            },
             "sections": {
               "type": "array",
               "items": { "type": "string" },
               "description": "design.md 需要的章节列表"
+            },
+            "proposal_sections": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "proposal.md 需要的章节列表"
+            },
+            "task_rules": {
+              "type": "object",
+              "description": "task-map.md 的任务格式和拆分规则",
+              "properties": {
+                "fields": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "每个任务包含的字段"
+                },
+                "time_estimate": {
+                  "type": "string",
+                  "description": "每个任务的建议时间粒度"
+                }
+              }
             },
             "checklist": {
               "type": "array",
