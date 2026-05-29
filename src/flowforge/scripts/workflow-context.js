@@ -19,7 +19,7 @@ const scenes = extractScenes(configContent);
 
 // ── 加载 proposal 状态 ──
 const wikiRoot = readWikiRoot(configContent) || 'ff-wiki';
-const proposalsDir = path.join(projectRoot, wikiRoot, 'proposals');
+const proposalsDir = path.join(projectRoot, wikiRoot, 'workspace', 'proposals');
 let proposalSummaries = [];
 if (fs.existsSync(proposalsDir)) {
   proposalSummaries = fs.readdirSync(proposalsDir, { withFileTypes: true })

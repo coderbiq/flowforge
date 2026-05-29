@@ -61,19 +61,21 @@ description: |
 ```
 
 **如果是 `new-requirement` 且首次进入**：
-1. 根据 `naming.exploration_slug` 生成 slug（如 `kebab-case`），创建 `ff-wiki/explorations/<slug>/`
-2. 根据 `naming.proposal_id` 的模板生成 CR-id（如 `CR{YYMMDD}{NN}` → `CR26052801`），创建 `ff-wiki/proposals/<CR-id>/`
+1. 根据 `naming.exploration_slug` 生成 slug，创建 exploration 目录
+2. 根据 `naming.proposal_id` 的模板生成 CR-id，创建 proposal 目录
+
+探索阶段结束时，运行 `scripts/validate-exploration.js <路径>` 确保 exploration 结构完整。
 
 **探索时**：
 - 按 `design-context.js` 输出的探索策略进行
-- 在 exploration 目录中记录（参照 `flowforge-docs` 的文档格式和 frontmatter）：
-  - `findings/` — 发现的证据、代码片段、引用的资料
-  - `decisions/` — 设计决策及原因
-  - `journal/` — 按日期的探索日志
+- 在 exploration 目录中记录，参照 `flowforge-docs` 获取对应 doc_type 的写作指南：
+  - `findings/` → doc_type: `finding`
+  - `decisions/` → doc_type: `decision`
+  - `journal/` → doc_type: `journal`
 
 **设计时**：
-- 在 proposal 目录的 `design/` 下撰写设计文档，覆盖 `sections` 定义的全部章节
-- 参照 `flowforge-docs` 的 frontmatter 契约
+- 在 proposal 目录的 `design/` 下撰写设计文档，覆盖 design 类型的全部章节
+- 参照 `flowforge-docs` SKILL 获取 design 的写作指南
 
 **终止条件**：
 - 所有设计章节都有足够内容
@@ -85,11 +87,13 @@ description: |
 
 ### 阶段 4：撰写 proposal
 
-将设计决策提炼为 `ff-wiki/proposals/<CR-id>/proposal.md`，覆盖 `proposal_sections` 定义的章节。
+将设计决策提炼为 `ff-wiki/workspace/proposals/<CR-id>/proposal.md`。
 
-proposal.md 是高层总结——不重复 design/ 的详细内容。
+参照 `flowforge-docs` SKILL 获取 proposal 的写作指南。
 
 同时参照 `flowforge-docs` 的 proposal meta 契约创建 `meta.yaml`。
+
+proposal 创建完成后，运行 `scripts/validate-proposal.js <proposal路径>` 确保结构完整。
 
 ---
 

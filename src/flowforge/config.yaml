@@ -36,8 +36,12 @@ rules:
         priority: 2
         match:
           - 当前存在一个 draft 或 active 状态的 proposal
-          - 用户表达了继续推进的意图（包括补充设计、修改方案、拆分任务、执行实施、跟踪进度等）
+          - 用户表达了继续推进的意图
         route_to: flowforge-design
+        note: |
+          路由到 design 或 implement 取决于 proposal 状态：
+          - status 为 draft → route_to: flowforge-design
+          - status 为 active → route_to: flowforge-implement
 
       - id: new-requirement
         priority: 3
@@ -76,22 +80,12 @@ rules:
       然后检查当前代码库的相关模块；
       最后才考虑外部资料搜索。
 
-  # ── 设计文档章节 ──
+
+  # ── 设计配置 ──
   design:
     naming:
       proposal_id: "CR{YYMMDD}{NN}"
       exploration_slug: "kebab-case"
-    sections:
-      - 背景与目标
-      - 方案概述
-      - 架构设计
-      - 接口与数据模型
-      - 影响分析
-      - 风险与权衡
-    proposal_sections:
-      - 背景与动机
-      - 方案概述
-      - 影响范围
     task_rules:
       fields:
         - id
@@ -100,6 +94,19 @@ rules:
         - deliverable
         - dependencies
       time_estimate: "2-5 分钟每个任务"
+
+  # ── 实施跟踪规则 ──
+  implement:
+    task_states:
+      - pending
+      - in_progress
+      - done
+      - blocked
+    notes:
+      fields:
+        - timestamp
+        - status
+        - summary
 
   # ── 归档行为 ──
   library:

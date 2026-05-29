@@ -139,7 +139,7 @@
         },
         "design": {
           "type": "object",
-          "description": "设计文档风格和提案结构配置",
+          "description": "设计配置（命名规则、任务规则）",
           "properties": {
             "naming": {
               "type": "object",
@@ -154,16 +154,6 @@
                   "description": "exploration slug 的格式，如 kebab-case"
                 }
               }
-            },
-            "sections": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "design.md 需要的章节列表"
-            },
-            "proposal_sections": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "proposal.md 需要的章节列表"
             },
             "task_rules": {
               "type": "object",
@@ -184,6 +174,28 @@
               "type": "array",
               "items": { "type": "string" },
               "description": "提案完成前需检查的项目"
+            }
+          }
+        },
+        "implement": {
+          "type": "object",
+          "description": "任务执行跟踪配置",
+          "properties": {
+            "task_states": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "任务可用的状态值列表"
+            },
+            "notes": {
+              "type": "object",
+              "description": "实施日志格式配置",
+              "properties": {
+                "fields": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "每条日志记录的字段"
+                }
+              }
             }
           }
         },

@@ -2,54 +2,36 @@
 name: flowforge-docs
 description: |
   FlowForge 文档契约。当任何 FlowForge SKILL 需要创建或更新 wiki 文档时激活。
-  负责定义文档类型、目录结构、frontmatter 字段和校验规则。
+  负责提供通用 frontmatter 约束和按 doc_type 路由到写作指南。
   这是一个工具型 SKILL——被其他 SKILL 加载使用，不独立响应场景。
 ---
 
 # FlowForge Docs
 
-你是 FlowForge 的文档契约引擎。定义所有 wiki 文档的结构和格式约束。
+你是 FlowForge 的文档契约引擎。其他 SKILL 需要写文档时，加载你获取格式和写作规则。
 
-## 触发条件
+## 路由模型
 
-- 任何 FlowForge SKILL 需要创建、更新或校验文档时加载
-- 用户询问"文档应该怎么写"、"frontmatter 有什么字段"
-
-## 文档类型
-
-| doc_type | 目录位置 | 用途 |
-|----------|---------|------|
-| intake | `ff-wiki/intake/` | 用户提供的需求材料 |
-| exploration | `ff-wiki/explorations/<slug>/` | 探索分析主文档 |
-| finding | `ff-wiki/explorations/<slug>/findings/` | 探索发现的证据 |
-| decision | `ff-wiki/explorations/<slug>/decisions/` | 探索中的设计决策 |
-| journal | `ff-wiki/explorations/<slug>/journal/` | 探索日志 |
-| proposal | `ff-wiki/proposals/<id>/` | 提案主文档 |
-| design | `ff-wiki/proposals/<id>/design/` | 设计文档 |
-| model | `ff-wiki/proposals/<id>/design/` | 数据模型文档 |
-| task-map | `ff-wiki/proposals/<id>/` | 任务拆分 |
-| notes | `ff-wiki/proposals/<id>/` | 实施日志 |
-| module | `ff-wiki/library/modules/` | 模块文档 |
-| architecture | `ff-wiki/library/architecture/` | 架构文档 |
-| convention | `ff-wiki/library/conventions/` | 规范约定 |
-| adr | `ff-wiki/library/decisions/` | 架构决策记录 |
-
-## 通用 Frontmatter
-
-每个文档必须包含：
-
-```yaml
----
-doc_type: <类型>
-title: <标题>
-status: <draft|active|archived|rejected|superseded|deprecated|accepted>
-created: <ISO-8601>
-updated: <ISO-8601>
----
+```
+运行 scripts/docs-guide.js → 查看已注册的文档类型及各自的位置
+根据要创建的文档用途，从注册表中确定对应的 doc_type
+运行 scripts/docs-guide.js <doc_type> → 获取该类型的写作指南 → 按指南创建文档
 ```
 
-## 校验
+指南中通常包含以下内容，逐条执行：
 
-- 对照 `src/flowforge/schema/frontmatter.schema.json` 校验 frontmatter 字段
-- 对照 `src/flowforge/schema/proposal.schema.json` 校验 `meta.yaml`
-- 对照 `src/flowforge/schema/exploration.schema.json` 校验 exploration `index.md`
+- **位置**：文档在 ff-wiki 下的相对路径——拼接为项目根路径后创建文件
+- **结构**：单文件还是目录——决定创建一个 `.md` 还是创建目录 + 多个文件
+- **各文件/章节的写作要求**：逐条执行——每个文件或章节按指南中的描述撰写内容
+- **Frontmatter**：该文档需要的 YAML frontmatter 字段——写入文件头部
+
+文档创建或修改完成后，运行 `scripts/validate-doc.js <文档路径>` 校验 frontmatter。校验通过才能继续。
+
+## 需要的脚本
+
+| 脚本 | 用途 |
+|------|------|
+| `scripts/docs-guide.js <doc_type>` | 加载该 doc_type 的写作指南 |
+| `scripts/validate-doc.js <路径>` | 校验单个文档的 frontmatter |
+| `scripts/validate-proposal.js <路径>` | 校验 proposal 目录完整性 |
+| `scripts/validate-exploration.js <路径>` | 校验 exploration 目录完整性 |

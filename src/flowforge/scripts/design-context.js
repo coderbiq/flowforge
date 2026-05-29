@@ -19,14 +19,16 @@ const exploreSection = extractSection(configContent, 'exploration');
 const designSection = extractSection(configContent, 'design');
 const intakeSection = extractSection(configContent, 'intake');
 
-const intakeDir = path.join(projectRoot, wikiRoot, 'intake');
+const workspaceRoot = path.join(projectRoot, wikiRoot, 'workspace');
+
+const intakeDir = path.join(workspaceRoot, 'intake');
 const intakeFiles = fs.existsSync(intakeDir)
   ? fs.readdirSync(intakeDir).filter(f => f.endsWith('.md'))
   : [];
 
 const proposalDir = proposalId
-  ? path.join(projectRoot, wikiRoot, 'proposals', proposalId)
-  : findActiveProposal(projectRoot, wikiRoot);
+  ? path.join(workspaceRoot, 'proposals', proposalId)
+  : findActiveProposal(projectRoot, workspaceRoot);
 
 console.log('# Design Context\n');
 
@@ -64,8 +66,8 @@ if (proposalDir) {
   }
 }
 
-function findActiveProposal(root, wikiRoot) {
-  const proposalsDir = path.join(root, wikiRoot, 'proposals');
+function findActiveProposal(root, workspaceRoot) {
+  const proposalsDir = path.join(workspaceRoot, 'proposals');
   if (!fs.existsSync(proposalsDir)) return null;
   const dirs = fs.readdirSync(proposalsDir, { withFileTypes: true })
     .filter(d => d.isDirectory());

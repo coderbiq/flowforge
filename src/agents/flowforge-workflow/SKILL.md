@@ -43,4 +43,4 @@ description: |
 ## 需要的文件
 
 - `.flowforge/config.yaml` → `rules.workflow.scenes`
-- `ff-wiki/proposals/` → 由脚本读取，无需手动操作
+- `ff-wiki/workspace/proposals/` → 由脚本读取，无需手动操作
