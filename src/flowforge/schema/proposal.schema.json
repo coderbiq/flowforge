@@ -58,6 +58,11 @@
         }
       }
     },
+    "latest_progress": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "最近一次工作单元的进度总结，由 flowforge-progress SKILL 在完成工作后自动写入，一句话描述"
+    },
     "archive_targets": {
       "type": "array",
       "minItems": 1,

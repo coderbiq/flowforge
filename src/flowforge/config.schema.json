@@ -70,42 +70,6 @@
       "type": "object",
       "description": "项目级规则扩展，覆盖核心机制之上的场景条件、分析策略和设计风格",
       "properties": {
-        "workflow": {
-          "type": "object",
-          "description": "工作流路由配置。定义场景识别条件和路由目标。",
-          "properties": {
-            "scenes": {
-              "type": "array",
-              "description": "场景列表，按顺序匹配，首个匹配到的场景即被激活",
-              "minItems": 1,
-              "items": {
-                "type": "object",
-                "required": ["id", "match", "route_to"],
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "场景标识，如 new-requirement、continue-active、complete"
-                  },
-                  "match": {
-                    "type": "array",
-                    "description": "匹配条件列表（自然语言提示，由 Agent 理解判断）。全部条件满足才匹配成功。",
-                    "minItems": 1,
-                    "items": { "type": "string" }
-                  },
-                  "route_to": {
-                    "type": "string",
-                    "description": "匹配后路由到的目标 SKILL，如 flowforge-design、flowforge-implement、flowforge-archive。self 表示在当前 SKILL 内处理。"
-                  },
-                  "priority": {
-                    "type": "integer",
-                    "default": 0,
-                    "description": "优先级（数字越小越优先），用于项目覆盖默认场景"
-                  }
-                }
-              }
-            }
-          }
-        },
         "intake": {
           "type": "object",
           "description": "读取 intake 时的分析步骤和方法",
