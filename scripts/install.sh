@@ -64,9 +64,10 @@ if [ "$MODE" = "upgrade" ]; then
     cp "$TARGET/.flowforge/config.yaml" "$CONFIG_BACKUP"
   fi
 
-  # 同步托管内容
+  # 同步托管内容到两个 SKILL 路径（Claude Code + 通用 Agents 规范）
   sync_managed "$SRC_DIR/agents/" "$TARGET/.claude/skills/"
-  info "SKILL 已更新到 .claude/skills/"
+  sync_managed "$SRC_DIR/agents/" "$TARGET/.agents/skills/"
+  info "SKILL 已更新到 .claude/skills/ 和 .agents/skills/"
 
   sync_managed "$SRC_DIR/flowforge/scripts/" "$TARGET/.flowforge/scripts/"
   sync_managed "$SRC_DIR/flowforge/schema/" "$TARGET/.flowforge/schema/"
@@ -109,9 +110,10 @@ if [ "$MODE" = "upgrade" ]; then
 else
   # ── 安装模式 ──
 
-  mkdir -p "$TARGET/.claude/skills"
+  mkdir -p "$TARGET/.claude/skills" "$TARGET/.agents/skills"
   cp -r "$SRC_DIR/agents/"* "$TARGET/.claude/skills/"
-  info "SKILL 已部署到 .claude/skills/"
+  cp -r "$SRC_DIR/agents/"* "$TARGET/.agents/skills/"
+  info "SKILL 已部署到 .claude/skills/ 和 .agents/skills/"
 
   mkdir -p "$TARGET/.flowforge"
   cp -r "$SRC_DIR/flowforge/"* "$TARGET/.flowforge/"

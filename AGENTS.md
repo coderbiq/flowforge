@@ -4,7 +4,7 @@
 
 **`src/` 下的所有文件都会被部署到目标项目。** 不部署的内容绝不能放进 `src/`。
 
-- `src/agents/` → 部署到 `.claude/skills/`
+- `src/agents/` → 部署到 `.claude/skills/` 和 `.agents/skills/`（兼容 Claude Code 和通用 Agents 规范）
 - `src/flowforge/` → 部署到 `.flowforge/`
 - `src/wiki-tpl/` → 部署到项目的 `ff-wiki/` 知识库
 - `src/AGENTS.md` → 部署到目标项目根目录的 `AGENTS.md`
