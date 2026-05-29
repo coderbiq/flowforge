@@ -21,48 +21,6 @@ memoryProvider:
   enabled: false
 
 rules:
-  # ── 工作流路由：定义场景识别条件 ──
-  # Agent 按 scenes 列表顺序逐一匹配，首个匹配到的场景即被激活
-  # match 条件是自然语言提示，由 Agent 根据项目上下文自行判断
-  workflow:
-    scenes:
-      - id: status-query
-        priority: 1
-        match:
-          - 用户询问项目状态、有哪些 proposal、某个任务的进度
-        route_to: self
-
-      - id: continue-proposal
-        priority: 2
-        match:
-          - 当前存在一个 draft 或 active 状态的 proposal
-          - 用户表达了继续推进的意图
-        route_to: flowforge-design
-        note: |
-          路由到 design 或 implement 取决于 proposal 状态：
-          - status 为 draft → route_to: flowforge-design
-          - status 为 active → route_to: flowforge-implement
-
-      - id: new-requirement
-        priority: 3
-        match:
-          - 用户提出了一个新的需求、想法、问题或变更意图
-          - 或者用户提供了参考资料、需求材料希望进行分析
-        route_to: flowforge-design
-
-      - id: archive
-        priority: 4
-        match:
-          - 当前存在一个 status 为 implemented 的 proposal
-          - 用户明确表达了"归档"、"沉淀"、"总结到 library"等意图
-        route_to: flowforge-archive
-
-      - id: fallback
-        priority: 100
-        match:
-          - 用户输入与上述场景均不匹配
-        route_to: self
-
   # ── 读取 intake 时的分析步骤 ──
   intake:
     steps:
