@@ -65,8 +65,8 @@ if [ "$MODE" = "upgrade" ]; then
   fi
 
   # 同步托管内容
-  sync_managed "$SRC_DIR/agents/" "$TARGET/.agents/"
-  info "SKILL 已更新"
+  sync_managed "$SRC_DIR/agents/" "$TARGET/.claude/skills/"
+  info "SKILL 已更新到 .claude/skills/"
 
   sync_managed "$SRC_DIR/flowforge/scripts/" "$TARGET/.flowforge/scripts/"
   sync_managed "$SRC_DIR/flowforge/schema/" "$TARGET/.flowforge/schema/"
@@ -109,9 +109,9 @@ if [ "$MODE" = "upgrade" ]; then
 else
   # ── 安装模式 ──
 
-  mkdir -p "$TARGET/.agents"
-  cp -r "$SRC_DIR/agents/"* "$TARGET/.agents/"
-  info "SKILL 已部署到 .agents/"
+  mkdir -p "$TARGET/.claude/skills"
+  cp -r "$SRC_DIR/agents/"* "$TARGET/.claude/skills/"
+  info "SKILL 已部署到 .claude/skills/"
 
   mkdir -p "$TARGET/.flowforge"
   cp -r "$SRC_DIR/flowforge/"* "$TARGET/.flowforge/"
