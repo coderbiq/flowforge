@@ -21,7 +21,7 @@ const modulesSection = extractSection(configContent, 'modules');
 const workspaceRoot = path.join(projectRoot, wikiRoot, 'workspace');
 
 const proposalDir = proposalId
-  ? path.join(workspaceRoot, 'proposals', proposalId)
+  ? findProposalById(workspaceRoot, proposalId)
   : findProposal(projectRoot, workspaceRoot, ['implemented', 'archived']);
 
 console.log('# Archive Context\n');
@@ -60,13 +60,23 @@ if (proposalDir) {
   }
 }
 
+function findProposalById(workspaceRoot, proposalId) {
+  for (const subdir of ['active', 'completed']) {
+    const candidate = path.join(workspaceRoot, 'proposals', subdir, proposalId);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return path.join(workspaceRoot, 'proposals', 'active', proposalId);
+}
+
 function findProposal(root, workspaceRoot, statuses) {
-  const proposalsDir = path.join(workspaceRoot, 'proposals');
-  if (!fs.existsSync(proposalsDir)) return null;
-  const dirs = fs.readdirSync(proposalsDir, { withFileTypes: true }).filter(d => d.isDirectory());
-  for (const d of dirs) {
-    const meta = readProposalMeta(path.join(proposalsDir, d.name));
-    if (meta && statuses.includes(meta.status)) return path.join(proposalsDir, d.name);
+  for (const subdir of ['active', 'completed']) {
+    const proposalsSubDir = path.join(workspaceRoot, 'proposals', subdir);
+    if (!fs.existsSync(proposalsSubDir)) continue;
+    const dirs = fs.readdirSync(proposalsSubDir, { withFileTypes: true }).filter(d => d.isDirectory());
+    for (const d of dirs) {
+      const meta = readProposalMeta(path.join(proposalsSubDir, d.name));
+      if (meta && statuses.includes(meta.status)) return path.join(proposalsSubDir, d.name);
+    }
   }
   return null;
 }

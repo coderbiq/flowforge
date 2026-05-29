@@ -27,7 +27,7 @@ const intakeFiles = fs.existsSync(intakeDir)
   : [];
 
 const proposalDir = proposalId
-  ? path.join(workspaceRoot, 'proposals', proposalId)
+  ? findProposalById(workspaceRoot, proposalId)
   : findActiveProposal(projectRoot, workspaceRoot);
 
 console.log('# Design Context\n');
@@ -66,15 +66,22 @@ if (proposalDir) {
   }
 }
 
+function findProposalById(workspaceRoot, proposalId) {
+  for (const subdir of ['active', 'completed']) {
+    const candidate = path.join(workspaceRoot, 'proposals', subdir, proposalId);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return path.join(workspaceRoot, 'proposals', 'active', proposalId);
+}
+
 function findActiveProposal(root, workspaceRoot) {
-  const proposalsDir = path.join(workspaceRoot, 'proposals');
-  if (!fs.existsSync(proposalsDir)) return null;
-  const dirs = fs.readdirSync(proposalsDir, { withFileTypes: true })
-    .filter(d => d.isDirectory());
+  const activeDir = path.join(workspaceRoot, 'proposals', 'active');
+  if (!fs.existsSync(activeDir)) return null;
+  const dirs = fs.readdirSync(activeDir, { withFileTypes: true }).filter(d => d.isDirectory());
   for (const d of dirs) {
-    const meta = readProposalMeta(path.join(proposalsDir, d.name));
+    const meta = readProposalMeta(path.join(activeDir, d.name));
     if (meta && (meta.status === 'draft' || meta.status === 'active')) {
-      return path.join(proposalsDir, d.name);
+      return path.join(activeDir, d.name);
     }
   }
   return null;
