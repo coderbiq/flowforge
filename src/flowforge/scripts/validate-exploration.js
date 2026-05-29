@@ -59,7 +59,7 @@ function extractFrontmatter(text) {
   const result = {};
   for (const line of m[1].split('\n')) {
     const kv = line.match(/^\s*([a-zA-Z_]+)\s*:\s*(.*)/);
-    if (kv) result[kv[1]] = kv[2].trim();
+    if (kv) result[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
   }
   return result;
 }
