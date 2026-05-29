@@ -64,10 +64,13 @@ if [ "$MODE" = "upgrade" ]; then
     cp "$TARGET/.flowforge/config.yaml" "$CONFIG_BACKUP"
   fi
 
-  # 同步托管内容到两个 SKILL 路径（Claude Code + 通用 Agents 规范）
-  sync_managed "$SRC_DIR/agents/" "$TARGET/.claude/skills/"
+  # 部署到 .agents/skills/（跨工具标准路径）
   sync_managed "$SRC_DIR/agents/" "$TARGET/.agents/skills/"
-  info "SKILL 已更新到 .claude/skills/ 和 .agents/skills/"
+  # 如果项目使用 Claude Code，额外同步一份
+  if [ -d "$TARGET/.claude" ]; then
+    sync_managed "$SRC_DIR/agents/" "$TARGET/.claude/skills/"
+    info "检测到 .claude/，已额外同步 SKILL 到 .claude/skills/"
+  fi
 
   sync_managed "$SRC_DIR/flowforge/scripts/" "$TARGET/.flowforge/scripts/"
   sync_managed "$SRC_DIR/flowforge/schema/" "$TARGET/.flowforge/schema/"
@@ -110,10 +113,15 @@ if [ "$MODE" = "upgrade" ]; then
 else
   # ── 安装模式 ──
 
-  mkdir -p "$TARGET/.claude/skills" "$TARGET/.agents/skills"
-  cp -r "$SRC_DIR/agents/"* "$TARGET/.claude/skills/"
+  mkdir -p "$TARGET/.agents/skills"
   cp -r "$SRC_DIR/agents/"* "$TARGET/.agents/skills/"
-  info "SKILL 已部署到 .claude/skills/ 和 .agents/skills/"
+  info "SKILL 已部署到 .agents/skills/"
+  # 如果项目使用 Claude Code，额外部署一份
+  if [ -d "$TARGET/.claude" ]; then
+    mkdir -p "$TARGET/.claude/skills"
+    cp -r "$SRC_DIR/agents/"* "$TARGET/.claude/skills/"
+    info "检测到 .claude/，已额外部署 SKILL 到 .claude/skills/"
+  fi
 
   mkdir -p "$TARGET/.flowforge"
   cp -r "$SRC_DIR/flowforge/"* "$TARGET/.flowforge/"
