@@ -1,8 +1,20 @@
 ---
 name: flowforge-design
 description: |
-  FlowForge 设计与探索。当需要分析需求、探索未知领域、创建设计方案、撰写提案或拆分任务时激活。
-  负责从需求到可执行方案的全部工作。探索和设计完全融合——分析过程中随时形成方案，方案深化时随时补充探索。
+  FlowForge 设计与探索引擎。在用户表达需求/想法/变更意图，需要将
+  需求转化为可执行方案时激活。
+
+  必须在以下场景激活：
+  - 用户描述新需求、想法或变更意图（"我想做..."、"需要..."、"打算..."）
+  - 用户明确表达"探索"、"分析"、"设计"、"创建提案"、"拆分任务"
+  - 已有 active 状态 proposal 需要继续完善设计或撰写
+  - flowforge-implement 在实施中发现设计缺陷需要回退
+
+  不要在以下情况激活：
+  - 用户只是询问已有设计内容（只读查询，不修改）
+  - 用户在执行 task-map 中的任务（应交给 flowforge-implement）
+  - 用户要求归档或沉淀（应交给 flowforge-archive）
+  - 仅用于更新进度索引——那是 flowforge-progress 的职责
 ---
 
 # FlowForge Design
@@ -11,9 +23,9 @@ description: |
 
 ## 触发条件
 
-- `flowforge-workflow` 路由到 `continue-proposal` 或 `new-requirement` 场景
-- `flowforge-implement` 实施中发现设计缺陷，回退到设计阶段
+- 用户表达新需求、想法或变更意图
 - 用户明确要求"探索"、"分析"、"设计"、"创建提案"
+- `flowforge-implement` 实施中发现设计缺陷，回退到设计阶段
 
 ## 工作流
 
@@ -27,12 +39,14 @@ description: |
 
 运行 `scripts/design-context.js` 加载全部上下文。
 
-**如果场景是 `new-requirement`**：
+根据上下文判断当前是**新需求**还是**继续已有 proposal**：
+
+**新需求**（无活跃 proposal，或用户表达全新意图）：
 - 检查输出中是否有 intake 材料和 `intake.steps`
 - 有则逐条执行步骤中的 `action`，将结论作为后续输入
 - 无则进入阶段 2 向用户提问
 
-**如果场景是 `continue-proposal`**：
+**继续已有 proposal**（上下文中已有 active/draft 状态的 proposal）：
 - 上下文中已包含当前 proposal 的状态和已有文件
 - 当前 proposal 已经有 `CR-id` 和目录结构
 - 跳过阶段 2，直接进入阶段 3 继续设计
@@ -41,7 +55,7 @@ description: |
 
 ### 阶段 2：理解问题
 
-仅在 `new-requirement` 场景且没有 intake 材料时执行。
+仅在**新需求**且没有 intake 材料时执行。
 
 向用户确认核心诉求、影响范围和已知约束。信息不足就提问，不跳过。
 
@@ -60,9 +74,9 @@ description: |
        ↓ 回到探索
 ```
 
-**如果是 `new-requirement` 且首次进入**：
+**如果是新需求且首次进入**：
 1. 根据 `naming.exploration_slug` 生成 slug，创建 exploration 目录
-2. 根据 `naming.proposal_id` 的模板生成 CR-id，创建 proposal 目录
+2. 根据 `naming.proposal_id` 的模板生成 CR-id，在 `ff-wiki/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
 
 探索阶段结束时，运行 `scripts/validate-exploration.js <路径>` 确保 exploration 结构完整。
 
@@ -87,7 +101,7 @@ description: |
 
 ### 阶段 4：撰写 proposal
 
-将设计决策提炼为 `ff-wiki/workspace/proposals/<CR-id>/proposal.md`。
+将设计决策提炼为 `ff-wiki/workspace/proposals/active/<CR-id>/proposal.md`。
 
 参照 `flowforge-docs` SKILL 获取 proposal 的写作指南。
 

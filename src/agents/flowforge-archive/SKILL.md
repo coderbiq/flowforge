@@ -1,8 +1,18 @@
 ---
 name: flowforge-archive
 description: |
-  FlowForge 知识归档。当 proposal 实施完成后，将可复用知识沉淀到 library 时激活。
-  负责从 proposal 中提取知识，按 archive_targets 确定目标路径，写入 library 对应位置。
+  FlowForge 知识归档引擎。将完成的 proposal 中的可复用知识沉淀到
+  library 中。
+
+  必须在以下场景激活：
+  - 用户明确表达"归档"、"沉淀"、"总结到 library"、"提取知识"
+  - proposal 状态为 implemented 且用户确认归档
+  - 用户要求将已完成方案的知识整理到 library
+
+  不要在以下情况激活：
+  - proposal 状态尚未到 implemented（需要先完成实施）
+  - 仅是查阅 library 中的已有知识
+  - 用于更新进度索引——那是 flowforge-progress 的职责
 ---
 
 # FlowForge Archive
@@ -11,8 +21,8 @@ description: |
 
 ## 触发条件
 
-- `flowforge-workflow` 路由到 `archive` 场景
 - 用户明确要求"归档"、"沉淀"、"总结到 library"
+- proposal 状态为 `implemented` 且用户确认归档
 
 ## 工作流
 
@@ -69,12 +79,13 @@ description: |
 
 ---
 
-### 阶段 4：更新状态
+### 阶段 4：更新状态并移动目录
 
-- 更新 `meta.yaml` 的 `status` 为 `archived`
-- 如果 `autoUpdateHistory` 为 true，在关联模块的 history 中追加变更记录
+1. 更新 `meta.yaml` 的 `status` 为 `archived`
+2. 将 proposal 目录从 `ff-wiki/workspace/proposals/active/<CR-id>/` 移动到 `ff-wiki/workspace/proposals/completed/<CR-id>/`
+3. 如果 `autoUpdateHistory` 为 true，在关联模块的 history 中追加变更记录
 
-归档完成后，proposal 和 exploration 仍保留在原位置——library 是引用副本，workspace 的原件不删除。
+归档完成后，proposal 在 `completed/` 下保留完整的变更历史——library 是引用副本，workspace 的原件不删除，目录移动只是状态归类。
 
 ---
 

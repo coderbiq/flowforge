@@ -1,9 +1,18 @@
 ---
 name: flowforge-docs
 description: |
-  FlowForge 文档契约。当任何 FlowForge SKILL 需要创建或更新 wiki 文档时激活。
-  负责提供通用 frontmatter 约束和按 doc_type 路由到写作指南。
-  这是一个工具型 SKILL——被其他 SKILL 加载使用，不独立响应场景。
+  FlowForge 文档契约引擎（工具型 SKILL，不独立响应用户场景）。
+  提供 frontmatter 约束和按 doc_type 的写作指南。
+
+  必须在以下场景激活：
+  - 其他 FlowForge SKILL 即将创建或修改 ff-wiki/ 下任何文档
+  - 需要查询某个 doc_type 的写作规范
+  - 校验文档结构或 frontmatter 完整性
+
+  不要在以下情况激活：
+  - 用户直接询问项目状态或新需求（应交给 flowforge-design 或不激活任何 SKILL）
+  - 修改 .md 文件但不在 ff-wiki/ 目录内
+  - 用于更新进度索引——那是 flowforge-progress 的职责
 ---
 
 # FlowForge Docs

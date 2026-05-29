@@ -1,8 +1,19 @@
 ---
 name: flowforge-implement
 description: |
-  FlowForge 实施跟踪。当 proposal 进入实施阶段、需要执行任务或更新进度时激活。
-  负责跟踪 task-map 的执行进度、记录实施日志、发现设计缺陷时回退到设计阶段。
+  FlowForge 实施执行引擎。在 proposal 进入实施阶段后，执行 task-map 中的
+  任务并记录日志。
+
+  必须在以下场景激活：
+  - 用户明确表达"执行任务"、"开始实施"、"继续推进"、"做下一个任务"
+  - 当前 active 状态的 proposal 有未完成的 task-map 任务，用户要求推进
+  - 用户引用某个 active proposal 的 CR-id 并要求继续工作
+
+  不要在以下情况激活：
+  - 用于"更新进度索引"——那是 flowforge-progress 的职责
+  - proposal 状态为 draft（尚未进入实施）或 archived/rejected（已完成）
+  - 需要修改设计——应交给 flowforge-design
+  - 用户要求归档已完成的方案——应交给 flowforge-archive
 ---
 
 # FlowForge Implement
@@ -11,8 +22,8 @@ description: |
 
 ## 触发条件
 
-- `flowforge-workflow` 路由到 `continue-proposal` 场景，且当前 proposal 状态为 `active`
 - 用户明确要求"执行任务"、"开始实施"、"继续推进"
+- 当前 active 状态的 proposal 有未完成的 task-map 任务
 
 ## 工作流
 
