@@ -74,7 +74,7 @@ if [ "$MODE" = "upgrade" ]; then
 
   # 指南：只添加不覆盖（项目可能定制过）
   for guide in "$SRC_DIR/flowforge/guides/"*.md; do
-    local name=$(basename "$guide")
+    name=$(basename "$guide")
     if [ ! -f "$TARGET/.flowforge/guides/$name" ]; then
       cp "$guide" "$TARGET/.flowforge/guides/"
     fi
@@ -91,15 +91,16 @@ if [ "$MODE" = "upgrade" ]; then
     info "config.yaml 已保留（项目自有配置不覆盖）"
   fi
 
-  # 确保 wiki 目录存在
+  # 确保 wiki 目录存在（包含 active/completed 子目录结构）
   mkdir -p "$TARGET/ff-wiki/workspace/intake"
   mkdir -p "$TARGET/ff-wiki/workspace/explorations"
-  mkdir -p "$TARGET/ff-wiki/workspace/proposals"
+  mkdir -p "$TARGET/ff-wiki/workspace/proposals/active"
+  mkdir -p "$TARGET/ff-wiki/workspace/proposals/completed"
   mkdir -p "$TARGET/ff-wiki/library/architecture"
   mkdir -p "$TARGET/ff-wiki/library/conventions"
   mkdir -p "$TARGET/ff-wiki/library/decisions"
   mkdir -p "$TARGET/ff-wiki/library/modules"
-  info "Wiki 目录结构已确保存在"
+  info "Wiki 目录结构已确保存在（含 active/completed 子目录）"
 
   echo ""
   info "FlowForge 升级完成"
