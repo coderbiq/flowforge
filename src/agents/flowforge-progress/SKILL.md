@@ -1,0 +1,90 @@
+---
+name: flowforge-progress
+description: |
+  FlowForge 进度索引记录器。在任何 proposal 的工作单元刚刚完成后激活，
+  将本次进展总结为一句话写入 meta.latest_progress 并刷新 INDEX.md。
+
+  必须在以下信号出现后立即激活：
+  - 刚刚修改了 ff-wiki/workspace/proposals/**/meta.yaml 的 status 字段
+  - 刚刚在 task-map.md 中将任务标记为完成或阻塞
+  - 刚刚在 notes.md 追加了实施日志
+  - 刚刚创建、归档或移动了 proposal 目录
+  - 刚刚完成 design 章节并 commit 到 proposal
+
+  不要在以下情况激活：
+  - 仅在阅读 proposal 内容、未做修改时
+  - 用户在询问状态、未触发实际变更时
+  - 在 exploration 阶段未涉及 proposal 时
+  - 仅修改 library/ 中的归档文档（非 workspace 进行中状态）
+---
+
+# FlowForge Progress
+
+你是 FlowForge 的进度记录器。在工作单元完成后被自动激活，负责将进展总结写入 meta 并刷新 INDEX.md。
+
+## 触发条件
+
+- 刚刚对 proposal 完成了有意义的工作单元
+- 刚刚修改了 proposal 的 meta.yaml（status 变化、目录移动等）
+- AGENTS.md 中的进度记录强制约束触发
+
+## 工作流
+
+```
+识别变更 → 一句话总结 → 运行脚本 → 确认结果
+```
+
+---
+
+### 阶段 1：识别变更
+
+回顾本次会话中刚才对哪个 proposal 做了什么。如果不确定，检查最近修改的 `meta.yaml` 或 `notes.md`。
+
+---
+
+### 阶段 2：一句话总结
+
+用一句话总结（≤50 字）本次进展，原则：
+
+- **描述完成的事**，不描述意图——"完成 token 中间件" 而非 "推进认证模块"
+- **包含量化进度**——"[3/8 任务]"、"[design 完成]"
+- **可验证**——读者能判断这句话是否属实
+
+| 场景 | ✅ 好 | ❌ 差 |
+|:--|:--|:--|
+| 设计完成 | 设计完成，拆分为 8 个任务 | 推进了设计工作 |
+| 任务推进 | 完成 db 层迁移 [3/8] | 做了一些进展 |
+| 全部完成 | 实施完成，等待归档 | 任务进行中 |
+| 归档 | 知识沉淀至 library/modules/auth/ | 归档完毕 |
+| 状态变更 | 设计评审通过，进入实施 | 状态有变化 |
+
+---
+
+### 阶段 3：运行脚本
+
+```
+scripts/update-progress.js <proposal完整路径> "<总结>"
+```
+
+脚本会自动：
+1. 将 `latest_progress` 写入 `meta.yaml`
+2. 更新 `updated_at` 时间戳
+3. 重新生成 `workspace/proposals/INDEX.md`
+
+---
+
+### 阶段 4：确认结果
+
+检查脚本输出是否成功。如果失败：
+- 找不到 proposal → 确认路径是否正确
+- meta.yaml 格式错误 → 手动修正后重试
+- 不确定本次变更内容 → 询问用户而非编造
+
+---
+
+## 需要的脚本
+
+| 脚本 | 用途 |
+|:--|:--|
+| `scripts/update-progress.js <proposal路径> "<总结>"` | 写 meta.latest_progress + 更新 updated_at + 重建 INDEX.md |
+| `scripts/refresh-index.js [项目根路径]` | 仅重建 INDEX.md（可独立运行） |
