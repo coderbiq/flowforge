@@ -3,153 +3,119 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
 
 const projectRoot = process.argv[2] || process.cwd();
 const proposalId = process.argv[3] || null;
 
-const configPath = path.join(projectRoot, '.flowforge', 'config.yaml');
-if (!fs.existsSync(configPath)) {
-  console.error('ERROR: .flowforge/config.yaml 不存在');
+const config = loadMainConfig(projectRoot);
+if (!config) {
+  console.error('ERROR: .flowforge/config.yaml 不存在或格式错误');
   process.exit(0);
 }
-const configContent = fs.readFileSync(configPath, 'utf8');
-const wikiRoot = readRootValue(configContent, 'root') || 'ff-wiki';
 
-const librarySection = extractSection(configContent, 'library');
-const modulesSection = extractSection(configContent, 'modules');
+const projectRefs = config.projects || [];
+if (projectRefs.length === 0) {
+  console.error('ERROR: config.yaml 中未定义 projects');
+  process.exit(1);
+}
 
-const workspaceRoot = path.join(projectRoot, wikiRoot, 'workspace');
+const allProjects = [];
+for (const ref of projectRefs) {
+  const p = loadProjectConfig(projectRoot, ref);
+  if (p) allProjects.push(p);
+}
 
-const proposalDir = proposalId
-  ? findProposalById(workspaceRoot, proposalId)
-  : findProposal(projectRoot, workspaceRoot, ['implemented', 'archived']);
+let proposalLocation = null;
+if (proposalId) {
+  proposalLocation = findProposalById(projectRoot, allProjects, proposalId);
+} else {
+  proposalLocation = findProposal(projectRoot, allProjects, ['implemented', 'archived']);
+}
+
+if (!proposalLocation) {
+  console.error('ERROR: 未找到 implemented 或 archived 状态的 proposal');
+  process.exit(1);
+}
+
+const activeProject = allProjects.find(p => p.id === proposalLocation.projectId);
+const r = activeProject && activeProject.rules ? activeProject.rules : null;
+
+const meta = loadMeta(proposalLocation.proposalDir);
 
 console.log('# Archive Context\n');
 
-if (librarySection) {
-  console.log('## Library Rules\n');
-  console.log(librarySection);
+console.log('## Current Proposal\n');
+console.log(`路径: ${path.relative(projectRoot, proposalLocation.proposalDir)}`);
+console.log(`project: ${proposalLocation.projectId}`);
+console.log(`wikiRoot: ${proposalLocation.wikiRoot}`);
+if (meta) {
+  if (meta.id) console.log(`ID: ${meta.id}`);
+  if (meta.status) console.log(`状态: ${meta.status}`);
+  if (meta.title) console.log(`标题: ${meta.title}`);
 }
 
-if (modulesSection) {
+if (meta && meta.archive_targets && meta.archive_targets.length > 0) {
+  console.log('\n### Archive Targets\n');
+  for (const t of meta.archive_targets) {
+    console.log(`- type: ${t.type}, ref: ${t.ref}${t.role ? ', role: ' + t.role : ''}`);
+  }
+} else {
+  console.log('\narchive_targets: 未配置');
+}
+
+if (r && r.library) {
+  console.log('\n## Library Rules\n');
+  if (r.library.requireReview !== undefined) {
+    console.log(`requireReview: ${r.library.requireReview}`);
+  }
+  if (r.library.autoUpdateHistory !== undefined) {
+    console.log(`autoUpdateHistory: ${r.library.autoUpdateHistory}`);
+  }
+}
+
+if (activeProject.modules && Object.keys(activeProject.modules).length > 0) {
   console.log('\n## Module Registry\n');
-  console.log(modulesSection);
-}
-
-if (proposalDir) {
-  console.log('\n## Current Proposal\n');
-  console.log(`路径: ${path.relative(projectRoot, proposalDir)}`);
-  const meta = readProposalMeta(proposalDir);
-  if (meta) {
-    console.log(`ID: ${meta.id}`);
-    console.log(`状态: ${meta.status}`);
-    console.log(`标题: ${meta.title}`);
-  }
-  const archiveTargets = meta ? extractArchiveTargets(path.join(proposalDir, 'meta.yaml')) : null;
-  if (archiveTargets) {
-    console.log('\n### Archive Targets\n');
-    console.log(archiveTargets);
-  }
-
-  for (const f of ['proposal.md', 'design.md', 'task-map.md']) {
-    const fp = path.join(proposalDir, f);
-    if (fs.existsSync(fp)) {
-      console.log(`\n### ${f}\n`);
-      console.log(fs.readFileSync(fp, 'utf8'));
-    }
+  for (const [name, mod] of Object.entries(activeProject.modules)) {
+    const aliases = mod.aliases && mod.aliases.length > 0 ? ` (别名: ${mod.aliases.join(', ')})` : '';
+    console.log(`- ${name} → ${mod.path}${aliases}`);
   }
 }
 
-function findProposalById(workspaceRoot, proposalId) {
-  for (const subdir of ['active', 'completed']) {
-    const candidate = path.join(workspaceRoot, 'proposals', subdir, proposalId);
-    if (fs.existsSync(candidate)) return candidate;
+for (const f of ['proposal.md', 'design.md', 'task-map.md']) {
+  const fp = path.join(proposalLocation.proposalDir, f);
+  if (fs.existsSync(fp)) {
+    console.log(`\n### ${f}\n`);
+    console.log(fs.readFileSync(fp, 'utf8'));
   }
-  return path.join(workspaceRoot, 'proposals', 'active', proposalId);
 }
 
-function findProposal(root, workspaceRoot, statuses) {
-  for (const subdir of ['active', 'completed']) {
-    const proposalsSubDir = path.join(workspaceRoot, 'proposals', subdir);
-    if (!fs.existsSync(proposalsSubDir)) continue;
-    const dirs = fs.readdirSync(proposalsSubDir, { withFileTypes: true }).filter(d => d.isDirectory());
-    for (const d of dirs) {
-      const meta = readProposalMeta(path.join(proposalsSubDir, d.name));
-      if (meta && statuses.includes(meta.status)) return path.join(proposalsSubDir, d.name);
+function findProposalById(projectRoot, projects, id) {
+  for (const p of projects) {
+    const ws = path.join(projectRoot, p.wikiRoot, 'workspace');
+    for (const sub of ['active', 'completed']) {
+      const cand = path.join(ws, 'proposals', sub, id);
+      if (fs.existsSync(cand)) return { proposalDir: cand, projectId: p.id, wikiRoot: p.wikiRoot };
     }
   }
   return null;
 }
 
-function readProposalMeta(dir) {
-  const metaPath = path.join(dir, 'meta.yaml');
-  if (!fs.existsSync(metaPath)) return null;
-  const content = fs.readFileSync(metaPath, 'utf8');
-  return { id: readValue(content, 'id'), title: readValue(content, 'title'), status: readValue(content, 'status') };
-}
-
-function extractArchiveTargets(metaPath) {
-  const content = fs.readFileSync(metaPath, 'utf8');
-  const section = extractFromContent(content, 'archive_targets');
-  return section || null;
-}
-
-function readRootValue(content, key) {
-  const m = content.match(new RegExp(`^\\s*${key}\\s*:\\s*["']?([^"'\n#]+)["']?`, 'm'));
-  return m ? m[1].trim() : null;
-}
-
-function readValue(content, key) {
-  const m = content.match(new RegExp(`^\\s*${key}\\s*:\\s*["']?([^"'\n#]+)`, 'm'));
-  return m ? m[1].trim() : null;
-}
-
-function extractSection(content, sectionKey) {
-  const lines = content.split('\n');
-  let inSection = false;
-  let sectionIndent = -1;
-  let inBlock = false;
-  const result = [];
-  for (const line of lines) {
-    const indent = line.search(/\S/);
-    const trimmed = line.trim();
-    if (inSection && !inBlock) {
-      if (indent >= 0 && indent <= sectionIndent) break;
-      if (trimmed.endsWith('|')) { inBlock = true; result.push(line); continue; }
-      result.push(line);
-      continue;
-    }
-    if (inSection && inBlock) {
-      if (indent >= 0 && indent < sectionIndent + 2) { inBlock = false; break; }
-      result.push(line);
-      continue;
-    }
-    if (trimmed.startsWith(sectionKey + ':')) {
-      inSection = true;
-      sectionIndent = indent;
-      if (trimmed.endsWith('|')) { inBlock = true; }
+function findProposal(projectRoot, projects, statuses) {
+  for (const p of projects) {
+    const wikiWs = path.join(projectRoot, p.wikiRoot, 'workspace');
+    for (const sub of ['active', 'completed']) {
+      const subDir = path.join(wikiWs, 'proposals', sub);
+      if (!fs.existsSync(subDir)) continue;
+      const dirs = fs.readdirSync(subDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const d of dirs) {
+        const pd = path.join(subDir, d.name);
+        const meta = loadMeta(pd);
+        if (meta && statuses.includes(meta.status)) {
+          return { proposalDir: pd, projectId: p.id, wikiRoot: p.wikiRoot };
+        }
+      }
     }
   }
-  return result.map(l => l.replace(/^(\s*)#.*$/, '$1')).filter(l => l.trim()).join('\n');
-}
-
-function extractFromContent(content, key) {
-  const lines = content.split('\n');
-  let inSection = false;
-  let sectionIndent = -1;
-  const result = [];
-  for (const line of lines) {
-    const indent = line.search(/\S/);
-    const trimmed = line.trim();
-    if (inSection) {
-      if (indent >= 0 && indent <= sectionIndent) break;
-      result.push(line);
-      continue;
-    }
-    if (trimmed.startsWith(key + ':')) {
-      inSection = true;
-      sectionIndent = indent;
-    }
-  }
-  return result.map(l => l.replace(/^(\s*)#.*$/, '$1')).filter(l => l.trim()).join('\n');
+  return null;
 }

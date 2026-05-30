@@ -5,13 +5,13 @@ description: |
   提供 frontmatter 约束和按 doc_type 的写作指南。
 
   必须在以下场景激活：
-  - 其他 FlowForge SKILL 即将创建或修改 ff-wiki/ 下任何文档
+  - 其他 FlowForge SKILL 即将创建或修改 wiki 内的文档
   - 需要查询某个 doc_type 的写作规范
   - 校验文档结构或 frontmatter 完整性
 
   不要在以下情况激活：
   - 用户直接询问项目状态或新需求（应交给 flowforge-design 或不激活任何 SKILL）
-  - 修改 .md 文件但不在 ff-wiki/ 目录内
+  - 修改 .md 文件但不在 wiki 目录内
   - 用于更新进度索引——那是 flowforge-progress 的职责
 ---
 
@@ -29,7 +29,7 @@ description: |
 
 指南中通常包含以下内容，逐条执行：
 
-- **位置**：文档在 ff-wiki 下的相对路径——拼接为项目根路径后创建文件
+- **位置**：文档在 wiki 下的相对路径——拼接 `<wikiRoot>/` 前缀后创建文件
 - **结构**：单文件还是目录——决定创建一个 `.md` 还是创建目录 + 多个文件
 - **各文件/章节的写作要求**：逐条执行——每个文件或章节按指南中的描述撰写内容
 - **Frontmatter**：该文档需要的 YAML frontmatter 字段——写入文件头部

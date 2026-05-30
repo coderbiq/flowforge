@@ -18,12 +18,7 @@ description: |
 
 # FlowForge Implement
 
-你是 FlowForge 的实施跟踪引擎。负责执行任务并跟踪进度。
-
-## 触发条件
-
-- 用户明确要求"执行任务"、"开始实施"、"继续推进"
-- 当前 active 状态的 proposal 有未完成的 task-map 任务
+负责执行 task-map 中的任务并跟踪进度。
 
 ## 工作流
 
@@ -37,10 +32,11 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `scripts/implement-context.js` 加载：
-- implement rules（任务状态、notes 格式）
-- task_rules（任务字段结构、粒度约束）
-- 当前 proposal 的 `task-map.md` 和 `notes.md`
+运行 `scripts/implement-context.js` 加载上下文。输出包含：
+
+- `## Implement Rules`（task_states、notes.fields）
+- `## Task Rules`（fields、time_estimate）
+- `## Current Proposal`（路径、project、wikiRoot、task-map.md 全文、notes.md 全文）
 
 如果找不到活跃状态的 proposal，提示用户先在 design SKILL 中将 proposal 状态设为 `active`。
 
@@ -87,7 +83,7 @@ description: |
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/implement-context.js` | 加载 implement rules、task_rules、当前 proposal 的 task-map 和 notes |
+| `scripts/implement-context.js` | 遍历所有 project 查找提案，加载对应 project 的规则和任务文件 |
 
 ## 引用的 SKILL
 
@@ -95,5 +91,3 @@ description: |
 |-------|---------|
 | `flowforge-docs` | 写 notes 时获取文档格式和 frontmatter 约束 |
 | `flowforge-design` | 发现设计缺陷时回退 |
-
-任务状态、notes 格式均通过脚本从 `config.yaml` 加载，不在此 SKILL 硬编码。

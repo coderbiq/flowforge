@@ -5,7 +5,7 @@ description: |
   将本次进展总结为一句话写入 meta.latest_progress 并刷新 INDEX.md。
 
   必须在以下信号出现后立即激活：
-  - 刚刚修改了 ff-wiki/workspace/proposals/**/meta.yaml 的 status 字段
+  - 刚刚修改了 wiki 内 proposal 的 meta.yaml 的 status 字段
   - 刚刚在 task-map.md 中将任务标记为完成或阻塞
   - 刚刚在 notes.md 追加了实施日志
   - 刚刚创建、归档或移动了 proposal 目录
@@ -20,13 +20,7 @@ description: |
 
 # FlowForge Progress
 
-你是 FlowForge 的进度记录器。在工作单元完成后被自动激活，负责将进展总结写入 meta 并刷新 INDEX.md。
-
-## 触发条件
-
-- 刚刚对 proposal 完成了有意义的工作单元
-- 刚刚修改了 proposal 的 meta.yaml（status 变化、目录移动等）
-- AGENTS.md 中的进度记录强制约束触发
+负责在工作单元完成后将进展总结写入 meta 并刷新 INDEX.md。
 
 ## 工作流
 

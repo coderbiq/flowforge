@@ -19,13 +19,7 @@ description: |
 
 # FlowForge Design
 
-你是 FlowForge 的设计引擎。你的工作是：**理解问题 → 探索+设计融合循环 → 产出 proposal 和 task-map**。
-
-## 触发条件
-
-- 用户表达新需求、想法或变更意图
-- 用户明确要求"探索"、"分析"、"设计"、"创建提案"
-- `flowforge-implement` 实施中发现设计缺陷，回退到设计阶段
+负责将需求转化为可执行的 proposal 和 task-map。
 
 ## 工作流
 
@@ -52,7 +46,7 @@ description: |
 
 **继续已有 proposal**（`## Current Proposal` 中有 project 和 wikiRoot）：
 - project 和 wikiRoot 已锁定，**永不重新决策归属**
-- 跳过阶段 2 和阶段 2.5，**直接进入阶段 2.5b** 加载 rules
+- 跳过阶段 2 和阶段 3，**直接进入阶段 4** 加载 rules
 
 ---
 
@@ -64,7 +58,7 @@ description: |
 
 ---
 
-### 阶段 2.5：确定 project 归属
+### 阶段 3：确定 project 归属
 
 仅在**新需求**时执行（修改已有 proposal 时跳过——`## Current Proposal` 已锁定 project）。
 
@@ -100,11 +94,9 @@ description: |
 
 ---
 
-### 阶段 2.5b：加载 project 规则（Pass 2）
+### 阶段 4：加载 project 规则
 
-**所有场景**都需要执行（无论新需求还是已有 proposal）——rules 是唯一的，只有通过 `--project` 才能获得。
-
-确定 projectId 后，再次运行 design-context.js 获取该 project 的规则：
+确定 projectId 后，再次运行 design-context.js：
 
 ```bash
 scripts/design-context.js <projectRoot> --project <projectId>
@@ -119,13 +111,9 @@ scripts/design-context.js <projectRoot> --project <projectId>
 - `## Modules`：该 project 的模块注册表
 - Intake 分析步骤（该 project 的）
 
-后续阶段所有对这些规则的引用均来自此次调用的输出。
-
 ---
 
-### 阶段 3：[探索 ⇄ 设计] 融合循环
-
-核心工作阶段。探索和设计交错进行：
+### 阶段 5：[探索 ⇄ 设计] 融合循环
 
 ```
   探索（查代码、查 library、查资料）
@@ -140,7 +128,7 @@ scripts/design-context.js <projectRoot> --project <projectId>
 1. 根据 `naming.exploration_slug` 生成 slug，在 `<project.wikiRoot>/workspace/explorations/<slug>/` 下创建 exploration 目录
 2. 根据 `naming.proposal_id` 的模板生成 CR-id，在 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
 
-`<project.wikiRoot>` 来自阶段 2.5 选定（修改场景来自阶段 1 `## Current Proposal`）。
+`<project.wikiRoot>` 来自阶段 3 选定（修改场景来自阶段 1 `## Current Proposal`）。
 
 探索阶段结束时，运行 `scripts/validate-exploration.js <路径>` 确保 exploration 结构完整。
 
@@ -159,23 +147,23 @@ scripts/design-context.js <projectRoot> --project <projectId>
 - 所有设计章节都有足够内容
 - 没有遗留未探索的待解决问题（或已记录为 finding）
 
-达到终止条件后，向用户简要说明当前方案，确认可以进入撰写 proposal 阶段。收到确认后再进入阶段 4。
+达到终止条件后，向用户简要说明当前方案，确认可以进入撰写 proposal 阶段，收到确认后再进入阶段 6。
 
 ---
 
-### 阶段 4：撰写 proposal
+### 阶段 6：撰写 proposal
 
 将设计决策提炼为 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/proposal.md`。
 
 参照 `flowforge-docs` SKILL 获取 proposal 的写作指南。
 
-同时参照 `flowforge-docs` 的 proposal meta 契约创建 `meta.yaml`。**必须**写入 `project: <id>` 字段（来自阶段 2.5 选定的 project.id）——这是下游 SKILL/脚本定位 wikiRoot 的唯一依据，缺失会导致 implement、archive、progress 全部失效。
+同时参照 `flowforge-docs` 的 proposal meta 契约创建 `meta.yaml`。**必须**写入 `project: <id>` 字段（来自阶段 3 选定的 project.id）——这是下游 SKILL/脚本定位 wikiRoot 的唯一依据，缺失会导致 implement、archive、progress 全部失效。
 
 proposal 创建完成后，运行 `scripts/validate-proposal.js <proposal路径>` 确保结构完整。
 
 ---
 
-### 阶段 5：拆分任务
+### 阶段 7：拆分任务
 
 将设计方案拆分为可执行任务，写入 `task-map.md`。
 
@@ -196,5 +184,3 @@ proposal 创建完成后，运行 `scripts/validate-proposal.js <proposal路径>
 | SKILL | 引用场景 |
 |-------|---------|
 | `flowforge-docs` | 创建文档时获取 frontmatter 契约、meta.yaml 字段约束 |
-
-项目级策略（探索方法、设计章节、命名规则、任务粒度）均通过脚本从 `config.yaml` 加载，不在此 SKILL 硬编码。
