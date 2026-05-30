@@ -25,24 +25,14 @@
       "type": "string",
       "description": "本次探索要回答的核心问题"
     },
-    "ownership": {
-      "type": "array",
-      "minItems": 1,
-      "description": "探索预期流向的模块/系统/规范所有权",
-      "items": {
-        "type": "object",
-        "required": ["type", "target", "role"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["module", "system", "cross-module", "convention"]
-          },
-          "target": { "type": "string" },
-          "role": {
-            "type": "string",
-            "enum": ["primary", "secondary"]
-          }
-        }
+    "domain": {
+      "type": "object",
+      "description": "本次探索产出的知识分类，决定归档时的目标位置。一个 exploration 只描述一个方面的内容。",
+      "required": ["scope", "type"],
+      "properties": {
+        "scope": { "type": "string", "enum": ["system", "module"], "description": "全系统或某个模块" },
+        "module": { "type": "string", "description": "模块名，仅 scope=module 时需要" },
+        "type": { "type": "string", "enum": ["design", "decision", "convention"], "description": "设计文档 / 关键决策 / 编码约定" }
       }
     },
     "expected_size_class": {

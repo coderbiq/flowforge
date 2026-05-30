@@ -140,6 +140,23 @@ if (activeProject && activeProject.rules) {
     console.log('');
   }
 
+  console.log('## Domain 分类指引\n');
+  console.log('每个可归档的文档（findings、decisions、design/*、architecture、adr、convention）');
+  console.log('必须在其 frontmatter 中设置 domain 字段，描述该文档知识的归属：\n');
+  console.log('```yaml');
+  console.log('domain:');
+  console.log('  scope: system|module   # 全系统 / 某个模块');
+  console.log('  module: <name>         # 仅 scope=module 时需要');
+  console.log('  type: design|decision|convention  # 设计 / 决策 / 约定');
+  console.log('```\n');
+  console.log('判定规则:');
+  console.log('- scope: 文档内容是否限定在某个模块内部？→ module，否则 → system');
+  console.log('- module: 源文件所属模块名（跨多模块的文档 scope 应为 system）');
+  console.log('- type: 架构/接口/数据模型 → design；关键决策+理由 → decision；编码规范/模式 → convention');
+  console.log('');
+  console.log('注意: proposal.md、task-map.md、journal、notes.md 不需要 domain（不含可归档知识）。');
+  console.log('');
+
   if (activeProject.modules && Object.keys(activeProject.modules).length > 0) {
     console.log('## Modules\n');
     for (const [name, mod] of Object.entries(activeProject.modules)) {

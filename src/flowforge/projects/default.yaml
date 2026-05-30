@@ -6,12 +6,6 @@ srcDirs: []
 description: ""
 keywords: []
 
-modules: {}
-# modules:
-#   my-module:
-#     path: library/modules/my-module/
-#     aliases: []
-
 rules:
   intake:
     steps:

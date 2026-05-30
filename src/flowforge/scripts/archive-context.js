@@ -55,17 +55,25 @@ if (meta) {
   if (meta.title) console.log(`标题: ${meta.title}`);
 }
 
-if (meta && meta.archive_targets && meta.archive_targets.length > 0) {
-  console.log('\n### Archive Targets\n');
-  for (const t of meta.archive_targets) {
-    console.log(`- type: ${t.type}, ref: ${t.ref}${t.role ? ', role: ' + t.role : ''}`);
+// 扫描 proposal 目录下所有 .md 文件，提取 domain
+const domainGroups = scanDomainGroups(proposalLocation.proposalDir);
+if (domainGroups.length > 0) {
+  console.log('\n## 归档目标（从文档 domain 推导）\n');
+  for (const group of domainGroups) {
+    console.log(`### → ${group.archivePath}`);
+    console.log(`   domain: { scope: ${group.domain.scope}${group.domain.module ? ', module: ' + group.domain.module : ''}, type: ${group.domain.type} }`);
+    console.log(`   来源文件:`);
+    for (const f of group.files) {
+      console.log(`    - ${f.relPath} (${f.title || '无标题'})`);
+    }
+    console.log('');
   }
 } else {
-  console.log('\narchive_targets: 未配置');
+  console.log('\n归档目标: 未在文档 frontmatter 中找到 domain 字段');
 }
 
 if (r && r.library) {
-  console.log('\n## Library Rules\n');
+  console.log('## Library Rules\n');
   if (r.library.requireReview !== undefined) {
     console.log(`requireReview: ${r.library.requireReview}`);
   }
@@ -74,20 +82,135 @@ if (r && r.library) {
   }
 }
 
-if (activeProject.modules && Object.keys(activeProject.modules).length > 0) {
-  console.log('\n## Module Registry\n');
-  for (const [name, mod] of Object.entries(activeProject.modules)) {
-    const aliases = mod.aliases && mod.aliases.length > 0 ? ` (别名: ${mod.aliases.join(', ')})` : '';
-    console.log(`- ${name} → ${mod.path}${aliases}`);
-  }
-}
-
+// 输出文档全文
 for (const f of ['proposal.md', 'design.md', 'task-map.md']) {
   const fp = path.join(proposalLocation.proposalDir, f);
   if (fs.existsSync(fp)) {
     console.log(`\n### ${f}\n`);
     console.log(fs.readFileSync(fp, 'utf8'));
   }
+}
+
+// 输出 design/ 目录下的文件
+const designDir = path.join(proposalLocation.proposalDir, 'design');
+if (fs.existsSync(designDir) && fs.statSync(designDir).isDirectory()) {
+  const designFiles = fs.readdirSync(designDir).filter(f => f.endsWith('.md'));
+  for (const f of designFiles) {
+    console.log(`\n### design/${f}\n`);
+    console.log(fs.readFileSync(path.join(designDir, f), 'utf8'));
+  }
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+
+function scanDomainGroups(proposalDir) {
+  const files = collectMdFiles(proposalDir);
+  const groups = {};
+
+  for (const f of files) {
+    const content = fs.readFileSync(f.absPath, 'utf8');
+    const fm = extractFrontmatter(content);
+    if (!fm || !fm.domain) continue;
+
+    const domain = parseDomain(fm.domain);
+    if (!domain) continue;
+
+    const archivePath = deriveArchivePath(domain, fm.title || path.basename(f.absPath, '.md'));
+    if (!groups[archivePath]) {
+      groups[archivePath] = { domain, archivePath, files: [] };
+    }
+    groups[archivePath].files.push({
+      relPath: f.relPath,
+      title: fm.title || null,
+      absPath: f.absPath
+    });
+  }
+
+  return Object.values(groups);
+}
+
+function collectMdFiles(dir, baseDir) {
+  if (!baseDir) baseDir = dir;
+  const results = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory() && !entry.name.startsWith('.')) {
+      results.push(...collectMdFiles(fullPath, baseDir));
+    } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      results.push({
+        absPath: fullPath,
+        relPath: path.relative(baseDir, fullPath)
+      });
+    }
+  }
+
+  return results;
+}
+
+function parseDomain(domainStr) {
+  // domain 可能是 YAML 多行字符串或已解析的对象
+  if (typeof domainStr === 'object') return domainStr;
+
+  const lines = domainStr.split('\n').map(l => l.trim()).filter(Boolean);
+  const result = {};
+  for (const line of lines) {
+    const m = line.match(/^(\w+)\s*:\s*(.+)/);
+    if (m) result[m[1]] = m[2].trim();
+  }
+  if (!result.scope || !result.type) return null;
+  return result;
+}
+
+function deriveArchivePath(domain, title) {
+  const topic = title.replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+
+  if (domain.scope === 'system') {
+    switch (domain.type) {
+      case 'design':
+        return `library/architecture/${topic}.md`;
+      case 'decision':
+        return `library/decisions/${topic}.md`;
+      case 'convention':
+        return `library/conventions/${topic}.md`;
+    }
+  }
+
+  if (domain.scope === 'module' && domain.module) {
+    return `library/modules/${domain.module}/`;
+  }
+
+  return null;
+}
+
+function extractFrontmatter(text) {
+  const m = text.match(/^---\n([\s\S]*?)\n---/);
+  if (!m) return null;
+  const result = {};
+  let currentKey = null;
+
+  for (const line of m[1].split('\n')) {
+    // 嵌套属性（domain 的子字段）
+    const nested = line.match(/^\s{2}(\w+)\s*:\s*(.*)/);
+    if (nested && currentKey === 'domain') {
+      if (!result.domain) result.domain = {};
+      result.domain[nested[1]] = nested[2].trim().replace(/^["']|["']$/g, '');
+      continue;
+    }
+
+    const kv = line.match(/^\s*([a-zA-Z_]+)\s*:\s*(.*)/);
+    if (kv) {
+      currentKey = kv[1];
+      const val = kv[2].trim().replace(/^["']|["']$/g, '');
+      result[currentKey] = val || '';
+    } else {
+      currentKey = null;
+    }
+  }
+  return result;
 }
 
 function findProposalById(projectRoot, projects, id) {

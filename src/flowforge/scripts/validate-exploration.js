@@ -36,6 +36,24 @@ if (!fs.existsSync(indexPath)) {
     if (fm.confidence && !['high', 'medium', 'low'].includes(fm.confidence)) {
       errors.push(`index.md confidence 无效: ${fm.confidence}`);
     }
+    if (!fm.domain) {
+      errors.push('index.md 缺少 domain 字段（需设置 scope、type）');
+    } else {
+      const dm = parseDomain(fm.domain);
+      if (!dm || !dm.scope || !dm.type) {
+        errors.push('index.md domain 字段不完整（需要 scope 和 type）');
+      } else {
+        if (!['system', 'module'].includes(dm.scope)) {
+          errors.push(`index.md domain.scope 无效: ${dm.scope}`);
+        }
+        if (dm.scope === 'module' && !dm.module) {
+          errors.push('index.md domain.scope=module 但缺少 module 字段');
+        }
+        if (!['design', 'decision', 'convention'].includes(dm.type)) {
+          errors.push(`index.md domain.type 无效: ${dm.type}`);
+        }
+      }
+    }
   }
 }
 
@@ -57,9 +75,27 @@ function extractFrontmatter(text) {
   const m = text.match(/^---\n([\s\S]*?)\n---/);
   if (!m) return null;
   const result = {};
+  let currentKey = null;
+
   for (const line of m[1].split('\n')) {
+    const nested = line.match(/^\s{2}(\w+)\s*:\s*(.*)/);
+    if (nested && currentKey === 'domain') {
+      if (!result.domain) result.domain = {};
+      result.domain[nested[1]] = nested[2].trim().replace(/^["']|["']$/g, '');
+      continue;
+    }
     const kv = line.match(/^\s*([a-zA-Z_]+)\s*:\s*(.*)/);
-    if (kv) result[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
+    if (kv) {
+      currentKey = kv[1];
+      result[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
+    } else {
+      currentKey = null;
+    }
   }
   return result;
+}
+
+function parseDomain(dm) {
+  if (typeof dm === 'object') return dm;
+  return null;
 }

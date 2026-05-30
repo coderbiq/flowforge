@@ -35,5 +35,9 @@ title: ADR-NNN: <决策标题>
 status: proposed|accepted|superseded|deprecated
 adr_id: ADR-NNN
 adr_status: proposed|accepted|superseded|deprecated
+domain:
+  scope: system|module
+  module: <模块名>
+  type: decision
 ---
 ```

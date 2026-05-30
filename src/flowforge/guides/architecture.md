@@ -31,5 +31,8 @@ title: <架构主题>
 status: active|deprecated
 architecture_topic: <topic 标识>
 architecture_status: active|deprecated
+domain:
+  scope: system
+  type: design
 ---
 ```

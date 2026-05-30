@@ -57,9 +57,15 @@
       "items": { "type": "string" },
       "description": "用于搜索和图谱的自由标签"
     },
-    "archive_target": {
-      "type": "string",
-      "description": "归档后的目标路径，如 library/modules/xxx/design.md。transient 文档使用 none"
+    "domain": {
+      "type": "object",
+      "description": "知识分类对象，决定该文档在归档时的目标位置。文档不含可归档知识时省略此字段（如 proposal、task-map、journal、notes）。",
+      "required": ["scope", "type"],
+      "properties": {
+        "scope": { "type": "string", "enum": ["system", "module"], "description": "全系统或某个模块" },
+        "module": { "type": "string", "description": "模块名，仅 scope=module 时需要" },
+        "type": { "type": "string", "enum": ["design", "decision", "convention"], "description": "设计 / 决策 / 约定" }
+      }
     },
     "related": {
       "type": "array",

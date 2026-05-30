@@ -31,5 +31,9 @@ title: <规范标题>
 status: active|superseded|deprecated
 convention_status: active|superseded|deprecated
 enforcement: must|should|may
+domain:
+  scope: system|module
+  module: <模块名>
+  type: convention
 ---
 ```

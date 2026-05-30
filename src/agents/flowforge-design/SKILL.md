@@ -108,8 +108,10 @@ scripts/design-context.js <projectRoot> --project <projectId>
 - `## Design Rules`：命名规则（proposal_id 模板、exploration_slug 格式）、任务规则（字段、时间估计）
 - `## Implement Rules`：任务状态机、日志字段
 - `## Library Rules`：归档行为（requireReview、autoUpdateHistory）
-- `## Modules`：该 project 的模块注册表
+- `## Domain 分类指引`：如何为文档设置 domain 字段（scope、module、type 的判定规则）
 - Intake 分析步骤（该 project 的）
+
+**重要**：project 配置中不再有 `modules` 注册表。模块判定基于源文件路径和设计落地位置，不依赖预注册。
 
 ---
 
@@ -138,10 +140,39 @@ scripts/design-context.js <projectRoot> --project <projectId>
   - `findings/` → doc_type: `finding`
   - `decisions/` → doc_type: `decision`
   - `journal/` → doc_type: `journal`
+- **每个 exploration 只描述一个方面的内容**。如果探索涉及多个模块或多种类型的知识，拆分成多个 exploration，各自携带独立的 `domain`。
 
 **设计时**：
 - 在 proposal 目录的 `design/` 下撰写设计文档，覆盖 design 类型的全部章节
 - 参照 `flowforge-docs` SKILL 获取 design 的写作指南
+- **多模块拆分规则**：如果一个 proposal 涉及多个模块（如同时改 auth 和 session），按模块用子目录组织设计文档。例如：
+  ```
+  design/auth/architecture.md    → domain: { scope: module, module: auth, type: design }
+  design/auth/api.md             → domain: { scope: module, module: auth, type: design }
+  design/session/architecture.md → domain: { scope: module, module: session, type: design }
+  ```
+  单模块 proposal 可省略子目录，直接在 `design/` 下平铺。
+  跨模块的通用架构设计（如整体数据流变更）→ `scope: system`，放在 `design/` 根目录下。
+- **每个设计文档只设一个 domain**，确保归档时能精确路由。
+
+**判定 domain 的方法**：
+```
+scope:  文档引用的源文件在哪个模块下？设计最终在哪个模块落地？
+        单模块边界内 → module；跨模块 / 全局架构 → system
+module: scope=module 时，模块名是什么（如 auth、payment）
+type:   架构/接口/数据模型/技术选型 → design
+        关键决策+理由+备选方案评估 → decision
+        编码规范/命名约定/反例 → convention
+```
+domain 写入每个文档的 frontmatter，格式：
+```yaml
+---
+domain:
+  scope: module
+  module: auth
+  type: design
+---
+```
 
 **终止条件**：
 - 所有设计章节都有足够内容
@@ -157,7 +188,11 @@ scripts/design-context.js <projectRoot> --project <projectId>
 
 参照 `flowforge-docs` SKILL 获取 proposal 的写作指南。
 
-同时参照 `flowforge-docs` 的 proposal meta 契约创建 `meta.yaml`。**必须**写入 `project: <id>` 字段（来自阶段 3 选定的 project.id）——这是下游 SKILL/脚本定位 wikiRoot 的唯一依据，缺失会导致 implement、archive、progress 全部失效。
+同时参照 `flowforge-docs` 的 proposal meta 契约创建 `meta.yaml`。**必须**写入以下字段：
+- `project: <id>`（来自阶段 3 选定的 project.id）——这是下游 SKILL/脚本定位 wikiRoot 的唯一依据
+- `modules: [<name>, ...]`（轻量列表，仅包含涉及的模块名，用于 INDEX.md 展示）
+
+`meta.yaml` 中**不再需要** `ownership` 和 `archive_targets`——归档路径由各文档的 `domain` frontmatter 自动推导。
 
 proposal 创建完成后，运行 `scripts/validate-proposal.js <proposal路径>` 确保结构完整。
 

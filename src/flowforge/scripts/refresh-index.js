@@ -105,19 +105,15 @@ function row(p) {
   const idLink = `[${p.id}](./${p._relPath}/)`;
   const size = p.size_class || '—';
   const status = `\`${p.status}\``;
-  const modules = formatOwnership(p.ownership);
+  const modules = formatModules(p.modules);
   const updated = formatDate(p.updated_at);
   const progress = p.latest_progress || '—';
   return `| ${idLink} | ${p.title || '—'} | ${size} | ${status} | ${modules} | ${updated} | ${progress} |\n`;
 }
 
-function formatOwnership(ownership) {
-  if (!ownership || !Array.isArray(ownership) || ownership.length === 0) return '—';
-  const primary = ownership.filter(o => o.role === 'primary');
-  return primary.map(o => {
-    const name = (o.target || '').split('/').filter(Boolean).pop() || '—';
-    return `\`${name}\``;
-  }).join(' ');
+function formatModules(modules) {
+  if (!modules || !Array.isArray(modules) || modules.length === 0) return '—';
+  return modules.map(m => `\`${m}\``).join(' ');
 }
 
 function formatDate(isoStr) {

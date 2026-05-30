@@ -35,5 +35,9 @@ title: <决策标题>
 status: draft|active
 decision_id: D-NNN
 decision_status: accepted|rejected|superseded
+domain:
+  scope: system|module
+  module: <模块名>
+  type: decision
 ---
 ```

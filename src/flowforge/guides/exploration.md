@@ -37,5 +37,9 @@ title: <标题>
 status: active|archived|rejected
 question: <核心问题>
 confidence: high|medium|low
+domain:
+  scope: system|module
+  module: <模块名>
+  type: design|decision|convention
 ---
 ```

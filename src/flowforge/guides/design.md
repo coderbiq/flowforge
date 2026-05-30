@@ -6,12 +6,27 @@
 
 ## 结构（目录）
 
+单模块 proposal：
+
 ```
 workspace/proposals/<CR-id>/design/
 ├── architecture.md    # 架构设计
 ├── api.md             # 接口与数据模型
 ├── impacts.md         # 影响分析
 └── tradeoffs.md       # 风险与权衡
+```
+
+多模块 proposal（按模块用子目录组织）：
+
+```
+workspace/proposals/<CR-id>/design/
+├── auth/
+│   ├── architecture.md
+│   └── api.md
+├── session/
+│   └── architecture.md
+├── impacts.md         # 跨模块影响分析（scope=system）
+└── tradeoffs.md       # 跨模块权衡（scope=system）
 ```
 
 ## 各文件写作要求
@@ -48,5 +63,11 @@ doc_type: design
 title: <章节标题>
 status: draft|active
 design_section: <section 名>
+domain:
+  scope: system|module
+  module: <模块名>
+  type: design|decision|convention
 ---
 ```
+
+**注意**：涉及多模块时，按模块拆分为独立文件，每个文件只设一个 domain。

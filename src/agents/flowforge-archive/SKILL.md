@@ -31,46 +31,55 @@ description: |
 
 运行 `scripts/archive-context.js [proposal-id]`。输出包含：
 
-- `## Current Proposal`（路径、project、wikiRoot、meta、archive_targets）
+- `## Current Proposal`（路径、project、wikiRoot、meta）
+- `## 归档目标`（从 proposal 内各文档的 domain frontmatter 自动推导的归档路径，按目标文件分组）
 - `## Library Rules`（requireReview、autoUpdateHistory）
-- `## Module Registry`（模块注册表）
 - proposal.md / design.md / task-map.md 全文
+- design/ 下的所有 .md 文件全文
 
 ### 阶段 2：校验完整性
 
 运行 `scripts/validate-proposal.js <proposal路径>`。校验失败不允许继续。
 
-如果 `archive_targets` 为空，根据 proposal 内容建议归档目标，让用户确认后再继续。
+如果所有文档都没有 `domain` 字段（`## 归档目标` 为空），检查 proposal 内容，对可归档的文档建议 domain 值，让用户确认后再继续。
 
 ---
 
-### 阶段 3：逐 target 提取并写入
+### 阶段 3：按归档目标分组提取并写入
 
-对 `archive_targets` 中的每个 target：
+`archive-context.js` 已经将文档按归档路径分组（见 `## 归档目标`）。对每个分组：
 
-**3a. 确定目标路径和 doc_type**
+**3a. 理解归档路径**
 
-| type | doc_type | 写入路径 |
-|------|----------|---------|
-| `module` | `module` | `modules` 注册表中查到的路径；注册表为空则用 `ref` |
-| `architecture` | `architecture` | `library/architecture/<topic>.md` |
-| `decision` | `adr` | `library/decisions/ADR-NNN.md` |
-| `convention` | `convention` | `library/conventions/<topic>.md` |
+归档路径由文档的 `domain` 自动推导：
+
+| domain | 归档路径 | 含义 |
+|--------|---------|------|
+| `scope=system, type=design` | `library/architecture/<topic>.md` | 全系统架构设计 |
+| `scope=system, type=decision` | `library/decisions/<topic>.md` | 全系统架构决策 |
+| `scope=system, type=convention` | `library/conventions/<topic>.md` | 全系统编码约定 |
+| `scope=module, type=design` | `library/modules/<name>/` | 模块设计（写入 design 章节） |
+| `scope=module, type=decision` | `library/modules/<name>/` | 模块决策（写入 decisions 章节） |
+| `scope=module, type=convention` | `library/modules/<name>/` | 模块约定（写入 conventions 章节） |
 
 路径相对于当前 proposal 的 `<wikiRoot>`（阶段 1 输出）。`<wikiRoot>/` 前缀需要自行拼接。
 
 **3b. 加载写作指南**
 
-参照 `flowforge-docs` 获取该 doc_type 的写作指南。
+根据归档目标确定 `doc_type`，参照 `flowforge-docs` 获取写作指南：
+
+- `scope=system, type=design` → doc_type: `architecture`
+- `scope=system, type=decision` → doc_type: `adr`
+- `scope=system, type=convention` → doc_type: `convention`
+- `scope=module` → doc_type: `module`
 
 **3c. 提取并写入**
 
-- 对 `module` target：提取 design/ 中的模块设计和接口定义，合并到已有模块文档
-- 对 `architecture` target：提取架构决策和 Mermaid 图，写入 architecture 文档
-- 对 `decision` target：提取关键决策及理由，按 ADR 格式写入
-- 对 `convention` target：提取编码约定和反例，写入 convention 文档
+对每个分组，将该组的所有来源文档内容合并提取到目标文件：
 
-目标文件已存在时合并而非覆盖。
+- 目标文件已存在时**合并而非覆盖**——追加新内容到已有文档的对应章节
+- 同一个目标文件有多个来源文档时，按顺序合并
+- module 类型的归档，按 design/decision/convention 分别写入模块文档的不同章节
 
 ---
 

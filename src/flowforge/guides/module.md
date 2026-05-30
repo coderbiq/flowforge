@@ -31,5 +31,9 @@ title: <模块名称>
 status: active|deprecated
 module_name: <模块标识>
 module_status: active|deprecated
+domain:
+  scope: module
+  module: <模块标识>
+  type: design
 ---
 ```

@@ -48,6 +48,21 @@ if (frontmatter.updated && !isISODate(frontmatter.updated)) {
   errors.push(`updated 格式错误: ${frontmatter.updated}（期望 ISO-8601）`);
 }
 
+const domainOptionalTypes = ['proposal', 'task-map', 'notes', 'journal', 'intake'];
+if (frontmatter.domain) {
+  if (!frontmatter.domain.scope || !['system', 'module'].includes(frontmatter.domain.scope)) {
+    errors.push(`domain.scope 无效: ${frontmatter.domain.scope || '缺失'}`);
+  }
+  if (frontmatter.domain.scope === 'module' && !frontmatter.domain.module) {
+    errors.push('domain.scope=module 但缺少 domain.module');
+  }
+  if (!frontmatter.domain.type || !['design', 'decision', 'convention'].includes(frontmatter.domain.type)) {
+    errors.push(`domain.type 无效: ${frontmatter.domain.type || '缺失'}`);
+  }
+} else if (!domainOptionalTypes.includes(frontmatter.doc_type)) {
+  errors.push('缺少 domain 字段（可归档文档必须设置 domain）');
+}
+
 if (errors.length === 0) {
   console.log(`PASS: ${path.basename(docPath)} (doc_type: ${frontmatter.doc_type})`);
 } else {
@@ -59,9 +74,22 @@ function extractFrontmatter(text) {
   const m = text.match(/^---\n([\s\S]*?)\n---/);
   if (!m) return null;
   const result = {};
+  let currentKey = null;
+
   for (const line of m[1].split('\n')) {
+    const nested = line.match(/^\s{2}(\w+)\s*:\s*(.*)/);
+    if (nested && currentKey === 'domain') {
+      if (!result.domain) result.domain = {};
+      result.domain[nested[1]] = nested[2].trim().replace(/^["']|["']$/g, '');
+      continue;
+    }
     const kv = line.match(/^\s*([a-zA-Z_]+)\s*:\s*(.*)/);
-    if (kv) result[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
+    if (kv) {
+      currentKey = kv[1];
+      result[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
+    } else {
+      currentKey = null;
+    }
   }
   return result;
 }

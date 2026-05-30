@@ -29,5 +29,9 @@ doc_type: finding
 title: <发现标题>
 status: draft|active
 finding_id: F-NNN
+domain:
+  scope: system|module
+  module: <模块名>
+  type: design|decision|convention
 ---
 ```

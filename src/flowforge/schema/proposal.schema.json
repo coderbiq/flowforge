@@ -32,25 +32,11 @@
       "enum": ["small", "medium", "large"],
       "description": "提案规模，影响 design 文档的拆分方式"
     },
-    "ownership": {
+    "modules": {
       "type": "array",
-      "minItems": 1,
-      "description": "所有权标签，驱动 library 中的归档路由。至少一项 role: primary",
-      "items": {
-        "type": "object",
-        "required": ["type", "target", "role"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["module", "system", "cross-module", "convention", "decision"]
-          },
-          "target": { "type": "string", "description": "目标在 wiki 中的路径" },
-          "role": {
-            "type": "string",
-            "enum": ["primary", "secondary"]
-          }
-        }
-      }
+      "description": "涉及的模块名称列表，仅用于 INDEX.md 展示。每个元素为模块名（如 auth、payment）。",
+      "items": { "type": "string" },
+      "default": []
     },
     "source_explorations": {
       "type": "array",
@@ -67,26 +53,6 @@
       "type": "string",
       "maxLength": 100,
       "description": "最近一次工作单元的进度总结，由 flowforge-progress SKILL 在完成工作后自动写入，一句话描述"
-    },
-    "archive_targets": {
-      "type": "array",
-      "minItems": 1,
-      "description": "归档目标，与 ownership 一一对应",
-      "items": {
-        "type": "object",
-        "required": ["type", "ref"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["module", "architecture", "decision", "convention"]
-          },
-          "ref": { "type": "string", "description": "归档文件在 wiki 中的路径" },
-          "role": {
-            "type": "string",
-            "enum": ["primary", "secondary"]
-          }
-        }
-      }
     },
     "task_backend": {
       "type": "object",

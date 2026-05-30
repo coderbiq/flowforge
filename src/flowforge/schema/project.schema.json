@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "flowforge:project-config@v1",
   "title": "Project 配置",
-  "description": "单个 project 的配置文件，定义 wikiRoot、源码目录、模块注册表和扩展规则。每个 project 一个文件，由 config.yaml 的 projects[].config 引用。",
+  "description": "单个 project 的配置文件，定义 wikiRoot、源码目录和扩展规则。每个 project 一个文件，由 config.yaml 的 projects[].config 引用。",
   "type": "object",
   "required": ["wikiRoot", "rules"],
   "properties": {
@@ -25,23 +25,6 @@
       "description": "关键词列表。design SKILL 通过 intake/用户描述匹配关键词辅助判定 project 归属。",
       "items": { "type": "string" },
       "default": []
-    },
-    "modules": {
-      "type": "object",
-      "description": "该 project 的模块注册表，将模块名映射到 library 路径，用于 Agent 确定归档目标。路径相对于该 project 的 wikiRoot。",
-      "additionalProperties": {
-        "type": "object",
-        "required": ["path"],
-        "properties": {
-          "path": { "type": "string", "description": "模块在 wiki 中的路径" },
-          "aliases": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "模块的别名列表"
-          }
-        }
-      },
-      "default": {}
     },
     "rules": {
       "type": "object",
