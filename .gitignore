@@ -1,2 +1,4 @@
 .flowforge/
 .memory/
+package-lock.json
+node_modules/

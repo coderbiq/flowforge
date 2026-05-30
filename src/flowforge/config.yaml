@@ -1,72 +1,13 @@
 # FlowForge 项目配置
 # 安装后根据项目特点修改此文件
 
-project:
-  id: my-project
-  name: My Project
-
-wiki:
-  root: ff-wiki
-
-modules: {}
-# modules:
-#   my-module:
-#     path: library/modules/my-module/
-#     aliases: []
+projects:
+  - id: default
+    name: My Project
+    config: projects/default.yaml
 
 taskBackend:
   type: none
 
 memoryProvider:
   enabled: false
-
-rules:
-  # ── 读取 intake 时的分析步骤 ──
-  intake:
-    steps:
-      - id: understand-request
-        action: 理解用户的核心诉求和背景上下文
-      - id: identify-constraints
-        action: 识别技术约束、时间要求、已有系统限制
-      - id: determine-scope
-        action: 判断变更涉及的范围和影响面
-
-  # ── 探索策略 ──
-  exploration:
-    strategy: |
-      优先从 library 中查找已有知识和决策，避免重复探索；
-      然后检查当前代码库的相关模块；
-      最后才考虑外部资料搜索。
-
-
-  # ── 设计配置 ──
-  design:
-    naming:
-      proposal_id: "CR{YYMMDD}{NN}"
-      exploration_slug: "kebab-case"
-    task_rules:
-      fields:
-        - id
-        - title
-        - description
-        - deliverable
-        - dependencies
-      time_estimate: "2-5 分钟每个任务"
-
-  # ── 实施跟踪规则 ──
-  implement:
-    task_states:
-      - pending
-      - in_progress
-      - done
-      - blocked
-    notes:
-      fields:
-        - timestamp
-        - status
-        - summary
-
-  # ── 归档行为 ──
-  library:
-    requireReview: false
-    autoUpdateHistory: true

@@ -76,6 +76,18 @@ if [ "$MODE" = "upgrade" ]; then
   sync_managed "$SRC_DIR/flowforge/schema/" "$TARGET/.flowforge/schema/"
   info "脚本、schema 已更新"
 
+  # 同步 project 配置模板（只添加不覆盖）
+  if [ -d "$SRC_DIR/flowforge/projects" ]; then
+    mkdir -p "$TARGET/.flowforge/projects"
+    for proj in "$SRC_DIR/flowforge/projects/"*.yaml; do
+      name=$(basename "$proj")
+      if [ ! -f "$TARGET/.flowforge/projects/$name" ]; then
+        cp "$proj" "$TARGET/.flowforge/projects/"
+      fi
+    done
+    info "project 配置模板已同步"
+  fi
+
   # 指南：只添加不覆盖（项目可能定制过）
   for guide in "$SRC_DIR/flowforge/guides/"*.md; do
     name=$(basename "$guide")
