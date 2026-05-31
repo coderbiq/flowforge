@@ -203,6 +203,12 @@ if [ "$MODE" = "upgrade" ]; then
     sed -i.bak "s/^updated_at:.*/updated_at: \"$now\"/" "$meta_file"
     rm -f "${meta_file}.bak"
     info "meta.yaml 已更新 (version: 0.2, updated: $now)"
+  else
+    cp "$SRC_DIR/flowforge/meta.yaml" "$meta_file"
+    sed -i.bak "s/^installed_at:.*/installed_at: \"$now\"/" "$meta_file"
+    sed -i.bak "s/^updated_at:.*/updated_at: \"$now\"/" "$meta_file"
+    rm -f "${meta_file}.bak"
+    info "meta.yaml 已创建 (version: 0.2)"
   fi
 
   # 升级 beads（如果项目已配置 beads）
