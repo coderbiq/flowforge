@@ -43,4 +43,17 @@ function loadMeta(proposalDir) {
   return readYamlFile(metaPath);
 }
 
-module.exports = { readYamlFile, loadMainConfig, loadProjectConfig, getProjects, getProject, loadMeta };
+function findProposalDir(projectRoot, config, proposalId) {
+  if (!config || !config.projects) return null;
+  for (const ref of config.projects) {
+    const pc = loadProjectConfig(projectRoot, ref);
+    if (!pc) continue;
+    for (const sub of ['active', 'completed']) {
+      const cand = path.join(projectRoot, pc.wikiRoot, 'workspace', 'proposals', sub, proposalId);
+      if (fs.existsSync(cand)) return cand;
+    }
+  }
+  return null;
+}
+
+module.exports = { readYamlFile, loadMainConfig, loadProjectConfig, getProjects, getProject, loadMeta, findProposalDir };

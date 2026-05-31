@@ -77,12 +77,60 @@ if (meta) {
   if (meta.title) console.log(`标题: ${meta.title}`);
 }
 
-const taskMapPath = path.join(proposalLocation.proposalDir, 'task-map.md');
-if (fs.existsSync(taskMapPath)) {
-  console.log('\n### task-map.md\n');
-  console.log(fs.readFileSync(taskMapPath, 'utf8'));
+const taskMapYamlPath = path.join(proposalLocation.proposalDir, 'task-map.yaml');
+const taskMapMdPath = path.join(proposalLocation.proposalDir, 'task-map.md');
+if (fs.existsSync(taskMapYamlPath)) {
+  console.log('\n### task-map.yaml\n');
+  console.log(fs.readFileSync(taskMapYamlPath, 'utf8'));
+} else if (fs.existsSync(taskMapMdPath)) {
+  console.log('\n### task-map.md (旧格式)\n');
+  console.log(fs.readFileSync(taskMapMdPath, 'utf8'));
 } else {
-  console.log('\ntask-map.md: 不存在');
+  console.log('\ntask-map: 不存在');
+}
+
+if (config.taskBackend && config.taskBackend.adapter) {
+  const { createAdapter } = require('./lib/adapters');
+  const adapter = createAdapter(config, projectRoot);
+  const caps = adapter.getCapabilities();
+  console.log('\n## Task Backend\n');
+  console.log(`adapter: ${config.taskBackend.adapter}`);
+
+  if (config.taskBackend.adapter === 'beads') {
+    try {
+      const { execSync } = require('child_process');
+      const syncScript = path.join(__dirname, 'task-sync.js');
+      const meta = loadMeta(proposalLocation.proposalDir);
+      const pid = meta ? meta.id : null;
+      if (pid) {
+        const checkResult = execSync(
+          `node "${syncScript}" "${projectRoot}" "${pid}" --check`,
+          { encoding: 'utf8', stdio: 'pipe', timeout: 8000 }
+        );
+        const parsed = JSON.parse(checkResult);
+        if (parsed.issues && parsed.issues.length > 0) {
+          console.log(`sync: ${parsed.issues.length} 处不一致`);
+          for (const issue of parsed.issues) {
+            console.log(`  - ${issue}`);
+          }
+          console.log(`修复: node scripts/task-sync.js <root> ${pid}`);
+        } else {
+          console.log('sync: 数据一致');
+        }
+      }
+    } catch (e) {
+      if (e.stdout) {
+        try {
+          const parsed = JSON.parse(e.stdout.toString());
+          if (parsed.issues && parsed.issues.length > 0) {
+            console.log(`sync: ${parsed.issues.length} 处不一致（运行 task-sync.js 修复）`);
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  console.log('');
 }
 
 const notesPath = path.join(proposalLocation.proposalDir, 'notes.md');

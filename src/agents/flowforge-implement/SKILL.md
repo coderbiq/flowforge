@@ -36,30 +36,56 @@ description: |
 
 - `## Implement Rules`（task_states、notes.fields）
 - `## Task Rules`（fields、time_estimate）
-- `## Current Proposal`（路径、project、wikiRoot、task-map.md 全文、notes.md 全文）
+- `## Current Proposal`（路径、project、wikiRoot、task-map 全文、notes.md 全文）
 
 如果找不到活跃状态的 proposal，提示用户先在 design SKILL 中将 proposal 状态设为 `active`。
+
+获取增强上下文（跨 session 状态恢复）：
+
+```bash
+node scripts/task-context.js <projectRoot> <CR-id>
+```
 
 ---
 
 ### 阶段 2：确定当前任务
 
-从 `task-map.md` 中寻找下一个可执行的任务：
-- 检查每个任务的 `dependencies`——只选择依赖项已全部完成的任务
-- 优先选择上一个 session 中未完成的任务（状态为 `task_states` 中的"进行中"状态）
-- 如果没有进行中的，选择第一个状态为"待开始"且依赖已满足的任务
+查询就绪任务：
 
-一次只执行一个任务。完成后回到本阶段选择下一个。
+```bash
+node scripts/task-ready.js <projectRoot> <CR-id>
+```
+
+输出 JSON 数组，包含所有依赖已满足的 pending 任务。
+
+选择策略：优先 `status` 为 `in_progress` 的任务（断点续传），其次选第一个就绪任务。
+
+选择后认领任务：
+
+```bash
+node scripts/task-claim.js <projectRoot> <CR-id> <taskId>
+```
+
+输出 `claimed: true` 表示认领成功；`claimed: false` 且 `conflict` 不为空表示已被他人认领，需换一个任务。
 
 ---
 
 ### 阶段 3：执行任务
 
-1. 将选中任务的状态更新为 `task_states` 中表示"进行中"的状态
-2. 按 task-map 中的 `description` 执行任务
-3. 任务完成后，将状态更新为 `task_states` 中表示"完成"的状态
+1. 按 task-map 中的 `description` 执行实际编码工作
+2. 完成后运行：
 
-如果执行中遇到阻塞，将状态更新为 `task_states` 中表示"阻塞"的状态，并说明原因。
+```bash
+node scripts/task-done.js <projectRoot> <CR-id> <taskId> "<完成摘要>"
+```
+
+阻塞时运行：
+
+```bash
+node scripts/task-block.js <projectRoot> <CR-id> <taskId> "<阻塞原因>"
+```
+
+所有任务状态变更通过脚本完成。Agent 不直接编辑 task-map.yaml。
 
 ---
 
@@ -73,9 +99,20 @@ description: |
 
 ### 阶段 5：判断下一步
 
+查看整体进度：
+
+```bash
+node scripts/task-status.js <projectRoot> <CR-id>
+```
+
 - 还有未完成的任务 → 回到阶段 2 继续
 - 所有任务完成 → 更新 `meta.yaml` 的 `status` 为 `implemented`
-- 如果在执行中发现设计缺陷 → 停止执行，将问题路由给 `flowforge-design`，说明需要修正的设计点
+- 如果在执行中发现设计缺陷 → 停止执行，说明缺陷所在的任务和需要修正的设计点，路由给 `flowforge-design`
+- 执行中发现新任务，通过脚本记录：
+
+```bash
+node scripts/task-discover.js <projectRoot> <CR-id> <parentTaskId> "<标题>" "<描述>"
+```
 
 ---
 
@@ -83,7 +120,15 @@ description: |
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/implement-context.js` | 遍历所有 project 查找提案，加载对应 project 的规则和任务文件 |
+| `scripts/implement-context.js` | 加载 implement rules、task-map 和 proposal 信息 |
+| `scripts/task-context.js <root> <id>` | 获取增强上下文（跨 session 恢复） |
+| `scripts/task-ready.js <root> <id>` | 查询就绪任务 |
+| `scripts/task-claim.js <root> <id> <taskId>` | 认领任务 |
+| `scripts/task-done.js <root> <id> <taskId> [summary]` | 完成任务 |
+| `scripts/task-block.js <root> <id> <taskId> [reason]` | 阻塞任务 |
+| `scripts/task-status.js <root> <id>` | 查看整体进度 |
+| `scripts/task-discover.js <root> <id> <parentId> <title> [desc]` | 记录执行中发现的新任务 |
+| `scripts/task-sync.js <root> <id> [--from yaml|beads]` | 数据对账：修复 task-map.yaml 与后端不一致 |
 
 ## 引用的 SKILL
 

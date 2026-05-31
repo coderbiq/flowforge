@@ -7,7 +7,7 @@ projects:
     config: projects/default.yaml
 
 taskBackend:
-  type: none
+  adapter: yaml
 
 memoryProvider:
   enabled: false

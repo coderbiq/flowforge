@@ -32,16 +32,13 @@
     },
     "taskBackend": {
       "type": "object",
-      "description": "任务跟踪后端配置（全局）",
+      "description": "任务存储适配器配置（全局）。adapter 决定 SKILL 通过脚本操作任务时使用哪个存储后端。",
       "properties": {
-        "type": {
+        "adapter": {
           "type": "string",
-          "enum": ["beads", "github", "linear", "jira", "none"],
-          "default": "none"
-        },
-        "config": {
-          "type": "object",
-          "description": "后端特定的配置参数"
+          "enum": ["yaml", "beads"],
+          "default": "yaml",
+          "description": "任务存储适配器。yaml=纯 task-map.yaml 文件；beads=Beads 增强（双写 task-map.yaml + beads，查询优先 beads）"
         }
       }
     },

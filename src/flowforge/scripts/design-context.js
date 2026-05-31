@@ -177,8 +177,16 @@ if (proposalLocation) {
     if (meta.status) console.log(`状态: ${meta.status}`);
     if (meta.title) console.log(`标题: ${meta.title}`);
   }
-  const taskMap = path.join(proposalLocation.proposalDir, 'task-map.md');
-  if (fs.existsSync(taskMap)) console.log('task-map: 已有');
+  const taskMapYaml = path.join(proposalLocation.proposalDir, 'task-map.yaml');
+  const taskMapMd = path.join(proposalLocation.proposalDir, 'task-map.md');
+  if (fs.existsSync(taskMapYaml)) console.log('task-map: 已有 (yaml)');
+  else if (fs.existsSync(taskMapMd)) console.log('task-map: 已有 (md, 旧格式)');
+}
+
+if (config.taskBackend && config.taskBackend.adapter && config.taskBackend.adapter !== 'yaml') {
+  console.log('\n## Task Backend\n');
+  console.log(`adapter: ${config.taskBackend.adapter}`);
+  console.log('任务创建/查询/更新将通过脚本调用存储层，Agent 无需直接操作 task-map 文件。');
 }
 
 function outputIntakeSteps(intakeRules) {

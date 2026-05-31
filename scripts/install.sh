@@ -6,7 +6,7 @@
 #   ./scripts/install.sh <目标项目路径>          安装
 #   ./scripts/install.sh upgrade <目标项目路径>   升级
 #
-# 安装：首次部署 FlowForge 到目标项目。
+# 安装：首次部署 FlowForge 到目标项目，同步安装并初始化 beads。
 # 升级：更新托管文件（SKILL、脚本、指南、schema），保留项目自有文件。
 #
 
@@ -50,6 +50,83 @@ sync_managed() {
   local target="$2"
   mkdir -p "$target"
   rsync -a --delete "$source"/ "$target"/
+}
+
+# 安装并初始化 beads
+setup_beads() {
+  local target="$1"
+  local mode="${2:-install}"
+
+  echo ""
+  echo "── Beads 任务追踪 ──"
+
+  # 检查 bd 是否已安装
+  if command -v bd &>/dev/null; then
+    local bd_version
+    bd_version=$(bd version 2>/dev/null | head -1 || echo "unknown")
+    info "bd 已安装 ($bd_version)"
+  else
+    info "bd 未安装，尝试自动安装..."
+
+    local installed=false
+
+    # 优先尝试 npm（跨平台最通用）
+    if command -v npm &>/dev/null; then
+      if npm install -g @beads/bd 2>/dev/null; then
+        info "通过 npm 安装 bd 成功"
+        installed=true
+      fi
+    fi
+
+    # 其次 Homebrew
+    if [ "$installed" = false ] && command -v brew &>/dev/null; then
+      if brew install beads 2>/dev/null; then
+        info "通过 Homebrew 安装 bd 成功"
+        installed=true
+      fi
+    fi
+
+    # 最后 go install
+    if [ "$installed" = false ] && command -v go &>/dev/null; then
+      if go install github.com/steveyegge/beads/cmd/bd@latest 2>/dev/null; then
+        info "通过 go install 安装 bd 成功"
+        installed=true
+      fi
+    fi
+
+    if [ "$installed" = false ]; then
+      warn "bd 自动安装失败。可手动安装后运行: cd $target && bd init"
+      warn "安装方式: npm install -g @beads/bd  或  brew install beads"
+      return
+    fi
+  fi
+
+  # 初始化 beads（如果尚未初始化）
+  if [ -f "$target/.beads/config.yaml" ]; then
+    info ".beads/ 已存在，跳过初始化"
+  else
+    if (cd "$target" && bd init --stealth 2>/dev/null); then
+      info "beads 已初始化 (.beads/)"
+    elif (cd "$target" && bd init 2>/dev/null); then
+      info "beads 已初始化 (.beads/)"
+    else
+      warn "bd init 失败，可稍后手动运行: cd $target && bd init"
+      return
+    fi
+  fi
+
+  # 安装模式下，自动将 config.yaml 的 adapter 设为 beads
+  if [ "$mode" = "install" ]; then
+    local config_file="$target/.flowforge/config.yaml"
+    if [ -f "$config_file" ]; then
+      # 替换 adapter: yaml → adapter: beads
+      if grep -q "adapter: yaml" "$config_file" 2>/dev/null; then
+        sed -i.bak 's/adapter: yaml/adapter: beads/' "$config_file"
+        rm -f "${config_file}.bak"
+        info "config.yaml: taskBackend.adapter 已设为 beads"
+      fi
+    fi
+  fi
 }
 
 if [ "$MODE" = "upgrade" ]; then
@@ -118,6 +195,19 @@ if [ "$MODE" = "upgrade" ]; then
   mkdir -p "$TARGET/ff-wiki/library/modules"
   info "Wiki 目录结构已确保存在（含 active/completed 子目录）"
 
+  # 更新版本元数据
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  meta_file="$TARGET/.flowforge/meta.yaml"
+  if [ -f "$meta_file" ]; then
+    sed -i.bak "s/^version:.*/version: \"0.2\"/" "$meta_file"
+    sed -i.bak "s/^updated_at:.*/updated_at: \"$now\"/" "$meta_file"
+    rm -f "${meta_file}.bak"
+    info "meta.yaml 已更新 (version: 0.2, updated: $now)"
+  fi
+
+  # 升级 beads（如果项目已配置 beads）
+  setup_beads "$TARGET" "upgrade"
+
   echo ""
   info "FlowForge 升级完成"
   echo "  目标: $TARGET"
@@ -159,6 +249,19 @@ else
   else
     cp "$SRC_DIR/AGENTS.md" "$TARGET/AGENTS.md"
     info "AGENTS.md 已创建"
+  fi
+
+  # 安装并初始化 beads
+  setup_beads "$TARGET" "install"
+
+  # 写入安装时间戳
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  meta_file="$TARGET/.flowforge/meta.yaml"
+  if [ -f "$meta_file" ]; then
+    sed -i.bak "s/^installed_at:.*/installed_at: \"$now\"/" "$meta_file"
+    sed -i.bak "s/^updated_at:.*/updated_at: \"$now\"/" "$meta_file"
+    rm -f "${meta_file}.bak"
+    info "meta.yaml 安装时间: $now"
   fi
 
   echo ""

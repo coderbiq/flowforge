@@ -200,11 +200,41 @@ proposal 创建完成后，运行 `scripts/validate-proposal.js <proposal路径>
 
 ### 阶段 7：拆分任务
 
-将设计方案拆分为可执行任务，写入 `task-map.md`。
+**首次拆分**（task-map.yaml 不存在）：
 
-按 `task_rules.fields` 定义每个任务的字段结构，每个任务耗时控制在 `time_estimate` 范围内。
+将设计方案拆分为可执行任务，写入 `task-map.yaml`（格式见 `flowforge-docs` 的 task-map 指南）。
 
-拆分原则：每个任务产出可独立验证，按依赖关系排序。
+每个任务包含字段：`id`、`title`、`description`、`deliverable`、`dependencies`、`status`（初始 `pending`）。
+
+每个任务耗时控制在 `time_estimate` 范围内，按依赖关系排序。
+
+写入完成后运行脚本创建任务：
+
+```bash
+node scripts/task-create.js <projectRoot> <CR-id>
+```
+
+**回退修改**（从 implement 回退，task-map.yaml 已存在）：
+
+部分任务可能已执行（status 为 done 或 in_progress），部分尚未开始。根据修改后的设计方案，调整任务列表：
+
+1. 检查当前 task-map.yaml 中已完成的任务是否仍然有效。已完成的任务不应回退为 pending——它们已完成，修改方案应基于已有成果继续推进。
+
+2. 标记需要废弃的任务（方案调整后不再需要的任务）：
+
+```bash
+node scripts/task-cancel.js <projectRoot> <CR-id> <taskId> "<废弃原因>"
+```
+
+3. 新增任务，每个单独创建，依赖字段关联到已有任务：
+
+```bash
+node scripts/task-add.js <projectRoot> <CR-id> "<标题>" "<描述>" <依赖任务id> <依赖任务id> ...
+```
+
+新增任务的依赖关系应考虑：被替代任务的原有依赖需继承、新方案引入的前置任务需声明。
+
+4. 完成后通过 `flowforge-progress` 更新状态摘要。
 
 ---
 
@@ -212,10 +242,13 @@ proposal 创建完成后，运行 `scripts/validate-proposal.js <proposal路径>
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/design-context.js` | 加载 projects 列表、intake、naming、当前 proposal 状态（含已锁定的 project/wikiRoot） |
+| `scripts/design-context.js` | 加载 projects 列表、intake、naming、当前 proposal 状态 |
+| `scripts/task-create.js <root> <id>` | 首次拆分：批量创建全部任务 |
+| `scripts/task-add.js <root> <id> <title> <desc> [depIds...]` | 回退修改：增量添加单个任务 |
+| `scripts/task-cancel.js <root> <id> <taskId> [reason]` | 回退修改：废弃不再需要的任务 |
 
 ## 引用的 SKILL
 
 | SKILL | 引用场景 |
 |-------|---------|
-| `flowforge-docs` | 创建文档时获取 frontmatter 契约、meta.yaml 字段约束 |
+| `flowforge-docs` | 创建文档时获取 frontmatter 契约、meta.yaml 字段约束、task-map 格式 |
