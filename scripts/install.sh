@@ -197,18 +197,19 @@ if [ "$MODE" = "upgrade" ]; then
 
   # 更新版本元数据
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  src_version=$(grep '^version:' "$SRC_DIR/flowforge/meta.yaml" | sed 's/version: *//' | tr -d '"')
   meta_file="$TARGET/.flowforge/meta.yaml"
   if [ -f "$meta_file" ]; then
-    sed -i.bak "s/^version:.*/version: \"0.2\"/" "$meta_file"
+    sed -i.bak "s/^version:.*/version: $src_version/" "$meta_file"
     sed -i.bak "s/^updated_at:.*/updated_at: \"$now\"/" "$meta_file"
     rm -f "${meta_file}.bak"
-    info "meta.yaml 已更新 (version: 0.2, updated: $now)"
+    info "meta.yaml 已更新 (version: $src_version, updated: $now)"
   else
     cp "$SRC_DIR/flowforge/meta.yaml" "$meta_file"
     sed -i.bak "s/^installed_at:.*/installed_at: \"$now\"/" "$meta_file"
     sed -i.bak "s/^updated_at:.*/updated_at: \"$now\"/" "$meta_file"
     rm -f "${meta_file}.bak"
-    info "meta.yaml 已创建 (version: 0.2)"
+    info "meta.yaml 已创建 (version: $src_version)"
   fi
 
   # 升级 beads（如果项目已配置 beads）
