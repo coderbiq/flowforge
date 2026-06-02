@@ -14,6 +14,7 @@ description: |
   - proposal 状态为 draft（尚未进入实施）或 archived/rejected（已完成）
   - 需要修改设计——应交给 flowforge-design
   - 用户要求归档已完成的方案——应交给 flowforge-archive
+  - 测试失败或发现新认知需要结构化捕获——先激活 flowforge-feedback 分类和路由，不要直接把 bug/finding 写入 notes.md 或 task-map
 ---
 
 # FlowForge Implement

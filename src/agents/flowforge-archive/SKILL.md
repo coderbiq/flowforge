@@ -13,6 +13,7 @@ description: |
   - proposal 状态尚未到 implemented（需要先完成实施）
   - 仅是查阅 library 中的已有知识
   - 用于更新进度索引——那是 flowforge-progress 的职责
+  - notes.md 中有 `note_kind: knowledge` 的记录等待提取到 library——先激活 flowforge-feedback 确认是否需要单独沉淀
 ---
 
 # FlowForge Archive
@@ -42,6 +43,8 @@ description: |
 运行 `scripts/validate-proposal.js <proposal路径>`。校验失败不允许继续。
 
 如果所有文档都没有 `domain` 字段（`## 归档目标` 为空），检查 proposal 内容，对可归档的文档建议 domain 值，让用户确认后再继续。
+
+**检查待提取的 knowledge**：审查 `notes.md` 中是否有 `note_kind: knowledge` 的记录。如有，这些是在实施阶段由 `flowforge-feedback` 标记的待提取知识——按 domain 路由将其提取到对应的 library 目录。
 
 ---
 

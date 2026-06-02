@@ -28,6 +28,10 @@ workspace/explorations/<slug>/
 
 探索得出的结论、置信度（high / medium / low）和后续建议。如果探索发现了新的待解决问题，在这里列出来。
 
+### 后续发现
+
+exploration 不是一次性的。在后续的实施阶段，`flowforge-feedback` 可能会向 `findings/` 或 `decisions/` 追加新的发现。这些后续发现通过 `source: implementation` 标注来源，与前期的探索发现共存于同一 exploration 目录下。如果 exploration 状态为 `archived`，新发现写入时会自动将其改回 `active`。
+
 ## Frontmatter
 
 ```yaml

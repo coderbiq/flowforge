@@ -21,6 +21,18 @@
 - 文档引用（如 `ff-wiki/library/modules/auth/design.md`）
 - 外部资料链接
 
+## source 字段
+
+`source` 标注发现的来源阶段：
+
+| source 值 | 含义 |
+|-----------|------|
+| `exploration` | 在设计阶段的探索中发现 |
+| `implementation` | 在实施/测试阶段发现（由 flowforge-feedback 写入） |
+| `review` | 在代码审查中发现 |
+
+`source: implementation` 的 finding 必须同时写入 `source_proposal` 字段，记录发现来源的 proposal ID。
+
 ## Frontmatter
 
 ```yaml
@@ -29,6 +41,8 @@ doc_type: finding
 title: <发现标题>
 status: draft|active
 finding_id: F-NNN
+source: exploration|implementation|review
+source_proposal: <CR-id>  # source=implementation 时必填
 domain:
   scope: system|module
   module: <模块名>

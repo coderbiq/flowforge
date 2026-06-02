@@ -15,6 +15,7 @@ description: |
   - 用户在执行 task-map 中的任务（应交给 flowforge-implement）
   - 用户要求归档或沉淀（应交给 flowforge-archive）
   - 仅用于更新进度索引——那是 flowforge-progress 的职责
+  - 实施中发现需要补充探索内容——由 flowforge-feedback 结构化捕获后路由，不要直接激活本 SKILL 写 findings
 ---
 
 # FlowForge Design
