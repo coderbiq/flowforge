@@ -27,6 +27,17 @@ async function main() {
     process.exit(0);
   }
 
+  // 先同步 beads 状态到 YAML（beads 中已关闭的任务可能没更新 YAML）
+  const adapterType = config.taskBackend?.adapter || 'yaml';
+  if (adapterType === 'beads') {
+    try {
+      const syncResult = await adapter.sync(proposalDir, 'beads-to-yaml');
+      if (syncResult.summary && syncResult.summary.updated > 0) {
+        console.log(JSON.stringify({ sync: `updated ${syncResult.summary.updated} tasks from beads` }));
+      }
+    } catch (_) { /* sync 失败不阻塞，继续 YAML 检查 */ }
+  }
+
   const result = await adapter.cleanup(proposalDir);
   console.log(JSON.stringify(result));
 

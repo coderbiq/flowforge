@@ -29,7 +29,7 @@
     "rules": {
       "type": "object",
       "description": "该 project 的规则配置。每个 SKILL 通过 strategy 字段接收项目级的行为指导文本。",
-      "required": ["intake", "exploration", "design", "implement", "archive", "feedback", "library"],
+      "required": ["intake", "design", "implement", "archive", "feedback", "library"],
       "properties": {
         "intake": {
           "type": "object",
@@ -41,26 +41,16 @@
             }
           }
         },
-        "exploration": {
-          "type": "object",
-          "properties": {
-            "strategy": {
-              "type": "string",
-              "description": "指导 Agent 如何探索代码库和知识的文本策略"
-            }
-          }
-        },
         "design": {
           "type": "object",
           "required": ["naming", "task_rules"],
           "properties": {
             "naming": {
               "type": "object",
-              "required": ["proposal_id", "exploration_slug"],
-              "properties": {
-                "proposal_id": { "type": "string" },
-                "exploration_slug": { "type": "string" }
-              }
+            "required": ["proposal_id"],
+            "properties": {
+              "proposal_id": { "type": "string" }
+            }
             },
             "task_rules": {
               "type": "object",

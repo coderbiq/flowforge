@@ -129,7 +129,7 @@ if (fs.existsSync(notesPath)) {
         console.log(`  domain: { scope: ${entry.domain.scope}${entry.domain.module ? ', module: ' + entry.domain.module : ''}, type: ${entry.domain.type} }`);
       }
     }
-    console.log(`\n共 ${knowledgeEntries.length} 条记录待归档时提取到 library。`);
+  console.log(`\n共 ${knowledgeEntries.length} 条记录待归档时提取到 library。`);
   }
 }
 

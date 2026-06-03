@@ -16,7 +16,7 @@
 |-----------|------|---------|---------|
 | `progress` | `时间 \| 状态 \| 摘要` | 常规任务进度记录 | flowforge-progress 刷新索引 |
 | `bug` | `时间 \| bug \| 标题` + 根因/影响/处置 | 实施中发现实现级 bug | flowforge-feedback 创建修复任务 |
-| `finding` | `时间 \| finding \| 标题` + 发现/证据 | 实施中发现的代码库新认知 | flowforge-feedback 写入 exploration findings |
+| `finding` | `时间 \| finding \| 标题` + 发现/证据 | 实施中发现的代码库新认知 | flowforge-feedback 写入 library |
 | `knowledge` | `时间 \| knowledge \| 标题` + 内容 | 值得沉淀的通用技术知识 | flowforge-archive 提取到 library |
 | `blocked` | `时间 \| blocked \| 阻塞原因` | 任务因外部原因无法继续 | flowforge-feedback 判断是否需要回流 |
 

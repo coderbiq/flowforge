@@ -136,49 +136,43 @@ if (fs.existsSync(notesPath)) {
   console.log('notes.md 不存在\n');
 }
 
-// 关联的 explorations
-console.log('## Associated Explorations\n');
+// 关联的 library 文档
+console.log('## Related Library Documents\n');
 const wikiRoot = path.join(projectRoot, proposalLocation.wikiRoot);
-const explorationsDir = path.join(wikiRoot, 'workspace', 'explorations');
+const libDir = path.join(wikiRoot, 'library');
 
-if (meta && meta.source_explorations && meta.source_explorations.length > 0) {
-  for (const src of meta.source_explorations) {
-    const expDir = path.join(explorationsDir, src.ref);
-    if (fs.existsSync(expDir)) {
-      const findingsDir = path.join(expDir, 'findings');
-      const decisionsDir = path.join(expDir, 'decisions');
-      const findings = fs.existsSync(findingsDir)
-        ? fs.readdirSync(findingsDir).filter(f => f.endsWith('.md'))
-        : [];
-      const decisions = fs.existsSync(decisionsDir)
-        ? fs.readdirSync(decisionsDir).filter(f => f.endsWith('.md'))
-        : [];
-      console.log(`- ${src.ref}`);
-      console.log(`  findings: ${findings.length > 0 ? findings.join(', ') : '(空)'}`);
-      console.log(`  decisions: ${decisions.length > 0 ? decisions.join(', ') : '(空)'}`);
+if (fs.existsSync(libDir)) {
+  const modules = meta && meta.modules ? meta.modules : [];
+  const libModulesDir = path.join(libDir, 'modules');
+
+  for (const mod of modules) {
+    const modDir = path.join(libModulesDir, mod);
+    if (fs.existsSync(modDir)) {
+      const modFiles = fs.readdirSync(modDir, { recursive: true })
+        .filter(f => f.endsWith('.md'))
+        .map(f => `modules/${mod}/${f}`);
+      console.log(`- modules/${mod}/ 已有文档: ${modFiles.length > 0 ? modFiles.join(', ') : '(空)'}`);
     } else {
-      console.log(`- ${src.ref} (目录不存在)`);
+      console.log(`- modules/${mod}/ (目录不存在，新发现将写入此路径)`);
     }
   }
-}
 
-// 如果没有关联 exploration，检查是否有匹配的
-if (!meta || !meta.source_explorations || meta.source_explorations.length === 0) {
-  if (fs.existsSync(explorationsDir)) {
-    const allExplorations = fs.readdirSync(explorationsDir, { withFileTypes: true })
-      .filter(d => d.isDirectory());
-    if (allExplorations.length > 0) {
-      console.log('无关联 exploration，但 workspace/explorations/ 下存在以下目录：');
-      for (const exp of allExplorations) {
-        console.log(`  - ${exp.name}`);
+  // 列出 library 顶层目录
+  for (const sub of ['architecture', 'decisions', 'conventions']) {
+    const subDir = path.join(libDir, sub);
+    if (fs.existsSync(subDir)) {
+      const files = fs.readdirSync(subDir).filter(f => f.endsWith('.md'));
+      if (files.length > 0) {
+        console.log(`- ${sub}/ 已有 ${files.length} 个文档`);
       }
-      console.log('如需关联，在 meta.yaml 的 source_explorations 中添加引用。');
-    } else {
-      console.log('无关联 exploration，workspace/explorations/ 下也无现有目录。');
     }
-  } else {
-    console.log('无关联 exploration。');
   }
+
+  if (modules.length === 0) {
+    console.log('(无关联模块，系统级发现将写入 library/architecture/)');
+  }
+} else {
+  console.log('library/ 目录不存在，新发现将自动创建。');
 }
 console.log('');
 

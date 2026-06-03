@@ -258,7 +258,6 @@ if [ "$MODE" = "upgrade" ]; then
 
   # 确保 wiki 目录存在（包含 active/completed 子目录结构）
   mkdir -p "$TARGET/ff-wiki/workspace/intake"
-  mkdir -p "$TARGET/ff-wiki/workspace/explorations"
   mkdir -p "$TARGET/ff-wiki/workspace/proposals/active"
   mkdir -p "$TARGET/ff-wiki/workspace/proposals/completed"
   mkdir -p "$TARGET/ff-wiki/library/architecture"
@@ -312,7 +311,6 @@ else
   info "FlowForge 核心已部署到 .flowforge/"
 
   mkdir -p "$TARGET/ff-wiki/workspace/intake"
-  mkdir -p "$TARGET/ff-wiki/workspace/explorations"
   mkdir -p "$TARGET/ff-wiki/workspace/proposals"
   mkdir -p "$TARGET/ff-wiki/library/architecture"
   mkdir -p "$TARGET/ff-wiki/library/conventions"

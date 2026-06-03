@@ -16,13 +16,13 @@ rules:
   exploration:
     strategy: |
       优先从 library 中查找已有知识和决策，避免重复探索；
-      然后检查当前代码库的相关模块；
-      最后才考虑外部资料搜索。
+      发现的系统架构事实直接写入 library/architecture/；
+      发现的模块设计事实直接写入 library/modules/<name>/；
+      每个发现携带 domain frontmatter 标注归属。
 
   design:
     naming:
       proposal_id: "CR{YYMMDD}{NN}"
-      exploration_slug: "kebab-case"
     task_rules:
       fields:
         - id
@@ -62,7 +62,7 @@ rules:
     strategy: |
       测试失败或发现新认知时先判断类型再回流；
       bug 类发现优先创建修复任务（不阻塞当前提案进度）；
-      finding 类发现优先回流到关联的 exploration findings/；
+      finding 类发现直接写入 library 对应路径；
       knowledge 类发现标记后等待归档时统一提取。
 
   library:

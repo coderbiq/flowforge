@@ -2,11 +2,13 @@
 
 ## 位置
 
-`workspace/explorations/<slug>/findings/`
+`library/` 下对应路径：
+- 模块级发现：`library/modules/<name>/findings/<topic>.md`
+- 系统级发现：`library/architecture/<topic>.md`
 
 ## 结构（单文件）
 
-每个 finding 是一个独立的 `.md` 文件，命名 `F-NNN.md`。
+每个 finding 是一个独立的 `.md` 文件，文件名用 kebab-case 描述主题。
 
 ## 章节
 
@@ -27,7 +29,6 @@
 
 | source 值 | 含义 |
 |-----------|------|
-| `exploration` | 在设计阶段的探索中发现 |
 | `implementation` | 在实施/测试阶段发现（由 flowforge-feedback 写入） |
 | `review` | 在代码审查中发现 |
 
@@ -39,9 +40,8 @@
 ---
 doc_type: finding
 title: <发现标题>
-status: draft|active
-finding_id: F-NNN
-source: exploration|implementation|review
+status: active
+source: implementation|review
 source_proposal: <CR-id>  # source=implementation 时必填
 domain:
   scope: system|module

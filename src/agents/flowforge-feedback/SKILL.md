@@ -2,11 +2,11 @@
 name: flowforge-feedback
 description: |
   FlowForge 发现反馈引擎。在实施/测试过程中发现问题或新认知时激活，
-  结构化捕获发现并将其路由回 proposal、exploration 或 library。
+  结构化捕获发现并将其路由回 proposal 或 library。
 
   必须在以下场景激活：
   - 实施中测试失败、行为不符合预期、发现代码库的意外限制或行为
-  - task-block 被调用后，需要将阻塞原因结构化记录到 exploration
+  - task-block 被调用后，需要将阻塞原因结构化记录
   - 用户说"这里有问题"、"不对"、"应该是..."、"发现了 bug"
   - 用户说"测试没通过"、"验证失败了"、"实际行为和预期不一样"
   - notes.md 中有 blocked 记录但尚未被结构化消费
@@ -24,7 +24,7 @@ description: |
 
 # FlowForge Feedback
 
-负责在实施/测试过程中捕获发现，并将其结构化回流到 proposal、exploration 或 library。
+负责在实施/测试过程中捕获发现，并将其结构化回流到 proposal 或 library。
 
 ## 工作流
 
@@ -41,7 +41,7 @@ description: |
 - `## Feedback Strategy`（指导 Agent 如何判决反馈是否值得回流的项目级策略，如存在）
 - `## Current Proposal`（路径、project、wikiRoot、状态）
 - `## Blocked Tasks`（被阻塞的任务及原因）
-- `## Associated Explorations`（通过 meta.yaml source_explorations 关联的探索目录）
+- `## Related Library Documents`（与当前 proposal 关联的 library 文档）
 - `## Notes Summary`（notes.md 中近期的 blocked 和问题记录）
 - `## Suggested Feedback Items`（基于上下文自动推断的可能需要回流的发现）
 
@@ -70,7 +70,7 @@ description: |
 | 类型 | 判定标准 | 目标 artifact |
 |------|---------|--------------|
 | `bug` | 实现代码错误，设计本身没问题。应该修复，不需要改设计方案 | notes.md（结构化 bug 记录）+ task-map（新修复任务） |
-| `finding` | 对代码库或依赖的新认知（库行为、性能特征、边缘情况、接口限制），这些认知对未来的设计/实施有价值 | exploration findings/（新建或追加到已有 exploration） |
+| `finding` | 对代码库或依赖的新认知（库行为、性能特征、边缘情况、接口限制），这些认知对未来的设计/实施有价值 | 直接写入 library/ 对应路径（模块级 → library/modules/<name>/，系统级 → library/architecture/） |
 | `knowledge` | 通用技术知识，不限于当前 proposal。值得沉淀到 library 供未来参考 | notes.md（标记 knowledge）+ 后续 archive 时提取到 library |
 | `missing-requirement` | 设计阶段遗漏的需求或场景，需要补充探索和设计 | proposal.md + 交由 flowforge-design 补充设计 |
 | `design-flaw` | 设计方案本身存在缺陷，当前方案不可行或需要重大调整 | design/ 文档 + 交由 flowforge-design 修改方案 |
@@ -90,7 +90,7 @@ node scripts/feedback-capture.js <projectRoot> <CR-id> <type> <title> "<content>
 | type | 写入行为 |
 |------|---------|
 | `bug` | 在 notes.md 追加结构化 bug 记录（含 `note_kind: bug`、根因、影响范围、处置方案），同时调用 task-discover.js 创建修复任务 |
-| `finding` | 在关联的 exploration findings/ 目录下创建 `F-NNN.md`，包含发现描述、证据、来源标注（`source: implementation`） |
+| `finding` | 直接写入 library/：根据 proposal 的 module 推断 domain → 写入 `library/modules/<name>/findings/` 或 `library/architecture/` |
 | `knowledge` | 在 notes.md 追加 `note_kind: knowledge` 记录，标记为待 archive 提取 |
 | `missing-requirement` | 输出路由指引到 stdout，提示应激活 flowforge-design 补充设计 |
 | `design-flaw` | 输出路由指引到 stdout，提示应激活 flowforge-design 修改方案 |
@@ -98,7 +98,6 @@ node scripts/feedback-capture.js <projectRoot> <CR-id> <type> <title> "<content>
 **写入原则**：
 - 参照 `flowforge-docs` 获取对应 doc_type 的写作指南和 frontmatter 契约
 - 写完运行 `scripts/validate-doc.js <路径>` 确保 frontmatter 正确
-- finding 类型需先确定写入哪个 exploration 目录（优先选择关联 exploration，无关联时建议创建新 exploration 并提醒用户）
 
 ---
 
@@ -110,8 +109,7 @@ node scripts/feedback-capture.js <projectRoot> <CR-id> <type> <title> "<content>
 bug ─────────────────► flowforge-implement
                          └── task-discover.js 创建修复任务 → 继续执行
 
-finding ──────────────► 无需路由（已直接写入 exploration）
-                         └── 可选：告知用户新发现，确认是否需要调整设计
+finding ──────────────► 无需路由（已直接写入 library）
 
 knowledge ────────────► 无需立即路由
                          └── 后续 flowforge-archive 会提取到 library
@@ -131,8 +129,8 @@ design-flaw ──────────► flowforge-design
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/feedback-context.js [proposalId]` | 加载 proposal 状态、blocked 任务、关联 exploration、notes.md 中的问题记录 |
-| `scripts/feedback-capture.js <root> <id> <type> <title> <content>` | 将分类好的发现写入目标 artifact |
+| `scripts/feedback-context.js [proposalId]` | 加载 proposal 状态、blocked 任务、关联 library 文档、notes.md 中的问题记录 |
+| `scripts/feedback-capture.js <root> <id> <type> <title> <content>` | 将分类好的发现写入目标 artifact（finding → library，bug/knowledge → notes.md） |
 
 ## 引用的 SKILL
 

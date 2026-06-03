@@ -11,7 +11,6 @@
       "description": "文档类型，决定文档在 wiki 中的角色和存放位置",
       "enum": [
         "intake",
-        "exploration",
         "finding",
         "decision",
         "proposal",

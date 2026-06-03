@@ -33,7 +33,7 @@ for (const field of requiredFields) {
 }
 
 const validDocTypes = [
-  'intake', 'exploration', 'finding', 'decision', 'journal',
+  'intake', 'finding', 'decision', 'journal',
   'proposal', 'design', 'model', 'task-map', 'notes',
   'module', 'architecture', 'convention', 'adr'
 ];

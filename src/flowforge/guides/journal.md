@@ -2,32 +2,23 @@
 
 ## 位置
 
-`workspace/explorations/<slug>/journal/`
+探索日志已合并到 proposal 的 `notes.md`。不再使用独立的 journal 目录。
 
-## 结构（单文件）
+## 替代方式
 
-按日期创建文件，命名 `YYYY-MM-DD.md`。同一天多次记录追加到同一文件。
-
-## 章节
-
-### 今日进展
-
-今天完成了什么——读了什么代码、看了什么资料、试了什么方案。不需要长篇，要点式即可。
-
-### 发现
-
-今天的新发现和洞察。如果发现重要到可以成为一个独立 finding，在这里写摘要并在 findings/ 创建详细文件。
-
-### 下一步
-
-下一步计划，列出 1-3 条具体行动。不用写原因，直接写行动。
+探索过程中的记录统一写入 proposal 的 `notes.md`：
+- 按日期分段（`## YYYY-MM-DD`）
+- 记录 key findings、decisions、下一步计划
+- 使用 `note_kind: progress` 格式
 
 ## Frontmatter
 
+notes.md 的 frontmatter：
 ```yaml
 ---
-doc_type: journal
-title: <日期> 探索日志
-status: draft
+doc_type: notes
+title: <proposal 标题> 实施日志
+status: active
+note_kind: progress
 ---
 ```

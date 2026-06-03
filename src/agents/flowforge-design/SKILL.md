@@ -108,7 +108,7 @@ scripts/design-context.js <projectRoot> --project <projectId>
 此次输出包含：
 
 - `## Exploration Strategy`：该 project 的探索策略（如存在）
-- `## Design Rules`：命名规则（proposal_id 模板、exploration_slug 格式）、任务规则（字段、时间估计）
+- `## Design Rules`：命名规则（proposal_id 模板）、任务规则（字段、时间估计）
 - `## Design Strategy`：指导 Agent 如何进行方案分析和设计决策的项目级策略（如存在）
 - `## Implement Rules`：任务状态机、日志字段
 - `## Library Rules`：归档行为（requireReview、autoUpdateHistory）
@@ -123,7 +123,7 @@ scripts/design-context.js <projectRoot> --project <projectId>
 
 ```
   探索（查代码、查 library、查资料）
-       ↓ 发现 → 记录 findings/decisions
+       ↓ 发现 → 直接写入 library 对应路径
        ↓ 想法成熟
   设计（写入 design/ 或 proposal.md）
        ↓ 设计中发现新问题
@@ -131,20 +131,19 @@ scripts/design-context.js <projectRoot> --project <projectId>
 ```
 
 **如果是新需求且首次进入**：
-1. 根据 `naming.exploration_slug` 生成 slug，在 `<project.wikiRoot>/workspace/explorations/<slug>/` 下创建 exploration 目录
-2. 根据 `naming.proposal_id` 的模板生成 CR-id，在 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
+1. 根据 `naming.proposal_id` 的模板生成 CR-id，在 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
 
 `<project.wikiRoot>` 来自阶段 3 选定（修改场景来自阶段 1 `## Current Proposal`）。
 
-探索阶段结束时，运行 `scripts/validate-exploration.js <路径>` 确保 exploration 结构完整。
-
 **探索时**：
 - 如有 `## Exploration Strategy`，按其探索策略进行
-- 在 exploration 目录中记录，参照 `flowforge-docs` 获取对应 doc_type 的写作指南：
-  - `findings/` → doc_type: `finding`
-  - `decisions/` → doc_type: `decision`
-  - `journal/` → doc_type: `journal`
-- **每个 exploration 只描述一个方面的内容**。如果探索涉及多个模块或多种类型的知识，拆分成多个 exploration，各自携带独立的 `domain`。
+- 发现的系统架构事实 → 直接写入 `library/architecture/<topic>.md`
+- 发现的模块设计事实 → 直接写入 `library/modules/<name>/`
+- 发现的可复用决策 → 写入 `library/decisions/`
+- 发现的可复用约定 → 写入 `library/conventions/<topic>.md`
+- 参照 `flowforge-docs` 获取各 doc_type 的写作指南
+- 在 proposal 的 `notes.md` 中记录探索过程（探索了哪些 library 文档、发现了什么）
+- **每个发现携带 `domain` frontmatter**，标注 scope（system/module）、module（模块名）和 type（design/decision/convention）
 
 **设计时**：
 - 如有 `## Design Strategy`，参照其项目级设计策略指导方案分析、架构决策和设计文档的撰写方向

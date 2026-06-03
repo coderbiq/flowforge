@@ -49,8 +49,14 @@ function findProposalDir(projectRoot, config, proposalId) {
     const pc = loadProjectConfig(projectRoot, ref);
     if (!pc) continue;
     for (const sub of ['active', 'completed']) {
-      const cand = path.join(projectRoot, pc.wikiRoot, 'workspace', 'proposals', sub, proposalId);
-      if (fs.existsSync(cand)) return cand;
+      const subDir = path.join(projectRoot, pc.wikiRoot, 'workspace', 'proposals', sub);
+      if (!fs.existsSync(subDir)) continue;
+      const dirs = fs.readdirSync(subDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const d of dirs) {
+        if (d.name === proposalId || d.name.startsWith(proposalId + '-')) {
+          return path.join(subDir, d.name);
+        }
+      }
     }
   }
   return null;

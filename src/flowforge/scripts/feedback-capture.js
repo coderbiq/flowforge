@@ -132,54 +132,6 @@ note_kind: progress
 }
 
 function handleFinding(proposalDir, wikiRoot, meta, crId, title, content) {
-  // 查找关联的 exploration
-  const explorationsDir = path.join(wikiRoot, 'workspace', 'explorations');
-  let targetExpDir = null;
-  let targetExpSlug = null;
-
-  if (meta && meta.source_explorations && meta.source_explorations.length > 0) {
-    // 优先使用第一个关联的 exploration
-    for (const src of meta.source_explorations) {
-      const expDir = path.join(explorationsDir, src.ref);
-      if (fs.existsSync(expDir)) {
-        targetExpDir = expDir;
-        targetExpSlug = src.ref;
-        break;
-      }
-    }
-  }
-
-  if (!targetExpDir) {
-    // 没有关联 exploration，检查是否有任何 exploration
-    if (fs.existsSync(explorationsDir)) {
-      const existing = fs.readdirSync(explorationsDir, { withFileTypes: true })
-        .filter(d => d.isDirectory());
-      if (existing.length > 0) {
-        targetExpDir = path.join(explorationsDir, existing[0].name);
-        targetExpSlug = existing[0].name;
-      }
-    }
-  }
-
-  if (!targetExpDir) {
-    console.log('[finding] 无关联 exploration 目录，需要在 flowforge-design 中先创建 exploration 再写入。');
-    console.log(`  建议的 exploration slug: ${slugify(title)}`);
-    console.log('  创建 exploration 后重新运行此命令。');
-    return;
-  }
-
-  // 确定 finding ID
-  const findingsDir = path.join(targetExpDir, 'findings');
-  if (!fs.existsSync(findingsDir)) {
-    fs.mkdirSync(findingsDir, { recursive: true });
-  }
-
-  const existingFindings = fs.readdirSync(findingsDir)
-    .filter(f => f.match(/^F-\d+\.md$/))
-    .map(f => parseInt(f.match(/F-(\d+)/)[1], 10));
-  const nextNum = existingFindings.length > 0 ? Math.max(...existingFindings) + 1 : 1;
-  const findingId = `F-${String(nextNum).padStart(3, '0')}`;
-
   // 推断 domain
   let domainScope = 'system';
   let domainModule = '';
@@ -189,11 +141,30 @@ function handleFinding(proposalDir, wikiRoot, meta, crId, title, content) {
     domainModule = meta.modules[0];
   }
 
+  // 推导 library 目标路径
+  const topic = title
+    .replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase();
+
+  let archivePath;
+  if (domainScope === 'system') {
+    archivePath = `library/architecture/${topic}.md`;
+  } else {
+    archivePath = `library/modules/${domainModule}/findings/${topic}.md`;
+  }
+
+  const libFullPath = path.join(wikiRoot, archivePath);
+  const libDir = path.dirname(libFullPath);
+  if (!fs.existsSync(libDir)) {
+    fs.mkdirSync(libDir, { recursive: true });
+  }
+
   const findingContent = `---
 doc_type: finding
 title: ${title}
 status: active
-finding_id: ${findingId}
 source: implementation
 source_proposal: ${crId}
 domain:
@@ -211,25 +182,11 @@ ${content || title}
 ## 证据
 
 - 来自提案 ${crId} 的实施过程
-- 发现于 ${targetExpSlug} 关联的代码区域
 `;
 
-  const findingPath = path.join(findingsDir, `${findingId}.md`);
-  fs.writeFileSync(findingPath, findingContent);
+  fs.writeFileSync(libFullPath, findingContent);
 
-  // 检查并更新 exploration 的 status（如果已归档则重新激活）
-  const explorationIndexPath = path.join(targetExpDir, 'index.md');
-  if (fs.existsSync(explorationIndexPath)) {
-    let indexContent = fs.readFileSync(explorationIndexPath, 'utf8');
-    if (indexContent.includes('status: archived')) {
-      indexContent = indexContent.replace('status: archived', 'status: active');
-      fs.writeFileSync(explorationIndexPath, indexContent);
-      console.log(`  已将 exploration "${targetExpSlug}" 状态从 archived 改为 active`);
-    }
-  }
-
-  console.log(`[finding] "${title}" → ${path.relative(projectRoot, findingPath)}`);
-  console.log(`  finding_id: ${findingId}, exploration: ${targetExpSlug}`);
+  console.log(`[finding] "${title}" → ${path.relative(projectRoot, libFullPath)}`);
 }
 
 function handleKnowledge(proposalDir, title, content) {
@@ -285,7 +242,7 @@ function handleMissingRequirement(crId, title, content) {
   console.log('## 路由指引');
   console.log(`激活 flowforge-design，在 proposal "${crId}" 中补充设计：`);
   console.log(`  1. 在 design/ 下补充对应模块的设计文档`);
-  console.log(`  2. 如需新的探索，创建新的 exploration`);
+  console.log(`  2. 将新发现的设计事实写入 library/ 对应路径`);
   console.log(`  3. 通过 task-cancel.js 废弃受影响任务`);
   console.log(`  4. 通过 task-add.js 添加新任务`);
 }
@@ -303,14 +260,6 @@ function handleDesignFlaw(crId, title, content) {
 }
 
 // --- Helpers ---
-
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 50);
-}
 
 function findProposalById(projectRoot, projects, id) {
   for (const p of projects) {

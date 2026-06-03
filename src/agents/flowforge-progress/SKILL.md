@@ -14,7 +14,6 @@ description: |
   不要在以下情况激活：
   - 仅在阅读 proposal 内容、未做修改时
   - 用户在询问状态、未触发实际变更时
-  - 在 exploration 阶段未涉及 proposal 时
   - 仅修改 library/ 中的归档文档（非 workspace 进行中状态）
 ---
 

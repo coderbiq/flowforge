@@ -2,11 +2,11 @@
 
 ## 位置
 
-`workspace/explorations/<slug>/decisions/`
+`library/decisions/`
 
 ## 结构（单文件）
 
-每个决策是一个独立的 `.md` 文件，命名 `D-NNN.md`。
+每个决策是一个独立的 `.md` 文件，命名 `<topic>.md`（kebab-case）。
 
 ## 章节
 
@@ -32,8 +32,7 @@
 ---
 doc_type: decision
 title: <决策标题>
-status: draft|active
-decision_id: D-NNN
+status: active
 decision_status: accepted|rejected|superseded
 domain:
   scope: system|module

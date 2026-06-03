@@ -43,7 +43,7 @@ FlowForge/
 │   ├── schema/           ← JSON Schema 校验
 │   └── scripts/          ← 上下文加载和校验脚本
 ├── ff-wiki/              ← 知识库
-│   ├── workspace/        ← 进行中的工作（intake / explorations / proposals）
+│   ├── workspace/        ← 进行中的工作（intake / proposals）
 │   └── library/          ← 沉淀的知识（architecture / conventions / decisions / modules）
 └── AGENTS.md             ← 自动追加 FlowForge 入口指令
 ```

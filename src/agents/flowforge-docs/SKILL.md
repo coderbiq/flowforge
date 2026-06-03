@@ -42,4 +42,3 @@ description: |
 | `scripts/docs-guide.js <doc_type>` | 加载该 doc_type 的写作指南 |
 | `scripts/validate-doc.js <路径>` | 校验单个文档的 frontmatter |
 | `scripts/validate-proposal.js <路径>` | 校验 proposal 目录完整性 |
-| `scripts/validate-exploration.js <路径>` | 校验 exploration 目录完整性 |

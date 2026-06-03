@@ -1,5 +1,66 @@
 # FlowForge 更新日志
 
+## 0.6 — 2026-06-03
+
+### 移除 workspace/explorations —— 探索即沉淀
+
+探索阶段发现的系统事实不再写入独立的 `workspace/explorations/` 目录，而是直接合入 library：
+- 模块级发现 → `library/modules/<name>/` 或 `library/modules/<name>/findings/`
+- 系统级发现 → `library/architecture/` 或 `library/conventions/`
+- 可复用决策 → `library/decisions/`
+
+**理由**：探索发现的是系统既定事实，不应等到 proposal 归档才沉淀。独立的 explorations 目录是冗余中转区。
+
+**删除 3 个文件**：`exploration.schema.json`、`validate-exploration.js`、`exploration.md`（指南）
+
+**Schema 合约变更**：
+- `frontmatter.schema.json`：从 `doc_type` 枚举中移除 `exploration`
+- `proposal.schema.json`：移除 `source_explorations` 字段
+- `project.schema.json`：移除 `rules.exploration` 块和 `exploration_slug` 命名规则；`rules.required` 移除 `exploration`
+
+**SKILL 重写**：
+- `flowforge-design` 阶段 5：探索发现直接写入 library，不再创建 exploration 目录
+- `flowforge-feedback`：finding 路由从 explorations 改为 library；description 更新
+
+**脚本重写**：
+- `feedback-capture.js`：`handleFinding()` 直接写入 `library/modules/<name>/findings/` 或 `library/architecture/`
+- `feedback-context.js`：关联文档从 explorations 改为 library 文档（`## Related Library Documents`）
+
+**Guides 更新**：
+- `finding.md`：位置改为 library 路径，移除 `source: exploration` 和 `finding_id`
+- `decision.md`：位置改为 `library/decisions/`，移除 `decision_id`
+- `journal.md`：标记为已废弃，合并到 notes.md
+- `notes.md`：finding 后续处理改为"写入 library"
+
+**安装变更**：`install.sh` 不再创建 `workspace/explorations/` 目录
+
+### 归档知识合成
+
+归档不再是机械搬文件，而是**对比 library 现状 → 修正过时描述 → 将最新设计融进模块文档**。
+
+**新增脚本**：
+- `archive-synthesize.js`：对比 library 现状，输出 JSON 合成计划（create/replace/merge/mixed）
+- `move-proposal.js`：自动化 meta.yaml status 更新 + active→completed 移动 + autoUpdateHistory
+
+**archive-context.js 增强**：
+- `deriveArchivePath()` 对 module 返回具体文件路径（如 `library/modules/data-service/design/architecture.md`）
+- 新增 `## Library 现状` 输出和 `## notes.md Knowledge 记录` 扫描
+- 修复 `findProposalById()` 前缀匹配
+
+**SKILL 更新**：`flowforge-archive` 阶段 3 改为运行 synthesize → 按 JSON 计划执行 → 逐文件校验
+
+### 脚本修复
+
+- `docs-guide.js`：兼容单参数调用 `docs-guide.js <doc_type>`（projectRoot 默认 cwd）
+- `config.js`：`findProposalDir` 支持前缀匹配（`CR26052801` 匹配 `CR26052801-dataservice`）
+- `task-cleanup.js`：归档清理前先执行 `beads-to-yaml` 同步，防止 beads 中已关闭的任务在 YAML 中仍显示 pending
+
+### 文档更新
+
+- `ARCHITECTURE.md`：移除 explorations 目录结构、更新脚本表和文档类型表
+- `README.md`：更新知识库结构图
+- `AGENTS.md`：路由指引版本号更新
+
 ## 0.5 — 2026-06-03
 
 ### 归档流程重构：从目录搬运到知识合成
@@ -43,6 +104,23 @@
 
 - `archive-synthesize.js` 复用 `rules.library`（requireReview / autoUpdateHistory / strategy）和 `rules.archive.strategy` 指导合成决策
 - `move-proposal.js` 复用 `meta.archive_targets` 识别需追加 history 的模块，`autoUpdateHistory=true` 时自动在模块目录生成 `HISTORY.md`
+
+### 移除 workspace/explorations 目录
+
+- **探索即沉淀**：探索阶段发现的系统事实直接写入 library（`library/architecture/`、`library/modules/<name>/`），不再维护独立的 explorations 目录
+- proposal 不再有 `source_explorations` 字段，改为在设计文档中引用 library 路径
+- 删除 3 个文件：`exploration.schema.json`、`validate-exploration.js`、`exploration.md`（指南）
+- 重写 `feedback-capture.js`：finding 类型直接写入 `library/modules/<name>/findings/` 或 `library/architecture/`
+- 重写 `feedback-context.js`：关联文档从 explorations 改为 library 文档
+- 更新 `flowforge-design` SKILL 阶段 5：探索发现直接写入 library
+- 更新 `flowforge-feedback` SKILL：finding 路由从 explorations 改为 library
+- 更新 guides：`finding.md`、`decision.md` 路径改为 library；`journal.md` 合并到 notes.md
+- 从 `frontmatter.schema.json` 移除 `exploration` doc_type；从 `proposal.schema.json` 移除 `source_explorations`；从 `project.schema.json` 移除 `rules.exploration` 和 `exploration_slug`
+- `install.sh` 不再创建 `workspace/explorations/` 目录
+
+### docs-guide.js 兼容性修复
+
+- 支持单参数调用 `docs-guide.js <doc_type>`（projectRoot 默认 cwd），兼容 SKILL 文档中的简化用法
 
 ## 0.4 — 2026-06-03
 

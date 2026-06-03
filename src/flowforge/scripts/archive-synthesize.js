@@ -79,6 +79,7 @@ for (const group of domainGroups) {
     domain: group.domain,
     action: synthesisAction.action,
     reason: synthesisAction.reason,
+    source: 'proposal',
     sourceFiles: group.files.map(f => ({
       relPath: f.relPath,
       title: f.title,
