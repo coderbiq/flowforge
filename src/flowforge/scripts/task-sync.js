@@ -78,7 +78,7 @@ async function runCheck(proposalDir) {
   try {
     const proposalId = data.proposal_id;
     if (proposalId) {
-      const result = execSync(`bd query spec=${proposalId} --json`, {
+      const result = execSync(`bd list --label proposal:${proposalId} --all --json`, {
         cwd: projectRoot, encoding: 'utf8', stdio: 'pipe', timeout: 5000
       });
       beadTasks = JSON.parse(result);

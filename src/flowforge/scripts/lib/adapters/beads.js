@@ -233,11 +233,11 @@ class BeadsAdapter extends TaskAdapter {
     const data = this._readTaskMap(proposalDir);
     if (!data) return { clean: true };
 
-    // 检查 beads 中是否有未关闭的任务
+    // 通过 label 查询 beads 中是否有未关闭的任务
     try {
       const proposalId = data.proposal_id;
       if (proposalId) {
-        const result = _bd(`query spec=${proposalId} --json`, this._projectRoot);
+        const result = _bd(`list --label proposal:${proposalId} --all --json`, this._projectRoot);
         const beadTasks = JSON.parse(result);
         const openTasks = Array.isArray(beadTasks)
           ? beadTasks.filter(t => !['closed', 'done', 'completed'].includes(t.status))
@@ -332,7 +332,7 @@ class BeadsAdapter extends TaskAdapter {
     let beadTasks = [];
     try {
       if (proposalId) {
-        const result = _bd(`query spec=${proposalId} --json`, this._projectRoot);
+        const result = _bd(`list --label proposal:${proposalId} --all --json`, this._projectRoot);
         beadTasks = JSON.parse(result);
         if (!Array.isArray(beadTasks)) beadTasks = [];
       }
