@@ -1,5 +1,14 @@
 # FlowForge 更新日志
 
+## 0.6.1 — 2026-06-03
+
+### beads adapter 修复
+
+- `cleanup()` / `sync()` 方法：`bd query spec=<id>` → `bd list --label proposal:<id> --all --json`，正确按 label 过滤 beads issues
+- `task-sync.js` `runCheck()` 方法：同上修复
+- `task-cleanup.js`：归档清理前先 `beads-to-yaml` 同步，防止 beads 已关闭但 YAML 仍 pending
+- `config.js` `findProposalDir`：支持前缀匹配（`CR26052801` 匹配 `CR26052801-dataservice`）
+
 ## 0.6 — 2026-06-03
 
 ### 移除 workspace/explorations —— 探索即沉淀
