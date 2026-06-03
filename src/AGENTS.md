@@ -1,4 +1,5 @@
-FlowForge 已安装。
+<!-- BEGIN FLOWFORGE v:0.4 profile:default -->
+
 
 ## FlowForge SKILL 使用指南
 
@@ -26,3 +27,5 @@ FlowForge 已安装。
 - 在 task-map.md 或 notes.md 中标记任务/追加日志
 - 创建、归档或移动 proposal 目录
 - 完成 design 阶段的核心章节
+
+<!-- END FLOWFORGE -->

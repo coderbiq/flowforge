@@ -52,6 +52,78 @@ sync_managed() {
   rsync -a --delete "$source"/ "$target"/
 }
 
+# 安装或更新 AGENTS.md 中的 FlowForge 内容块
+# 使用 <!-- BEGIN FLOWFORGE ... --> / <!-- END FLOWFORGE --> 标记定位和替换
+install_agents_flowforge() {
+  local target="$1"
+  local mode="$2"
+  local src="$SRC_DIR/AGENTS.md"
+  local dst="$target/AGENTS.md"
+
+  local marker_begin="<!-- BEGIN FLOWFORGE"
+  local marker_end="<!-- END FLOWFORGE -->"
+
+  # 从源文件提取 FlowForge 块（不含外层标记）
+  local ff_content
+  ff_content=$(sed -n "/${marker_begin}/,/${marker_end}/p" "$src" | sed '1d;$d')
+
+  if [ "$mode" = "install" ]; then
+    if [ -f "$dst" ]; then
+      if grep -q "$marker_begin" "$dst"; then
+        warn "AGENTS.md 已包含 FlowForge 标记块，跳过"
+        return
+      fi
+      # 追加到文件末尾
+      echo "" >> "$dst"
+      cat "$src" >> "$dst"
+      info "FlowForge 标记块已追加到 AGENTS.md"
+    else
+      cp "$src" "$dst"
+      info "AGENTS.md 已创建（含 FlowForge 标记块）"
+    fi
+  elif [ "$mode" = "upgrade" ]; then
+    if [ -f "$dst" ] && grep -q "$marker_begin" "$dst"; then
+      # 用新内容替换标记块之间的旧内容
+      local tmp
+      tmp=$(mktemp)
+      # 提取 BEGIN 之前的内容
+      sed "/${marker_begin}/q" "$dst" | sed '$d' > "$tmp"
+      # 追加新的 FlowForge 块
+      cat "$src" >> "$tmp"
+      # 追加 END 之后的内容
+      sed -n "/${marker_end}/,\$p" "$dst" | sed '1d' >> "$tmp"
+      mv "$tmp" "$dst"
+      info "AGENTS.md FlowForge 标记块已更新"
+    elif [ -f "$dst" ] && grep -q "FlowForge SKILL 使用指南" "$dst"; then
+      # 旧格式（无标记），删除旧 FlowForge 内容并替换为带标记的新内容
+      local tmp
+      tmp=$(mktemp)
+      # 删除所有从 "FlowForge" 相关行开始到文件末尾的内容
+      # 先找到第一次出现 FlowForge 相关行的位置
+      local ff_line
+      ff_line=$(grep -n "FlowForge SKILL 使用指南\|FlowForge 已安装\|## FlowForge" "$dst" | head -1 | cut -d: -f1)
+      if [ -n "$ff_line" ]; then
+        head -n $((ff_line - 1)) "$dst" > "$tmp"
+        # 确保末尾有空行
+        echo "" >> "$tmp"
+        # 追加新的带标记的 FlowForge 块
+        cat "$src" >> "$tmp"
+        mv "$tmp" "$dst"
+        info "AGENTS.md 已从旧格式迁移到标记块格式"
+      else
+        echo "" >> "$dst"
+        cat "$src" >> "$dst"
+        info "FlowForge 标记块已追加到 AGENTS.md"
+      fi
+    else
+      # 没有 FlowForge 内容，追加
+      echo "" >> "$dst"
+      cat "$src" >> "$dst"
+      info "FlowForge 标记块已追加到 AGENTS.md"
+    fi
+  fi
+}
+
 # 安装并初始化 beads
 setup_beads() {
   local target="$1"
@@ -195,6 +267,9 @@ if [ "$MODE" = "upgrade" ]; then
   mkdir -p "$TARGET/ff-wiki/library/modules"
   info "Wiki 目录结构已确保存在（含 active/completed 子目录）"
 
+  # 更新 AGENTS.md 中的 FlowForge 标记块
+  install_agents_flowforge "$TARGET" "upgrade"
+
   # 更新版本元数据
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   src_version=$(grep '^version:' "$SRC_DIR/flowforge/meta.yaml" | sed 's/version: *//' | tr -d '"')
@@ -245,18 +320,7 @@ else
   mkdir -p "$TARGET/ff-wiki/library/modules"
   info "Wiki 目录结构已创建 ff-wiki/"
 
-  if [ -f "$TARGET/AGENTS.md" ]; then
-    if grep -q "FlowForge 已安装" "$TARGET/AGENTS.md"; then
-      warn "AGENTS.md 已包含 FlowForge 引用，跳过"
-    else
-      echo "" >> "$TARGET/AGENTS.md"
-      cat "$SRC_DIR/AGENTS.md" >> "$TARGET/AGENTS.md"
-      info "FlowForge 引用已追加到 AGENTS.md"
-    fi
-  else
-    cp "$SRC_DIR/AGENTS.md" "$TARGET/AGENTS.md"
-    info "AGENTS.md 已创建"
-  fi
+  install_agents_flowforge "$TARGET" "install"
 
   # 安装并初始化 beads
   setup_beads "$TARGET" "install"
