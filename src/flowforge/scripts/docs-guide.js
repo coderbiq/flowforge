@@ -4,8 +4,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const projectRoot = process.argv[2] || process.cwd();
-const docType = process.argv[3];
+let projectRoot = process.argv[2] || process.cwd();
+let docType = process.argv[3];
+
+// 兼容单参数调用：docs-guide.js <doc_type>
+if (!docType && projectRoot !== process.cwd() && !projectRoot.startsWith('/')) {
+  docType = projectRoot;
+  projectRoot = process.cwd();
+}
 
 const guidesDir = path.join(projectRoot, '.flowforge', 'guides');
 

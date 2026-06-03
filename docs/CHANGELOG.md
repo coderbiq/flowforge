@@ -1,5 +1,49 @@
 # FlowForge 更新日志
 
+## 0.5 — 2026-06-03
+
+### 归档流程重构：从目录搬运到知识合成
+
+归档不再是机械地把 proposal 从 active 移到 completed，而是**对比 library 现状 → 修正过时描述 → 将最新设计融进模块文档**。
+
+### 核心变更
+
+- **理念转变**：library 是系统的当前真相，提案中的新设计必须修正 library 中过时描述，不能只追加摘要
+
+### archive-context.js 增强
+
+- `deriveArchivePath()` 对 `scope=module` 改为返回具体文件路径（如 `library/modules/data-service/design/architecture.md`），而非模糊的目录路径
+- 新增 `## Library 现状` 输出段：对比每个归档目标在 library 中的已有文件状态（not_exists / exists + 过时摘要 / exists + 完整设计）
+- 新增 `## notes.md 中待提取的 Knowledge 记录` 扫描：解析 `note_kind: knowledge` 行级记录，标注 domain 用于路由
+- 修复 `findProposalById()`：支持前缀匹配目录名（如 `CR26052101` 匹配 `CR26052101-data-service-config-management`）
+
+### 新增脚本
+
+| 脚本 | 用途 |
+|------|------|
+| `archive-synthesize.js <root> <id>` | 对比 library 现状 → 分类 (create/replace/merge/mixed) → 输出 JSON 合成计划 |
+| `move-proposal.js <root> <id>` | 更新 meta.yaml status → 移动 active→completed → autoUpdateHistory |
+
+### archive-synthesize.js 分类策略
+
+| 分类 | 触发条件 | 操作 |
+|------|---------|------|
+| `create` | library 中无对应文档 | 按 writing guide 新建 |
+| `replace` | library 仅含过时的 Archived proposal notes 摘要 | 替换过时章节，拆分独立子文档 |
+| `merge` | library 已有完整设计 | 对比提案内容，追加新章节，替换冲突内容 |
+| `mixed` | module 目录部分文件存在 | 新文件 create，已有文件 merge_or_replace |
+
+### SKILL 更新
+
+- `flowforge-archive/SKILL.md`：工作流从"逐 target 提取并写入"改为"合成知识到 library"；阶段 3 改为运行 `archive-synthesize.js` → 按 JSON 合成计划执行 → 逐文件运行 `validate-doc.js` 校验；阶段 5 改用 `move-proposal.js` 自动化
+- 新增脚本表格：6 个脚本（含新增的 synthesize 和 move-proposal）
+- proposal 在 active/ 或 completed/ 均可归档，已归档但知识未提取的提案可重新处理
+
+### 配置支持
+
+- `archive-synthesize.js` 复用 `rules.library`（requireReview / autoUpdateHistory / strategy）和 `rules.archive.strategy` 指导合成决策
+- `move-proposal.js` 复用 `meta.archive_targets` 识别需追加 history 的模块，`autoUpdateHistory=true` 时自动在模块目录生成 `HISTORY.md`
+
 ## 0.4 — 2026-06-03
 
 ### 配置层重构：为每个 SKILL 添加 strategy 文本策略

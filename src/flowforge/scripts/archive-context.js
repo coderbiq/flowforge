@@ -93,6 +93,46 @@ if (r && r.archive && r.archive.strategy) {
   console.log(r.archive.strategy.trim());
 }
 
+// 输出 library 现状（每个归档目标的已有文件状态）
+if (domainGroups.length > 0) {
+  console.log('\n## Library 现状（与归档目标对比）\n');
+  for (const group of domainGroups) {
+    const libFullPath = path.join(proposalLocation.wikiRoot, group.archivePath);
+    const state = detectLibraryState(libFullPath);
+    console.log(`### → ${group.archivePath}`);
+    console.log(`   状态: ${state.status}`);
+    if (state.status === 'exists') {
+      console.log(`   已有大小: ${state.size} bytes`);
+      if (state.hasArchiveNotes) {
+        console.log(`   内容类型: 过时摘要（仅含 Archived proposal notes 段）`);
+      } else {
+        console.log(`   内容类型: 已有完整设计`);
+      }
+    } else if (state.status === 'directory_exists') {
+      console.log(`   已有文件: ${state.existingFiles.join(', ') || '(空目录)'}`);
+    } else {
+      console.log(`   建议动作: 首次创建`);
+    }
+    console.log('');
+  }
+}
+
+// 扫描 notes.md 中待提取的 knowledge 记录
+const notesPath = path.join(proposalLocation.proposalDir, 'notes.md');
+if (fs.existsSync(notesPath)) {
+  const knowledgeEntries = scanNotesKnowledge(notesPath);
+  if (knowledgeEntries.length > 0) {
+    console.log('\n## notes.md 中待提取的 Knowledge 记录\n');
+    for (const entry of knowledgeEntries) {
+      console.log(`- [${entry.date}] ${entry.summary}`);
+      if (entry.domain) {
+        console.log(`  domain: { scope: ${entry.domain.scope}${entry.domain.module ? ', module: ' + entry.domain.module : ''}, type: ${entry.domain.type} }`);
+      }
+    }
+    console.log(`\n共 ${knowledgeEntries.length} 条记录待归档时提取到 library。`);
+  }
+}
+
 // 输出文档全文
 for (const f of ['proposal.md', 'design.md', 'task-map.md']) {
   const fp = path.join(proposalLocation.proposalDir, f);
@@ -116,6 +156,71 @@ if (fs.existsSync(designDir) && fs.statSync(designDir).isDirectory()) {
 // Helpers
 // ============================================================
 
+function detectLibraryState(libFullPath) {
+  if (!fs.existsSync(libFullPath)) {
+    // 检查父目录是否存在（module 目录可能已存在但该文件还没创建）
+    const parentDir = path.dirname(libFullPath);
+    if (fs.existsSync(parentDir) && fs.statSync(parentDir).isDirectory()) {
+      const files = fs.readdirSync(parentDir).filter(f => f.endsWith('.md'));
+      return { status: 'directory_exists', existingFiles: files };
+    }
+    return { status: 'not_exists' };
+  }
+
+  const stat = fs.statSync(libFullPath);
+  if (stat.isDirectory()) {
+    const files = fs.readdirSync(libFullPath).filter(f => f.endsWith('.md'));
+    return { status: 'directory_exists', existingFiles: files };
+  }
+
+  const content = fs.readFileSync(libFullPath, 'utf8');
+  const hasArchiveNotes = /Archived\s+proposal\s+notes/i.test(content);
+  return {
+    status: 'exists',
+    size: stat.size,
+    hasArchiveNotes,
+    contentSnippet: content.substring(0, 500)
+  };
+}
+
+function scanNotesKnowledge(notesPath) {
+  const content = fs.readFileSync(notesPath, 'utf8');
+  const entries = [];
+  const lines = content.split('\n');
+
+  let currentDate = null;
+  for (const line of lines) {
+    const dateMatch = line.match(/^##\s+(\d{4}-\d{2}-\d{2})/);
+    if (dateMatch) {
+      currentDate = dateMatch[1];
+      continue;
+    }
+
+    // 匹配 `| knowledge | <内容> |` 格式
+    const knowledgeMatch = line.match(/\|\s*knowledge\s*\|\s*(.+?)(?:\s*\|.*)?$/);
+    if (knowledgeMatch && currentDate) {
+      const summary = knowledgeMatch[1].trim();
+      const domain = extractDomainFromLine(line);
+      entries.push({ date: currentDate, summary, domain });
+    }
+  }
+
+  return entries;
+}
+
+function extractDomainFromLine(line) {
+  const m = line.match(/domain\s*:\s*\{([^}]+)\}/);
+  if (!m) return null;
+  const parts = m[1].split(',').map(p => p.trim());
+  const domain = {};
+  for (const part of parts) {
+    const kv = part.match(/^(\w+)\s*:\s*(.+)/);
+    if (kv) domain[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
+  }
+  if (!domain.scope || !domain.type) return null;
+  return domain;
+}
+
 function scanDomainGroups(proposalDir) {
   const files = collectMdFiles(proposalDir);
   const groups = {};
@@ -128,14 +233,15 @@ function scanDomainGroups(proposalDir) {
     const domain = parseDomain(fm.domain);
     if (!domain) continue;
 
-    const archivePath = deriveArchivePath(domain, fm.title || path.basename(f.absPath, '.md'));
+    const archivePath = deriveArchivePath(domain, f.relPath, fm.title || path.basename(f.absPath, '.md'));
     if (!groups[archivePath]) {
       groups[archivePath] = { domain, archivePath, files: [] };
     }
     groups[archivePath].files.push({
       relPath: f.relPath,
       title: fm.title || null,
-      absPath: f.absPath
+      absPath: f.absPath,
+      docType: fm.doc_type || null
     });
   }
 
@@ -176,7 +282,7 @@ function parseDomain(domainStr) {
   return result;
 }
 
-function deriveArchivePath(domain, title) {
+function deriveArchivePath(domain, sourceRelPath, title) {
   const topic = title.replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 
   if (domain.scope === 'system') {
@@ -191,7 +297,10 @@ function deriveArchivePath(domain, title) {
   }
 
   if (domain.scope === 'module' && domain.module) {
-    return `library/modules/${domain.module}/`;
+    // 使用来源文件的相对路径派生 library 路径，保持目录结构
+    // e.g. design/architecture.md → library/modules/data-service/architecture.md
+    // e.g. model/DpDataSource.md → library/modules/data-service/model/DpDataSource.md
+    return `library/modules/${domain.module}/${sourceRelPath}`;
   }
 
   return null;
@@ -228,8 +337,14 @@ function findProposalById(projectRoot, projects, id) {
   for (const p of projects) {
     const ws = path.join(projectRoot, p.wikiRoot, 'workspace');
     for (const sub of ['active', 'completed']) {
-      const cand = path.join(ws, 'proposals', sub, id);
-      if (fs.existsSync(cand)) return { proposalDir: cand, projectId: p.id, wikiRoot: p.wikiRoot };
+      const subDir = path.join(ws, 'proposals', sub);
+      if (!fs.existsSync(subDir)) continue;
+      const dirs = fs.readdirSync(subDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const d of dirs) {
+        if (d.name === id || d.name.startsWith(id + '-')) {
+          return { proposalDir: path.join(subDir, d.name), projectId: p.id, wikiRoot: p.wikiRoot };
+        }
+      }
     }
   }
   return null;

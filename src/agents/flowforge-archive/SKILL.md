@@ -18,12 +18,13 @@ description: |
 
 # FlowForge Archive
 
-将 workspace 中完成的工作沉淀为 library 中的可复用知识。
+将 workspace 中完成的工作**合成**为 library 中的可复用知识。
+归档不是机械搬运文件，而是：**对比 library 现状 → 修正过时描述 → 将最新设计融进模块文档**。
 
 ## 工作流
 
 ```
-定位上下文 → 校验完整性 → 逐 target 提取并写入 → 清理任务后端 → 更新状态并移动目录
+定位上下文 → 校验完整性 → 合成知识到 library → 清理任务后端 → 移动目录并更新状态
 ```
 
 ---
@@ -33,12 +34,15 @@ description: |
 运行 `scripts/archive-context.js [proposal-id]`。输出包含：
 
 - `## Current Proposal`（路径、project、wikiRoot、meta）
-- `## 归档目标`（从 proposal 内各文档的 domain frontmatter 自动推导的归档路径，按目标文件分组）
+- `## 归档目标`（从 proposal 内各文档的 domain frontmatter 自动推导的归档路径）
+- `## Library 现状`（每个归档目标在 library 中的已有文件状态：不存在 / 过时摘要 / 已有完整设计）
 - `## Library Rules`（requireReview、autoUpdateHistory）
-- `## Library Strategy`（library 组织原则，如存在）
 - `## Archive Strategy`（指导 Agent 如何沉淀知识的项目级策略，如存在）
+- `## notes.md 中待提取的 Knowledge 记录`
 - proposal.md / design.md / task-map 全文
 - design/ 下的所有 .md 文件全文
+
+proposal 可能在 `active/` 或 `completed/` 目录，脚本自动搜索两个位置。已归档到 completed 但知识未提取的提案可以重新归档。
 
 ### 阶段 2：校验完整性
 
@@ -46,47 +50,29 @@ description: |
 
 如果所有文档都没有 `domain` 字段（`## 归档目标` 为空），检查 proposal 内容，对可归档的文档建议 domain 值，让用户确认后再继续。
 
-**检查待提取的 knowledge**：审查 `notes.md` 中是否有 `note_kind: knowledge` 的记录。如有，这些是在实施阶段由 `flowforge-feedback` 标记的待提取知识——按 domain 路由将其提取到对应的 library 目录。
-
 ---
 
-### 阶段 3：按归档目标分组提取并写入
+### 阶段 3：合成知识到 library
 
-如有 `## Archive Strategy`，参照其判断知识的可复用价值和归档优先级。如有 `## Library Strategy`，参照其了解 library 组织原则。
+运行 `scripts/archive-synthesize.js <projectRoot> <proposalId>`。输出 JSON 合成计划，每个归档目标标注：
 
-`archive-context.js` 已经将文档按归档路径分组（见 `## 归档目标`）。对每个分组执行三步操作。
+| 分类 | 触发条件 | 操作 |
+|------|---------|------|
+| `create` | library 中无对应文档 | 按 writing guide 创建新文档 |
+| `replace` | library 有文档但仅含过时摘要（Archived proposal notes 段） | **替换过时章节**，用提案最新设计重写 |
+| `merge` | library 已有完整设计 | 对比提案内容，追加新增章节，替换冲突内容 |
+| `mixed` | module 目录部分文件存在、部分缺失 | 新文件 `create`，已有文件 `merge_or_replace` |
 
-**解析归档路径**
+**按合成计划逐条执行：**
 
-归档路径由文档的 `domain` 自动推导：
+1. 读取 `instructions.steps`，按 doc_type 加载对应的 writing guide（通过 `flowforge-docs`）
+2. 对每个 target：
+   - `create`：从来源文档提取内容 → 按 writing guide 格式化 → 设置 frontmatter → 写入目标文件 → **运行 `validate-doc.js` 校验**
+   - `replace`：读取 library 已有文档 → 保留 Ownership summary / Reading order 等入口章节 → 将过时的 Current focus 和 Archived proposal notes 段替换为提案最新设计 → 对于 architecture / lifecycle / constraints 等内容，**拆分为独立子文档**而非堆在单文件中 → **运行 `validate-doc.js` 校验**
+   - `merge`：读取 library 已有文档 → 对比提案识别变更 → 追加新章节（不覆盖已有）→ 对于同一主题的不同描述，以提案为准替换 → **运行 `validate-doc.js` 校验**
+3. 全部写入完成后，告知用户变更摘要（哪些文件新建、哪些文件更新、哪些章节被替换）
 
-| domain | 归档路径 | 含义 |
-|--------|---------|------|
-| `scope=system, type=design` | `library/architecture/<topic>.md` | 全系统架构设计 |
-| `scope=system, type=decision` | `library/decisions/<topic>.md` | 全系统架构决策 |
-| `scope=system, type=convention` | `library/conventions/<topic>.md` | 全系统编码约定 |
-| `scope=module, type=design` | `library/modules/<name>/` | 模块设计（写入 design 章节） |
-| `scope=module, type=decision` | `library/modules/<name>/` | 模块决策（写入 decisions 章节） |
-| `scope=module, type=convention` | `library/modules/<name>/` | 模块约定（写入 conventions 章节） |
-
-路径相对于当前 proposal 的 `<wikiRoot>`（阶段 1 输出）。`<wikiRoot>/` 前缀需要自行拼接。
-
-**加载写作指南**
-
-根据归档目标确定 `doc_type`，参照 `flowforge-docs` 获取写作指南：
-
-- `scope=system, type=design` → doc_type: `architecture`
-- `scope=system, type=decision` → doc_type: `adr`
-- `scope=system, type=convention` → doc_type: `convention`
-- `scope=module` → doc_type: `module`
-
-**提取并写入**
-
-对每个分组，将该组的所有来源文档内容合并提取到目标文件：
-
-- 目标文件已存在时合并而非覆盖——追加新内容到已有文档的对应章节
-- 同一个目标文件有多个来源文档时，按顺序合并
-- module 类型的归档，按 design/decision/convention 分别写入模块文档的不同章节
+**核心原则：library 是系统的当前真相。** 提案中的新设计必须修正 library 中的过时描述，不能只是追加。
 
 ---
 
@@ -102,11 +88,13 @@ node scripts/task-cleanup.js <projectRoot> <CR-id>
 
 ---
 
-### 阶段 5：更新状态并移动目录
+### 阶段 5：移动目录并更新状态
 
-1. 更新 `meta.yaml` 的 `status` 为 `archived`
-2. 将 proposal 目录从 `<wikiRoot>/workspace/proposals/active/<CR-id>/` 移动到 `<wikiRoot>/workspace/proposals/completed/<CR-id>/`
-3. 如果 `autoUpdateHistory` 为 true，在关联模块的 history 中追加变更记录
+运行 `scripts/move-proposal.js <projectRoot> <proposalId>`。自动执行：
+
+1. 更新 `meta.yaml` 的 `status` 为 `archived`，刷新 `updated_at`
+2. 如 proposal 在 `active/` 中，移动到 `completed/`
+3. 如 `autoUpdateHistory` 为 true，在关联模块的 `HISTORY.md` 中追加归档记录
 
 ---
 
@@ -114,12 +102,15 @@ node scripts/task-cleanup.js <projectRoot> <CR-id>
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/archive-context.js [proposal-id]` | 加载 proposal 的 library rules、模块注册表和文档内容 |
+| `scripts/archive-context.js [proposal-id]` | 加载 proposal 上下文 + library 现状对比 + notes.md knowledge 扫描 |
+| `scripts/archive-synthesize.js <root> <id>` | 对比 library 现状，输出 JSON 合成计划（create/replace/merge/mixed） |
 | `scripts/validate-proposal.js <路径>` | 校验 proposal 目录完整性 |
+| `scripts/validate-doc.js <路径>` | 校验 library 文档 frontmatter |
 | `scripts/task-cleanup.js <root> <id>` | 归档前清理任务后端（检查未完成任务、关闭 epic） |
+| `scripts/move-proposal.js <root> <id>` | 更新 meta.yaml status + 移动目录 + autoUpdateHistory |
 
 ## 引用的 SKILL
 
 | SKILL | 引用场景 |
 |-------|---------|
-| `flowforge-docs` | 获取各 doc_type 的写作指南 |
+| `flowforge-docs` | 获取各 doc_type 的写作指南，校验 library 文档 frontmatter |
