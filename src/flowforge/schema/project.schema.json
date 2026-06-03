@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "flowforge:project-config@v1",
+  "$id": "flowforge:project-config@v2",
   "title": "Project 配置",
   "description": "单个 project 的配置文件，定义 wikiRoot、源码目录和扩展规则。每个 project 一个文件，由 config.yaml 的 projects[].config 引用。",
   "type": "object",
@@ -28,32 +28,26 @@
     },
     "rules": {
       "type": "object",
-      "description": "该 project 的规则配置",
-      "required": ["intake", "exploration", "design", "implement", "library"],
+      "description": "该 project 的规则配置。每个 SKILL 通过 strategy 字段接收项目级的行为指导文本。",
+      "required": ["intake", "exploration", "design", "implement", "archive", "feedback", "library"],
       "properties": {
         "intake": {
           "type": "object",
-          "description": "读取 intake 时的分析步骤和方法",
+          "description": "读取 intake 时的分析策略",
           "properties": {
-            "steps": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["id", "action"],
-                "properties": {
-                  "id": { "type": "string" },
-                  "action": { "type": "string" },
-                  "prompt": { "type": "string" }
-                }
-              }
+            "strategy": {
+              "type": "string",
+              "description": "指导 Agent 如何分析 intake 材料的文本策略"
             }
           }
         },
         "exploration": {
           "type": "object",
           "properties": {
-            "strategy": { "type": "string" },
-            "focusAreas": { "type": "array", "items": { "type": "string" } }
+            "strategy": {
+              "type": "string",
+              "description": "指导 Agent 如何探索代码库和知识的文本策略"
+            }
           }
         },
         "design": {
@@ -76,7 +70,10 @@
                 "time_estimate": { "type": "string" }
               }
             },
-            "checklist": { "type": "array", "items": { "type": "string" } }
+            "strategy": {
+              "type": "string",
+              "description": "指导 Agent 如何进行方案分析和设计决策的文本策略"
+            }
           }
         },
         "implement": {
@@ -90,6 +87,28 @@
               "properties": {
                 "fields": { "type": "array", "items": { "type": "string" } }
               }
+            },
+            "strategy": {
+              "type": "string",
+              "description": "指导 Agent 如何执行实施工作的文本策略"
+            }
+          }
+        },
+        "archive": {
+          "type": "object",
+          "properties": {
+            "strategy": {
+              "type": "string",
+              "description": "指导 Agent 如何沉淀知识和归档的文本策略"
+            }
+          }
+        },
+        "feedback": {
+          "type": "object",
+          "properties": {
+            "strategy": {
+              "type": "string",
+              "description": "指导 Agent 如何捕获和回流发现的文本策略"
             }
           }
         },
@@ -97,7 +116,11 @@
           "type": "object",
           "properties": {
             "requireReview": { "type": "boolean", "default": false },
-            "autoUpdateHistory": { "type": "boolean", "default": true }
+            "autoUpdateHistory": { "type": "boolean", "default": true },
+            "strategy": {
+              "type": "string",
+              "description": "指导 Agent 如何组织和管理 library 知识的文本策略"
+            }
           }
         }
       }

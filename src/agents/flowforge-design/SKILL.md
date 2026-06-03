@@ -57,6 +57,8 @@ description: |
 
 向用户确认核心诉求、影响范围和已知约束。信息不足就提问，不跳过。
 
+如有 intake 材料，参照 `design-context.js` 输出的 `## Intake Strategy` 分析策略，按策略中描述的优先级和方法提取需求信息。
+
 ---
 
 ### 阶段 3：确定 project 归属
@@ -105,12 +107,13 @@ scripts/design-context.js <projectRoot> --project <projectId>
 
 此次输出包含：
 
-- `## Exploration Strategy`：该 project 的探索策略
+- `## Exploration Strategy`：该 project 的探索策略（如存在）
 - `## Design Rules`：命名规则（proposal_id 模板、exploration_slug 格式）、任务规则（字段、时间估计）
+- `## Design Strategy`：指导 Agent 如何进行方案分析和设计决策的项目级策略（如存在）
 - `## Implement Rules`：任务状态机、日志字段
 - `## Library Rules`：归档行为（requireReview、autoUpdateHistory）
 - `## Domain 分类指引`：如何为文档设置 domain 字段（scope、module、type 的判定规则）
-- Intake 分析步骤（该 project 的）
+- `## Intake Strategy`：intake 分析策略（如存在）
 
 **重要**：project 配置中不再有 `modules` 注册表。模块判定基于源文件路径和设计落地位置，不依赖预注册。
 
@@ -136,7 +139,7 @@ scripts/design-context.js <projectRoot> --project <projectId>
 探索阶段结束时，运行 `scripts/validate-exploration.js <路径>` 确保 exploration 结构完整。
 
 **探索时**：
-- 按 `design-context.js` 输出的探索策略进行
+- 如有 `## Exploration Strategy`，按其探索策略进行
 - 在 exploration 目录中记录，参照 `flowforge-docs` 获取对应 doc_type 的写作指南：
   - `findings/` → doc_type: `finding`
   - `decisions/` → doc_type: `decision`
@@ -144,6 +147,7 @@ scripts/design-context.js <projectRoot> --project <projectId>
 - **每个 exploration 只描述一个方面的内容**。如果探索涉及多个模块或多种类型的知识，拆分成多个 exploration，各自携带独立的 `domain`。
 
 **设计时**：
+- 如有 `## Design Strategy`，参照其项目级设计策略指导方案分析、架构决策和设计文档的撰写方向
 - 在 proposal 目录的 `design/` 下撰写设计文档，覆盖 design 类型的全部章节
 - 参照 `flowforge-docs` SKILL 获取 design 的写作指南
 - **多模块拆分规则**：如果一个 proposal 涉及多个模块（如同时改 auth 和 session），按模块用子目录组织设计文档。例如：

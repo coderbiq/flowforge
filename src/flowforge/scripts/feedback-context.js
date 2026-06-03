@@ -41,7 +41,16 @@ if (!proposalLocation) {
 
 const meta = loadMeta(proposalLocation.proposalDir);
 
+const activeProject = allProjects.find(p => p.id === proposalLocation.projectId);
+const r = activeProject && activeProject.rules ? activeProject.rules : null;
+
 console.log('# Feedback Context\n');
+
+if (r && r.feedback && r.feedback.strategy) {
+  console.log('## Feedback Strategy\n');
+  console.log(r.feedback.strategy.trim());
+  console.log('');
+}
 
 // 当前 proposal
 console.log('## Current Proposal\n');

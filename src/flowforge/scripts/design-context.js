@@ -81,9 +81,9 @@ if (!explicitProjectId) {
       console.log(`- [project: ${entry.projectId}] ${entry.relPath}`);
       for (const f of entry.files) console.log(`    - ${f}`);
     }
-    if (activeProject && activeProject.rules && activeProject.rules.intake) {
-      console.log('\n分析步骤（来自当前 project）：\n');
-      outputIntakeSteps(activeProject.rules.intake);
+    if (activeProject && activeProject.rules && activeProject.rules.intake && activeProject.rules.intake.strategy) {
+      console.log('\n## Intake Strategy\n');
+      console.log(activeProject.rules.intake.strategy.trim());
     }
     console.log('');
   }
@@ -114,6 +114,11 @@ if (activeProject && activeProject.rules) {
       if (r.design.task_rules.time_estimate) {
         console.log(`- time_estimate: ${r.design.task_rules.time_estimate}`);
       }
+      console.log('');
+    }
+    if (r.design.strategy) {
+      console.log('### Design Strategy');
+      console.log(r.design.strategy.trim());
       console.log('');
     }
   }
@@ -187,13 +192,6 @@ if (config.taskBackend && config.taskBackend.adapter && config.taskBackend.adapt
   console.log('\n## Task Backend\n');
   console.log(`adapter: ${config.taskBackend.adapter}`);
   console.log('任务创建/查询/更新将通过脚本调用存储层，Agent 无需直接操作 task-map 文件。');
-}
-
-function outputIntakeSteps(intakeRules) {
-  if (!intakeRules.steps || intakeRules.steps.length === 0) return;
-  for (const s of intakeRules.steps) {
-    console.log(`  - ${s.id}: ${s.action}`);
-  }
 }
 
 function collectIntake(projectRoot, projects) {

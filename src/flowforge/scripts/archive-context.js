@@ -80,6 +80,17 @@ if (r && r.library) {
   if (r.library.autoUpdateHistory !== undefined) {
     console.log(`autoUpdateHistory: ${r.library.autoUpdateHistory}`);
   }
+  console.log('');
+  if (r.library.strategy) {
+    console.log('## Library Strategy\n');
+    console.log(r.library.strategy.trim());
+    console.log('');
+  }
+}
+
+if (r && r.archive && r.archive.strategy) {
+  console.log('\n## Archive Strategy\n');
+  console.log(r.archive.strategy.trim());
 }
 
 // 输出文档全文

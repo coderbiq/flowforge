@@ -35,6 +35,8 @@ description: |
 - `## Current Proposal`（路径、project、wikiRoot、meta）
 - `## 归档目标`（从 proposal 内各文档的 domain frontmatter 自动推导的归档路径，按目标文件分组）
 - `## Library Rules`（requireReview、autoUpdateHistory）
+- `## Library Strategy`（library 组织原则，如存在）
+- `## Archive Strategy`（指导 Agent 如何沉淀知识的项目级策略，如存在）
 - proposal.md / design.md / task-map 全文
 - design/ 下的所有 .md 文件全文
 
@@ -49,6 +51,8 @@ description: |
 ---
 
 ### 阶段 3：按归档目标分组提取并写入
+
+如有 `## Archive Strategy`，参照其判断知识的可复用价值和归档优先级。如有 `## Library Strategy`，参照其了解 library 组织原则。
 
 `archive-context.js` 已经将文档按归档路径分组（见 `## 归档目标`）。对每个分组执行三步操作。
 

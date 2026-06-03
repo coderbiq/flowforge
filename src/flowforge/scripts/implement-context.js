@@ -52,6 +52,11 @@ if (r && r.implement) {
     console.log(`notes.fields: ${r.implement.notes.fields.join(', ')}`);
   }
   console.log('');
+  if (r.implement.strategy) {
+    console.log('## Implement Strategy\n');
+    console.log(r.implement.strategy.trim());
+    console.log('');
+  }
 }
 
 if (r && r.design && r.design.task_rules) {

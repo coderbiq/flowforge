@@ -1,5 +1,45 @@
 # FlowForge 更新日志
 
+## 0.4 — 2026-06-03
+
+### 配置层重构：为每个 SKILL 添加 strategy 文本策略
+
+- `intake.steps`（僵化的 step-by-step 数组）→ `intake.strategy`（灵活的文本策略），与 `exploration.strategy` 模式统一
+- 新增 6 个 strategy 字段：`design.strategy`、`implement.strategy`、`archive.strategy`、`feedback.strategy`、`library.strategy`、`intake.strategy`
+- 每个 strategy 是自由文本（YAML `|` 块），项目可按需定制 Agent 在各 SKILL 阶段的行为指导
+
+### 策略字段
+
+| 字段 | 所在位置 | 指导内容 |
+|------|---------|---------|
+| `intake.strategy` | design SKILL 阶段 2 | 如何分析 intake 材料 |
+| `design.strategy` | design SKILL 阶段 5 | 方案分析、架构决策和设计文档撰写方向 |
+| `implement.strategy` | implement SKILL 阶段 3 | 代码规范、测试要求和提交策略 |
+| `archive.strategy` | archive SKILL 阶段 3 | 知识可复用价值判断和归档优先级 |
+| `feedback.strategy` | feedback SKILL 阶段 2-3 | 发现是否值得回流及回流优先级 |
+| `library.strategy` | archive SKILL 阶段 3 | library 组织原则和更新策略 |
+
+### SKILL 工作流增强
+
+- 每个 SKILL 的工作流阶段显式引用对应 strategy，指导 Agent 在实际执行中使用策略文本
+- 所有 strategy 引用使用弱引用语气（"如有"/"如存在"），旧项目配置无 strategy 字段时不产生困惑
+- 策略字段在上下文脚本中输出为独立 `## X Strategy` 标题，统一格式
+
+### 上下文脚本更新
+
+- `design-context.js`：`intake.steps` 输出 → `## Intake Strategy` 文本输出；新增 `## Design Strategy` 输出；删除 `outputIntakeSteps()` 函数
+- `implement-context.js`：新增 `## Implement Strategy` 输出（独立标题）
+- `archive-context.js`：新增 `## Archive Strategy`、`## Library Strategy` 输出（独立标题）
+- `feedback-context.js`：新增 `## Feedback Strategy` 输出
+
+### Schema 更新
+
+- `project.schema.json`：v1 → v2，`rules` 的 `required` 新增 `archive` 和 `feedback`；`intake.steps`→`intake.strategy`；所有段增加 `strategy` 字段定义
+
+### 配置模板
+
+- `projects/default.yaml`：`intake.steps` 替换为 `intake.strategy`，新增 6 个 strategy 段的默认文本
+
 ## 0.3 — 2026-06-02
 
 ### 新增 SKILL：flowforge-feedback

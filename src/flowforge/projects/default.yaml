@@ -8,13 +8,10 @@ keywords: []
 
 rules:
   intake:
-    steps:
-      - id: understand-request
-        action: 理解用户的核心诉求和背景上下文
-      - id: identify-constraints
-        action: 识别技术约束、时间要求、已有系统限制
-      - id: determine-scope
-        action: 判断变更涉及的范围和影响面
+    strategy: |
+      优先从用户描述中提取核心诉求和背景上下文；
+      然后识别技术约束、时间要求和已有系统限制；
+      最后判断变更涉及的范围和影响面。
 
   exploration:
     strategy: |
@@ -34,6 +31,10 @@ rules:
         - deliverable
         - dependencies
       time_estimate: "2-5 分钟每个任务"
+    strategy: |
+      设计方案时优先复用 library 中的架构模式和既有决策；
+      跨模块变更先画出影响范围再进入细节；
+      每个设计决策记录到 design/ 目录，标注 domain 用于后续归档。
 
   implement:
     task_states:
@@ -46,7 +47,28 @@ rules:
         - timestamp
         - status
         - summary
+    strategy: |
+      每个任务完成后运行相关测试确保不引入回归；
+      遇到阻塞问题时先通过 flowforge-feedback 结构化记录再创建修复任务；
+      代码风格遵循项目已有约定，不做无关重构。
+
+  archive:
+    strategy: |
+      归档时优先提取可在其他项目中复用的通用模式和决策；
+      模块级知识沉淀到 library/modules/<name>/；
+      系统级架构决策沉淀到 library/architecture/ 或 library/decisions/。
+
+  feedback:
+    strategy: |
+      测试失败或发现新认知时先判断类型再回流；
+      bug 类发现优先创建修复任务（不阻塞当前提案进度）；
+      finding 类发现优先回流到关联的 exploration findings/；
+      knowledge 类发现标记后等待归档时统一提取。
 
   library:
     requireReview: false
     autoUpdateHistory: true
+    strategy: |
+      按 scope（system/module）和 type（design/decision/convention）组织；
+      同类知识合并而非覆盖，保留历史演进记录；
+      定期检查过期决策并标记 superseded。

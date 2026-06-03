@@ -38,6 +38,7 @@ description: |
 
 运行 `scripts/feedback-context.js` 加载上下文。输出包含：
 
+- `## Feedback Strategy`（指导 Agent 如何判决反馈是否值得回流的项目级策略，如存在）
 - `## Current Proposal`（路径、project、wikiRoot、状态）
 - `## Blocked Tasks`（被阻塞的任务及原因）
 - `## Associated Explorations`（通过 meta.yaml source_explorations 关联的探索目录）
@@ -47,6 +48,8 @@ description: |
 ---
 
 ### 阶段 2：识别发现
+
+如有 `## Feedback Strategy`，参照其判断当前上下文中哪些信息值得回流以及回流优先级。
 
 审查上下文中的以下信号，判断是否有值得回流的发现：
 
@@ -62,7 +65,7 @@ description: |
 
 ### 阶段 3：分类
 
-将识别到的发现归入以下五种类型之一：
+参照 `## Feedback Strategy` 中的判决标准（如存在），将识别到的发现归入以下五种类型之一：
 
 | 类型 | 判定标准 | 目标 artifact |
 |------|---------|--------------|

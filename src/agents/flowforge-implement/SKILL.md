@@ -36,6 +36,7 @@ description: |
 运行 `scripts/implement-context.js` 加载上下文。输出包含：
 
 - `## Implement Rules`（task_states、notes.fields）
+- `## Implement Strategy`（项目级实施指导，如存在）
 - `## Task Rules`（fields、time_estimate）
 - `## Current Proposal`（路径、project、wikiRoot、task-map 全文、notes.md 全文）
 
@@ -73,8 +74,9 @@ node scripts/task-claim.js <projectRoot> <CR-id> <taskId>
 
 ### 阶段 3：执行任务
 
-1. 按 task-map 中的 `description` 执行实际编码工作
-2. 完成后运行：
+1. 如有 `## Implement Strategy`，参照其中的代码规范、测试要求和提交策略指导实施工作
+2. 按 task-map 中的 `description` 执行实际编码工作
+3. 完成后运行：
 
 ```bash
 node scripts/task-done.js <projectRoot> <CR-id> <taskId> "<完成摘要>"
