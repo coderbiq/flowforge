@@ -59,7 +59,7 @@ function generateIndex(projectRoot, project) {
     }
   }
 
-  const sortByUpdated = (a, b) => (b.updated_at || '').localeCompare(a.updated_at || '');
+  const sortByUpdated = (a, b) => normalizeUpdatedAt(b.updated_at).localeCompare(normalizeUpdatedAt(a.updated_at));
   activeProposals.sort(sortByUpdated);
   completedProposals.sort(sortByUpdated);
 
@@ -120,4 +120,10 @@ function formatDate(isoStr) {
   if (!isoStr) return '—';
   const m = String(isoStr).match(/(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[2]}-${m[3]}` : String(isoStr).substring(0, 10);
+}
+
+function normalizeUpdatedAt(value) {
+  if (!value) return '';
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
 }
