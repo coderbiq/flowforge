@@ -71,7 +71,7 @@ async function runCheck(proposalDir) {
   }
 
   const data = yaml.load(fs.readFileSync(taskMapPath, 'utf8'));
-  const yamlTasks = data.tasks || [];
+  const yamlTasks = _flattenTasks(data.tasks || []);
   const issues = [];
 
   let beadTasks = [];
@@ -123,6 +123,19 @@ function _mapBeadStatus(beadStatus) {
     'blocked': 'blocked', 'cancelled': 'cancelled',
   };
   return mapping[beadStatus] || null;
+}
+
+function _flattenTasks(tasks) {
+  const result = [];
+  for (const task of tasks) {
+    const flat = { ...task };
+    delete flat.subtasks;
+    result.push(flat);
+    if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+      result.push(..._flattenTasks(task.subtasks));
+    }
+  }
+  return result;
 }
 
 main().catch(e => {
