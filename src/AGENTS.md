@@ -1,31 +1,39 @@
-<!-- BEGIN FLOWFORGE v:0.4 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.7 profile:default -->
 
+## FlowForge SKILL 路由
 
-## FlowForge SKILL 使用指南
+- 新需求、分析、设计、拆分任务 → `flowforge-design`
+- 执行任务、继续推进 → `flowforge-implement`
+- 归档、沉淀到 library → `flowforge-archive`
+- 实施中发现问题、新认知 → `flowforge-feedback`
+- 创建/修改 wiki 文档 → `flowforge-docs`
 
-- 用户表达新需求、想法、变更意图，或要求"分析"、"探索"、"设计"、"拆分任务" → `flowforge-design`
-- 用户要求"执行任务"、"开始实施"、"继续推进"，或 active 状态的 proposal 需要推进 → `flowforge-implement`
-- 用户要求"归档"、"沉淀"、"总结到 library"，或 implemented 状态的 proposal 需要归档 → `flowforge-archive`
-- 实施/测试中发现 bug、新认知或经验教训，需要结构化回流到 exploration/proposal/library → `flowforge-feedback`
-- 被其他 flowforge SKILL 内部调用，需要创建或修改 wiki 内的文档 → `flowforge-docs`
+## 任务操作规则
 
-## FlowForge 路径约定
+**proposal 任务的创建和状态变更必须通过 FlowForge SKILL**（`flowforge-design` / `flowforge-implement` / `flowforge-feedback`），禁止直接用 `bd create`。
 
-所有 SKILL 中引用的相对路径均以项目根目录下的 `.flowforge/` 为基准：
+**实施过程中发现的 bug、遗漏、改进**也属于 proposal 的一部分，通过 `flowforge-feedback` 回流，不要脱离 FlowForge 用 `bd create`。
 
-- `scripts/` → `.flowforge/scripts/`（上下文加载、任务管理、校验等脚本）
-- `schema/` → `.flowforge/schema/`（JSON Schema 校验文件）
-- `guides/` → `.flowforge/guides/`（文档写作指南）
+`bd create / update / close` 仅限与任何 proposal 无关的独立事务（如环境配置、工具脚本、临时调研）。不确定是否相关时，默认走 FlowForge。
 
-运行脚本前确认路径存在：`ls .flowforge/scripts/`。
+知识持久化用 `bd remember`。
+
+## 路径约定
+
+脚本 → `.flowforge/scripts/`，schema → `.flowforge/schema/`，guides → `.flowforge/guides/`。
 
 ---
 
-完成以下动作后，**必须立即**激活 `flowforge-progress` 保持 INDEX.md 同步：
+以下动作后**必须**激活 `flowforge-progress`：
 
-- 修改了 wiki 内 proposal 的 `meta.yaml` 的 status
-- 在 task-map.md 或 notes.md 中标记任务/追加日志
+- 修改 proposal 的 `meta.yaml` status
+- 在 task-map.md / notes.md 中标记任务或追加日志
 - 创建、归档或移动 proposal 目录
-- 完成 design 阶段的核心章节
+
+### 会话收尾
+
+1. 质量门禁通过（测试、lint、构建）
+2. `task-sync.js --check` 确认一致
+3. `git pull --rebase && bd dolt push && git push`
 
 <!-- END FLOWFORGE -->

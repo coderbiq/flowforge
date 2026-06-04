@@ -124,6 +124,52 @@ install_agents_flowforge() {
   fi
 }
 
+# 删除目标项目 AGENTS.md 中的独立 Beads 集成块
+# v0.7: beads 规则已整合进 FlowForge 块，独立段不再需要
+remove_beads_integration() {
+  local target="$1"
+  local dst="$target/AGENTS.md"
+
+  if [ ! -f "$dst" ]; then
+    return
+  fi
+
+  local marker_begin="<!-- BEGIN BEADS INTEGRATION"
+  local marker_end="<!-- END BEADS INTEGRATION -->"
+
+  if grep -q "$marker_begin" "$dst"; then
+    local tmp
+    tmp=$(mktemp)
+    # 提取 BEGIN 之前的内容
+    sed "/${marker_begin}/q" "$dst" | sed '$d' > "$tmp"
+    # 追加 END 之后的内容
+    sed -n "/${marker_end}/,\$p" "$dst" | sed '1d' >> "$tmp"
+    mv "$tmp" "$dst"
+    info "AGENTS.md 中独立 Beads 集成块已移除（规则已整合进 FlowForge 块）"
+  fi
+}
+
+# 安装 beads hooks 脚本（FlowForge → beads 自动同步）
+install_beads_hooks() {
+  local target="$1"
+  local src_hooks="$SRC_DIR/flowforge/hooks"
+
+  if [ ! -d "$src_hooks" ]; then
+    return
+  fi
+
+  mkdir -p "$target/.beads/hooks"
+
+  for hook in "$src_hooks"/*; do
+    local name
+    name=$(basename "$hook")
+    cp "$hook" "$target/.beads/hooks/"
+    chmod +x "$target/.beads/hooks/$name"
+  done
+
+  info "beads hooks 已安装 (.beads/hooks/on_update, on_close)"
+}
+
 # 安装并初始化 beads
 setup_beads() {
   local target="$1"
@@ -199,6 +245,9 @@ setup_beads() {
       fi
     fi
   fi
+
+  # 安装 beads hooks（双向同步的关键）
+  install_beads_hooks "$target"
 }
 
 if [ "$MODE" = "upgrade" ]; then
@@ -265,6 +314,9 @@ if [ "$MODE" = "upgrade" ]; then
   mkdir -p "$TARGET/ff-wiki/library/decisions"
   mkdir -p "$TARGET/ff-wiki/library/modules"
   info "Wiki 目录结构已确保存在（含 active/completed 子目录）"
+
+  # 移除 AGENTS.md 中的独立 Beads 集成块（v0.7: 已整合进 FlowForge 块）
+  remove_beads_integration "$TARGET"
 
   # 更新 AGENTS.md 中的 FlowForge 标记块
   install_agents_flowforge "$TARGET" "upgrade"
