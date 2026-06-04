@@ -74,24 +74,14 @@ class BeadsAdapter extends TaskAdapter {
       }
     }
 
-    // 创建依赖链接和父子链接
+    // 创建依赖链接
     for (const task of data.tasks) {
-      // 依赖链接
       const deps = task.dependencies || [];
       for (const depId of deps) {
         const depTask = data.tasks.find(t => t.id === depId);
         if (depTask && depTask._beadId && task._beadId) {
           try {
             _bd(`link ${task._beadId} ${depTask._beadId}`, this._projectRoot);
-          } catch (_) { /* 链接失败不阻塞 */ }
-        }
-      }
-      // 父子链接（subtask 关系）
-      if (task.parent) {
-        const parentTask = data.tasks.find(t => t.id === task.parent);
-        if (parentTask && parentTask._beadId && task._beadId) {
-          try {
-            _bd(`link ${task._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot);
           } catch (_) { /* 链接失败不阻塞 */ }
         }
       }
@@ -275,7 +265,7 @@ const tasks = beadTasks.map(bt => {
     return super.cleanup(proposalDir);
   }
 
-  async addTask(proposalDir, task, parentId) {
+  async addTask(proposalDir, task) {
     const data = this._readTaskMap(proposalDir);
     if (!data) return { added: false };
 
@@ -305,14 +295,6 @@ const tasks = beadTasks.map(bt => {
           }
         }
       }
-
-      // 父子链接
-      if (parentId) {
-        const parentTask = data.tasks.find(t => t.id === parentId);
-        if (parentTask && parentTask._beadId) {
-          try { _bd(`link ${beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
-        }
-      }
     } catch (_) {}
 
     const entry = {
@@ -329,7 +311,6 @@ const tasks = beadTasks.map(bt => {
       updated_at: new Date().toISOString(),
       _beadId: beadId
     };
-    if (parentId) entry.parent = parentId;
     data.tasks.push(entry);
     this._writeTaskMap(proposalDir, data.tasks, data.proposal_id);
     return { added: true, taskId: newId };
@@ -399,16 +380,6 @@ const tasks = beadTasks.map(bt => {
         }
       }
 
-      // 创建父子链接
-      for (const yt of yamlTasks) {
-        if (yt.parent && yt._beadId) {
-          const parentTask = yamlTasks.find(t => t.id === yt.parent);
-          if (parentTask && parentTask._beadId) {
-            try { _bd(`link ${yt._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
-          }
-        }
-      }
-
       for (const bt of beadTasks) {
         const match = yamlTasks.find(yt => yt._beadId === bt.id);
         if (!match) {
@@ -450,14 +421,6 @@ const tasks = beadTasks.map(bt => {
             );
             yt._beadId = JSON.parse(result).id;
             summary.created++;
-
-            // 子任务创建后链接到父任务
-            if (yt.parent) {
-              const parentTask = yamlTasks.find(t => t.id === yt.parent);
-              if (parentTask && parentTask._beadId) {
-                try { _bd(`link ${yt._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
-              }
-            }
           } catch (_) {
             summary.skipped++;
           }
@@ -476,13 +439,6 @@ const tasks = beadTasks.map(bt => {
             );
             yt._beadId = JSON.parse(result).id;
             summary.created++;
-
-            if (yt.parent) {
-              const parentTask = yamlTasks.find(t => t.id === yt.parent);
-              if (parentTask && parentTask._beadId) {
-                try { _bd(`link ${yt._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
-              }
-            }
           } catch (_) {
             summary.skipped++;
           }
@@ -531,9 +487,6 @@ const tasks = beadTasks.map(bt => {
           this._projectRoot
         );
         beadId = JSON.parse(result).id;
-
-        // 父子 subtask 链接
-        try { _bd(`link ${beadId} ${parent._beadId} --type subtask`, this._projectRoot); } catch (_) {}
       } catch (_) { /* beads 创建失败，仍然追加到 YAML */ }
     }
 
@@ -547,7 +500,6 @@ const tasks = beadTasks.map(bt => {
       type: task.type || '',
       sourceTasks: task.sourceTasks || [],
       epic: task.epic || [],
-      parent: parentTaskId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       _beadId: beadId
@@ -596,19 +548,17 @@ const tasks = beadTasks.map(bt => {
   // ========== 内部方法 ==========
 
   /**
-   * 递归展平嵌套的 subtasks，添加 parent 字段。
-   * YAML 可以用 subtasks 嵌套表示层级，适配器内部始终使用扁平列表 + parent 字段。
+   * 递归展平嵌套的 subtasks 为扁平列表。
+   * YAML 可以用 subtasks 嵌套表示层级（纯展示），适配器内部始终使用扁平列表处理。
    */
-  _flattenTasks(tasks, parentId) {
+  _flattenTasks(tasks) {
     const result = [];
     for (const task of tasks) {
       const flat = { ...task };
-      if (parentId) flat.parent = parentId;
-      const subtasks = flat.subtasks;
       delete flat.subtasks;
       result.push(flat);
-      if (Array.isArray(subtasks) && subtasks.length > 0) {
-        result.push(...this._flattenTasks(subtasks, flat.id));
+      if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+        result.push(...this._flattenTasks(task.subtasks));
       }
     }
     return result;
@@ -624,30 +574,8 @@ const tasks = beadTasks.map(bt => {
     const taskMapPath = path.join(proposalDir, 'task-map.yaml');
     if (!fs.existsSync(taskMapPath)) return null;
     const data = yaml.load(fs.readFileSync(taskMapPath, 'utf8'));
-    const rawTasks = data?.tasks || [];
-    const flatTasks = this._flattenTasks(rawTasks, null);
-    return { tasks: flatTasks, proposal_id: data?.proposal_id };
-  }
-
-  /**
-   * 构建 beads labels 字符串。
-   * 包含 task:<id>, proposal:<id>, type:<type>, epic:<id>, source:<id> 标签。
-   */
-  _buildLabels(task, proposalId) {
-    const labels = [`task:${task.id}`];
-    if (proposalId) labels.push(`proposal:${proposalId}`);
-    if (task.type) labels.push(`type:${task.type}`);
-    if (Array.isArray(task.epic)) {
-      for (const epicId of task.epic) {
-        labels.push(`epic:${epicId}`);
-      }
-    }
-    if (Array.isArray(task.sourceTasks)) {
-      for (const sourceId of task.sourceTasks) {
-        labels.push(`source:${sourceId}`);
-      }
-    }
-    return labels.join(',');
+    const tasks = this._flattenTasks(data?.tasks || []);
+    return { tasks, proposal_id: data?.proposal_id };
   }
 
   _readMeta(proposalDir) {
