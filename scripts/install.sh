@@ -284,6 +284,35 @@ if [ "$MODE" = "upgrade" ]; then
       fi
     done
     info "project 配置模板已同步"
+
+    # 合并 task_rules 新字段到已有 project 配置（保留项目定制）
+    node -e "
+    const fs = require('fs');
+    const yaml = require('$SRC_DIR/flowforge/scripts/vendor/js-yaml');
+    const defaultCfg = yaml.load(fs.readFileSync('$SRC_DIR/flowforge/projects/default.yaml', 'utf8'));
+    const defaultFields = defaultCfg?.rules?.design?.task_rules?.fields || [];
+    const defaultEstimate = defaultCfg?.rules?.design?.task_rules?.time_estimate || '';
+    const projDir = '$TARGET/.flowforge/projects';
+    for (const f of fs.readdirSync(projDir)) {
+      if (!f.endsWith('.yaml')) continue;
+      const fp = projDir + '/' + f;
+      const cfg = yaml.load(fs.readFileSync(fp, 'utf8'));
+      if (!cfg?.rules?.design?.task_rules) continue;
+      const tr = cfg.rules.design.task_rules;
+      let changed = false;
+      for (const field of defaultFields) {
+        if (!tr.fields.includes(field)) { tr.fields.push(field); changed = true; }
+      }
+      if (defaultEstimate && tr.time_estimate !== defaultEstimate && !tr.time_estimate.includes('analysis')) {
+        tr.time_estimate = defaultEstimate;
+        changed = true;
+      }
+      if (changed) {
+        fs.writeFileSync(fp, yaml.dump(cfg, { lineWidth: -1, noRefs: true }), 'utf8');
+        console.log('  merged task_rules: ' + f);
+      }
+    }
+    " 2>/dev/null || true
   fi
 
   # 指南：只添加不覆盖（项目可能定制过）
