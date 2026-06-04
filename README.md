@@ -54,7 +54,7 @@ FlowForge/
 
 | SKILL | 触发场景 | 职责 |
 |-------|---------|------|
-| `flowforge-design` | 新需求、变更意图、"分析"、"设计" | 任务驱动渐进式探索设计：创建分析任务 → 探索代码/library → 设计 → 拆分实施任务 |
+| `flowforge-design` | 新需求、变更意图、"分析"、"设计" | 需求树驱动渐进式探索：构建需求草案 → 分析任务 → 设计 → 细化实施任务 |
 | `flowforge-implement` | "执行任务"、"继续推进" | 执行 task-map 中 type: implementation 的任务：认领 → 编码 → 记录日志 |
 | `flowforge-feedback` | 测试失败、发现新认知、"不对" | 分类发现（bug/finding/knowledge）→ 回流到 library 或创建修复任务 |
 | `flowforge-archive` | "归档"、"沉淀到 library" | 合成知识到 library：对比现状 → 修正过时描述 → 更新模块设计 |
@@ -69,11 +69,11 @@ FlowForge/
 
 ### 1. 提出需求
 
-用户向 Agent 表达需求，Agent 自动激活 `flowforge-design`。design SKILL 读取 intake 材料和 library 中已有知识，以任务驱动的方式推进：
+用户向 Agent 表达需求，Agent 自动激活 `flowforge-design`。design SKILL 读取 intake 材料和 library 中已有知识，以需求树驱动的方式推进：
 
-- 首先创建主分析任务"分析识别提案的需求边界"
-- 边探索边拆分子任务（type: analysis），追踪每个需求点的分析进度
-- 分析充分后创建 design 任务（type: design），撰写设计方案
+- 首先构建需求树草案——按功能域/模块将需求层级拆解，不确定的标 `[?]`
+- 为已知叶子节点创建 analysis 任务，边探索边完善需求树
+- 分析充分后创建 design 任务，撰写设计方案
 
 **探索即沉淀**：探索过程中发现的系统架构事实（模块分层、命名约定、权限模式等）直接写入 `library/`，标注 `domain` frontmatter 决定归属路径。
 
