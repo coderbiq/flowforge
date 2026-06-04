@@ -1,8 +1,9 @@
 ---
 name: flowforge-implement
 description: |
-  FlowForge 实施执行引擎。在 proposal 进入实施阶段后，执行 task-map 中的
-  任务并记录日志。
+  FlowForge 实施执行引擎。在 proposal 进入实施阶段后，执行 task-map 中
+  type: implementation 的任务并记录日志。不处理 analysis 和 design 类型任务——
+  这些由 flowforge-design 驱动。
 
   必须在以下场景激活：
   - 用户明确表达"执行任务"、"开始实施"、"继续推进"、"做下一个任务"
@@ -19,14 +20,15 @@ description: |
 
 # FlowForge Implement
 
-负责执行 task-map 中的任务并跟踪进度。
+负责执行 task-map 中 `type: implementation` 的任务并跟踪进度。
+不处理 `analysis` 和 `design` 类型的任务——这些由 `flowforge-design` 驱动。
 
 ## 工作流
 
 ```
-定位上下文 → 确定当前任务 → 执行任务 → 记录进度 → 判断下一步
-                                        ↓
-                              设计缺陷 → flowforge-design
+定位上下文 → 确定当前任务 → 按类型执行任务 → 记录进度 → 判断下一步
+                                                   ↓
+                                          设计缺陷 → flowforge-design
 ```
 
 ---
@@ -39,6 +41,7 @@ description: |
 - `## Implement Strategy`（项目级实施指导，如存在）
 - `## Task Rules`（fields、time_estimate）
 - `## Current Proposal`（路径、project、wikiRoot、task-map 全文、notes.md 全文）
+- `## Task Type Breakdown`：按 type 分组的任务状态概览
 
 如果找不到活跃状态的 proposal，提示用户先在 design SKILL 中将 proposal 状态设为 `active`。
 
@@ -52,13 +55,13 @@ node scripts/task-context.js <projectRoot> <CR-id>
 
 ### 阶段 2：确定当前任务
 
-查询就绪任务：
+查询就绪的 implementation 任务：
 
 ```bash
 node scripts/task-ready.js <projectRoot> <CR-id>
 ```
 
-输出 JSON 数组，包含所有依赖已满足的 pending 任务。
+输出 JSON 数组，包含所有依赖已满足的 pending 任务。**只处理 `type: implementation` 的任务**——`type: analysis` 和 `type: design` 的任务由 `flowforge-design` 负责。
 
 选择策略：优先 `status` 为 `in_progress` 的任务（断点续传），其次选第一个就绪任务。
 
@@ -74,9 +77,10 @@ node scripts/task-claim.js <projectRoot> <CR-id> <taskId>
 
 ### 阶段 3：执行任务
 
-1. 如有 `## Implement Strategy`，参照其中的代码规范、测试要求和提交策略指导实施工作
-2. 按 task-map 中的 `description` 执行实际编码工作
-3. 完成后运行：
+1. 确认任务 `type` 为 `implementation`（非 implementation 任务应路由给 `flowforge-design`）
+2. 如有 `## Implement Strategy`，参照其中的代码规范、测试要求和提交策略指导实施工作
+3. 按 task-map 中的 `description` 执行实际编码工作
+4. 完成后运行：
 
 ```bash
 node scripts/task-done.js <projectRoot> <CR-id> <taskId> "<完成摘要>"

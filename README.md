@@ -54,12 +54,12 @@ FlowForge/
 
 | SKILL | 触发场景 | 职责 |
 |-------|---------|------|
-| `flowforge-design` | 新需求、变更意图、"分析"、"设计" | 探索代码和 library → 设计方案 → 拆分任务 |
-| `flowforge-implement` | "执行任务"、"继续推进" | 读取 task-map → 逐个执行任务 → 记录日志 |
+| `flowforge-design` | 新需求、变更意图、"分析"、"设计" | 任务驱动渐进式探索设计：创建分析任务 → 探索代码/library → 设计 → 拆分实施任务 |
+| `flowforge-implement` | "执行任务"、"继续推进" | 执行 task-map 中 type: implementation 的任务：认领 → 编码 → 记录日志 |
 | `flowforge-feedback` | 测试失败、发现新认知、"不对" | 分类发现（bug/finding/knowledge）→ 回流到 library 或创建修复任务 |
 | `flowforge-archive` | "归档"、"沉淀到 library" | 合成知识到 library：对比现状 → 修正过时描述 → 更新模块设计 |
 | `flowforge-docs` | 被其他 SKILL 调用创建/修改文档 | 加载写作指南 → 提供 frontmatter 契约 → 校验文档 |
-| `flowforge-progress` | 任何工作单元完成后 | 更新 meta.latest_progress → 刷新 INDEX.md |
+| `flowforge-progress` | 任何工作单元完成后 | 按 type 分组总结进展 → 更新 meta.latest_progress → 刷新 INDEX.md |
 
 ### 路由原则
 
@@ -69,33 +69,37 @@ FlowForge/
 
 ### 1. 提出需求
 
-用户向 Agent 表达需求，Agent 自动激活 `flowforge-design`。design SKILL 读取 intake 材料和 library 中已有知识，探索代码库和相关模块。
+用户向 Agent 表达需求，Agent 自动激活 `flowforge-design`。design SKILL 读取 intake 材料和 library 中已有知识，以任务驱动的方式推进：
+
+- 首先创建主分析任务"分析识别提案的需求边界"
+- 边探索边拆分子任务（type: analysis），追踪每个需求点的分析进度
+- 分析充分后创建 design 任务（type: design），撰写设计方案
 
 **探索即沉淀**：探索过程中发现的系统架构事实（模块分层、命名约定、权限模式等）直接写入 `library/`，标注 `domain` frontmatter 决定归属路径。
 
-### 2. 设计方案
+### 2. 渐进式设计
 
-探索完成后，design SKILL 在 `workspace/proposals/active/<CR-id>/` 下创建 proposal 目录，撰写设计文档。设计文档按 `domain` 标注，决定归档时合入 library 的哪个位置。
+探索与设计**交织进行**，而非分阶段——分析任务完成即可创建对应的设计任务，设计过程中发现新问题可追加分析任务。所有任务（analysis + design + implementation）在同一张 task-map.yaml 中，通过 `sourceTasks`（来源追溯）和 `epic`（事件归类）关系字段串联完整链路。
 
 ```
 workspace/proposals/active/CR26060101-example/
 ├── proposal.md          ← 提案概述（背景、方案、影响）
 ├── meta.yaml            ← 元数据（id、title、status、modules）
-├── design/              ← 详细设计文档（architecture / tradeoffs / lifecycle / constraints）
+├── design/              ← 详细设计文档（architecture / api / impacts / tradeoffs）
 ├── model/               ← 业务模型文档
-├── task-map.yaml        ← 任务拆分
+├── task-map.yaml        ← 全流程任务（analysis / design / implementation 三类）
 └── notes.md             ← 实施日志
 ```
 
-### 3. 拆分任务
+### 3. 细化实施任务
 
-设计定稿后，design SKILL 将工作拆分为 `task-map.yaml` 中的任务序列，标注依赖关系。然后调用 `flowforge-progress` 刷新 INDEX.md。
+分析设计完成后，design SKILL 将已完成的 design 任务转化为 implementation 任务，标注 `sourceTasks` 指向设计任务、`epic` 指向主分析任务。然后调用 `flowforge-progress` 刷新 INDEX.md。分析设计是否完成，看 analysis 和 design 类型的任务是否全部 done 即可。
 
 ### 4. 执行实施
 
-用户指示"开始实施"后，Agent 激活 `flowforge-implement`。implement SKILL 按 task-map 逐个执行任务：
+用户指示"开始实施"后，Agent 激活 `flowforge-implement`。implement SKILL 只处理 task-map 中 `type: implementation` 的任务：
 
-- 读取就绪任务（依赖已完成 + 状态为 pending）
+- 读取就绪任务（依赖已完成 + 状态为 pending + type: implementation）
 - 认领任务 → 状态变为 in_progress
 - 执行任务 → 标记 done → 记录 notes.md
 - 完成每个工作单元后自动激活 `flowforge-progress`

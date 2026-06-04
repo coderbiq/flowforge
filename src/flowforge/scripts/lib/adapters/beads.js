@@ -59,9 +59,10 @@ class BeadsAdapter extends TaskAdapter {
     let created = 0;
     for (const task of data.tasks) {
       try {
+        const labels = this._buildLabels(task, proposalId);
         const result = _bd(
           `create "${_escape(task.title)}" --type task --parent ${epicId} ` +
-          `--labels task:${task.id},proposal:${proposalId} ` +
+          `--labels ${labels} ` +
           `--description "${_escape(task.description || '')}" --json`,
           this._projectRoot
         );
@@ -73,14 +74,24 @@ class BeadsAdapter extends TaskAdapter {
       }
     }
 
-    // 创建依赖链接
+    // 创建依赖链接和父子链接
     for (const task of data.tasks) {
+      // 依赖链接
       const deps = task.dependencies || [];
       for (const depId of deps) {
         const depTask = data.tasks.find(t => t.id === depId);
         if (depTask && depTask._beadId && task._beadId) {
           try {
             _bd(`link ${task._beadId} ${depTask._beadId}`, this._projectRoot);
+          } catch (_) { /* 链接失败不阻塞 */ }
+        }
+      }
+      // 父子链接（subtask 关系）
+      if (task.parent) {
+        const parentTask = data.tasks.find(t => t.id === task.parent);
+        if (parentTask && parentTask._beadId && task._beadId) {
+          try {
+            _bd(`link ${task._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot);
           } catch (_) { /* 链接失败不阻塞 */ }
         }
       }
@@ -104,22 +115,23 @@ class BeadsAdapter extends TaskAdapter {
         const beadTasks = JSON.parse(result);
         if (Array.isArray(beadTasks) && beadTasks.length > 0) {
           // 用 beads 结果交叉匹配 YAML 任务
-          const tasks = beadTasks.map(bt => {
+const tasks = beadTasks.map(bt => {
             const yt = data.tasks.find(t => t._beadId === bt.id);
             if (yt) {
               return {
                 id: yt.id,
                 title: yt.title,
                 description: yt.description,
-                deliverable: yt.deliverable || ''
+                deliverable: yt.deliverable || '',
+                type: yt.type || 'untyped',
               };
             }
-            // beads 中有但 YAML 中找不到的，作为一个引用返回
             return {
               id: bt.id,
               title: bt.title || '',
               description: bt.description || '',
               deliverable: '',
+              type: 'untyped',
               _beadOnly: true
             };
           }).filter(t => t.title);
@@ -135,7 +147,8 @@ class BeadsAdapter extends TaskAdapter {
         id: t.id,
         title: t.title,
         description: t.description,
-        deliverable: t.deliverable || ''
+        deliverable: t.deliverable || '',
+        type: t.type || 'untyped',
       })),
       source: 'yaml'
     };
@@ -214,18 +227,24 @@ class BeadsAdapter extends TaskAdapter {
 
   async getStatus(proposalDir) {
     const data = this._readTaskMap(proposalDir);
-    if (!data) return { total: 0, done: 0, in_progress: 0, pending: 0, blocked: 0, tasks: [] };
+    if (!data) return { total: 0, done: 0, in_progress: 0, pending: 0, blocked: 0, tasks: [], by_type: {} };
 
     const tasks = data.tasks;
     const counts = { done: 0, in_progress: 0, pending: 0, blocked: 0 };
+    const by_type = {};
     for (const t of tasks) {
       if (counts[t.status] !== undefined) counts[t.status]++;
+      const type = t.type || 'implementation';
+      if (!by_type[type]) by_type[type] = { total: 0, done: 0, in_progress: 0, pending: 0, blocked: 0 };
+      by_type[type].total++;
+      if (by_type[type][t.status] !== undefined) by_type[type][t.status]++;
     }
 
     return {
       total: tasks.length,
       ...counts,
-      tasks: tasks.map(t => ({ id: t.id, title: t.title, status: t.status }))
+      by_type,
+      tasks: tasks.map(t => ({ id: t.id, title: t.title, type: t.type || 'implementation', status: t.status }))
     };
   }
 
@@ -256,7 +275,7 @@ class BeadsAdapter extends TaskAdapter {
     return super.cleanup(proposalDir);
   }
 
-  async addTask(proposalDir, task) {
+  async addTask(proposalDir, task, parentId) {
     const data = this._readTaskMap(proposalDir);
     if (!data) return { added: false };
 
@@ -265,10 +284,14 @@ class BeadsAdapter extends TaskAdapter {
 
     let beadId = null;
     try {
-      const meta = this._readMeta(proposalDir);
+      const labels = this._buildLabels(
+        { id: newId, type: task.type || '', sourceTasks: task.sourceTasks || [], epic: task.epic || [] },
+        proposalId
+      );
+
       const result = _bd(
         `create "${_escape(task.title)}" --type task ` +
-        `--labels task:${newId},proposal:${proposalId || ''} ` +
+        `--labels ${labels} ` +
         `--description "${_escape(task.description || '')}" --json`,
         this._projectRoot
       );
@@ -282,6 +305,14 @@ class BeadsAdapter extends TaskAdapter {
           }
         }
       }
+
+      // 父子链接
+      if (parentId) {
+        const parentTask = data.tasks.find(t => t.id === parentId);
+        if (parentTask && parentTask._beadId) {
+          try { _bd(`link ${beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
+        }
+      }
     } catch (_) {}
 
     const entry = {
@@ -291,10 +322,14 @@ class BeadsAdapter extends TaskAdapter {
       deliverable: task.deliverable || '',
       status: 'pending',
       dependencies: task.dependencies || [],
+      type: task.type || '',
+      sourceTasks: task.sourceTasks || [],
+      epic: task.epic || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       _beadId: beadId
     };
+    if (parentId) entry.parent = parentId;
     data.tasks.push(entry);
     this._writeTaskMap(proposalDir, data.tasks, data.proposal_id);
     return { added: true, taskId: newId };
@@ -350,9 +385,10 @@ class BeadsAdapter extends TaskAdapter {
           continue;
         }
         try {
+          const labels = this._buildLabels(yt, proposalId);
           const result = _bd(
             `create "${_escape(yt.title)}" --type task ` +
-            `--labels task:${yt.id},proposal:${proposalId || ''} ` +
+            `--labels ${labels} ` +
             `--description "${_escape(yt.description || '')}" --json`,
             this._projectRoot
           );
@@ -360,6 +396,16 @@ class BeadsAdapter extends TaskAdapter {
           summary.created++;
         } catch (_) {
           summary.skipped++;
+        }
+      }
+
+      // 创建父子链接
+      for (const yt of yamlTasks) {
+        if (yt.parent && yt._beadId) {
+          const parentTask = yamlTasks.find(t => t.id === yt.parent);
+          if (parentTask && parentTask._beadId) {
+            try { _bd(`link ${yt._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
+          }
         }
       }
 
@@ -395,14 +441,23 @@ class BeadsAdapter extends TaskAdapter {
       for (const yt of yamlTasks) {
         if (!yt._beadId) {
           try {
+            const labels = this._buildLabels(yt, proposalId);
             const result = _bd(
               `create "${_escape(yt.title)}" --type task ` +
-              `--labels task:${yt.id},proposal:${proposalId || ''} ` +
+              `--labels ${labels} ` +
               `--description "${_escape(yt.description || '')}" --json`,
               this._projectRoot
             );
             yt._beadId = JSON.parse(result).id;
             summary.created++;
+
+            // 子任务创建后链接到父任务
+            if (yt.parent) {
+              const parentTask = yamlTasks.find(t => t.id === yt.parent);
+              if (parentTask && parentTask._beadId) {
+                try { _bd(`link ${yt._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
+              }
+            }
           } catch (_) {
             summary.skipped++;
           }
@@ -412,14 +467,22 @@ class BeadsAdapter extends TaskAdapter {
         const bt = beadById[yt._beadId];
         if (!bt) {
           try {
+            const labels = this._buildLabels(yt, proposalId);
             const result = _bd(
               `create "${_escape(yt.title)}" --type task ` +
-              `--labels task:${yt.id},proposal:${proposalId || ''} ` +
+              `--labels ${labels} ` +
               `--description "${_escape(yt.description || '')}" --json`,
               this._projectRoot
             );
             yt._beadId = JSON.parse(result).id;
             summary.created++;
+
+            if (yt.parent) {
+              const parentTask = yamlTasks.find(t => t.id === yt.parent);
+              if (parentTask && parentTask._beadId) {
+                try { _bd(`link ${yt._beadId} ${parentTask._beadId} --type subtask`, this._projectRoot); } catch (_) {}
+              }
+            }
           } catch (_) {
             summary.skipped++;
           }
@@ -450,20 +513,30 @@ class BeadsAdapter extends TaskAdapter {
     const parent = data.tasks.find(t => t.id === parentTaskId);
     const newId = String(data.tasks.length + 1);
 
-    // beads: 使用 discovered-from 依赖
     let beadId = null;
     if (parent && parent._beadId) {
       try {
+        const labels = [
+          `task:${newId}`,
+          ...(data.proposal_id ? [`proposal:${data.proposal_id}`] : []),
+          ...(task.type ? [`type:${task.type}`] : []),
+          ...(Array.isArray(task.epic) ? task.epic.map(e => `epic:${e}`) : []),
+          ...(Array.isArray(task.sourceTasks) ? task.sourceTasks.map(s => `source:${s}`) : []),
+        ].join(',');
+
         const result = _bd(
           `create "${_escape(task.title)}" --type task ` +
-          `--dep discovered-from:${parent._beadId} --json`,
+          `--dep discovered-from:${parent._beadId} ` +
+          `--labels ${labels} --json`,
           this._projectRoot
         );
         beadId = JSON.parse(result).id;
+
+        // 父子 subtask 链接
+        try { _bd(`link ${beadId} ${parent._beadId} --type subtask`, this._projectRoot); } catch (_) {}
       } catch (_) { /* beads 创建失败，仍然追加到 YAML */ }
     }
 
-    // 追加到 YAML
     data.tasks.push({
       id: newId,
       title: task.title,
@@ -471,6 +544,10 @@ class BeadsAdapter extends TaskAdapter {
       deliverable: task.deliverable || '',
       status: 'pending',
       dependencies: [parentTaskId],
+      type: task.type || '',
+      sourceTasks: task.sourceTasks || [],
+      epic: task.epic || [],
+      parent: parentTaskId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       _beadId: beadId
@@ -517,6 +594,61 @@ class BeadsAdapter extends TaskAdapter {
   }
 
   // ========== 内部方法 ==========
+
+  /**
+   * 递归展平嵌套的 subtasks，添加 parent 字段。
+   * YAML 可以用 subtasks 嵌套表示层级，适配器内部始终使用扁平列表 + parent 字段。
+   */
+  _flattenTasks(tasks, parentId) {
+    const result = [];
+    for (const task of tasks) {
+      const flat = { ...task };
+      if (parentId) flat.parent = parentId;
+      const subtasks = flat.subtasks;
+      delete flat.subtasks;
+      result.push(flat);
+      if (Array.isArray(subtasks) && subtasks.length > 0) {
+        result.push(...this._flattenTasks(subtasks, flat.id));
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 读取 task-map.yaml 并展平嵌套的 subtasks。
+   */
+  _readTaskMap(proposalDir) {
+    const yaml = require('../../vendor/js-yaml');
+    const fs = require('fs');
+    const path = require('path');
+    const taskMapPath = path.join(proposalDir, 'task-map.yaml');
+    if (!fs.existsSync(taskMapPath)) return null;
+    const data = yaml.load(fs.readFileSync(taskMapPath, 'utf8'));
+    const rawTasks = data?.tasks || [];
+    const flatTasks = this._flattenTasks(rawTasks, null);
+    return { tasks: flatTasks, proposal_id: data?.proposal_id };
+  }
+
+  /**
+   * 构建 beads labels 字符串。
+   * 包含 task:<id>, proposal:<id>, type:<type>, epic:<id>, source:<id> 标签。
+   */
+  _buildLabels(task, proposalId) {
+    const labels = [`task:${task.id}`];
+    if (proposalId) labels.push(`proposal:${proposalId}`);
+    if (task.type) labels.push(`type:${task.type}`);
+    if (Array.isArray(task.epic)) {
+      for (const epicId of task.epic) {
+        labels.push(`epic:${epicId}`);
+      }
+    }
+    if (Array.isArray(task.sourceTasks)) {
+      for (const sourceId of task.sourceTasks) {
+        labels.push(`source:${sourceId}`);
+      }
+    }
+    return labels.join(',');
+  }
 
   _readMeta(proposalDir) {
     const yaml = require('../../vendor/js-yaml');

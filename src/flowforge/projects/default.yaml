@@ -27,10 +27,24 @@ rules:
       fields:
         - id
         - title
+        - type
         - description
         - deliverable
         - dependencies
-      time_estimate: "2-5 分钟每个任务"
+        - sourceTasks
+        - epic
+        - subtasks
+      time_estimate: "2-5 分钟每个实施任务（analysis/design 任务粒度由 Agent 灵活决定）"
+    task_types:
+      analysis:
+        label: "需求分析"
+        description: "需求分析、代码探索、可行性研究；由 flowforge-design 驱动，非线性执行"
+      design:
+        label: "方案设计"
+        description: "方案设计、架构设计、接口设计；由 flowforge-design 驱动，非线性执行"
+      implementation:
+        label: "编码实施"
+        description: "编码实现、测试编写；由 flowforge-implement 驱动，线性执行"
     strategy: |
       设计方案时优先复用 library 中的架构模式和既有决策；
       跨模块变更先画出影响范围再进入细节；

@@ -1,4 +1,4 @@
-<!-- BEGIN FLOWFORGE v:0.7 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.8 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -27,7 +27,7 @@
 以下动作后**必须**激活 `flowforge-progress`：
 
 - 修改 proposal 的 `meta.yaml` status
-- 在 task-map.md / notes.md 中标记任务或追加日志
+- 在 task-map.yaml / notes.md 中标记任务或追加日志
 - 创建、归档或移动 proposal 目录
 
 ### 会话收尾

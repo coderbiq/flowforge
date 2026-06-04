@@ -1,5 +1,36 @@
 # FlowForge 更新日志
 
+## 0.8.0 — 2026-06-04
+
+### 任务系统贯穿分析设计全流程
+
+分析设计阶段不再游离于任务系统之外。task-map.yaml 从 proposal 创建时就开始工作，通过任务类型、任务关系字段和 YAML 嵌套层级，覆盖从分析探索到设计撰写再到实施编码的完整链路。
+
+**新增任务类型 `type`**：`analysis`（需求分析）、`design`（方案设计）、`implementation`（编码实施）。analysis 和 design 任务由 `flowforge-design` 非线性驱动，implementation 任务由 `flowforge-implement` 线性执行。
+
+**新增三种任务关系**：
+- `dependencies`：前置阻塞（强关系），依赖任务完成后才能开始
+- `sourceTasks`：来源追溯（弱关系），记录当前任务由哪些上游任务拆分而来
+- `epic`：事件归类（弱标签），不同树上的任务共同服务于哪件事
+
+**任务层级**：通过 YAML `subtasks` 嵌套表达层级，同类任务形成独立的任务树（分析树、设计树、实施树），通过关系字段跨树关联。
+
+**SKILL 更新**：
+- `flowforge-design` 阶段 5-7 重写：从自由 [探索⇄设计] 循环改为任务驱动的渐进式拆分。进入探索阶段即创建主分析任务，边探索边拆分子任务，分析完成创建 design 任务，design 完成创建 implementation 任务
+- `flowforge-implement`：明确只处理 `type: implementation` 的任务，analysis/design 任务由 design SKILL 负责
+- `flowforge-progress`：进度展示支持分类型（分析 [2/3] 设计 [1/2] 实施 [0/5]）
+
+**配置更新**：
+- `default.yaml` `rules.design.task_rules.fields` 新增 `type`、`sourceTasks`、`epic`、`subtasks`
+- 新增 `rules.design.task_types` 定义三种任务类型及驱动归属
+- `time_estimate` 明确仅约束 implementation 任务
+
+**适配器更新**：
+- `beads.js`：创建 issue 时附加 `type:`、`source:`、`epic:` 标签；`getStatus` 输出 `by_type` 分组统计
+- `yaml.js`：`getStatus` 输出 `by_type` 分组统计
+
+**向后兼容**：`type` 默认 `implementation`，`sourceTasks` / `epic` / `subtasks` 均为可选。已有 task-map.yaml 无需迁移即可工作。
+
 ## 0.6.1 — 2026-06-03
 
 ### beads adapter 修复

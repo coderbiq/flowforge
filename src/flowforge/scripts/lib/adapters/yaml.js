@@ -86,7 +86,7 @@ class YamlAdapter extends TaskAdapter {
 
   async getStatus(proposalDir) {
     const data = this._readTaskMap(proposalDir);
-    if (!data) return { total: 0, done: 0, in_progress: 0, pending: 0, blocked: 0, tasks: [] };
+    if (!data) return { total: 0, done: 0, in_progress: 0, pending: 0, blocked: 0, tasks: [], by_type: {} };
 
     const tasks = data.tasks;
     const counts = { done: 0, in_progress: 0, pending: 0, blocked: 0 };
@@ -94,10 +94,19 @@ class YamlAdapter extends TaskAdapter {
       if (counts[t.status] !== undefined) counts[t.status]++;
     }
 
+    const by_type = {};
+    for (const t of tasks) {
+      const tp = t.type || 'implementation';
+      if (!by_type[tp]) by_type[tp] = { total: 0, done: 0, in_progress: 0, pending: 0, blocked: 0 };
+      by_type[tp].total++;
+      if (by_type[tp][t.status] !== undefined) by_type[tp][t.status]++;
+    }
+
     return {
       total: tasks.length,
       ...counts,
-      tasks: tasks.map(t => ({ id: t.id, title: t.title, status: t.status }))
+      by_type,
+      tasks: tasks.map(t => ({ id: t.id, title: t.title, type: t.type || 'implementation', status: t.status }))
     };
   }
 
