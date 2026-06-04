@@ -44,8 +44,8 @@ if (!fs.existsSync(designDir) && !fs.existsSync(designFile)) {
   errors.push('缺少 design/ 目录或 design.md');
 }
 
-if (!fs.existsSync(path.join(proposalDir, 'task-map.md'))) {
-  errors.push('缺少 task-map.md');
+if (!fs.existsSync(path.join(proposalDir, 'task-map.yaml'))) {
+  errors.push('缺少 task-map.yaml');
 }
 
 if (errors.length === 0) {

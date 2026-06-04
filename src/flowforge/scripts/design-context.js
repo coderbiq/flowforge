@@ -159,7 +159,7 @@ if (activeProject && activeProject.rules) {
   console.log('- module: 源文件所属模块名（跨多模块的文档 scope 应为 system）');
   console.log('- type: 架构/接口/数据模型 → design；关键决策+理由 → decision；编码规范/模式 → convention');
   console.log('');
-  console.log('注意: proposal.md、task-map.md、journal、notes.md 不需要 domain（不含可归档知识）。');
+  console.log('注意: proposal.md、task-map.yaml、journal、notes.md 不需要 domain（不含可归档知识）。');
   console.log('');
 
   if (activeProject.modules && Object.keys(activeProject.modules).length > 0) {
@@ -183,9 +183,7 @@ if (proposalLocation) {
     if (meta.title) console.log(`标题: ${meta.title}`);
   }
   const taskMapYaml = path.join(proposalLocation.proposalDir, 'task-map.yaml');
-  const taskMapMd = path.join(proposalLocation.proposalDir, 'task-map.md');
-  if (fs.existsSync(taskMapYaml)) console.log('task-map: 已有 (yaml)');
-  else if (fs.existsSync(taskMapMd)) console.log('task-map: 已有 (md, 旧格式)');
+  if (fs.existsSync(taskMapYaml)) console.log('task-map: 已有');
 }
 
 if (config.taskBackend && config.taskBackend.adapter && config.taskBackend.adapter !== 'yaml') {

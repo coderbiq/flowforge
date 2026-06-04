@@ -83,13 +83,9 @@ if (meta) {
 }
 
 const taskMapYamlPath = path.join(proposalLocation.proposalDir, 'task-map.yaml');
-const taskMapMdPath = path.join(proposalLocation.proposalDir, 'task-map.md');
 if (fs.existsSync(taskMapYamlPath)) {
   console.log('\n### task-map.yaml\n');
   console.log(fs.readFileSync(taskMapYamlPath, 'utf8'));
-} else if (fs.existsSync(taskMapMdPath)) {
-  console.log('\n### task-map.md (旧格式)\n');
-  console.log(fs.readFileSync(taskMapMdPath, 'utf8'));
 } else {
   console.log('\ntask-map: 不存在');
 }

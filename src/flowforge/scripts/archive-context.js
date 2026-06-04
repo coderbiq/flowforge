@@ -134,7 +134,7 @@ if (fs.existsSync(notesPath)) {
 }
 
 // 输出文档全文
-for (const f of ['proposal.md', 'design.md', 'task-map.md']) {
+for (const f of ['proposal.md', 'design.md', 'task-map.yaml']) {
   const fp = path.join(proposalLocation.proposalDir, f);
   if (fs.existsSync(fp)) {
     console.log(`\n### ${f}\n`);
