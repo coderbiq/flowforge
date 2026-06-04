@@ -180,7 +180,7 @@ class TaskAdapter {
    * @returns {Promise<{created: boolean, taskId?: string}>}
    */
   async discoverTask(proposalDir, parentTaskId, task) {
-    const yaml = require('../vendor/js-yaml');
+    const yaml = require('../../vendor/js-yaml');
     const fs = require('fs');
     const path = require('path');
     const taskMapPath = path.join(proposalDir, 'task-map.yaml');
@@ -224,7 +224,7 @@ class TaskAdapter {
    * @returns {Promise<{released: boolean}>}
    */
   async unclaimTask(proposalDir, taskId) {
-    const yaml = require('../vendor/js-yaml');
+    const yaml = require('../../vendor/js-yaml');
     const fs = require('fs');
     const path = require('path');
     const taskMapPath = path.join(proposalDir, 'task-map.yaml');
@@ -269,7 +269,7 @@ class TaskAdapter {
    * @returns {{proposal_id?: string, tasks: Array}|null}
    */
   _readTaskMap(proposalDir) {
-    const yaml = require('../vendor/js-yaml');
+    const yaml = require('../../vendor/js-yaml');
     const fs = require('fs');
     const path = require('path');
     const taskMapPath = path.join(proposalDir, 'task-map.yaml');
@@ -285,7 +285,7 @@ class TaskAdapter {
    * @param {string} [proposalId]
    */
   _writeTaskMap(proposalDir, tasks, proposalId) {
-    const yaml = require('../vendor/js-yaml');
+    const yaml = require('../../vendor/js-yaml');
     const fs = require('fs');
     const path = require('path');
     const taskMapPath = path.join(proposalDir, 'task-map.yaml');

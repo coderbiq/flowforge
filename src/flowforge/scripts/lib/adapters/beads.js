@@ -519,7 +519,7 @@ class BeadsAdapter extends TaskAdapter {
   // ========== 内部方法 ==========
 
   _readMeta(proposalDir) {
-    const yaml = require('../vendor/js-yaml');
+    const yaml = require('../../vendor/js-yaml');
     const fs = require('fs');
     const path = require('path');
     const metaPath = path.join(proposalDir, 'meta.yaml');
@@ -535,7 +535,7 @@ function _bd(args, cwd) {
     cwd,
     encoding: 'utf8',
     stdio: 'pipe',
-    timeout: 10000,
+    timeout: 30000,
     maxBuffer: 1024 * 1024
   }).trim();
 }
