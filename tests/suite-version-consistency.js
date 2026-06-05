@@ -6,6 +6,7 @@ const fs = require('fs');
 const META_PATH = 'src/flowforge/meta.yaml';
 const AGENTS_PATH = 'src/AGENTS.md';
 const CLI_PATH = 'src/cli/flowforge';
+const README_PATH = 'README.md';
 
 function run(root) {
   let passed = 0;
@@ -15,6 +16,7 @@ function run(root) {
   let metaVersion = null;
   let agentsVersion = null;
   let cliVersion = null;
+  let readmeVersion = null;
 
   if (fs.existsSync(path.join(root, META_PATH))) {
     const meta = fs.readFileSync(path.join(root, META_PATH), 'utf8');
@@ -52,6 +54,18 @@ function run(root) {
     }
   }
 
+  if (fs.existsSync(path.join(root, README_PATH))) {
+    const readme = fs.readFileSync(path.join(root, README_PATH), 'utf8');
+    const m = readme.match(/FlowForge.*?v(\d+\.\d+\.\d+)/);
+    if (m) {
+      readmeVersion = m[1];
+      passed++;
+    } else {
+      failed++;
+      errors.push('README.md: version badge not found');
+    }
+  }
+
   if (metaVersion && agentsVersion && metaVersion !== agentsVersion) {
     failed++;
     errors.push('meta.yaml (' + metaVersion + ') != AGENTS.md (' + agentsVersion + ')');
@@ -68,6 +82,13 @@ function run(root) {
     } else {
       passed++;
     }
+  }
+
+  if (metaVersion && readmeVersion && metaVersion !== readmeVersion) {
+    failed++;
+    errors.push('meta.yaml (' + metaVersion + ') != README.md (' + readmeVersion + ')');
+  } else if (metaVersion && readmeVersion) {
+    passed++;
   }
 
   return { passed, failed, errors };
