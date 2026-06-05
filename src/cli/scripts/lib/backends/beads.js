@@ -43,23 +43,74 @@ class BeadsBackend extends TaskBackend {
 
   // ── 生命周期 ──
 
+  /**
+   * 初始化 proposal 的任务空间，创建 4 层任务层级：
+   *
+   *   Main Epic: "CRID: Proposal Title"
+   *   ├── Sub-Epic: "CRID: 分析"
+   *   │   └── Task (analysis)
+   *   ├── Sub-Epic: "CRID: 设计"
+   *   │   └── Task (design)
+   *   └── Sub-Epic: "CRID: 实施"
+   *       ├── Parent Task (implementation)
+   *       │   └── Child Task (implementation)
+   *       └── Standalone Task (implementation)
+   *
+   * 层级说明见 guides/task-hierarchy.md
+   */
   async init(proposalId, title) {
-    const existing = await this._resolveEpic(proposalId);
-    if (existing) {
-      this._epicCache.set(proposalId, existing);
-      return { epicId: existing };
+    const existingId = await this._resolveEpic(proposalId);
+    if (existingId) {
+      // 重建：关闭旧子 epic 和旧主 epic，清除缓存后重建
+      for (const type of ['analysis', 'design', 'implementation']) {
+        const subId = await this._resolveSubEpic(proposalId, type);
+        if (subId) {
+          try { this._bd(`close ${subId} --reason "Re-initialized"`); } catch (_) {}
+        }
+      }
+      try { this._bd(`close ${existingId} --reason "Re-initialized"`); } catch (_) {}
+      this._epicCache.delete(proposalId);
     }
 
+    // 1. 创建主 epic（格式: "CRID: Proposal Title"）
+    const epicTitle = `${proposalId}: ${title}`;
     const result = this._bd(
-      `create "${_escape(title)}" --type epic --labels type:epic,proposal:${proposalId} --json`
+      `create "${_escape(epicTitle)}" --type epic ` +
+      `--labels type:epic,type:main-epic,proposal:${proposalId} --json`
     );
     const epic = JSON.parse(result);
-    this._epicCache.set(proposalId, epic.id);
-    return { epicId: epic.id };
+    const mainEpicId = epic.id;
+    this._epicCache.set(proposalId, mainEpicId);
+
+    // 2. 创建 3 个类型子 epic（挂在主 epic 下）
+    const TYPE_SUB_EPICS = {
+      analysis: '分析',
+      design: '设计',
+      implementation: '实施',
+    };
+    const subEpics = {};
+    for (const [type, label] of Object.entries(TYPE_SUB_EPICS)) {
+      const subTitle = `${proposalId}: ${label}`;
+      const subResult = this._bd(
+        `create "${_escape(subTitle)}" --type epic --parent ${mainEpicId} ` +
+        `--labels type:epic,type:sub-epic,type:${type},proposal:${proposalId} --json`
+      );
+      subEpics[type] = JSON.parse(subResult).id;
+    }
+
+    return { epicId: mainEpicId, subEpics };
   }
 
   async teardown(proposalId) {
     try {
+      // 关闭所有子 epic
+      for (const type of ['analysis', 'design', 'implementation']) {
+        const subId = await this._resolveSubEpic(proposalId, type);
+        if (subId) {
+          try { this._bd(`close ${subId} --reason "Proposal archived"`); } catch (_) {}
+        }
+      }
+      // 关闭主 epic
       const epicId = await this._resolveEpic(proposalId);
       if (epicId) {
         this._bd(`close ${epicId} --reason "Proposal archived"`);
@@ -71,14 +122,13 @@ class BeadsBackend extends TaskBackend {
   // ── 任务创建 ──
 
   async addTask(proposalId, task, parentTaskId) {
-    const epicId = await this._resolveEpic(proposalId);
-    if (!epicId) {
+    const subEpicId = parentTaskId || await this._resolveSubEpic(proposalId, task.type);
+    if (!subEpicId) {
       throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init --proposal ${proposalId} "<title>"' first.`);
     }
-    const parentId = parentTaskId || epicId;
     const labels = this._buildLabels(task, proposalId);
     const result = this._bd(
-      `create "${_escape(task.title)}" --type task --parent ${parentId} ` +
+      `create "${_escape(task.title)}" --type task --parent ${subEpicId} ` +
       `--labels ${labels} --description "${_escape(task.description || '')}" --json`
     );
     const issue = JSON.parse(result);
@@ -94,16 +144,16 @@ class BeadsBackend extends TaskBackend {
   }
 
   async addTasks(proposalId, tasks) {
-    const epicId = await this._resolveEpic(proposalId);
-    if (!epicId) {
-      throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init' first.`);
-    }
     const ids = [];
 
     for (const t of tasks) {
+      const subEpicId = await this._resolveSubEpic(proposalId, t.type);
+      if (!subEpicId) {
+        throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init' first.`);
+      }
       const labels = this._buildLabels(t, proposalId);
       const result = this._bd(
-        `create "${_escape(t.title)}" --type task --parent ${epicId} ` +
+        `create "${_escape(t.title)}" --type task --parent ${subEpicId} ` +
         `--labels ${labels} --description "${_escape(t.description || '')}" --json`
       );
       ids.push(JSON.parse(result).id);
@@ -123,14 +173,14 @@ class BeadsBackend extends TaskBackend {
   }
 
   async discoverTask(proposalId, parentTaskId, task) {
-    const epicId = await this._resolveEpic(proposalId);
-    if (!epicId) {
+    const subEpicId = await this._resolveSubEpic(proposalId, task.type);
+    if (!subEpicId) {
       throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init' first.`);
     }
     const labels = this._buildLabels(task, proposalId);
     const depFlag = `--dep discovered-from:${parentTaskId}`;
     const result = this._bd(
-      `create "${_escape(task.title)}" --type task --parent ${epicId} ` +
+      `create "${_escape(task.title)}" --type task --parent ${parentTaskId} ` +
       `${depFlag} --labels ${labels} --json`
     );
     return { taskId: JSON.parse(result).id };
@@ -358,11 +408,12 @@ class BeadsBackend extends TaskBackend {
 
       let cleaned = 0;
       for (const b of beads) {
-        const isEpic = (b.labels || []).some(l => l === 'type:epic');
+        const labels = b.labels || [];
+        const isEpic = labels.some(l => l === 'type:epic' || l === 'type:main-epic' || l === 'type:sub-epic');
         if (isEpic) continue;
         if (b.status === 'closed' || b.status === 'done' || b.status === 'cancelled') continue;
         try {
-          this._bd(`close ${b.id} --reason "Orphan cleanup during v0.8→v0.9 migration"`);
+          this._bd(`close ${b.id} --reason "Orphan cleanup"`);
           cleaned++;
         } catch (_) {}
       }
@@ -379,24 +430,28 @@ class BeadsBackend extends TaskBackend {
       return this._epicCache.get(proposalId);
     }
     try {
-      const result = this._bd(`list --label proposal:${proposalId} --label type:epic --json`);
+      const result = this._bd(
+        `list --label proposal:${proposalId} --label type:main-epic --json`
+      );
       const epics = JSON.parse(result);
       if (Array.isArray(epics) && epics.length > 0) {
         this._epicCache.set(proposalId, epics[0].id);
         return epics[0].id;
       }
     } catch (_) {}
+    return null;
+  }
 
+  async _resolveSubEpic(proposalId, type) {
+    const typeLabel = `type:${type}`;
     try {
-      const result = this._bd(`list --label proposal:${proposalId} --all --json`);
-      const beads = JSON.parse(result);
-      if (Array.isArray(beads)) {
-        const epic = beads.find(b => b.issue_type === 'epic');
-        if (epic) {
-          try { this._bd(`label add ${epic.id} type:epic`); } catch (_) {}
-          this._epicCache.set(proposalId, epic.id);
-          return epic.id;
-        }
+      const result = this._bd(
+        `list --label proposal:${proposalId} --label type:sub-epic --label ${typeLabel} --json`
+      );
+      const issues = JSON.parse(result);
+      if (Array.isArray(issues)) {
+        const subEpic = issues.find(b => b.issue_type === 'epic');
+        if (subEpic) return subEpic.id;
       }
     } catch (_) {}
     return null;
@@ -469,14 +524,23 @@ class BeadsBackend extends TaskBackend {
 
   _toTask(beadIssue) {
     const labels = beadIssue.labels || [];
-    const typeLabel = labels.find(l => l.startsWith('type:'))?.replace('type:', '');
+    // beads 会将父 epic 标签继承到子任务，需过滤出实际 task type
+    const VALID_TASK_TYPES = new Set(['analysis', 'design', 'implementation']);
+    const typeLabel = labels.find(l => {
+      const t = l.replace('type:', '');
+      return VALID_TASK_TYPES.has(t);
+    })?.replace('type:', '');
     const proposalLabel = labels.find(l => l.startsWith('proposal:'));
+    // beads 的父子关系通过 ID 前缀表达，depends_on 不包含 parent-child
+    const idParts = beadIssue.id.split('.');
+    const parentId = idParts.length > 1 ? idParts.slice(0, -1).join('.') : null;
     return {
       id: beadIssue.id,
       title: beadIssue.title || '',
       description: beadIssue.description || '',
       type: typeLabel || TASK_TYPE.IMPLEMENTATION,
       status: _mapBeadStatus(beadIssue.status),
+      parentId,
       dependencies: this._parseDeps(beadIssue),
       labels: labels.filter(l => !l.startsWith('type:') && !l.startsWith('proposal:')),
       claimedBy: beadIssue.assignee || '',
@@ -520,35 +584,65 @@ class BeadsBackend extends TaskBackend {
 
     let md = `# Tasks — ${proposalId}\n`;
     md += `> Auto-generated at ${now}. Do not edit manually.\n\n`;
-    md += `| Status | ID | Title | Type |\n`;
-    md += `|--------|----|-------|------|\n`;
 
-    const sorted = [...tasks].sort((a, b) => {
-      const aParts = a.id.split('.');
-      const bParts = b.id.split('.');
-      for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-        const aSeg = aParts[i] || '';
-        const bSeg = bParts[i] || '';
-        if (aSeg === bSeg) continue;
-        const aNum = parseInt(aSeg, 10), bNum = parseInt(bSeg, 10);
-        if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-        if (!isNaN(aNum)) return -1;
-        if (!isNaN(bNum)) return 1;
-        return aSeg.localeCompare(bSeg);
+    // 按类型分组
+    const typeOrder = ['analysis', 'design', 'implementation'];
+    const typeLabels = { analysis: '分析', design: '设计', implementation: '实施' };
+
+    for (const type of typeOrder) {
+      const typeTasks = tasks.filter(t => t.type === type);
+      if (typeTasks.length === 0) continue;
+
+      const totalByStatus = {};
+      for (const t of typeTasks) {
+        totalByStatus[t.status] = (totalByStatus[t.status] || 0) + 1;
       }
-      return 0;
-    });
+      const doneCount = totalByStatus.done || 0;
+      md += `## ${typeLabels[type]} (${typeTasks.length} tasks, ${doneCount} done)\n\n`;
+      md += `| Status | ID | Title |\n`;
+      md += `|--------|----|-------|\n`;
 
-    for (const t of sorted) {
-      const depth = t.id.split('.').length - 1;
-      const indent = '　'.repeat(depth);
-      const icon = statusIcon[t.status] || '❓';
-      md += `| ${icon} ${t.status} | ${indent}${t.id} | ${t.title} | ${t.type} |\n`;
+      // 构建父子树：仅当 parentId 是另一个 task 时才作为子节点
+      const childrenMap = new Map();
+      const roots = [];
+      const taskIds = new Set(typeTasks.map(t => t.id));
+      for (const t of typeTasks) {
+        if (t.parentId && taskIds.has(t.parentId)) {
+          const siblings = childrenMap.get(t.parentId) || [];
+          siblings.push(t);
+          childrenMap.set(t.parentId, siblings);
+        } else {
+          roots.push(t);
+        }
+        childrenMap.set(t.id, childrenMap.get(t.id) || []);
+      }
+
+      const printed = new Set();
+      const renderTask = (task, depth) => {
+        if (printed.has(task.id)) return;
+        printed.add(task.id);
+        const indent = '　'.repeat(depth);
+        const icon = statusIcon[task.status] || '❓';
+        md += `| ${icon} ${task.status} | ${indent}${task.id} | ${indent}${task.title} |\n`;
+        const children = childrenMap.get(task.id) || [];
+        const sorted = [...children].sort((a, b) => a.id.localeCompare(b.id));
+        for (const child of sorted) {
+          renderTask(child, depth + 1);
+        }
+      };
+
+      // 根任务按 ID 排序
+      const sortedRoots = [...roots].sort((a, b) => a.id.localeCompare(b.id));
+      for (const root of sortedRoots) {
+        renderTask(root, 0);
+      }
+
+      md += `\n`;
     }
 
     const blocked = tasks.filter(t => t.status === TASK_STATUS.BLOCKED);
     if (blocked.length > 0) {
-      md += `\n---\n`;
+      md += `---\n`;
       for (const t of blocked) {
         md += `\n_Blocked: **${t.id}** — ${t.blockReason || 'No reason provided'}_\n`;
       }

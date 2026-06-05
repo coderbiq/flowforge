@@ -325,14 +325,34 @@ proposal 创建完成后，运行 `flowforge validate-proposal <proposal路径>`
 
 已完成 analysis 和 design 任务（阶段 5 创建并完成）。本阶段将已完成的设计转化为可执行的 implementation 任务。
 
+#### 任务层级约束
+
+Proposal 的任务空间遵循 4 层结构（详见 `guides/task-hierarchy.md`）：
+
+```
+Main Epic → Type Sub-Epic (分析/设计/实施) → Task → Child Task
+```
+
+- 独立小任务直接挂在类型子 epic 下（3 层）
+- 需要多步骤的大任务拆为父子任务（4 层），不超过 4 层
+- 子任务通过 `--parent <parentTaskId>` 挂载
+
 #### 首次创建实施任务
 
 1. 基于已完成的 design 任务，将设计方案拆分为可执行的 implementation 任务
-3. 每个任务耗时控制在合理范围，按依赖关系排序
-4. 通过 `flowforge task add` 逐个添加：
+2. 大任务（预计涉及多个文件/步骤）创建为父任务，再拆解子任务：
 
 ```bash
+# 创建父任务（挂在实施子 epic 下）
+flowforge task add --proposal <CR-id> implementation "实现核心配置链路" --desc "DDL、DO/PO、Mapper、Repository、DomainService、Application、API"
+
+# 创建子任务（挂在父任务下）
+flowforge task add --proposal <CR-id> implementation "DDL + Liquibase" --parent <父任务id>
+flowforge task add --proposal <CR-id> implementation "DO/PO + Mapper" --parent <父任务id>
+flowforge task add --proposal <CR-id> implementation "Repository + DomainService" --parent <父任务id>
 ```
+
+3. 每个任务耗时控制在合理范围，按依赖关系排序
 
 #### 回退细化（从 implement 回退）
 

@@ -432,7 +432,7 @@ function parseListFlag(args, flag) {
 }
 
 function printHelp() {
-  console.log(`FlowForge v0.10.0 — Task Management CLI
+  console.log(`FlowForge v0.11.0 — Task Management CLI
 
 Usage: flowforge <command> [options]
 
@@ -504,7 +504,7 @@ function printVersion() {
     const meta = require(path.join(projectRoot, '.flowforge', 'meta.yaml'));
     console.log(`FlowForge v${meta.version || '0.9.0'}`);
   } catch (_) {
-    console.log('FlowForge v0.10.0');
+    console.log('FlowForge v0.11.0');
   }
 }
 

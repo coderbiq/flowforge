@@ -1,5 +1,35 @@
 # FlowForge 更新日志
 
+## 0.11.0 — 2026-06-05
+
+### 4 层任务层级系统
+
+**核心改动**：
+- 新增 4 层任务结构：Main Epic → Type Sub-Epic（分析/设计/实施）→ Task → Child Task
+- Epic 标题格式改为 `CRID: Proposal Title`（如 `CR26060201: Excel 上传/下载配置模块`）
+- `init()` 自动创建 3 个类型子 epic，`addTask()` 按类型路由到对应子 epic
+- 大任务通过 `--parent <parentTaskId>` 拆为子任务，最多 4 层
+- `init()` 支持重建——再次运行关闭旧 epic 并重建
+
+**快照格式**：
+- `tasks.snapshot.md` 按类型分组（分析/设计/实施），父子任务通过全角空格缩进
+- `_toTask()` 从 beads ID 前缀推导父子关系，兼容 beads 标签继承行为
+
+**新增指南**：
+- `src/flowforge/guides/task-hierarchy.md` — 4 层任务层级完整说明
+
+**SKILL 更新**：
+- `flowforge-design` 阶段 7 新增任务层级约束和 `--parent` 子任务示例
+- `flowforge-implement` 阶段 2 新增层级感知说明
+- `src/AGENTS.md` 模板新增「任务层级」章节
+
+**Bug 修复**：
+- `_resolveSubEpic()` 加 `issue_type === 'epic'` 过滤，防止返回 task
+- `_toTask()` 用 `VALID_TASK_TYPES` Set 过滤 beads 父 epic 标签继承
+- `_formatSnapshot()` 仅当 parentId 是另一个 task 时才缩进，子 epic 作为根节点
+
+---
+
 ## 0.10.0 — 2026-06-05
 
 ### 测试套件 + CLI 健壮性修复

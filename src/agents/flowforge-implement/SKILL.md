@@ -57,6 +57,8 @@ flowforge task ready --proposal <CR-id>
 
 输出 JSON 数组，包含所有依赖已满足的 pending 任务。**只处理 `type: implementation` 的任务**——`type: analysis` 和 `type: design` 的任务由 `flowforge-design` 负责。
 
+任务按 4 层结构组织（详见 `guides/task-hierarchy.md`）。有子任务的父任务应在所有子任务完成后才标记 done；就绪检测会确保子任务完成前父任务不会被认领。
+
 选择策略：优先 `status` 为 `in_progress` 的任务（断点续传），其次选第一个就绪任务。
 
 选择后认领任务：

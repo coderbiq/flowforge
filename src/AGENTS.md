@@ -1,4 +1,4 @@
-<!-- BEGIN FLOWFORGE v:0.10.0 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.11.0 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -18,6 +18,18 @@
 - ✅ **必须** 使用 `flowforge task status/ready/claim/done` 等命令
 - ✅ `bd create/update/close` 仅限与任何 proposal 无关的独立事务
 - ✅ 知识持久化用 `bd remember`
+
+### 任务层级
+
+每个 proposal 的任务空间为 4 层结构（详见 `.flowforge/guides/task-hierarchy.md`）：
+
+```
+Main Epic → Type Sub-Epic (分析/设计/实施) → Task → Child Task
+```
+
+- 大任务通过 `--parent <parentTaskId>` 拆为子任务，最多 4 层
+- 独立任务直接挂在类型子 epic 下
+- `tasks.snapshot.md` 按类型分组，父子任务缩进展示
 
 任务查询命令：
 
