@@ -1,5 +1,39 @@
 # FlowForge 更新日志
 
+## 0.10.0 — 2026-06-05
+
+### 测试套件 + CLI 健壮性修复
+
+**测试基础设施（零依赖，313 个测试）**：
+- 新增 `tests/` 目录，8 个静态检查套件
+- SKILL.md frontmatter 完整性校验（name/description 格式、YAML 块标量缩进、字段缺失）
+- SKILL description 质量校验（触发词覆盖率、互斥性、边界引用、句数检查）
+- CLI ↔ SKILL 交叉引用对账（命令定义一致性、--help 路径覆盖率、--proposal 处理）
+- AGENTS.md ↔ SKILL 交叉引用（路由覆盖、版本一致性、过期引用检测）
+- Context 脚本输出格式验证（预期段落完整性、argv 处理）
+- Backend 接口合规检查（方法签名、BeadsBackend 实现完整性）
+- JSON Schema 自检（合法性、必需字段、类型声明）
+- 版本号一致性（meta.yaml / AGENTS.md / CLI）
+
+**CLI Bug 修复**：
+- `flowforge task --help` / `flowforge upgrade --help` 在 `--proposal` 检查前处理
+- `flowforge task <action>` / `flowforge upgrade <action>` 子命令 --help 支持
+- `delegateToScript` 新增 `--help` 拦截（覆盖 refresh-index 等所有委托命令）
+- `update-progress.js` / `validate-proposal.js` / `validate-doc.js` argv 错位修复（CLI 模式兼容）
+- `feedback-capture.js` handleBug 用 `task add` 替代 `discover`
+
+**Backend 修复**：
+- `beads.js` init 添加 `type:epic` 标签（修复 `_resolveEpic` 找不到 epic）
+- `beads.js` 新增 `getTask` 方法
+- `interface.js` 新增 `addLabel`/`removeLabel`/`listLabels` 方法签名
+- `migrateFromYaml` 签名统一
+
+**文档修复**：
+- 6 个 SKILL.md context 命令补充 `[CR-id]` 参数示例
+- AGENTS.md 补充跨 proposal 切换示例 + CLI 完整命令参考
+- feedback-feedback SKILL 移除 `node` 前缀和冗余参数
+- 版本号统一为 0.10.0
+
 ## 0.9.1 — 2026-06-05
 
 ### 关系模型精简 + 分析设计任务追踪

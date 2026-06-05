@@ -95,3 +95,5 @@ FlowForge/
 - 绝不抑制类型错误
 - 保持 SKILL 文件聚焦——如果 SKILL.md 开始读起来像参考手册，把那些内容提取出去
 - 修改或新增 SKILL 的 description 时，必须通过 2.2 审查清单，并检查与所有其他 SKILL 的 description 是否冲突
+- **变更完成后必须执行 `npm test`（或 `node tests/run.js`），确保全部检查通过，不引入回归**
+- **变更开始前先检查是否需要调整现有测试或新增测试覆盖**——新增 SKILL、修改 CLI 命令参数、改变 context 脚本输出格式、调整 Backend 接口签名时，对应测试必须同步更新

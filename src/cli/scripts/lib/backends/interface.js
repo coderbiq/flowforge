@@ -323,7 +323,7 @@ class TaskBackend {
    * @param {string} proposalDir — proposal 目录绝对路径
    * @returns {Promise<{migrated: number, skipped: number, errors: string[]}>}
    */
-  async migrateFromYaml(proposalDir) {
+  async migrateFromYaml(proposalDir, proposalId) {
     throw new Error('Not implemented: migrateFromYaml');
   }
 

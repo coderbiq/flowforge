@@ -36,7 +36,7 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `flowforge feedback-context` 加载上下文。输出包含：
+运行 `flowforge feedback-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找当前 active 状态的 proposal；指定时加载目标 proposal 的上下文。
 
 - `## Feedback Strategy`（指导 Agent 如何判决反馈是否值得回流的项目级策略，如存在）
 - `## Current Proposal`（路径、project、wikiRoot、状态）
@@ -84,7 +84,7 @@ description: |
 对每个分类后的发现，使用 `flowforge feedback-capture` 写入目标 artifact：
 
 ```bash
-node flowforge feedback-capture <projectRoot> <CR-id> <type> <title> "<content>"
+flowforge feedback-capture <CR-id> <type> <title> "<content>"
 ```
 
 | type | 写入行为 |
@@ -129,8 +129,8 @@ design-flaw ──────────► flowforge-design
 
 | 脚本 | 用途 |
 |------|------|
-| `flowforge feedback-context [proposalId]` | 加载 proposal 状态、blocked 任务、关联 library 文档、notes.md 中的问题记录 |
-| `flowforge feedback-capture <root> <id> <type> <title> <content>` | 将分类好的发现写入目标 artifact（finding → library，bug/knowledge → notes.md） |
+| `flowforge feedback-context [CR-id]` | 加载 proposal 状态、blocked 任务、关联 library 文档、notes.md 中的问题记录 |
+| `flowforge feedback-capture <CR-id> <type> <title> <content>` | 将分类好的发现写入目标 artifact（finding → library，bug/knowledge → notes.md） |
 
 ## 引用的 SKILL
 

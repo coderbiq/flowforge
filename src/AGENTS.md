@@ -1,4 +1,4 @@
-<!-- BEGIN FLOWFORGE v:0.9.1 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.10.0 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -36,13 +36,10 @@ flowforge task ready --proposal <CR-id>     # 就绪任务
 flowforge task claim --proposal <CR-id> <id> # 认领任务
 flowforge task done --proposal <CR-id> <id>  # 完成任务
 flowforge task status --proposal <CR-id>     # 状态概览
-flowforge implement-context                  # 加载实施上下文
-flowforge design-context                     # 加载设计上下文
+flowforge implement-context [CR-id]           # 加载实施上下文
+flowforge design-context [CR-id]              # 加载设计上下文
+flowforge task --help                         # 任务管理帮助
 ```
-
-## 路径约定
-
-CLI 通过 `npm link` 全局安装，无需关注内部路径。配置和指南位于 `.flowforge/`。
 
 ---
 

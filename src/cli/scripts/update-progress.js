@@ -5,8 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
 
-const proposalPath = process.argv[2];
-const progressText = process.argv[3];
+// 兼容 CLI 模式（argv[2]=projectRoot, argv[3]=proposalPath, argv[4]=text）
+// 和直接调用模式（argv[2]=proposalPath, argv[3]=text）
+const proposalPath = process.argv[3] || process.argv[2];
+const progressText = process.argv[4] || '';
 
 if (!proposalPath) {
   console.error('用法: update-progress.js <proposal路径> "[进度总结]"');

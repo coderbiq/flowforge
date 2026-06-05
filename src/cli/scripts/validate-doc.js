@@ -4,7 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const docPath = process.argv[2];
+// 兼容 CLI 模式（argv[2]=projectRoot, argv[3]=docPath）和直接调用模式（argv[2]=docPath）
+const docPath = process.argv[3] || process.argv[2];
 if (!docPath) {
   console.error('用法: validate-doc.js <文档路径>');
   process.exit(0);

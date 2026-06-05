@@ -33,7 +33,7 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `flowforge design-context` 加载上下文。输出包含：
+运行 `flowforge design-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找当前 active/draft 状态的 proposal；指定时加载目标 proposal 的上下文（用于跨 proposal 场景）。输出包含：
 
 - `## Projects`：本仓库配置的所有 project（id、name、wikiRoot、srcDirs、description、keywords）
 - `## Intake Material`：待处理 intake 文件，按所属 project 分组

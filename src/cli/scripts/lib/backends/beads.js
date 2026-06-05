@@ -44,8 +44,14 @@ class BeadsBackend extends TaskBackend {
   // ── 生命周期 ──
 
   async init(proposalId, title) {
+    const existing = await this._resolveEpic(proposalId);
+    if (existing) {
+      this._epicCache.set(proposalId, existing);
+      return { epicId: existing };
+    }
+
     const result = this._bd(
-      `create "${_escape(title)}" --type epic --labels proposal:${proposalId} --json`
+      `create "${_escape(title)}" --type epic --labels type:epic,proposal:${proposalId} --json`
     );
     const epic = JSON.parse(result);
     this._epicCache.set(proposalId, epic.id);
@@ -234,6 +240,11 @@ class BeadsBackend extends TaskBackend {
     );
   }
 
+  async getTask(proposalId, taskId) {
+    const tasks = await this._listTasks(proposalId);
+    return tasks.find(t => t.id === taskId) || null;
+  }
+
   // ── 标签管理 ──
 
   async addLabel(proposalId, taskId, label) {
@@ -267,7 +278,7 @@ class BeadsBackend extends TaskBackend {
 
   // ── 迁移支持 ──
 
-  async migrateFromYaml(proposalDir) {
+  async migrateFromYaml(proposalDir, proposalId) {
     const yaml = require('../../vendor/js-yaml');
     const taskMapPath = path.join(proposalDir, 'task-map.yaml');
     if (!fs.existsSync(taskMapPath)) {
@@ -276,15 +287,15 @@ class BeadsBackend extends TaskBackend {
 
     const data = yaml.load(fs.readFileSync(taskMapPath, 'utf8'));
     const tasks = data?.tasks || [];
-    const proposalId = data?.proposal_id || path.basename(proposalDir);
+    const pid = proposalId || data?.proposal_id || path.basename(proposalDir);
 
     let epicId;
     try {
       const result = this._bd(
-        `create "Proposal: ${_escape(proposalId)}" --type epic --labels proposal:${proposalId} --json`
+        `create "Proposal: ${_escape(pid)}" --type epic --labels proposal:${pid} --json`
       );
       epicId = JSON.parse(result).id;
-      this._epicCache.set(proposalId, epicId);
+      this._epicCache.set(pid, epicId);
     } catch (e) {
       return { migrated: 0, skipped: 0, errors: [`Failed to create epic: ${_extractError(e)}`] };
     }
@@ -296,14 +307,14 @@ class BeadsBackend extends TaskBackend {
 
     for (const task of tasks) {
       try {
-        const existing = this._findExistingBead(proposalId, task.title);
+        const existing = this._findExistingBead(pid, task.title);
         if (existing) {
           idMap.set(task.id, existing);
           skipped++;
           continue;
         }
 
-        const labels = this._buildLabels(task, proposalId);
+        const labels = this._buildLabels(task, pid);
         const result = this._bd(
           `create "${_escape(task.title)}" --type task --parent ${epicId} ` +
           `--labels ${labels} --description "${_escape(task.description || '')}" --json`
@@ -373,6 +384,19 @@ class BeadsBackend extends TaskBackend {
       if (Array.isArray(epics) && epics.length > 0) {
         this._epicCache.set(proposalId, epics[0].id);
         return epics[0].id;
+      }
+    } catch (_) {}
+
+    try {
+      const result = this._bd(`list --label proposal:${proposalId} --all --json`);
+      const beads = JSON.parse(result);
+      if (Array.isArray(beads)) {
+        const epic = beads.find(b => b.issue_type === 'epic');
+        if (epic) {
+          try { this._bd(`label add ${epic.id} type:epic`); } catch (_) {}
+          this._epicCache.set(proposalId, epic.id);
+          return epic.id;
+        }
       }
     } catch (_) {}
     return null;

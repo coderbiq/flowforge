@@ -5,7 +5,8 @@
     "flowforge": "./src/cli/flowforge"
   },
   "scripts": {
-    "vendor": "node scripts/vendor-js-yaml.mjs"
+    "vendor": "node scripts/vendor-js-yaml.mjs",
+    "test": "node tests/run.js"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

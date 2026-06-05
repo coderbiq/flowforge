@@ -72,11 +72,11 @@ const backend = config.taskBackend?.adapter || 'yaml';
 if (backend !== 'yaml') {
   try {
     const { createBackend } = require('./lib/backends');
-    const backend = createBackend(config, projectRoot);
+    const be = createBackend(config, projectRoot);
     const meta = loadMeta(proposalLocation.proposalDir);
     const proposalId = meta ? meta.id : null;
     if (proposalId) {
-      blockedTasks = await backend.getBlockedTasks(proposalId);
+      blockedTasks = await be.getBlockedTasks(proposalId);
     }
   } catch (_) { console.log('(无法查询后端 blocked 任务)'); }
 }

@@ -12,7 +12,7 @@ const title = process.argv[5];
 const content = process.argv[6] || '';
 
 if (!crId || !type || !title) {
-  console.error('用法: feedback-capture.js <projectRoot> <CR-id> <type> <title> [content]');
+  console.error('用法: flowforge feedback-capture <CR-id> <type> <title> [content]');
   console.error('  type: bug | finding | knowledge | missing-requirement | design-flaw');
   process.exit(1);
 }
@@ -120,11 +120,11 @@ note_kind: progress
   try {
     const { execSync } = require('child_process');
     execSync(
-      `flowforge task discover --proposal "${crId}" "${repairTitle}" --desc "${repairDesc}"`,
+      `flowforge task add --proposal "${crId}" implementation "${repairTitle}" --desc "${repairDesc}"`,
       { encoding: 'utf8', stdio: 'pipe', timeout: 5000, cwd: projectRoot }
     );
   } catch (e) {
-    console.log('(flowforge task discover 执行失败，已记录 bug 到 notes.md）');
+    console.log('(flowforge task add 执行失败，已记录 bug 到 notes.md）');
   }
 
   console.log(`[bug] "${title}" 已写入 notes.md，修复任务已创建`);

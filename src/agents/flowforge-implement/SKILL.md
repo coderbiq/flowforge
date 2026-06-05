@@ -35,7 +35,7 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `flowforge implement-context` 加载上下文。输出包含：
+运行 `flowforge implement-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找当前 active 状态的 proposal；指定时加载目标 proposal 的上下文（用于跨 proposal 场景）。输出包含：
 
 - `## Implement Rules`（task_states、notes.fields）
 - `## Implement Strategy`（项目级实施指导，如存在）

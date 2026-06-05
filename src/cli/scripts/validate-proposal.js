@@ -4,7 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const proposalDir = process.argv[2];
+// 兼容 CLI 模式（argv[2]=projectRoot, argv[3]=proposalDir）和直接调用模式（argv[2]=proposalDir）
+const proposalDir = process.argv[3] || process.argv[2];
 if (!proposalDir) {
   console.error('用法: validate-proposal.js <proposal目录>');
   process.exit(0);

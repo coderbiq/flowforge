@@ -31,7 +31,7 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `flowforge archive-context [proposal-id]`。输出包含：
+运行 `flowforge archive-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找 implemented/archived 状态的 proposal；指定时加载目标 proposal 的上下文。
 
 - `## Current Proposal`（路径、project、wikiRoot、meta）
 - `## 归档目标`（从 proposal 内各文档的 domain frontmatter 自动推导的归档路径）

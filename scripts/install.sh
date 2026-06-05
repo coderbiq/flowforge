@@ -319,20 +319,6 @@ if [ "$MODE" = "upgrade" ]; then
       'rules.exploration',
     ];
 
-    function deepGet(obj, path) {
-      return path.split('.').reduce((o, k) => (o || {})[k], obj);
-    }
-    function deepSet(obj, path, val) {
-      const keys = path.split('.');
-      const last = keys.pop();
-      let cur = obj;
-      for (const k of keys) { if (!cur[k]) cur[k] = {}; cur = cur[k]; }
-      if (val !== undefined) cur[last] = val;
-    }
-
-    // 项目自定义字段——升级时保留
-    const customKeys = ['wikiRoot', 'srcDirs', 'description', 'keywords'];
-
     for (const f of fs.readdirSync(tgtDir)) {
       if (!f.endsWith('.yaml')) continue;
       const tgtPath = path.join(tgtDir, f);
@@ -353,7 +339,7 @@ if [ "$MODE" = "upgrade" ]; then
       process.stdout.write('  updated: ' + f + '\n');
     }
 
-    // 从备份恢复项目定制字段
+    // 从备份恢复项目定制：非 FlowForge 管理的字段全部保留
     for (const f of fs.readdirSync(backupDir)) {
       if (!f.endsWith('.yaml')) continue;
       const tgtPath = path.join(tgtDir, f);
@@ -364,21 +350,25 @@ if [ "$MODE" = "upgrade" ]; then
       if (!backup || !current) continue;
 
       let merged = 0;
-      for (const key of customKeys) {
-        const val = deepGet(backup, key);
-        if (val !== undefined) {
-          deepSet(current, key, val);
+
+      // 顶层字段：不在 managedKeys 中的从备份恢复
+      for (const key of Object.keys(backup)) {
+        if (key === 'rules') continue; // rules 单独处理
+        if (current[key] === undefined && backup[key] !== undefined) {
+          current[key] = backup[key];
           merged++;
         }
       }
 
-      // 保留项目定制的 strategy 文本（如果备份有且与模板不同）
-      const strategyKeys = managedKeys.filter(k => k.endsWith('.strategy') || k === 'rules.design.naming');
-      for (const key of strategyKeys) {
-        const backupVal = deepGet(backup, key);
-        if (backupVal !== undefined) {
-          deepSet(current, key, backupVal);
-          merged++;
+      // rules 子字段：不在 managedKeys 中的从备份恢复
+      if (backup.rules && typeof backup.rules === 'object') {
+        if (!current.rules) current.rules = {};
+        for (const rk of Object.keys(backup.rules)) {
+          const managed = managedKeys.some(mk => mk.startsWith('rules.' + rk));
+          if (!managed) {
+            current.rules[rk] = backup.rules[rk];
+            merged++;
+          }
         }
       }
 
