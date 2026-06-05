@@ -200,8 +200,18 @@ flowforge task add-tasks --proposal <CR-id> '[
 
 **选取任务的优先级**：
 1. `pending` 的 analysis 任务优先于 design 任务（先分析再设计）
-2. 同类任务中，id 较小的优先（先创建的先处理）
+2. 同类任务中，先创建的先处理
 3. 有 `dependencies` 的任务，依赖全部完成后才可选
+
+**查询就绪任务**：
+
+```bash
+# 按类型查询就绪的分析任务
+flowforge task ready --proposal <CR-id> --type analysis
+
+# 就绪的设计任务
+flowforge task ready --proposal <CR-id> --type design
+```
 
 **处理 analysis 任务**：
 
@@ -214,35 +224,49 @@ flowforge task add-tasks --proposal <CR-id> '[
    - 模块设计事实 → `library/modules/<name>/`
    - 可复用决策 → `library/decisions/`
    - 可复用约定 → `library/conventions/<topic>.md`
-   - 参照 `flowforge-docs` 获取各 doc_type 的写作指南
-4. 在 proposal 的 `notes.md` 中记录探索过程（探索了哪些 library 文档、发现了什么）
-5. **每个发现携带 `domain` frontmatter**，标注 scope/module/type：
-   ```yaml
-   ---
-   domain:
-     scope: module
-     module: auth
-     type: design
-   ---
-   ```
-6. 分析过程中发现新的子探索点 → 通过 `flowforge task add` 创建子 analysis 任务：
-   ```bash
-   ```
+4. 在 proposal 的 `notes.md` 中记录探索过程和发现
+5. **每个发现携带 `domain` frontmatter**
+6. 分析过程中发现新的子探索点 → 创建子 analysis 任务：
+
+```bash
+flowforge task add --proposal <CR-id> analysis "<分析子任务标题>" --desc "<描述>" --parent <父任务id>
+```
+
 7. 该模块分析充分 → 创建对应的 design 任务：
-   ```bash
-   ```
+
+```bash
+flowforge task add --proposal <CR-id> design "<设计任务标题>" --desc "<描述>" --dep <依赖的分析任务id>
+```
+
+**analysis 完成标准**（满足以下条件才标记 done）：
+- ✅ 需求树中对应的 `[?]` 节点已确认或移除
+- ✅ 探索发现已写入 library（architecture / modules / decisions / conventions）
+- ✅ 所有子 analysis 任务已完成（没有 pending 的子任务）
+- ✅ 该模块的 domain 归属已判定（scope + module + type）
+- ✅ 没有遗留的开放问题（或已创建新的 analysis 任务）
+
 8. 任务完成 → `flowforge task done --proposal <CR-id> <taskId> --summary "<完成摘要>"`
 
 **处理 design 任务**：
 
 1. 认领任务：`flowforge task claim --proposal <CR-id> <taskId>`
-2. 如有 `## Design Strategy`，参照其项目级设计策略指导方案分析、架构决策和设计文档的撰写方向
+2. 如有 `## Design Strategy`，参照其项目级设计策略
 3. 在 proposal 目录的 `design/` 下撰写设计文档：
-   - 参照 `flowforge-docs` SKILL 获取 design 的写作指南
-   - **多模块拆分规则**：如果一个 proposal 涉及多个模块，按模块用子目录组织
-   - 跨模块的通用架构设计 → `scope: system`，放在 `design/` 根目录下
-   - **每个设计文档只设一个 domain**，确保归档时能精确路由
-4. 设计中发现新的未探索问题 → 通过 `flowforge task add` 创建新的 analysis 任务
+   - 参照 `flowforge-docs` 获取 design 写作指南
+   - 多模块 proposal 按模块用子目录组织
+   - 跨模块架构设计 → `scope: system`，放在 `design/` 根目录
+4. 设计中发现新的未探索问题 → 创建新的 analysis 任务：
+
+```bash
+flowforge task add --proposal <CR-id> analysis "<分析子任务标题>" --desc "<描述>" --dep <发现问题的design任务id>
+```
+
+**design 完成标准**（满足以下条件才标记 done）：
+- ✅ 设计文档已写入 design/ 目录（含 frontmatter + domain）
+- ✅ 设计文档通过 `flowforge validate-doc` 校验
+- ✅ 设计方案覆盖了对应 analysis 任务的所有发现
+- ✅ 接口/架构/数据模型等关键决策已在文档中记录
+
 5. 设计文档完成 → `flowforge task done --proposal <CR-id> <taskId> --summary "<完成摘要>"`
 
 **判定 domain 的方法**（同之前，不变）：
@@ -267,7 +291,9 @@ type:   架构/接口/数据模型/技术选型 → design
 验证方式：
 
 ```bash
-flowforge task status --proposal <CR-id>
+# 检查分析设计阶段是否完成
+flowforge task status --proposal <CR-id> --type analysis  # analysis 全部 done？
+flowforge task status --proposal <CR-id> --type design    # design 全部 done？
 ```
 
 达到终止条件后，向用户简要说明当前方案，确认可以进入撰写 proposal 阶段。

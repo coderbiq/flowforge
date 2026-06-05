@@ -1,5 +1,35 @@
 # FlowForge 更新日志
 
+## 0.9.1 — 2026-06-05
+
+### 关系模型精简 + 分析设计任务追踪
+
+**关系模型完全 follow beads 原生**：
+- 删除 `epic` 分组标签（与 beads epic 重名），改用 `--parent` 层级 + `type:` 标签
+- 删除 `sourceTasks` 自定义标签，改用 beads 原生 `dependencies`（blocks）和 `discovered-from`
+- 暴露 `flowforge task label` 子命令：`add` / `remove` / `list`
+- `flowforge task add` 新增 `--label` 标志，创建时直接打标签
+- `flowforge task add` 新增 `--parent` 标志，支持父子层级子任务拆分
+
+**分析设计任务追踪强化**：
+- `flowforge task ready` 和 `status` 新增 `--type` 过滤（`analysis` / `design` / `implementation`）
+- Design SKILL 阶段 5.3 新增 analysis/design 完成标准（各 5 条 checklist）
+- 分析任务 → 探索发现写入 library + 所有子任务完成 + `[?]` 节点确认后才标记 done
+- 设计任务 → 文档写入 design/ + validate-doc 校验通过后才标记 done
+
+**快照格式优化**：
+- `tasks.snapshot.md` 按 beads ID 层级缩进展示父子关系
+- ID 按数字段排序（`.1` → `.2` → `.10` 而非 `.1` → `.10` → `.2`）
+
+**Agent 上下文清理**：
+- context 脚本不再 dump `tasks.snapshot.md` / `task-map.yaml` 全文
+- AGENTS.md 新增禁止规则：严禁 Agent 直接读快照文件，必须用 `flowforge task` CLI
+
+**Bug 修复**：
+- BeadsBackend `_listTasks`：`type:task` 标签过滤 → `issue_type === 'task'`
+- `status --type` 过滤时 `total` / `byStatus` 同步更新
+- install.sh vendor 路径修正（`src/flowforge/scripts/vendor` → `src/cli/scripts/vendor`）
+
 ## 0.9.0 — 2026-06-05
 
 ### Beads-Centric 架构重构

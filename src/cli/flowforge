@@ -239,13 +239,25 @@ async function handleTask(args) {
       }
 
       case 'ready': {
+        const typeFilter = extractFlag(actionRest, '--type');
         const tasks = await backend.getReadyTasks(proposalId);
-        console.log(JSON.stringify(tasks));
+        const filtered = typeFilter ? tasks.filter(t => t.type === typeFilter) : tasks;
+        console.log(JSON.stringify(filtered));
         break;
       }
 
       case 'status': {
         const status = await backend.getStatus(proposalId);
+        const typeFilter = extractFlag(actionRest, '--type');
+        if (typeFilter) {
+          status.tasks = status.tasks.filter(t => t.type === typeFilter);
+          status.total = status.tasks.length;
+          const counts = { done: 0, in_progress: 0, pending: 0, blocked: 0 };
+          for (const t of status.tasks) {
+            if (counts[t.status] !== undefined) counts[t.status]++;
+          }
+          status.byStatus = counts;
+        }
         console.log(JSON.stringify(status));
         break;
       }
@@ -433,8 +445,8 @@ Task Actions:
   reopen <taskId>                       Reopen task
   dep-add <taskId> <depId>              Add dependency
   dep-remove <taskId> <depId>           Remove dependency
-  ready                                 List ready tasks (JSON)
-  status                                Task status overview (JSON)
+  ready [--type analysis|design|implementation]  List ready tasks
+  status [--type analysis|design|implementation]  Task status overview (JSON)
   blocked                               List blocked tasks (JSON)
   all-done                              Check if all tasks done (JSON)
   snapshot                              Export tasks.snapshot.md
