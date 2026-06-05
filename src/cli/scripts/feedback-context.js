@@ -66,26 +66,28 @@ console.log('');
 
 // Blocked 任务
 console.log('## Blocked Tasks\n');
-const taskMapPath = path.join(proposalLocation.proposalDir, 'task-map.yaml');
 let blockedTasks = [];
-if (fs.existsSync(taskMapPath)) {
+const backend = config.taskBackend?.adapter || 'yaml';
+
+if (backend !== 'yaml') {
   try {
-    const yaml = require('./vendor/js-yaml');
-    const taskMap = yaml.load(fs.readFileSync(taskMapPath, 'utf8'));
-    if (taskMap && taskMap.tasks) {
-      blockedTasks = taskMap.tasks.filter(t => t.status === 'blocked');
+    const { createBackend } = require('./lib/backends');
+    const backend = createBackend(config, projectRoot);
+    const meta = loadMeta(proposalLocation.proposalDir);
+    const proposalId = meta ? meta.id : null;
+    if (proposalId) {
+      blockedTasks = await backend.getBlockedTasks(proposalId);
     }
-  } catch (e) {
-    console.log('(task-map.yaml 解析失败)');
-  }
+  } catch (_) { console.log('(无法查询后端 blocked 任务)'); }
 }
 
 if (blockedTasks.length === 0) {
   console.log('无 blocked 任务\n');
 } else {
   for (const t of blockedTasks) {
-    console.log(`- T${t.id}: ${t.title}`);
-    if (t.blocked_reason) console.log(`  原因: ${t.blocked_reason}`);
+    const label = t.id || `T${t.id}`;
+    console.log(`- ${label}: ${t.title}`);
+    if (t.blockReason || t.blocked_reason) console.log(`  原因: ${t.blockReason || t.blocked_reason}`);
   }
   console.log('');
 }

@@ -149,7 +149,26 @@ remove_beads_integration() {
   fi
 }
 
-# 安装 beads hooks 脚本（FlowForge → beads 自动同步）
+# 通过 npm link 注册 flowforge CLI
+link_cli() {
+  local target="$1"
+  local flowforge_root="$SCRIPT_DIR"
+
+  if ! command -v npm &>/dev/null; then
+    warn "npm 不可用，跳过 CLI 链接。可手动运行: cd $flowforge_root && npm link"
+    return
+  fi
+
+  (cd "$flowforge_root" && npm link --silent 2>/dev/null) || true
+
+  if (cd "$target" && npm link flowforge --silent 2>/dev/null); then
+    info "CLI 已链接 (flowforge 命令可用)"
+  else
+    warn "npm link 失败，可手动运行: cd $flowforge_root && npm link && cd $target && npm link flowforge"
+  fi
+}
+
+# 安装 beads hooks 脚本（自动刷新任务快照）
 install_beads_hooks() {
   local target="$1"
   local src_hooks="$SRC_DIR/flowforge/hooks"
@@ -167,7 +186,7 @@ install_beads_hooks() {
     chmod +x "$target/.beads/hooks/$name"
   done
 
-  info "beads hooks 已安装 (.beads/hooks/on_update, on_close)"
+  info "beads hooks 已安装 (.beads/hooks/ — 自动刷新 task snapshot)"
 }
 
 # 安装并初始化 beads
@@ -270,9 +289,8 @@ if [ "$MODE" = "upgrade" ]; then
     info "检测到 .claude/，已额外同步 SKILL 到 .claude/skills/"
   fi
 
-  sync_managed "$SRC_DIR/flowforge/scripts/" "$TARGET/.flowforge/scripts/"
   sync_managed "$SRC_DIR/flowforge/schema/" "$TARGET/.flowforge/schema/"
-  info "脚本、schema 已更新"
+  info "schema 已更新"
 
   # 同步 project 配置模板（只添加不覆盖）
   if [ -d "$SRC_DIR/flowforge/projects" ]; then
@@ -288,7 +306,7 @@ if [ "$MODE" = "upgrade" ]; then
     # 合并 task_rules 新字段到已有 project 配置（保留项目定制）
     node -e "
     const fs = require('fs');
-    const yaml = require('$SRC_DIR/flowforge/scripts/vendor/js-yaml');
+    const yaml = require('$SRC_DIR/cli/scripts/vendor/js-yaml');
     const defaultCfg = yaml.load(fs.readFileSync('$SRC_DIR/flowforge/projects/default.yaml', 'utf8'));
     const defaultFields = defaultCfg?.rules?.design?.task_rules?.fields || [];
     const defaultEstimate = defaultCfg?.rules?.design?.task_rules?.time_estimate || '';
@@ -343,6 +361,10 @@ if [ "$MODE" = "upgrade" ]; then
   mkdir -p "$TARGET/ff-wiki/library/decisions"
   mkdir -p "$TARGET/ff-wiki/library/modules"
   info "Wiki 目录结构已确保存在（含 active/completed 子目录）"
+
+  # 安装/更新 CLI 入口
+  link_cli "$TARGET"
+  info "CLI 已安装"
 
   # 移除 AGENTS.md 中的独立 Beads 集成块（v0.7: 已整合进 FlowForge 块）
   remove_beads_integration "$TARGET"
@@ -403,6 +425,9 @@ else
 
   # 安装并初始化 beads
   setup_beads "$TARGET" "install"
+
+  # 链接 CLI
+  link_cli "$TARGET"
 
   # 写入安装时间戳
   now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")

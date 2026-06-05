@@ -1,77 +1,28 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Beads Hook: on_update  (FlowForge v0.7+)
-# 当 beads issue 被更新时，自动将状态同步回 FlowForge 的 task-map.yaml
+# Beads Hook: on_update  (FlowForge v0.9)
+# 当 beads issue 状态变更时，自动刷新 proposal 的任务快照 (tasks.snapshot.md)
 #
-# 协议（由 beads HookFiringStore 调用）:
-#   $1    = issue_id (e.g., "GIIS-abc")
-#   $2    = event_type ("update")
-#   stdin = 完整的 issue JSON 对象
-#
-# 同步条件:
-#   1. issue 必须携带 proposal:<CR-id> 标签
-#   2. issue 必须携带 task:<task-id> 标签
-#   如果缺少任一标签（独立 beads issue），静默跳过。
-#
+# 协议: $1=issue_id, $2=event_type, stdin=完整 issue JSON
 # 部署位置: <project>/.beads/hooks/on_update
-# 来源:     FlowForge src/flowforge/hooks/on_update
 # ============================================================================
 
 set -euo pipefail
 
-ISSUE_ID="$1"
-EVENT_TYPE="$2"
 ISSUE_JSON=$(cat)
 
-# ------------------------------------------------------------------
-# 1. 解析 labels，提取 proposal_id 和 task_id
-# ------------------------------------------------------------------
+PROPOSAL_ID=""
 if command -v jq &>/dev/null; then
   PROPOSAL_ID=$(echo "$ISSUE_JSON" | jq -r '.labels[]? // empty | select(startswith("proposal:")) | ltrimstr("proposal:")' 2>/dev/null | head -1)
-  TASK_ID=$(echo "$ISSUE_JSON" | jq -r '.labels[]? // empty | select(startswith("task:")) | ltrimstr("task:")' 2>/dev/null | head -1)
 else
   PROPOSAL_ID=$(echo "$ISSUE_JSON" | grep -oP '"proposal:\K[^"]+' | head -1)
-  TASK_ID=$(echo "$ISSUE_JSON" | grep -oP '"task:\K[^"]+' | head -1)
 fi
 
-# 缺少 proposal 或 task 标签 → 独立 beads issue，不触发同步
-if [ -z "${PROPOSAL_ID:-}" ] || [ -z "${TASK_ID:-}" ]; then
+if [ -z "${PROPOSAL_ID:-}" ]; then
   exit 0
 fi
 
-# ------------------------------------------------------------------
-# 2. 定位项目根目录（包含 .flowforge/ 的目录）
-# ------------------------------------------------------------------
-PROJECT_ROOT=""
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-SEARCH_DIR="$HOOK_DIR/../.."
-while [ "$SEARCH_DIR" != "/" ]; do
-  if [ -d "$SEARCH_DIR/.flowforge" ]; then
-    PROJECT_ROOT="$SEARCH_DIR"
-    break
-  fi
-  SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-done
-
-if [ -z "${PROJECT_ROOT:-}" ]; then
-  echo "[flowforge-hook] WARNING: 未找到项目根目录 (.flowforge/ 不存在)" >&2
-  exit 0
-fi
-
-# ------------------------------------------------------------------
-# 3. 调用 task-sync.js 将 beads 状态同步到 task-map.yaml
-# ------------------------------------------------------------------
-SYNC_SCRIPT="$PROJECT_ROOT/.flowforge/scripts/task-sync.js"
-
-if [ ! -f "$SYNC_SCRIPT" ]; then
-  echo "[flowforge-hook] WARNING: task-sync.js 不存在: $SYNC_SCRIPT" >&2
-  exit 0
-fi
-
-# 超时 10 秒（与 beads 钩子默认超时一致）
-timeout 10 node "$SYNC_SCRIPT" "$PROJECT_ROOT" "$PROPOSAL_ID" --from beads 2>/dev/null || {
-  echo "[flowforge-hook] WARNING: task-sync 失败 (proposal=$PROPOSAL_ID, bead=$ISSUE_ID, event=$EVENT_TYPE)" >&2
-  exit 0
-}
+# npm link 使 flowforge 全局可用，异步刷新快照
+flowforge task snapshot --proposal "$PROPOSAL_ID" 2>/dev/null &
 
 exit 0

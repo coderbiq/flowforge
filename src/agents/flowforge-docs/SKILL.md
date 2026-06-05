@@ -21,9 +21,9 @@ description: |
 ## 路由模型
 
 ```
-运行 scripts/docs-guide.js → 查看已注册的文档类型及各自的位置
+运行 flowforge docs-guide → 查看已注册的文档类型及各自的位置
 根据要创建的文档用途，从注册表中确定对应的 doc_type
-运行 scripts/docs-guide.js <doc_type> → 获取该类型的写作指南 → 按指南创建文档
+运行 flowforge docs-guide <doc_type> → 获取该类型的写作指南 → 按指南创建文档
 ```
 
 指南中通常包含以下内容，逐条执行：
@@ -33,12 +33,12 @@ description: |
 - **各文件/章节的写作要求**：逐条执行——每个文件或章节按指南中的描述撰写内容
 - **Frontmatter**：该文档需要的 YAML frontmatter 字段——写入文件头部
 
-文档创建或修改完成后，运行 `scripts/validate-doc.js <文档路径>` 校验 frontmatter。校验通过才能继续。
+文档创建或修改完成后，运行 `flowforge validate-doc <文档路径>` 校验 frontmatter。校验通过才能继续。
 
 ## 需要的脚本
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/docs-guide.js <doc_type>` | 加载该 doc_type 的写作指南 |
-| `scripts/validate-doc.js <路径>` | 校验单个文档的 frontmatter |
-| `scripts/validate-proposal.js <路径>` | 校验 proposal 目录完整性 |
+| `flowforge docs-guide <doc_type>` | 加载该 doc_type 的写作指南 |
+| `flowforge validate-doc <路径>` | 校验单个文档的 frontmatter |
+| `flowforge validate-proposal <路径>` | 校验 proposal 目录完整性 |

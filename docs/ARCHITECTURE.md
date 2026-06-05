@@ -30,16 +30,29 @@ flowforge-progress     ← 进度记录：按 type 分组总结进展 + 刷新 I
 
 | 脚本 | 调用方 | 用途 |
 |------|--------|------|
-| design-context.js | design | 加载设计规则 + intake + proposal 状态 |
-| implement-context.js | implement | 加载任务状态 + task-map + notes |
-| feedback-context.js | feedback | 加载 blocked 任务 + 关联 library 文档 + notes 中的问题记录 |
-| feedback-capture.js | feedback | 将分类好的发现写入目标 artifact |
-| archive-context.js | archive | 加载 library 规则 + proposal 内容 |
-| docs-guide.js | docs | 按 doc_type 路由到写作指南 |
-| validate-doc.js | docs | 单文件 frontmatter 校验 |
-| validate-proposal.js | design, archive | proposal 目录完整性校验 |
-| refresh-index.js | progress, CLI | 扫描 meta.yaml 生成 INDEX.md |
-| update-progress.js | progress | 写 latest_progress + 调用 refresh-index |
+| design-context.js | design SKILL, CLI | 加载设计规则 + intake + proposal 状态 |
+| implement-context.js | implement SKILL, CLI | 加载任务状态 + notes |
+| feedback-context.js | feedback SKILL, CLI | 加载 blocked 任务 + 关联 library 文档 |
+| feedback-capture.js | feedback SKILL | 将分类好的发现写入目标 artifact |
+| archive-context.js | archive SKILL, CLI | 加载 library 规则 + proposal 内容 |
+| docs-guide.js | docs SKILL, CLI | 按 doc_type 路由到写作指南 |
+| validate-doc.js | docs SKILL, CLI | 单文件 frontmatter 校验 |
+| validate-proposal.js | design SKILL, archive SKILL, CLI | proposal 目录完整性校验 |
+| refresh-index.js | progress SKILL, CLI | 扫描 meta.yaml 生成 INDEX.md |
+| update-progress.js | progress SKILL, CLI | 写 latest_progress + 重建 INDEX.md |
+| archive-synthesize.js | archive SKILL, CLI | 对比 library 输出合成计划 |
+| move-proposal.js | archive SKILL, CLI | 移动 active→completed + 更新状态 |
+
+### CLI 层（新增 v0.9）
+
+`./flowforge` 统一入口，替代所有分散脚本调用：
+
+```
+flowforge task <action>        → BeadsBackend（任务增删改查）
+flowforge <skill>-context      → 代理到对应 context 脚本
+flowforge validate-*           → 代理到对应校验脚本
+flowforge upgrade              → 迁移/清理工具
+```
 
 ### 配置层
 
@@ -71,7 +84,7 @@ ff-wiki/
 │       │       ├── proposal.md
 │       │       ├── meta.yaml
 │       │       ├── design/
-│       │       ├── task-map.yaml
+│       │       ├── tasks.snapshot.md     ← 自动生成的任务快照（纯展示）
 │       │       └── notes.md
 │       ├── completed/      ← 已完成（archived/rejected）
 │       │   └── <CR-id>/
@@ -89,7 +102,7 @@ ff-wiki/
 
 | 区域 | doc_type |
 |------|----------|
-| workspace/proposals/ | proposal, design, task-map, notes |
+| workspace/proposals/ | proposal, design, notes |
 | library/ | module, architecture, convention, adr |
 
 每个 doc_type 的写作规则在 `.flowforge/guides/` 中，通过 `docs-guide.js` 路由加载。

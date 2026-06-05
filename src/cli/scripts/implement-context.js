@@ -82,62 +82,66 @@ if (meta) {
   if (meta.title) console.log(`标题: ${meta.title}`);
 }
 
-const taskMapYamlPath = path.join(proposalLocation.proposalDir, 'task-map.yaml');
-if (fs.existsSync(taskMapYamlPath)) {
-  console.log('\n### task-map.yaml\n');
-  console.log(fs.readFileSync(taskMapYamlPath, 'utf8'));
+console.log('\n## Task Status\n');
+
+const backend = config.taskBackend?.adapter || 'yaml';
+console.log(`backend: ${backend}`);
+
+if (backend === 'beads' || backend !== 'yaml') {
+  _printBackendTaskStatus(config, projectRoot, meta, proposalLocation);
 } else {
-  console.log('\ntask-map: 不存在');
+  console.log('\n(task backend unavailable, use flowforge task status)');
 }
 
-if (config.taskBackend && config.taskBackend.adapter) {
-  const { createAdapter } = require('./lib/adapters');
-  const adapter = createAdapter(config, projectRoot);
-  const caps = adapter.getCapabilities();
-  console.log('\n## Task Backend\n');
-  console.log(`adapter: ${config.taskBackend.adapter}`);
-
-  if (config.taskBackend.adapter === 'beads') {
-    try {
-      const { execSync } = require('child_process');
-      const syncScript = path.join(__dirname, 'task-sync.js');
-      const meta = loadMeta(proposalLocation.proposalDir);
-      const pid = meta ? meta.id : null;
-      if (pid) {
-        const checkResult = execSync(
-          `node "${syncScript}" "${projectRoot}" "${pid}" --check`,
-          { encoding: 'utf8', stdio: 'pipe', timeout: 8000 }
-        );
-        const parsed = JSON.parse(checkResult);
-        if (parsed.issues && parsed.issues.length > 0) {
-          console.log(`sync: ${parsed.issues.length} 处不一致`);
-          for (const issue of parsed.issues) {
-            console.log(`  - ${issue}`);
-          }
-          console.log(`修复: node scripts/task-sync.js <root> ${pid}`);
-        } else {
-          console.log('sync: 数据一致');
-        }
-      }
-    } catch (e) {
-      if (e.stdout) {
-        try {
-          const parsed = JSON.parse(e.stdout.toString());
-          if (parsed.issues && parsed.issues.length > 0) {
-            console.log(`sync: ${parsed.issues.length} 处不一致（运行 task-sync.js 修复）`);
-          }
-        } catch (_) {}
-      }
-    }
-  }
-
-  console.log('');
-}
+console.log('');
 
 const notesPath = path.join(proposalLocation.proposalDir, 'notes.md');
 if (fs.existsSync(notesPath)) {
   console.log('\n### notes.md\n');
   console.log(fs.readFileSync(notesPath, 'utf8'));
+}
+
+async function _printBackendTaskStatus(config, projectRoot, meta, loc) {
+  const { createBackend } = require('./lib/backends');
+  const backend = createBackend(config, projectRoot);
+  const proposalId = meta ? meta.id : null;
+  if (!proposalId) {
+    console.log('(无法获取 proposal ID)');
+    return;
+  }
+
+  try {
+    const caps = backend.getCapabilities();
+    console.log(`atomicClaim: ${caps.atomicClaim}, dependencySort: ${caps.dependencySort}`);
+
+    const status = await backend.getStatus(proposalId);
+    console.log(`\n总任务: ${status.total} | 完成: ${status.byStatus.done || 0} | 进行中: ${status.byStatus.in_progress || 0} | 待处理: ${status.byStatus.pending || 0} | 阻塞: ${status.byStatus.blocked || 0}`);
+
+    if (status.byType && Object.keys(status.byType).length > 0) {
+      console.log('');
+      for (const [type, stats] of Object.entries(status.byType)) {
+        console.log(`  ${type}: ${stats.done || 0}/${stats.total} done (in_progress: ${stats.inProgress || 0}, pending: ${stats.pending || 0}, blocked: ${stats.blocked || 0})`);
+      }
+    }
+
+    const ready = await backend.getReadyTasks(proposalId);
+    if (ready.length > 0) {
+      console.log('\n## Ready Tasks');
+      for (const t of ready) {
+        console.log(`- [${t.id}] ${t.title} (${t.type})`);
+      }
+    }
+
+    const blocked = await backend.getBlockedTasks(proposalId);
+    if (blocked.length > 0) {
+      console.log('\n## Blocked Tasks');
+      for (const t of blocked) {
+        console.log(`- [${t.id}] ${t.title} — ${t.blockReason || 'no reason'}`);
+      }
+    }
+  } catch (e) {
+    console.log(`(Backend query failed: ${e.message})`);
+  }
 }
 
 function findProposalById(projectRoot, projects, id) {

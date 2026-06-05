@@ -32,9 +32,6 @@ rules:
         - deliverable
         - dependencies
         - sourceTasks
-        - epic
-        - subtasks
-      time_estimate: "2-5 分钟每个实施任务（analysis/design 任务粒度由 Agent 灵活决定）"
     task_types:
       analysis:
         label: "需求分析"

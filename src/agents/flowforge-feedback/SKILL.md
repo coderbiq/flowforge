@@ -36,7 +36,7 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `scripts/feedback-context.js` 加载上下文。输出包含：
+运行 `flowforge feedback-context` 加载上下文。输出包含：
 
 - `## Feedback Strategy`（指导 Agent 如何判决反馈是否值得回流的项目级策略，如存在）
 - `## Current Proposal`（路径、project、wikiRoot、状态）
@@ -55,7 +55,7 @@ description: |
 
 | 信号 | 来源 | 说明 |
 |------|------|------|
-| task-block 调用 | task-map blocked 任务 | 阻塞原因可能包含对代码库/依赖的新认知 |
+| task-block 调用 | 被阻塞的任务 | 阻塞原因可能包含对代码库/依赖的新认知 |
 | 测试失败输出 | 终端/CI | 失败原因可能暴露设计假设错误或边缘情况 |
 | notes.md blocked 记录 | notes.md | 之前标记的阻塞原因尚未被结构化消费 |
 | "原来..."、"发现..." | 对话上下文 | Agent 在实施中对代码库有了新理解 |
@@ -69,7 +69,7 @@ description: |
 
 | 类型 | 判定标准 | 目标 artifact |
 |------|---------|--------------|
-| `bug` | 实现代码错误，设计本身没问题。应该修复，不需要改设计方案 | notes.md（结构化 bug 记录）+ task-map（新修复任务） |
+| `bug` | 实现代码错误，设计本身没问题。应该修复，不需要改设计方案 | notes.md（结构化 bug 记录）+ 修复任务 |
 | `finding` | 对代码库或依赖的新认知（库行为、性能特征、边缘情况、接口限制），这些认知对未来的设计/实施有价值 | 直接写入 library/ 对应路径（模块级 → library/modules/<name>/，系统级 → library/architecture/） |
 | `knowledge` | 通用技术知识，不限于当前 proposal。值得沉淀到 library 供未来参考 | notes.md（标记 knowledge）+ 后续 archive 时提取到 library |
 | `missing-requirement` | 设计阶段遗漏的需求或场景，需要补充探索和设计 | proposal.md + 交由 flowforge-design 补充设计 |
@@ -81,15 +81,15 @@ description: |
 
 ### 阶段 4：结构化写入
 
-对每个分类后的发现，使用 `scripts/feedback-capture.js` 写入目标 artifact：
+对每个分类后的发现，使用 `flowforge feedback-capture` 写入目标 artifact：
 
 ```bash
-node scripts/feedback-capture.js <projectRoot> <CR-id> <type> <title> "<content>"
+node flowforge feedback-capture <projectRoot> <CR-id> <type> <title> "<content>"
 ```
 
 | type | 写入行为 |
 |------|---------|
-| `bug` | 在 notes.md 追加结构化 bug 记录（含 `note_kind: bug`、根因、影响范围、处置方案），同时调用 task-discover.js 创建修复任务 |
+| `bug` | 在 notes.md 追加结构化 bug 记录（含 `note_kind: bug`、根因、影响范围、处置方案），同时通过 `flowforge task discover` 创建修复任务 |
 | `finding` | 直接写入 library/：根据 proposal 的 module 推断 domain → 写入 `library/modules/<name>/findings/` 或 `library/architecture/` |
 | `knowledge` | 在 notes.md 追加 `note_kind: knowledge` 记录，标记为待 archive 提取 |
 | `missing-requirement` | 输出路由指引到 stdout，提示应激活 flowforge-design 补充设计 |
@@ -97,7 +97,7 @@ node scripts/feedback-capture.js <projectRoot> <CR-id> <type> <title> "<content>
 
 **写入原则**：
 - 参照 `flowforge-docs` 获取对应 doc_type 的写作指南和 frontmatter 契约
-- 写完运行 `scripts/validate-doc.js <路径>` 确保 frontmatter 正确
+- 写完运行 `flowforge validate-doc <路径>` 确保 frontmatter 正确
 
 ---
 
@@ -107,7 +107,7 @@ node scripts/feedback-capture.js <projectRoot> <CR-id> <type> <title> "<content>
 
 ```
 bug ─────────────────► flowforge-implement
-                         └── task-discover.js 创建修复任务 → 继续执行
+                         └── flowforge task discover 创建修复任务 → 继续执行
 
 finding ──────────────► 无需路由（已直接写入 library）
 
@@ -129,8 +129,8 @@ design-flaw ──────────► flowforge-design
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/feedback-context.js [proposalId]` | 加载 proposal 状态、blocked 任务、关联 library 文档、notes.md 中的问题记录 |
-| `scripts/feedback-capture.js <root> <id> <type> <title> <content>` | 将分类好的发现写入目标 artifact（finding → library，bug/knowledge → notes.md） |
+| `flowforge feedback-context [proposalId]` | 加载 proposal 状态、blocked 任务、关联 library 文档、notes.md 中的问题记录 |
+| `flowforge feedback-capture <root> <id> <type> <title> <content>` | 将分类好的发现写入目标 artifact（finding → library，bug/knowledge → notes.md） |
 
 ## 引用的 SKILL
 
@@ -138,5 +138,5 @@ design-flaw ──────────► flowforge-design
 |-------|---------|
 | `flowforge-docs` | 写 finding/knowledge 文档时获取 frontmatter 契约和写作指南 |
 | `flowforge-design` | 发现 design-flaw 或 missing-requirement 时路由回设计 |
-| `flowforge-implement` | 发现 bug 时创建修复任务并继续执行 |
+| `flowforge-implement` | 发现 bug 时通过 `flowforge task discover` 创建修复任务并继续执行 |
 | `flowforge-progress` | 写入完成后更新 INDEX.md |

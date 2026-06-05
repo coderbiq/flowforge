@@ -1,4 +1,4 @@
-<!-- BEGIN FLOWFORGE v:0.8 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.9 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -10,30 +10,52 @@
 
 ## 任务操作规则
 
-**proposal 任务的创建和状态变更必须通过 FlowForge SKILL**（`flowforge-design` / `flowforge-implement` / `flowforge-feedback`），禁止直接用 `bd create`。
+**所有任务操作必须通过 `flowforge task` CLI，严禁直接读写任务文件。**
 
-**实施过程中发现的 bug、遗漏、改进**也属于 proposal 的一部分，通过 `flowforge-feedback` 回流，不要脱离 FlowForge 用 `bd create`。
+- ❌ **禁止** 读取 `tasks.snapshot.md` —— 这是自动生成的只读快照，供人类 git diff 审查
+- ❌ **禁止** 读取 `task-map.yaml` —— v0.9 已废弃，任务数据在 beads 后端
+- ❌ **禁止** 直接用 `bd create/update/close` 操作 proposal 任务
+- ✅ **必须** 使用 `flowforge task status/ready/claim/done` 等命令
+- ✅ `bd create/update/close` 仅限与任何 proposal 无关的独立事务
+- ✅ 知识持久化用 `bd remember`
 
-`bd create / update / close` 仅限与任何 proposal 无关的独立事务（如环境配置、工具脚本、临时调研）。不确定是否相关时，默认走 FlowForge。
+任务查询命令：
 
-知识持久化用 `bd remember`。
+```bash
+flowforge task status --proposal <id>      # 全部任务状态（含 byType 分组）
+flowforge task ready --proposal <id>       # 就绪任务列表
+flowforge task blocked --proposal <id>     # 阻塞任务列表
+```
+
+## CLI 入口
+
+项目根目录 `flowforge` 是统一入口。常用命令：
+
+```bash
+flowforge task ready --proposal <CR-id>     # 就绪任务
+flowforge task claim --proposal <CR-id> <id> # 认领任务
+flowforge task done --proposal <CR-id> <id>  # 完成任务
+flowforge task status --proposal <CR-id>     # 状态概览
+flowforge implement-context                  # 加载实施上下文
+flowforge design-context                     # 加载设计上下文
+```
 
 ## 路径约定
 
-脚本 → `.flowforge/scripts/`，schema → `.flowforge/schema/`，guides → `.flowforge/guides/`。
+CLI 通过 `npm link` 全局安装，无需关注内部路径。配置和指南位于 `.flowforge/`。
 
 ---
 
 以下动作后**必须**激活 `flowforge-progress`：
 
 - 修改 proposal 的 `meta.yaml` status
-- 在 task-map.yaml / notes.md 中标记任务或追加日志
+- 通过 `flowforge task` 完成任务操作
+- 在 notes.md 中追加日志
 - 创建、归档或移动 proposal 目录
 
 ### 会话收尾
 
 1. 质量门禁通过（测试、lint、构建）
-2. `task-sync.js --check` 确认一致
-3. `git pull --rebase && bd dolt push && git push`
+2. `git pull --rebase && bd dolt push && git push`
 
 <!-- END FLOWFORGE -->

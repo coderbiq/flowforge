@@ -119,13 +119,12 @@ note_kind: progress
   const repairDesc = content || title;
   try {
     const { execSync } = require('child_process');
-    const discoverScript = path.join(__dirname, 'task-discover.js');
     execSync(
-      `node "${discoverScript}" "${projectRoot}" "${crId}" "0" "${repairTitle}" "${repairDesc}"`,
-      { encoding: 'utf8', stdio: 'pipe', timeout: 5000 }
+      `flowforge task discover --proposal "${crId}" "${repairTitle}" --desc "${repairDesc}"`,
+      { encoding: 'utf8', stdio: 'pipe', timeout: 5000, cwd: projectRoot }
     );
   } catch (e) {
-    console.log('(task-discover.js 执行失败，已记录 bug 到 notes.md）');
+    console.log('(flowforge task discover 执行失败，已记录 bug 到 notes.md）');
   }
 
   console.log(`[bug] "${title}" 已写入 notes.md，修复任务已创建`);
@@ -243,8 +242,8 @@ function handleMissingRequirement(crId, title, content) {
   console.log(`激活 flowforge-design，在 proposal "${crId}" 中补充设计：`);
   console.log(`  1. 在 design/ 下补充对应模块的设计文档`);
   console.log(`  2. 将新发现的设计事实写入 library/ 对应路径`);
-  console.log(`  3. 通过 task-cancel.js 废弃受影响任务`);
-  console.log(`  4. 通过 task-add.js 添加新任务`);
+  console.log(`  3. 通过 flowforge task cancel 废弃受影响任务`);
+  console.log(`  4. 通过 flowforge task add 添加新任务`);
 }
 
 function handleDesignFlaw(crId, title, content) {
@@ -255,8 +254,8 @@ function handleDesignFlaw(crId, title, content) {
   console.log(`激活 flowforge-design 修改方案：`);
   console.log(`  1. 说明缺陷所在的任务和需要修正的设计点`);
   console.log(`  2. 在 design/ 下修改对应的设计文档`);
-  console.log(`  3. 通过 task-cancel.js 废弃受影响任务`);
-  console.log(`  4. 通过 task-add.js 添加修正任务`);
+  console.log(`  3. 通过 flowforge task cancel 废弃受影响任务`);
+  console.log(`  4. 通过 flowforge task add 添加修正任务`);
 }
 
 // --- Helpers ---

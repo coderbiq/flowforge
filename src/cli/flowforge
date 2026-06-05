@@ -1,0 +1,461 @@
+#!/usr/bin/env node
+'use strict';
+
+const path = require('path');
+const { loadMainConfig } = require('./scripts/lib/config');
+const { createBackend } = require('./scripts/lib/backends');
+const { TASK_TYPE } = require('./scripts/lib/backends/interface');
+
+const projectRoot = process.env.FLOWFORGE_ROOT || process.cwd();
+const args = process.argv.slice(2);
+
+if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+  printHelp();
+  process.exit(0);
+}
+
+const command = args[0];
+const rest = args.slice(1);
+
+const config = loadMainConfig(projectRoot);
+if (!config && command !== '--version') {
+  console.error('ERROR: .flowforge/config.yaml not found in', projectRoot);
+  process.exit(1);
+}
+
+async function main() {
+  switch (command) {
+    case '--version':
+      printVersion();
+      break;
+
+    case 'task':
+      await handleTask(rest);
+      break;
+
+    case 'design-context':
+      await delegateToScript('design-context.js', rest);
+      break;
+
+    case 'implement-context':
+      await delegateToScript('implement-context.js', rest);
+      break;
+
+    case 'feedback-context':
+      await delegateToScript('feedback-context.js', rest);
+      break;
+
+    case 'archive-context':
+      await delegateToScript('archive-context.js', rest);
+      break;
+
+    case 'validate-proposal':
+      await delegateToScript('validate-proposal.js', rest);
+      break;
+
+    case 'validate-doc':
+      await delegateToScript('validate-doc.js', rest);
+      break;
+
+    case 'update-progress':
+      await delegateToScript('update-progress.js', rest);
+      break;
+
+    case 'refresh-index':
+      await delegateToScript('refresh-index.js', rest);
+      break;
+
+    case 'docs-guide':
+      await delegateToScript('docs-guide.js', rest);
+      break;
+
+    case 'move-proposal':
+      await delegateToScript('move-proposal.js', rest);
+      break;
+
+    case 'archive-synthesize':
+      await delegateToScript('archive-synthesize.js', rest);
+      break;
+
+    case 'feedback-capture':
+      await delegateToScript('feedback-capture.js', rest);
+      break;
+
+    case 'upgrade':
+      await handleUpgrade(rest);
+      break;
+
+    default:
+      console.error(`Unknown command: ${command}`);
+      console.error('Run "flowforge --help" for usage.');
+      process.exit(1);
+  }
+}
+
+async function handleTask(args) {
+  if (args.length === 0) {
+    console.error('Usage: flowforge task <action> [options]');
+    console.error('Actions: init, add, add-tasks, discover, cancel, claim, done, block, unclaim, reopen, dep-add, dep-remove, ready, status, blocked, all-done, snapshot');
+    process.exit(1);
+  }
+
+  const action = args[0];
+  const actionArgs = args.slice(1);
+
+  const { proposalId, actionRest } = parseProposalFlag(actionArgs);
+  if (!proposalId) {
+    console.error('ERROR: --proposal <id> required');
+    process.exit(1);
+  }
+
+  const backend = createBackend(config, projectRoot);
+
+  try {
+    switch (action) {
+      case 'init': {
+        const title = actionRest[0];
+        if (!title) { console.error('Usage: flowforge task init <title>'); process.exit(1); }
+        const result = await backend.init(proposalId, title);
+        console.log(JSON.stringify(result));
+        break;
+      }
+
+      case 'add': {
+        const [type, title] = parseAddArgs(actionRest);
+        if (!type || !title) { console.error('Usage: flowforge task add <type> <title> [--desc "..."] [--dep id1,id2] [--parent <id>] [--label label1,label2]'); process.exit(1); }
+        const taskDef = buildTaskDef(type, title, actionRest);
+        const parentId = extractFlag(actionRest, '--parent');
+        const result = await backend.addTask(proposalId, taskDef, parentId);
+        console.log(JSON.stringify(result));
+        break;
+      }
+
+      case 'add-tasks': {
+        const json = actionRest[0];
+        if (!json) { console.error('Usage: flowforge task add-tasks \'<json-array>\''); process.exit(1); }
+        const tasks = JSON.parse(json);
+        const result = await backend.addTasks(proposalId, tasks);
+        console.log(JSON.stringify(result));
+        break;
+      }
+
+      case 'discover': {
+        const [parentId, type, title] = parseDiscoverArgs(actionRest);
+        if (!parentId || !type || !title) { console.error('Usage: flowforge task discover <parentTaskId> <type> <title>'); process.exit(1); }
+        const result = await backend.discoverTask(proposalId, parentId, { title, type, description: extractFlag(actionRest, '--desc') });
+        console.log(JSON.stringify(result));
+        break;
+      }
+
+      case 'cancel': {
+        const taskId = actionRest[0];
+        const reason = extractFlag(actionRest, '--reason');
+        if (!taskId) { console.error('Usage: flowforge task cancel <taskId> [--reason "..."]'); process.exit(1); }
+        await backend.cancelTask(proposalId, taskId, reason);
+        console.log(JSON.stringify({ cancelled: true }));
+        break;
+      }
+
+      case 'claim': {
+        const taskId = actionRest[0];
+        if (!taskId) { console.error('Usage: flowforge task claim <taskId>'); process.exit(1); }
+        const result = await backend.claimTask(proposalId, taskId);
+        console.log(JSON.stringify(result));
+        break;
+      }
+
+      case 'done': {
+        const taskId = actionRest[0];
+        const summary = extractFlag(actionRest, '--summary');
+        if (!taskId) { console.error('Usage: flowforge task done <taskId> [--summary "..."]'); process.exit(1); }
+        await backend.completeTask(proposalId, taskId, summary);
+        console.log(JSON.stringify({ done: true }));
+        break;
+      }
+
+      case 'block': {
+        const [taskId, reason] = parseBlockArgs(actionRest);
+        if (!taskId || !reason) { console.error('Usage: flowforge task block <taskId> <reason>'); process.exit(1); }
+        await backend.blockTask(proposalId, taskId, reason);
+        console.log(JSON.stringify({ blocked: true }));
+        break;
+      }
+
+      case 'unclaim': {
+        const taskId = actionRest[0];
+        if (!taskId) { console.error('Usage: flowforge task unclaim <taskId>'); process.exit(1); }
+        await backend.unclaimTask(proposalId, taskId);
+        console.log(JSON.stringify({ released: true }));
+        break;
+      }
+
+      case 'reopen': {
+        const taskId = actionRest[0];
+        if (!taskId) { console.error('Usage: flowforge task reopen <taskId>'); process.exit(1); }
+        await backend.reopenTask(proposalId, taskId);
+        console.log(JSON.stringify({ reopened: true }));
+        break;
+      }
+
+      case 'dep-add': {
+        const [taskId, depId] = actionRest;
+        if (!taskId || !depId) { console.error('Usage: flowforge task dep-add <taskId> <depId>'); process.exit(1); }
+        await backend.addDependency(proposalId, taskId, depId);
+        console.log(JSON.stringify({ added: true }));
+        break;
+      }
+
+      case 'dep-remove': {
+        const [taskId, depId] = actionRest;
+        if (!taskId || !depId) { console.error('Usage: flowforge task dep-remove <taskId> <depId>'); process.exit(1); }
+        await backend.removeDependency(proposalId, taskId, depId);
+        console.log(JSON.stringify({ removed: true }));
+        break;
+      }
+
+      case 'label': {
+        if (actionRest.length === 0) { console.error('Usage: flowforge task label <add|remove|list> <taskId> [label]'); process.exit(1); }
+        const [subAction, taskId, label] = actionRest;
+        if (!taskId) { console.error('taskId required'); process.exit(1); }
+        switch (subAction) {
+          case 'add':
+            if (!label) { console.error('label required'); process.exit(1); }
+            await backend.addLabel(proposalId, taskId, label);
+            console.log(JSON.stringify({ added: true }));
+            break;
+          case 'remove':
+            if (!label) { console.error('label required'); process.exit(1); }
+            await backend.removeLabel(proposalId, taskId, label);
+            console.log(JSON.stringify({ removed: true }));
+            break;
+          case 'list':
+            console.log(await backend.listLabels(proposalId, taskId));
+            break;
+          default:
+            console.error('Unknown label action: ' + subAction);
+            process.exit(1);
+        }
+        break;
+      }
+
+      case 'ready': {
+        const tasks = await backend.getReadyTasks(proposalId);
+        console.log(JSON.stringify(tasks));
+        break;
+      }
+
+      case 'status': {
+        const status = await backend.getStatus(proposalId);
+        console.log(JSON.stringify(status));
+        break;
+      }
+
+      case 'blocked': {
+        const tasks = await backend.getBlockedTasks(proposalId);
+        console.log(JSON.stringify(tasks));
+        break;
+      }
+
+      case 'all-done': {
+        const done = await backend.isAllDone(proposalId);
+        console.log(JSON.stringify({ allDone: done }));
+        break;
+      }
+
+      case 'snapshot': {
+        const filePath = await backend.exportSnapshot(proposalId);
+        console.log(JSON.stringify({ snapshot: filePath }));
+        break;
+      }
+
+      default:
+        console.error(`Unknown task action: ${action}`);
+        console.error('Actions: init, add, add-tasks, discover, cancel, claim, done, block, unclaim, reopen, dep-add, dep-remove, ready, status, blocked, all-done, snapshot');
+        process.exit(1);
+    }
+  } catch (e) {
+    console.error(`ERROR: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+async function handleUpgrade(args) {
+  if (args.length === 0) {
+    console.error('Usage: flowforge upgrade <action> [--proposal <id>]');
+    console.error('Actions: migrate-from-yaml, cleanup-orphans');
+    process.exit(1);
+  }
+
+  const action = args[0];
+  const actionArgs = args.slice(1);
+  const { proposalId } = parseProposalFlag(actionArgs);
+  if (!proposalId) {
+    console.error('ERROR: --proposal <id> required');
+    process.exit(1);
+  }
+
+  const backend = createBackend(config, projectRoot);
+
+  try {
+    switch (action) {
+      case 'migrate-from-yaml': {
+        const { findProposalDir } = require('./scripts/lib/config');
+        const proposalDir = findProposalDir(projectRoot, config, proposalId);
+        if (!proposalDir) {
+          console.error(`ERROR: proposal dir not found for ${proposalId}`);
+          process.exit(1);
+        }
+        const result = await backend.migrateFromYaml(proposalDir);
+        console.log(JSON.stringify(result));
+        break;
+      }
+
+      case 'cleanup-orphans': {
+        const result = await backend.cleanupOrphans(proposalId);
+        console.log(JSON.stringify(result));
+        break;
+      }
+
+      default:
+        console.error(`Unknown upgrade action: ${action}`);
+        process.exit(1);
+    }
+  } catch (e) {
+    console.error(`ERROR: ${e.message}`);
+    process.exit(1);
+  }
+}
+
+function delegateToScript(scriptName, rest) {
+  const scriptPath = path.join(__dirname, 'scripts', scriptName);
+  const { spawnSync } = require('child_process');
+  const result = spawnSync('node', [scriptPath, projectRoot, ...rest], {
+    stdio: 'inherit',
+    encoding: 'utf8',
+    timeout: 60000
+  });
+  process.exit(result.status ?? 0);
+}
+
+function parseProposalFlag(args) {
+  let proposalId = null;
+  const actionRest = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--proposal' && i + 1 < args.length) {
+      proposalId = args[i + 1];
+      i++;
+    } else {
+      actionRest.push(args[i]);
+    }
+  }
+  return { proposalId, actionRest };
+}
+
+function extractFlag(args, flag) {
+  const idx = args.indexOf(flag);
+  return (idx >= 0 && idx + 1 < args.length) ? args[idx + 1] : null;
+}
+
+function parseAddArgs(args) {
+  const result = [];
+  for (const a of args) {
+    if (a.startsWith('--')) break;
+    result.push(a);
+  }
+  return result;
+}
+
+function parseDiscoverArgs(args) {
+  const result = [];
+  for (const a of args) {
+    if (a.startsWith('--')) break;
+    result.push(a);
+  }
+  return result;
+}
+
+function parseBlockArgs(args) {
+  const result = [];
+  for (const a of args) {
+    if (a.startsWith('--')) break;
+    result.push(a);
+  }
+  return result;
+}
+
+function buildTaskDef(type, title, args) {
+  return {
+    title,
+    type: type || TASK_TYPE.IMPLEMENTATION,
+    description: extractFlag(args, '--desc') || '',
+    dependencies: parseListFlag(args, '--dep'),
+    labels: parseListFlag(args, '--label'),
+  };
+}
+
+function parseListFlag(args, flag) {
+  const val = extractFlag(args, flag);
+  return val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+}
+
+function printHelp() {
+  console.log(`FlowForge v0.9 — Task Management CLI
+
+Usage: flowforge <command> [options]
+
+Commands:
+  task <action>              Task management
+  design-context             Load design context
+  implement-context          Load implement context
+  feedback-context           Load feedback context
+  archive-context            Load archive context
+  validate-proposal <path>   Validate proposal directory
+  validate-doc <path>        Validate document frontmatter
+  update-progress <path>     Update progress summary
+  refresh-index              Rebuild proposal INDEX.md
+  docs-guide <docType>       Load writing guide
+  move-proposal <id>         Move proposal to completed
+  archive-synthesize <id>    Generate archive synthesis plan
+  feedback-capture           Capture feedback
+  upgrade <action>           Upgrade/migration helpers
+
+Task Actions:
+  init <title>                          Initialize proposal task space
+  add <type> <title> [--desc "..."] [--parent <id>] [--dep id1,id2] [--label l1,l2]  Add task
+  label <add|remove|list> <taskId> [label]    Manage task labels
+  add-tasks '<json>'                    Batch add tasks
+  discover <parent> <type> <title>      Discover new task
+  cancel <taskId> [--reason "..."]      Cancel task
+  claim <taskId>                        Claim task
+  done <taskId> [--summary "..."]       Complete task
+  block <taskId> <reason>               Block task
+  unclaim <taskId>                      Release claim
+  reopen <taskId>                       Reopen task
+  dep-add <taskId> <depId>              Add dependency
+  dep-remove <taskId> <depId>           Remove dependency
+  ready                                 List ready tasks (JSON)
+  status                                Task status overview (JSON)
+  blocked                               List blocked tasks (JSON)
+  all-done                              Check if all tasks done (JSON)
+  snapshot                              Export tasks.snapshot.md
+
+Options:
+  --proposal <id>    Proposal ID (CR-id)
+  --project <path>   Project root (default: cwd)
+  --help, -h         Show this help
+`);
+}
+
+function printVersion() {
+  try {
+    const meta = require(path.join(projectRoot, '.flowforge', 'meta.yaml'));
+    console.log(`FlowForge v${meta.version || '0.9.0'}`);
+  } catch (_) {
+    console.log('FlowForge v0.9.0');
+  }
+}
+
+main().catch(e => {
+  console.error(`FATAL: ${e.message}`);
+  process.exit(1);
+});

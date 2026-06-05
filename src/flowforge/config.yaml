@@ -7,7 +7,7 @@ projects:
     config: projects/default.yaml
 
 taskBackend:
-  adapter: yaml
+  adapter: beads
 
 memoryProvider:
   enabled: false

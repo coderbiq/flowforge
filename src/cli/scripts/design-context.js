@@ -182,13 +182,15 @@ if (proposalLocation) {
     if (meta.status) console.log(`状态: ${meta.status}`);
     if (meta.title) console.log(`标题: ${meta.title}`);
   }
-  const taskMapYaml = path.join(proposalLocation.proposalDir, 'task-map.yaml');
-  if (fs.existsSync(taskMapYaml)) console.log('task-map: 已有');
+  const snapshotPath = path.join(proposalLocation.proposalDir, 'tasks.snapshot.md');
+  if (fs.existsSync(snapshotPath)) {
+    console.log('任务: 已初始化（使用 flowforge task status --proposal <id> 查看）');
+  }
 }
 
 if (config.taskBackend && config.taskBackend.adapter && config.taskBackend.adapter !== 'yaml') {
   console.log('\n## Task Backend\n');
-  console.log(`adapter: ${config.taskBackend.adapter}`);
+  console.log(`backend: ${config.taskBackend.adapter}`);
   console.log('任务创建/查询/更新将通过脚本调用存储层，Agent 无需直接操作 task-map 文件。');
 }
 

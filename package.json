@@ -1,7 +1,9 @@
 {
   "name": "flowforge",
-  "private": true,
   "description": "FlowForge - AI 辅助软件设计与交付工作流工具包",
+  "bin": {
+    "flowforge": "./src/cli/flowforge"
+  },
   "scripts": {
     "vendor": "node scripts/vendor-js-yaml.mjs"
   },

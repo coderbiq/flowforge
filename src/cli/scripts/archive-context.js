@@ -134,12 +134,18 @@ if (fs.existsSync(notesPath)) {
 }
 
 // 输出文档全文
-for (const f of ['proposal.md', 'design.md', 'task-map.yaml']) {
+for (const f of ['proposal.md', 'design.md']) {
   const fp = path.join(proposalLocation.proposalDir, f);
   if (fs.existsSync(fp)) {
     console.log(`\n### ${f}\n`);
     console.log(fs.readFileSync(fp, 'utf8'));
   }
+}
+
+// 任务快照仅提示存在，不输出内容——Agent 使用 flowforge task status 查询
+const snapshotPath = path.join(proposalLocation.proposalDir, 'tasks.snapshot.md');
+if (fs.existsSync(snapshotPath)) {
+  console.log('\ntasks.snapshot.md: 已存在（使用 flowforge task status --proposal <id> 查看任务状态）');
 }
 
 // 输出 design/ 目录下的文件

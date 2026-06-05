@@ -61,7 +61,7 @@
       "properties": {
         "proposal": { "type": "string", "default": "proposal.md" },
         "design": { "type": "string", "default": "design.md" },
-        "task_map": { "type": "string", "default": "task-map.md" },
+        "task_snapshot": { "type": "string", "default": "tasks.snapshot.md" },
         "notes": { "type": "string", "default": "notes.md" }
       }
     },

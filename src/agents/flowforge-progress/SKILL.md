@@ -6,7 +6,7 @@ description: |
 
   必须在以下信号出现后立即激活：
   - 刚刚修改了 wiki 内 proposal 的 meta.yaml 的 status 字段
-  - 刚刚在 task-map.md 中将任务标记为完成或阻塞
+  - 刚刚通过 `flowforge task` 完成了任务操作（done/claim/block/cancel）
   - 刚刚在 notes.md 追加了实施日志
   - 刚刚创建、归档或移动了 proposal 目录
   - 刚刚完成 design 章节并 commit 到 proposal
@@ -58,7 +58,7 @@ description: |
 ### 阶段 3：运行脚本
 
 ```
-scripts/update-progress.js <proposal完整路径> "<总结>"
+flowforge update-progress <proposal完整路径> "<总结>"
 ```
 
 脚本会自动：
@@ -81,5 +81,5 @@ scripts/update-progress.js <proposal完整路径> "<总结>"
 
 | 脚本 | 用途 |
 |:--|:--|
-| `scripts/update-progress.js <proposal路径> "<总结>"` | 写 meta.latest_progress + 更新 updated_at + 重建 INDEX.md |
-| `scripts/refresh-index.js [项目根路径]` | 仅重建 INDEX.md（可独立运行） |
+| `flowforge update-progress <proposal路径> "<总结>"` | 写 meta.latest_progress + 更新 updated_at + 重建 INDEX.md |
+| `flowforge refresh-index [项目根路径]` | 仅重建 INDEX.md（可独立运行） |

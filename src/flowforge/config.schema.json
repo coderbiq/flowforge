@@ -36,9 +36,9 @@
       "properties": {
         "adapter": {
           "type": "string",
-          "enum": ["yaml", "beads"],
-          "default": "yaml",
-          "description": "任务存储适配器。yaml=纯 task-map.yaml 文件；beads=Beads 增强（双写 task-map.yaml + beads，查询优先 beads）"
+          "enum": ["beads"],
+          "default": "beads",
+          "description": "任务存储适配器。beads=Beads 后端（唯一真理源，Agent 通过 CLI 操作任务）"
         }
       }
     },

@@ -1,4 +1,4 @@
-# FlowForge
+# FlowForge <sup>v0.9.0</sup>
 
 面向 AI 辅助软件设计与交付的工作流工具包。通过 SKILL 体系将 AI Agent 的探索、设计、实施和知识沉淀工作流程化——非线性的、可回退的、持续积累的。
 
@@ -21,10 +21,11 @@
 ```
 FlowForge/
 ├── docs/              ← 开发文档（不部署）
-├── src/               ← 可部署制品
+├── src/               ← 源代码
 │   ├── AGENTS.md      ← 目标项目 AGENTS.md 模板
-│   ├── agents/        ← SKILL 定义
-│   ├── flowforge/     ← .flowforge/ 配置、schema、指南、脚本
+│   ├── agents/        ← SKILL 定义（部署到 .agents/skills/）
+│   ├── cli/           ← CLI 运行时（npm link，不部署到项目）
+│   ├── flowforge/     ← .flowforge/ 配置、schema、指南（部署到项目）
 │   └── wiki-tpl/      ← 知识库目录骨架
 ├── scripts/           ← 安装工具（不部署）
 ├── tests/             ← 测试（不部署）
@@ -40,8 +41,8 @@ FlowForge/
 ├── .flowforge/
 │   ├── config.yaml       ← 项目可定制的配置
 │   ├── guides/           ← 各文档类型的写作指南
-│   ├── schema/           ← JSON Schema 校验
-│   └── scripts/          ← 上下文加载和校验脚本
+│   ├── hooks/            ← beads hooks（自动刷新任务快照）
+│   └── schema/           ← JSON Schema 校验
 ├── ff-wiki/              ← 知识库
 │   ├── workspace/        ← 进行中的工作（intake / proposals）
 │   └── library/          ← 沉淀的知识（architecture / conventions / decisions / modules）
@@ -55,7 +56,7 @@ FlowForge/
 | SKILL | 触发场景 | 职责 |
 |-------|---------|------|
 | `flowforge-design` | 新需求、变更意图、"分析"、"设计" | 需求树驱动渐进式探索：构建需求草案 → 分析任务 → 设计 → 细化实施任务 |
-| `flowforge-implement` | "执行任务"、"继续推进" | 执行 task-map 中 type: implementation 的任务：认领 → 编码 → 记录日志 |
+| `flowforge-implement` | "执行任务"、"继续推进" | 执行 implementation 任务：认领 → 编码 → 记录日志 |
 | `flowforge-feedback` | 测试失败、发现新认知、"不对" | 分类发现（bug/finding/knowledge）→ 回流到 library 或创建修复任务 |
 | `flowforge-archive` | "归档"、"沉淀到 library" | 合成知识到 library：对比现状 → 修正过时描述 → 更新模块设计 |
 | `flowforge-docs` | 被其他 SKILL 调用创建/修改文档 | 加载写作指南 → 提供 frontmatter 契约 → 校验文档 |
@@ -79,15 +80,14 @@ FlowForge/
 
 ### 2. 渐进式设计
 
-探索与设计**交织进行**，而非分阶段——分析任务完成即可创建对应的设计任务，设计过程中发现新问题可追加分析任务。所有任务（analysis + design + implementation）在同一张 task-map.yaml 中，通过 `sourceTasks`（来源追溯）和 `epic`（事件归类）关系字段串联完整链路。
+探索与设计**交织进行**，而非分阶段——分析任务完成即可创建对应的设计任务，设计过程中发现新问题可追加分析任务。所有任务（analysis + design + implementation）由 Beads 后端统一管理，通过 `sourceTasks`（来源追溯）和 `epic`（事件归类）关系字段串联完整链路。
 
 ```
 workspace/proposals/active/CR26060101-example/
 ├── proposal.md          ← 提案概述（背景、方案、影响）
 ├── meta.yaml            ← 元数据（id、title、status、modules）
 ├── design/              ← 详细设计文档（architecture / api / impacts / tradeoffs）
-├── model/               ← 业务模型文档
-├── task-map.yaml        ← 全流程任务（analysis / design / implementation 三类）
+├── tasks.snapshot.md    ← 任务快照（自动生成，纯展示）
 └── notes.md             ← 实施日志
 ```
 
@@ -97,9 +97,9 @@ workspace/proposals/active/CR26060101-example/
 
 ### 4. 执行实施
 
-用户指示"开始实施"后，Agent 激活 `flowforge-implement`。implement SKILL 只处理 task-map 中 `type: implementation` 的任务：
+用户指示"开始实施"后，Agent 激活 `flowforge-implement`。implement SKILL 只处理 `type: implementation` 的任务：
 
-- 读取就绪任务（依赖已完成 + 状态为 pending + type: implementation）
+- 通过 `flowforge task ready` 读取就绪任务
 - 认领任务 → 状态变为 in_progress
 - 执行任务 → 标记 done → 记录 notes.md
 - 完成每个工作单元后自动激活 `flowforge-progress`
@@ -119,7 +119,7 @@ workspace/proposals/active/CR26060101-example/
 
 所有任务完成后，Agent 激活 `flowforge-archive`。归档**不是**机械搬运文件，而是：
 
-1. 运行 `archive-synthesize.js` 生成 JSON 合成计划（对比 library 现状 → 分类 create/replace/merge）
+1. 运行 `flowforge archive-synthesize` 生成 JSON 合成计划（对比 library 现状 → 分类 create/replace/merge）
 2. 按计划将 proposal 中最新的设计决策、架构知识、模型文档**融进** library 的对应位置
 3. 修正 library 中过时的描述（如旧命名、旧架构）
 4. 移动 proposal 目录到 `completed/`，更新状态

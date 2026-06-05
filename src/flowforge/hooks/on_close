@@ -1,68 +1,27 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Beads Hook: on_close  (FlowForge v0.7+)
-# 当 beads issue 被关闭时，自动将完成状态同步回 FlowForge 的 task-map.yaml
+# Beads Hook: on_close  (FlowForge v0.9)
+# 当 beads issue 关闭时，自动刷新 proposal 的任务快照 (tasks.snapshot.md)
 #
-# 行为与 on_update 一致——调用 task-sync.js --from beads 全量同步。
-# on_close 单独存在是为了语义清晰，方便未来添加关闭专属逻辑。
-#
+# 协议: $1=issue_id, $2=event_type, stdin=完整 issue JSON
 # 部署位置: <project>/.beads/hooks/on_close
-# 来源:     FlowForge src/flowforge/hooks/on_close
 # ============================================================================
 
 set -euo pipefail
 
-ISSUE_ID="$1"
-EVENT_TYPE="$2"
 ISSUE_JSON=$(cat)
 
-# ------------------------------------------------------------------
-# 1. 解析 labels，提取 proposal_id 和 task_id
-# ------------------------------------------------------------------
+PROPOSAL_ID=""
 if command -v jq &>/dev/null; then
   PROPOSAL_ID=$(echo "$ISSUE_JSON" | jq -r '.labels[]? // empty | select(startswith("proposal:")) | ltrimstr("proposal:")' 2>/dev/null | head -1)
-  TASK_ID=$(echo "$ISSUE_JSON" | jq -r '.labels[]? // empty | select(startswith("task:")) | ltrimstr("task:")' 2>/dev/null | head -1)
 else
   PROPOSAL_ID=$(echo "$ISSUE_JSON" | grep -oP '"proposal:\K[^"]+' | head -1)
-  TASK_ID=$(echo "$ISSUE_JSON" | grep -oP '"task:\K[^"]+' | head -1)
 fi
 
-if [ -z "${PROPOSAL_ID:-}" ] || [ -z "${TASK_ID:-}" ]; then
+if [ -z "${PROPOSAL_ID:-}" ]; then
   exit 0
 fi
 
-# ------------------------------------------------------------------
-# 2. 定位项目根目录
-# ------------------------------------------------------------------
-PROJECT_ROOT=""
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-SEARCH_DIR="$HOOK_DIR/../.."
-while [ "$SEARCH_DIR" != "/" ]; do
-  if [ -d "$SEARCH_DIR/.flowforge" ]; then
-    PROJECT_ROOT="$SEARCH_DIR"
-    break
-  fi
-  SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-done
-
-if [ -z "${PROJECT_ROOT:-}" ]; then
-  echo "[flowforge-hook] WARNING: 未找到项目根目录" >&2
-  exit 0
-fi
-
-# ------------------------------------------------------------------
-# 3. 同步状态
-# ------------------------------------------------------------------
-SYNC_SCRIPT="$PROJECT_ROOT/.flowforge/scripts/task-sync.js"
-
-if [ ! -f "$SYNC_SCRIPT" ]; then
-  echo "[flowforge-hook] WARNING: task-sync.js 不存在: $SYNC_SCRIPT" >&2
-  exit 0
-fi
-
-timeout 10 node "$SYNC_SCRIPT" "$PROJECT_ROOT" "$PROPOSAL_ID" --from beads 2>/dev/null || {
-  echo "[flowforge-hook] WARNING: task-sync 失败 (proposal=$PROPOSAL_ID, bead=$ISSUE_ID, event=$EVENT_TYPE)" >&2
-  exit 0
-}
+flowforge task snapshot --proposal "$PROPOSAL_ID" 2>/dev/null &
 
 exit 0

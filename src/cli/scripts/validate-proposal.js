@@ -44,8 +44,10 @@ if (!fs.existsSync(designDir) && !fs.existsSync(designFile)) {
   errors.push('缺少 design/ 目录或 design.md');
 }
 
-if (!fs.existsSync(path.join(proposalDir, 'task-map.yaml'))) {
-  errors.push('缺少 task-map.yaml');
+const snapshotPath = path.join(proposalDir, 'tasks.snapshot.md');
+const taskMapPath = path.join(proposalDir, 'task-map.yaml');
+if (!fs.existsSync(snapshotPath) && !fs.existsSync(taskMapPath)) {
+  console.log('提示: task snapshot 不存在，运行 flowforge task snapshot 生成');
 }
 
 if (errors.length === 0) {
