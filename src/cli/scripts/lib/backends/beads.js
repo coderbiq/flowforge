@@ -66,6 +66,9 @@ class BeadsBackend extends TaskBackend {
 
   async addTask(proposalId, task, parentTaskId) {
     const epicId = await this._resolveEpic(proposalId);
+    if (!epicId) {
+      throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init --proposal ${proposalId} "<title>"' first.`);
+    }
     const parentId = parentTaskId || epicId;
     const labels = this._buildLabels(task, proposalId);
     const result = this._bd(
@@ -86,6 +89,9 @@ class BeadsBackend extends TaskBackend {
 
   async addTasks(proposalId, tasks) {
     const epicId = await this._resolveEpic(proposalId);
+    if (!epicId) {
+      throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init' first.`);
+    }
     const ids = [];
 
     for (const t of tasks) {
@@ -112,6 +118,9 @@ class BeadsBackend extends TaskBackend {
 
   async discoverTask(proposalId, parentTaskId, task) {
     const epicId = await this._resolveEpic(proposalId);
+    if (!epicId) {
+      throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init' first.`);
+    }
     const labels = this._buildLabels(task, proposalId);
     const depFlag = `--dep discovered-from:${parentTaskId}`;
     const result = this._bd(
