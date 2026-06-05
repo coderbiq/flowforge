@@ -292,45 +292,109 @@ if [ "$MODE" = "upgrade" ]; then
   sync_managed "$SRC_DIR/flowforge/schema/" "$TARGET/.flowforge/schema/"
   info "schema 已更新"
 
-  # 同步 project 配置模板（只添加不覆盖）
+  # 同步 project 配置：备份 → 全量替换模板字段 → 合并项目定制
   if [ -d "$SRC_DIR/flowforge/projects" ]; then
     mkdir -p "$TARGET/.flowforge/projects"
-    for proj in "$SRC_DIR/flowforge/projects/"*.yaml; do
-      name=$(basename "$proj")
-      if [ ! -f "$TARGET/.flowforge/projects/$name" ]; then
-        cp "$proj" "$TARGET/.flowforge/projects/"
-      fi
-    done
-    info "project 配置模板已同步"
 
-    # 合并 task_rules 新字段到已有 project 配置（保留项目定制）
     node -e "
     const fs = require('fs');
+    const path = require('path');
     const yaml = require('$SRC_DIR/cli/scripts/vendor/js-yaml');
-    const defaultCfg = yaml.load(fs.readFileSync('$SRC_DIR/flowforge/projects/default.yaml', 'utf8'));
-    const defaultFields = defaultCfg?.rules?.design?.task_rules?.fields || [];
-    const defaultEstimate = defaultCfg?.rules?.design?.task_rules?.time_estimate || '';
-    const projDir = '$TARGET/.flowforge/projects';
-    for (const f of fs.readdirSync(projDir)) {
-      if (!f.endsWith('.yaml')) continue;
-      const fp = projDir + '/' + f;
-      const cfg = yaml.load(fs.readFileSync(fp, 'utf8'));
-      if (!cfg?.rules?.design?.task_rules) continue;
-      const tr = cfg.rules.design.task_rules;
-      let changed = false;
-      for (const field of defaultFields) {
-        if (!tr.fields.includes(field)) { tr.fields.push(field); changed = true; }
-      }
-      if (defaultEstimate && tr.time_estimate !== defaultEstimate && !tr.time_estimate.includes('analysis')) {
-        tr.time_estimate = defaultEstimate;
-        changed = true;
-      }
-      if (changed) {
-        fs.writeFileSync(fp, yaml.dump(cfg, { lineWidth: -1, noRefs: true }), 'utf8');
-        console.log('  merged task_rules: ' + f);
-      }
+
+    const srcDir = '$SRC_DIR/flowforge/projects';
+    const tgtDir = '$TARGET/.flowforge/projects';
+    const backupDir = tgtDir + '/.backup-' + Date.now();
+    fs.mkdirSync(backupDir, { recursive: true });
+
+    // FlowForge 管理的字段——这些总是以模板为准
+    const managedKeys = [
+      'rules.design.task_rules',
+      'rules.design.task_types',
+      'rules.implement.task_states',
+      'rules.implement.notes',
+      'rules.feedback',
+      'rules.archive',
+      'rules.library',
+      'rules.intake',
+      'rules.exploration',
+    ];
+
+    function deepGet(obj, path) {
+      return path.split('.').reduce((o, k) => (o || {})[k], obj);
     }
-    " 2>/dev/null || true
+    function deepSet(obj, path, val) {
+      const keys = path.split('.');
+      const last = keys.pop();
+      let cur = obj;
+      for (const k of keys) { if (!cur[k]) cur[k] = {}; cur = cur[k]; }
+      if (val !== undefined) cur[last] = val;
+    }
+
+    // 项目自定义字段——升级时保留
+    const customKeys = ['wikiRoot', 'srcDirs', 'description', 'keywords'];
+
+    for (const f of fs.readdirSync(tgtDir)) {
+      if (!f.endsWith('.yaml')) continue;
+      const tgtPath = path.join(tgtDir, f);
+      const existing = yaml.load(fs.readFileSync(tgtPath, 'utf8'));
+      if (!existing) continue;
+
+      // 备份
+      fs.copyFileSync(tgtPath, path.join(backupDir, f));
+      process.stdout.write('  backed up: ' + f + '\n');
+    }
+
+    // 全量写入新模板（覆盖旧文件）
+    for (const f of fs.readdirSync(srcDir)) {
+      if (!f.endsWith('.yaml')) continue;
+      const srcPath = path.join(srcDir, f);
+      const tgtPath = path.join(tgtDir, f);
+      fs.copyFileSync(srcPath, tgtPath);
+      process.stdout.write('  updated: ' + f + '\n');
+    }
+
+    // 从备份恢复项目定制字段
+    for (const f of fs.readdirSync(backupDir)) {
+      if (!f.endsWith('.yaml')) continue;
+      const tgtPath = path.join(tgtDir, f);
+      if (!fs.existsSync(tgtPath)) continue;
+
+      const backup = yaml.load(fs.readFileSync(path.join(backupDir, f), 'utf8'));
+      const current = yaml.load(fs.readFileSync(tgtPath, 'utf8'));
+      if (!backup || !current) continue;
+
+      let merged = 0;
+      for (const key of customKeys) {
+        const val = deepGet(backup, key);
+        if (val !== undefined) {
+          deepSet(current, key, val);
+          merged++;
+        }
+      }
+
+      // 保留项目定制的 strategy 文本（如果备份有且与模板不同）
+      const strategyKeys = managedKeys.filter(k => k.endsWith('.strategy') || k === 'rules.design.naming');
+      for (const key of strategyKeys) {
+        const backupVal = deepGet(backup, key);
+        if (backupVal !== undefined) {
+          deepSet(current, key, backupVal);
+          merged++;
+        }
+      }
+
+      fs.writeFileSync(tgtPath, yaml.dump(current, { lineWidth: -1, noRefs: true }), 'utf8');
+      if (merged > 0) process.stdout.write('  merged ' + merged + ' customizations into: ' + f + '\n');
+    }
+
+    // 清理备份（保留最近一次）
+    const backups = fs.readdirSync(tgtDir).filter(d => d.startsWith('.backup-')).sort();
+    while (backups.length > 1) {
+      fs.rmSync(path.join(tgtDir, backups[0]), { recursive: true });
+      backups.shift();
+    }
+    " 2>/dev/null
+
+    info "project 配置已更新（旧版备份在 .flowforge/projects/.backup-*）"
   fi
 
   # 指南：只添加不覆盖（项目可能定制过）

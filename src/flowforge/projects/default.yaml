@@ -31,7 +31,6 @@ rules:
         - description
         - deliverable
         - dependencies
-        - sourceTasks
     task_types:
       analysis:
         label: "需求分析"
