@@ -1,8 +1,8 @@
 ---
 doc_type: convention
 title: bd 写操作超时时使用 --sandbox 绕过 auto-sync
-status: active
-convention_status: active
+status: superseded
+convention_status: superseded
 enforcement: should
 domain:
   scope: system
@@ -10,6 +10,9 @@ domain:
 created: 2026-06-06
 updated: 2026-06-06
 ---
+
+> ⚠️ **此惯例已被废弃 (CR26060602)**。`--sandbox` 应在 beads.js 后端自动处理，不应暴露给 Agent。
+> 替代方案见 `library/architecture/sandbox-leak-analysis.md`。
 
 # bd 写操作超时时使用 --sandbox 绕过 auto-sync
 

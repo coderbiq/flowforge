@@ -568,13 +568,17 @@ class BeadsBackend extends TaskBackend {
   }
 
   _bd(args) {
-    return execSync(`bd ${args}`, {
+    // 写操作自动加 --sandbox 避免 dolt auto-push 阻塞，Agent 无需感知
+    const needsSandbox = /^(create|update|close|link|unlink|label)\b/.test(args);
+    const sandboxFlag = needsSandbox ? ' --sandbox' : '';
+    const result = execSync(`bd ${args}${sandboxFlag}`, {
       cwd: this._projectRoot,
       encoding: 'utf8',
       stdio: 'pipe',
       timeout: 30000,
       maxBuffer: 1024 * 1024
     }).trim();
+    return result;
   }
 
   _formatSnapshot(tasks, proposalId) {

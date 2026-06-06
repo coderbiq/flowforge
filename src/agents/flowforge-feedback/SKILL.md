@@ -63,6 +63,19 @@ description: |
 
 ---
 
+### 阶段 2.5：创建追踪任务
+
+在分类之前，**必须**先为需要修复或补充的发现创建追踪任务。不创建任务不允许进入阶段 3。
+
+| 发现类型 | 命令 |
+|---------|------|
+| bug | `flowforge task discover --proposal <id> <parentId> implementation "修复: <描述>"` |
+| missing-requirement | `flowforge task add --proposal <id> analysis "补充分析: <描述>"` |
+| design-flaw | `flowforge task add --proposal <id> analysis "分析设计缺陷: <描述>"` |
+| finding / knowledge | 跳过（纯知识记录，不需要追踪任务） |
+
+---
+
 ### 阶段 3：分类
 
 参照 `## Feedback Strategy` 中的判决标准（如存在），将识别到的发现归入以下五种类型之一：

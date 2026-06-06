@@ -58,10 +58,10 @@ Main Epic: "CRID: Proposal Title"
 | 需多步骤的大任务 | 4 层（Sub-Epic → Parent → Child） | "实现核心配置链路" 拆为 DDL/Mapper/Repository/API |
 | 探索中发现新任务 | 4 层 | `flowforge task discover --parent <parentId>` 挂在发现它的任务下 |
 
-## 在 beads 中的呈现
+## 任务结构示例
 
 ```
-$ bd list
+$ flowforge task status --proposal CR-id
 
 GIIS-xxx    [epic]        CR26060201: Excel 上传/下载配置模块
 GIIS-xxx.1  [epic]        CR26060201: 分析

@@ -1,4 +1,4 @@
-<!-- BEGIN FLOWFORGE v:0.12.0 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.13.0 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -10,47 +10,19 @@
 
 ## 任务操作规则
 
-**所有任务操作必须通过 `flowforge task` CLI，严禁直接读写任务文件。**
+**所有任务操作通过 `flowforge task` CLI，严禁直接操作后端存储。**
 
-- ❌ **禁止** 读取 `tasks.snapshot.md` —— 这是自动生成的只读快照，供人类 git diff 审查
-- ❌ **禁止** 读取 `task-map.yaml` —— v0.9 已废弃，任务数据在 beads 后端
-- ❌ **禁止** 直接用 `bd create/update/close` 操作 proposal 任务
-- ✅ **必须** 使用 `flowforge task status/ready/claim/done` 等命令
-- ✅ `bd create/update/close` 仅限与任何 proposal 无关的独立事务
-- ✅ 知识持久化用 `bd remember`
-
-### 任务层级
-
-每个 proposal 的任务空间为 4 层结构（详见 `.flowforge/guides/task-hierarchy.md`）：
-
-```
-Main Epic → Type Sub-Epic (分析/设计/实施) → Task → Child Task
-```
-
-- 大任务通过 `--parent <parentTaskId>` 拆为子任务，最多 4 层
-- 独立任务直接挂在类型子 epic 下
-- `tasks.snapshot.md` 按类型分组，父子任务缩进展示
-
-任务查询命令：
-
-```bash
-flowforge task status --proposal <id>      # 全部任务状态（含 byType 分组）
-flowforge task ready --proposal <id>       # 就绪任务列表
-flowforge task blocked --proposal <id>     # 阻塞任务列表
-```
+- ❌ 禁止读写 `tasks.snapshot.md`（自动生成快照）
+- ✅ 常用命令：`flowforge task status` 查看 | `ready/claim/done` 执行
+- 📖 任务层级、完整命令和编写规范见 `.flowforge/guides/`
 
 ## CLI 入口
 
-项目根目录 `flowforge` 是统一入口。常用命令：
-
 ```bash
-flowforge task ready --proposal <CR-id>     # 就绪任务
-flowforge task claim --proposal <CR-id> <id> # 认领任务
-flowforge task done --proposal <CR-id> <id>  # 完成任务
-flowforge task status --proposal <CR-id>     # 状态概览
-flowforge implement-context [CR-id]           # 加载实施上下文
-flowforge design-context [CR-id]              # 加载设计上下文
-flowforge task --help                         # 任务管理帮助
+flowforge task status --proposal <CR-id>   # 任务状态
+flowforge task ready --proposal <CR-id>    # 就绪任务
+flowforge task claim --proposal <CR-id> <id>  # 认领
+flowforge task done --proposal <CR-id> <id>   # 完成
 ```
 
 ---
@@ -64,6 +36,6 @@ flowforge task --help                         # 任务管理帮助
 ### 会话收尾
 
 1. 质量门禁通过（测试、lint、构建）
-2. `git pull --rebase && bd dolt push && git push`
+2. `git pull --rebase && git push`
 
 <!-- END FLOWFORGE -->

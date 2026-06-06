@@ -1,5 +1,6 @@
 {
   "name": "flowforge",
+  "type": "commonjs",
   "description": "FlowForge - AI 辅助软件设计与交付工作流工具包",
   "bin": {
     "flowforge": "./src/cli/flowforge"
@@ -9,6 +10,7 @@
     "test": "node tests/run.js"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "playwright": "^1.60.0"
   }
 }

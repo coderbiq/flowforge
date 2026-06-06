@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
 
+(async () => {
 const projectRoot = require('./lib/config').findProjectRoot(process.argv[2] || process.cwd());
 const proposalId = process.argv[3] || null;
 
@@ -231,3 +232,4 @@ function findActiveProposal(projectRoot, projects) {
   }
   return null;
 }
+})();

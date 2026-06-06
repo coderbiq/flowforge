@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Beads Hook: on_update  (FlowForge v0.9)
-# 当 beads issue 状态变更时，自动刷新 proposal 的任务快照 (tasks.snapshot.md)
+# Task Hook: on_update  (FlowForge v0.9)
+# 当任务状态变更时，自动刷新 proposal 的任务快照 (tasks.snapshot.md)
 #
 # 协议: $1=issue_id, $2=event_type, stdin=完整 issue JSON
 # 部署位置: <project>/.beads/hooks/on_update

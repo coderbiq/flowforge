@@ -6,13 +6,27 @@ const path = require('path');
 const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
 
 const projectRoot = require('./lib/config').findProjectRoot(process.argv[2] || process.cwd());
-const crId = process.argv[3];
-const type = process.argv[4];    // bug | finding | knowledge | missing-requirement | design-flaw
-const title = process.argv[5];
-const content = process.argv[6] || '';
+
+// 解析 --proposal <id> 标志和位置参数
+let crId = null;
+let type = null;
+let title = null;
+let content = '';
+const args = process.argv.slice(3);
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--proposal' && i + 1 < args.length) {
+    crId = args[++i];
+  } else if (!type) {
+    type = args[i];
+  } else if (!title) {
+    title = args[i];
+  } else {
+    content = args[i];
+  }
+}
 
 if (!crId || !type || !title) {
-  console.error('用法: flowforge feedback-capture <CR-id> <type> <title> [content]');
+  console.error('用法: flowforge feedback-capture --proposal <CR-id> <type> <title> [content]');
   console.error('  type: bug | finding | knowledge | missing-requirement | design-flaw');
   process.exit(1);
 }

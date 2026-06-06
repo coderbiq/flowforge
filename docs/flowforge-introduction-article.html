@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowForge — 让 AI 编码不止于「写完即忘」，真正让知识持续生长</title>
+<style>
+  :root {
+    --bg: #fafbfc; --card: #ffffff; --text: #1a1a2e; --muted: #64748b;
+    --accent: #2563eb; --accent-light: #eff6ff; --border: #e2e8f0;
+    --green: #059669; --amber: #d97706; --red: #dc2626; --purple: #7c3aed;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.8; font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 28px 100px; }
+
+  /* Header */
+  header { text-align: center; padding: 52px 0 40px; border-bottom: 1px solid var(--border); margin-bottom: 48px; }
+  header h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; line-height: 1.35; }
+  header .tagline { color: var(--muted); margin-top: 10px; font-size: 0.98rem; }
+  header .meta { display: flex; gap: 18px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+  header .meta-chip { padding: 3px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+  .chip-accent { background: var(--accent-light); color: var(--accent); }
+  .chip-green { background: #ecfdf5; color: var(--green); }
+
+  /* Sections */
+  section { margin-bottom: 52px; }
+  h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 20px; padding-left: 14px; border-left: 3px solid var(--accent); color: #0f172a; }
+  h3 { font-size: 1.1rem; font-weight: 700; margin: 32px 0 14px; color: var(--accent); }
+  h4 { font-size: 0.95rem; font-weight: 700; margin: 22px 0 10px; }
+  p { margin-bottom: 14px; color: var(--muted); }
+  p strong { color: var(--text); }
+
+  /* Quote / Pull */
+  .pull { background: var(--accent-light); border: 1px solid #bfdbfe; border-radius: 10px; padding: 20px 24px; margin: 20px 0; }
+  .pull p { color: var(--text); font-size: 0.95rem; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 28px; background: var(--card); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); font-size: 0.86rem; }
+  thead th { background: #f1f5f9; text-align: left; padding: 12px 14px; font-weight: 700; white-space: nowrap; }
+  tbody td { padding: 12px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+  .st { font-weight: 700; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 4px; font-size: 0.76rem; margin: 2px 4px 2px 0; }
+  .tag-ok { background: #dbeafe; color: var(--accent); font-weight: 600; }
+  .tag-best { background: #dcfce7; color: var(--green); font-weight: 600; }
+  .tag-weak { background: #fee2e2; color: var(--red); }
+  .tag-mid { background: #fef3c7; color: var(--amber); }
+
+  /* Comparison table highlight */
+  .ff-row { background: #f0fdf4; }
+  .ff-cell { font-weight: 700; color: var(--green); }
+
+  /* Code */
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 0.87em; color: #0f172a; }
+  pre { background: #1e293b; color: #e2e8f0; padding: 18px 22px; border-radius: 10px; overflow-x: auto; font-size: 0.82rem; line-height: 1.6; margin: 16px 0; }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin: 18px 0; }
+  .card { background: var(--card); border-radius: 10px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  .card h4 { margin-top: 0; font-size: 0.92rem; }
+
+  /* Roadmap */
+  .roadmap { display: flex; flex-direction: column; gap: 16px; }
+  .road-item { display: flex; gap: 16px; background: var(--card); border-radius: 10px; padding: 20px; border: 1px solid var(--border); align-items: flex-start; }
+  .road-icon { font-size: 1.6rem; min-width: 40px; text-align: center; }
+  .road-body { flex: 1; }
+  .road-body h4 { margin: 0 0 6px; }
+  .road-body p { font-size: 0.86rem; margin-bottom: 0; }
+
+  /* Diagram */
+  .diagram { background: var(--card); border-radius: 10px; border: 1px solid var(--border); padding: 28px; margin: 20px 0; text-align: center; overflow-x: auto; }
+  .diagram-steps { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .d-step { background: var(--accent-light); border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; font-size: 0.84rem; font-weight: 600; white-space: nowrap; }
+  .d-arrow { color: var(--accent); font-size: 1.2rem; font-weight: 700; }
+  .d-feedback { color: var(--purple); font-size: 1rem; }
+
+  /* Flow diagram */
+  .flow-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; margin: 20px 0; font-size: 0.82rem; }
+  .flow-node { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 10px; text-align: center; }
+  .flow-node .n { font-weight: 700; display: block; margin-bottom: 4px; }
+  .flow-node .d { color: var(--muted); font-size: 0.75rem; }
+  .flow-arrow { display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+
+  /* Numbers */
+  .num-list { counter-reset: item; list-style: none; padding: 0; }
+  .num-list li { counter-increment: item; margin-bottom: 10px; padding-left: 28px; position: relative; color: var(--muted); font-size: 0.92rem; }
+  .num-list li::before { content: counter(item); position: absolute; left: 0; top: 2px; width: 20px; height: 20px; background: var(--accent); color: #fff; border-radius: 50%; text-align: center; font-size: 0.72rem; font-weight: 700; line-height: 20px; }
+
+  footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: 0.82rem; }
+
+  @media (max-width: 700px) {
+    .flow-grid { grid-template-columns: 1fr; }
+    .container { padding: 24px 16px 80px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>FlowForge：让 AI 编码不止于「写完即忘」</h1>
+  <p class="tagline">一个面向 AI 辅助软件开发的方法论工具包——把探索、设计、实施和知识沉淀变成一个可持续生长的闭环</p>
+  <div class="meta">
+    <span class="meta-chip chip-accent">v0.11.2</span>
+    <span class="meta-chip chip-green">开源</span>
+    <span class="meta-chip" style="background:#f0f9ff;color:#0369a1;">MIT License</span>
+  </div>
+</header>
+
+<!-- ==================== 1. 问题 ==================== -->
+<section>
+<h2>一、我们到底在解决什么问题？</h2>
+
+<p>AI 辅助编程已经走过「能不能写代码」的阶段，进入了「<strong>写完之后呢？</strong>」的阶段。三个尖锐的问题正在浮现：</p>
+
+<div class="cards">
+  <div class="card">
+    <h4>🔁 知识在新旧对话间断裂</h4>
+    <p style="font-size:0.85rem; color:var(--muted);">上一轮对话里 Agent 花了 40 分钟搞懂了你们项目的权限模型，下一轮对话，<strong>一切从头开始</strong>。探索成本反复支付，没有人记得「上次已经搞明白了」。</p>
+  </div>
+  <div class="card">
+    <h4>📋 设计决策散落在对话历史里</h4>
+    <p style="font-size:0.85rem; color:var(--muted);">为什么选了 Redis 而不是 RabbitMQ 做消息队列？三个月后，没人想得起来。当初的 trade-off 分析、备选方案评估，全部消失在 LLM 的上下文窗口里。</p>
+  </div>
+  <div class="card">
+    <h4>🧩 任务管理在 AI 流程外孤岛运行</h4>
+    <p style="font-size:0.85rem; color:var(--muted);">Jira 上有一个故事卡，Agent 在执行代码，两套系统互不相通。Agent 不知道 Jira 上的依赖关系，Jira 也不知道 Agent 做到了哪一步。切换成本高得离谱。</p>
+  </div>
+</div>
+
+<div class="pull">
+  <p>💡 <strong>核心矛盾：</strong>AI 的上下文是瞬时的，但软件工程的知识需要持久。当前的工具生态在「让 Agent 把事做完」上投入很多，在「让 Agent 做完的事被记住」上投入很少。</p>
+</div>
+</section>
+
+<!-- ==================== 2. 竞品对比 ==================== -->
+<section>
+<h2>二、高星竞品在知识管理上的「足够好」陷阱</h2>
+
+<p>社区里最火的项目——Superpowers、OpenSpec、Spec-Kit——都在做 AI 辅助开发流程，但它们在知识管理上各自有盲区。下面从四个维度做一次「压力测试」。</p>
+
+<h3>2.1 知识持续沉淀：写完的决策，下次还能找到吗？</h3>
+
+<table>
+  <thead>
+    <tr><th style="width:20%">项目</th><th style="width:42%">知识沉淀机制</th><th style="width:38%">核心不足</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="st">Superpowers<br><span style="font-size:0.76rem;color:var(--muted);">219k ⭐</span></td>
+      <td>设计阶段产出 plans，但 plans 是<strong>执行时的临时工作区</strong>，没有独立的持久化层。规范是副产品，随代码生成。</td>
+      <td><span class="tag tag-weak">知识生命周期 = 一次提案</span> — 提案结束，知识消散。下一次类似需求出现时，Agent 从零开始理解系统。</td>
+    </tr>
+    <tr>
+      <td class="st">OpenSpec<br><span style="font-size:0.76rem;color:var(--muted);">53.1k ⭐</span></td>
+      <td><code>specs/</code> 持久规范层 + <code>changes/archive/</code> 变更全追溯。每个变更的 proposal + design + tasks + spec delta 完整保留。</td>
+      <td><span class="tag tag-mid">归档是「复制粘贴」而非「合成」</span> — archive 只是把变更目录移走，不主动修复已有的过时描述，不合并冲突。</td>
+    </tr>
+    <tr>
+      <td class="st">Spec-Kit<br><span style="font-size:0.76rem;color:var(--muted);">109k ⭐</span></td>
+      <td>constitution 作为项目级原则，每个 specification 可追溯。analyze 命令检查规范一致性。</td>
+      <td><span class="tag tag-weak">无独立知识库</span> — 规范与变更绑定，从「宪法」到「任务」垂直贯通，但没有横向的知识组织（按模块/架构/约定的分类）。</td>
+    </tr>
+    <tr class="ff-row">
+      <td class="st ff-cell">FlowForge</td>
+      <td class="ff-cell">
+        ✅ 三重持久化：<code>proposal/</code>（执行区）→ <code>library/</code>（沉淀区，持续生长）→ <code>ff-wiki/</code>（结构化知识库）<br>
+        ✅ archive SKILL 做<strong>知识合成</strong>（create / replace / merge），非机械搬运<br>
+        ✅ 探索中发现的系统事实<strong>直接写入 library</strong>，不等归档
+      </td>
+      <td>—</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.2 知识组织方式：碎片化记录 vs 结构化体系</h3>
+
+<p>大多数竞品存在一个结构性问题：<strong>知识的组织形式 = 提案的组织形式</strong>。这意味着知识是按「变更」维度索引的，不是按「系统」维度索引的。</p>
+
+<table>
+  <thead>
+    <tr><th>维度</th><th>竞品典型做法</th><th>FlowForge 的做法</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>索引方式</strong></td>
+      <td>按变更/提案编号（<code>changes/CR-001/</code>）</td>
+      <td><span class="tag tag-best">按 domain 分类：</span> system 级架构 → <code>library/architecture/</code>；module 级设计 → <code>library/modules/&lt;name&gt;/</code></td>
+    </tr>
+    <tr>
+      <td><strong>文档类型</strong></td>
+      <td>通用的 spec.md / design.md</td>
+      <td><span class="tag tag-best">12 种 doc_type：</span> proposal, design, module, architecture, convention, adr, decision, finding, notes, journal 等——每种有独立的 writing guide</td>
+    </tr>
+    <tr>
+      <td><strong>跨提案关联</strong></td>
+      <td>无或弱关联</td>
+      <td><span class="tag tag-best">domain frontmatter</span> — 每篇文档标注 {scope, module, type}，自动推导归档路径</td>
+    </tr>
+    <tr>
+      <td><strong>知识演进</strong></td>
+      <td>追加新文件，旧文件不变</td>
+      <td><span class="tag tag-best">replace/merge 策略</span> — 归档时主动修正 library 中的过时描述（旧命名、旧架构）</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.3 文档管理任务 vs Beads 任务管理：静态表格 vs 状态机</h3>
+
+<p>Superpowers 和 OpenSpec 都用文档（plans.md / tasks.md）记录任务。这看起来简单，但有一个被忽视的代价：</p>
+
+<div class="cards">
+  <div class="card" style="border-left: 4px solid var(--red);">
+    <h4>❌ 纯文档管理任务的不足</h4>
+    <ul style="font-size:0.84rem; color:var(--muted); padding-left:18px; line-height:1.8;">
+      <li><strong>无并发保护：</strong>两个 Agent 同时读到同一个 tasks.md，都以为自己是第一个认领的</li>
+      <li><strong>无状态机：</strong>「已完成→重开」需要手动编辑 Markdown，容易出错</li>
+      <li><strong>无法查询依赖：</strong>「有哪些任务依赖已满足、可以开始了？」需要人眼扫描</li>
+      <li><strong>与 AI 上下文脱节：</strong>Agent 不知道这个任务的上一个状态是什么（除非把整个文件塞进上下文窗口）</li>
+      <li><strong>无法原子操作：</strong>「认领并切换状态」不是一个原子动作</li>
+    </ul>
+  </div>
+  <div class="card" style="border-left: 4px solid var(--green);">
+    <h4>✅ Beads 后端的状态机管理</h4>
+    <ul style="font-size:0.84rem; color:var(--muted); padding-left:18px; line-height:1.8;">
+      <li><strong>原子操作：</strong> <code>flowforge task claim</code> — 认领成功或返回冲突，不会有竞态</li>
+      <li><strong>完整状态机：</strong> pending → in_progress → done / blocked，带来源追溯（sourceTasks）和依赖</li>
+      <li><strong>就绪查询：</strong> <code>flowforge task ready</code> 直接返回依赖已满足的 pending 任务列表</li>
+      <li><strong>4 层层级：</strong> Main Epic → Type Sub-Epic → Task → Child Task，父子任务缩进展示</li>
+      <li><strong>快照分离：</strong> 数据存在 Beads 后端，tasks.snapshot.md 只是自动生成的只读展示（供 git diff 审查）</li>
+    </ul>
+  </div>
+</div>
+
+<h3>2.4 工作循环：线性门控 vs 非线性探索</h3>
+
+<p>对比三大主流的工作循环模型，FlowForge 的非线性特征一目了然：</p>
+
+<table>
+  <thead>
+    <tr><th>项目</th><th>工作循环模型</th><th>可以中途回退吗？</th><th>实施中发现新认知怎么处理？</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Superpowers</strong></td>
+      <td>brainstorming → plans → execute → TDD → review<br><span style="color:var(--muted);font-size:0.78rem;">线性瀑布模型</span></td>
+      <td><span class="tag tag-weak">不支持</span></td>
+      <td>无结构化机制——只能靠 Agent 自行判断和处理</td>
+    </tr>
+    <tr>
+      <td><strong>OpenSpec</strong></td>
+      <td>propose → apply → archive<br><span style="color:var(--muted);font-size:0.78rem;">线性三段式</span></td>
+      <td><span class="tag tag-mid">proposal 阶段可修改，apply 后不可回退</span></td>
+      <td>无 feedback 机制——apply 阶段发现的新认知只能手动处理</td>
+    </tr>
+    <tr>
+      <td><strong>Spec-Kit</strong></td>
+      <td>constitution → specify → clarify → plan → tasks → analyze → implement<br><span style="color:var(--muted);font-size:0.78rem;">7 阶段严格门控</span></td>
+      <td><span class="tag tag-weak">不可回退（门控设计）</span></td>
+      <td>analyze 阶段做一致性检查，但只对比「规范 vs 实现」，不捕获新认知</td>
+    </tr>
+    <tr class="ff-row">
+      <td class="st ff-cell">FlowForge</td>
+      <td class="ff-cell">
+        <strong>需求树驱动渐进式探索：</strong><br>
+        <span style="font-weight:400;">分析 → 发现 → 补充需求树 → 再分析 → 设计 → 实施 → feedback 回流 → 继续</span>
+      </td>
+      <td class="ff-cell">✅ 设计缺陷 → flowforge-design 回退修改<br>✅ 新需求 → 补充需求树 + 新分析任务</td>
+      <td class="ff-cell">✅ feedback SKILL 五种分类路由：bug / finding / knowledge / missing-requirement / design-flaw<br>✅ finding 直接写入 library，不等归档</td>
+    </tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ==================== 3. FlowForge 方法论 ==================== -->
+<section>
+<h2>三、FlowForge 的方法论：六项设计原则</h2>
+
+<div class="pull">
+  <p>FlowForge 不是一个「怎么做」的操作手册，而是一套<strong>组织原则</strong>——它告诉 AI Agent 如何把人类的需求理解、方案设计、代码实施、经验沉淀组织成一个可持续运转的循环，而不是一次性的对话。</p>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <h4>1. 需求树驱动，而非阶段驱动</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">不是「先分析完所有东西，再开始设计」。需求树是一棵<strong>在探索中逐渐长全的活地图</strong>——初始只有草案（不完整的节点标 <code>[?]</code>），每完成一个分析任务，确认或移除一个不确定性，树就完整一分。设计和分析交织进行。</p>
+  </div>
+  <div class="card">
+    <h4>2. 探索即沉淀</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">探索代码库时发现的系统架构事实<strong>直接写入 library/</strong>，不等 proposal 归档。library 是系统的「当前真相」——命名约定、模块分层、权限模式，发现一个就记录一个。下一轮 design SKILL 自动加载 library 作为上下文。</p>
+  </div>
+  <div class="card">
+    <h4>3. 反馈是第一等公民</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">实施中遇到的不只是 bug。FlowForge 把反馈分为<strong>五种类型</strong>：bug（修复任务）、finding（直接写入 library 对应路径）、knowledge（标记待归档提取）、missing-requirement（回退到 design 补充需求）、design-flaw（回退到 design 修改方案）。每种有不同的路由。</p>
+  </div>
+  <div class="card">
+    <h4>4. 归档是合成，不是收档</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">archive SKILL 的核心动作是 <strong>create / replace / merge</strong> 三种写入策略——对比 library 现状，用提案中的最新设计<strong>修正</strong>过时描述。旧的命名、旧的架构，在归档时被主动更新。</p>
+  </div>
+  <div class="card">
+    <h4>5. 机制与策略分离</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">核心工作流规则在 FlowForge 本体，项目级偏好和约束通过 <code>config.yaml</code> 注入。每个 project 可以定义自己的命名规则、探索策略、设计指导、归档行为，不影响核心 SKILL 的运转。</p>
+  </div>
+  <div class="card">
+    <h4>6. 自洽命中路由</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">六个 SKILL 各自通过精确的 <code>description</code> 规定触发信号词和排除条件。不依赖中心路由器，Agent 根据用户话语中的信号词<strong>自动匹配</strong>最合适的 SKILL。每个 SKILL 知道「什么场景该激活，什么场景不该激活」。</p>
+  </div>
+</div>
+
+<!-- ==================== 4. 项目级能力 ==================== -->
+<section>
+<h2>四、面向真实项目的扩展能力</h2>
+
+<h3>4.1 项目级规则扩展：一个仓库，多个 project，各自独立配置</h3>
+
+<p>大多数竞品假设「一个仓库 = 一个项目」。但真实世界的 monorepo 场景下，一个仓库可能包含多个子系统，每个子系统有自己的知识库路径、源码目录和规则偏好。</p>
+
+<p>FlowForge 通过两级配置解决：</p>
+
+<pre><code># .flowforge/config.yaml — 仓库级配置，定义有哪些 project
+projects:
+  - id: backend
+    name: "后端服务"
+    config: projects/backend.yaml
+
+  - id: frontend
+    name: "前端应用"
+    config: projects/frontend.yaml</code></pre>
+
+<pre><code># .flowforge/projects/backend.yaml — project 级配置
+wikiRoot: wiki-backend          # 独立的知识库目录
+srcDirs: [src/server, src/shared]  # 源码目录映射
+keywords: [api, 权限, 数据库, 消息队列]
+description: "核心后端服务，负责业务逻辑和数据持久化"
+
+rules:
+  design:
+    naming:
+      proposal_id: "BE{YYMMDD}{NN}"    # 后端专用 proposal ID 格式
+    strategy: |
+      设计方案时优先考虑数据库兼容性和 API 向后兼容；
+      跨模块变更先画出影响范围再进入细节。
+
+  implement:
+    strategy: |
+      每个 PR 必须通过集成测试；
+      数据库迁移使用 Liquibase，禁止手动改 DDL。
+
+  library:
+    requireReview: true          # 写入 library 前需要 review
+    autoUpdateHistory: true      # 自动追加模块变更历史</code></pre>
+
+<div class="cards">
+  <div class="card">
+    <h4>📂 多 WIKI 目录映射</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">每个 project 的 <code>wikiRoot</code> 独立指定。proposal 创建在 <code>&lt;wikiRoot&gt;/workspace/proposals/</code>，知识沉淀到 <code>&lt;wikiRoot&gt;/library/</code>。同一个仓库里，前后端的知识库完全隔离。</p>
+  </div>
+  <div class="card">
+    <h4>📁 多代码目录映射</h4>
+    <p style="font-size:0.84rem; color:var(--muted);"><code>srcDirs</code> 定义该 project 对应的源码目录。design SKILL 通过引用文件落在哪个 srcDir 下<strong>自动匹配</strong> project 归属——命中 srcDir 的双倍权重，命中 keyword 的常规权重。</p>
+  </div>
+  <div class="card">
+    <h4>🧭 项目级策略注入</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">每个 SKILL 的 <code>strategy</code> 字段接受自然语言项目级指导。exploration 怎么探索代码库、design 怎么做决策、implement 的代码规范、archive 的知识优先级——全部可定制。</p>
+  </div>
+  <div class="card">
+    <h4>📝 校验闸门</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">每个 doc_type 有独立的 writing guide 和 JSON Schema frontmatter 校验。<code>flowforge validate-doc</code> 确保 library 文档完整性，<code>flowforge validate-proposal</code> 校验 proposal 目录结构。</p>
+  </div>
+</div>
+
+<h3>4.2 部署模型：非 SaaS、非 IDE 插件</h3>
+
+<p>FlowForge 是<strong>可部署的工具包</strong>——<code>./scripts/install.sh &lt;目标项目路径&gt;</code> 一键安装到任何仓库。部署后，目标项目获得：</p>
+
+<pre><code>目标项目/
+├── .agents/skills/       ← 6 个 SKILL 文件
+├── .flowforge/           ← 配置、schema、guides、hooks
+├── ff-wiki/              ← 知识库骨架
+└── AGENTS.md             ← 自动追加 FlowForge 路由入口</code></pre>
+
+<p>这意味着：FlowForge 不依赖外部 IDE（不需要安装 VS Code 插件），不依赖 SaaS 平台（不需要创建账号），不依赖特定 Agent 实现。只要目标项目的 Agent 能读取 SKILL 文件，FlowForge 就能工作。</p>
+</section>
+
+<!-- ==================== 5. 路线图 ==================== -->
+<section>
+<h2>五、未来路线图：让知识不止于「写下来」，还能「被找到」和「被维护」</h2>
+
+<p>当前版本（v0.11.2）解决了知识「如何被组织」和「如何被写入」的问题。接下来的挑战是<strong>检索</strong>和<strong>质量</strong>。</p>
+
+<h3>5.1 library 与项目代码的向量索引</h3>
+
+<div class="pull">
+  <p>🔮 <strong>目标：</strong>Agent 在探索阶段不只是「读取 library 文件」，而是能<strong>语义搜索</strong>整个知识库和代码库——「哪些模块跟这个权限模型有关？」「历史上有哪些类似的方案被讨论过？」</p>
+</div>
+
+<ul class="num-list">
+  <li>对 <code>library/</code> 下的所有文档建立向量索引，按 domain (scope + module + type) 组织</li>
+  <li>对项目源码建立向量索引，按 module/project 组织</li>
+  <li>design SKILL 探索阶段：语义搜索 library → 找到相关架构决策/模块设计/编码约定 → 作为探索上下文注入</li>
+  <li>feedback SKILL 识别发现时：语义搜索 library → 判断当前发现是否与已有知识冲突 → 自动标注为「可能与已有知识不一致」</li>
+  <li>archive SKILL 合成时：语义搜索 library → 找到所有受影响的文档 → 生成更精确的 create/replace/merge 计划</li>
+</ul>
+
+<h3>5.2 library 内容的持续质量检查与修正</h3>
+
+<div class="pull">
+  <p>🔮 <strong>目标：</strong>自动发现 library 中的过时文档、不一致描述、缺失覆盖，并生成修正建议。</p>
+</div>
+
+<ul class="num-list">
+  <li><strong>过期检测：</strong>当代码结构发生变更（模块重命名、目录重组），自动标记 library 中引用了旧路径/旧命名的文档</li>
+  <li><strong>一致性检查：</strong>对比 library 中同一模块的多篇文档，检测相互矛盾的描述（如 architecture 说用 Redis，但 decisions 里选了 Memcached）</li>
+  <li><strong>覆盖度评估：</strong>扫描所有 srcDir，列出 library 中<strong>没有</strong>对应 module 文档的源码模块——发现知识盲区</li>
+  <li><strong>修正建议：</strong>结合 code → library 语义匹配，生成「这份 architecture 文档中提到 <code>UserService</code>，但代码中已重命名为 <code>AccountService</code>」级别的修正建议</li>
+  <li><strong>定期运行：</strong>作为 CI 检查或 cron 任务运行，输出质量报告（过期数 / 冲突数 / 盲区数），并为每个问题生成修正任务</li>
+</ul>
+
+<div class="cards">
+  <div class="card" style="border-left: 4px solid var(--purple);">
+    <h4>📐 质量检查架构设想</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">
+      <code>flowforge library-check</code> → 扫描 library + srcDirs → 生成三份报告：<br>
+      ① <strong>过期报告</strong>（文档引用不存在的路径/模块名）<br>
+      ② <strong>冲突报告</strong>（同一模块多文档矛盾描述）<br>
+      ③ <strong>盲区报告</strong>（有源码无文档的模块）<br>
+      → 每个问题可一键生成修正建议 → 创建 implementation 任务 → 由 Agent 修改
+    </p>
+  </div>
+  <div class="card" style="border-left: 4px solid var(--green);">
+    <h4>🎯 最终形态</h4>
+    <p style="font-size:0.84rem; color:var(--muted);">
+      Library 不仅是「写过的东西的仓库」，而是<strong>一个自维护的知识系统</strong>——随着代码演进，知识也在持续校准。Agent 在每一轮对话中从一开始就拥有对整个系统最准确的理解。
+    </p>
+  </div>
+</div>
+</section>
+
+<!-- ==================== 6. 结语 ==================== -->
+<section>
+<h2>六、总结</h2>
+
+<div class="pull">
+  <p>FlowForge 解决的不是「如何写出更好的代码」，而是<strong>如何让 AI Agent 在持续的软件项目中积累可复用的知识</strong>。它不是又一个「写规范的工具」——它是把探索、设计、实施、反馈、归档、索引六个环节串成一个可持续运转的环路。</p>
+</div>
+
+<p>如果你关心以下问题之一，FlowForge 值得一看：</p>
+
+<ul class="num-list">
+  <li>你的团队在用 AI 辅助编码，但每次新对话都要重新解释项目架构</li>
+  <li>你有很多设计决策散落在 Slack / 飞书 / 对话历史里，找不到也记不住</li>
+  <li>你的 monorepo 里有多个子系统，每个都有不同的开发规范和知识结构</li>
+  <li>你想让知识的积累成为<strong>系统性的日常操作</strong>，而不是一个「等项目做完再说」的事后反思</li>
+</ul>
+
+<div style="text-align:center; margin-top: 36px;">
+  <p style="font-size:0.9rem; color:var(--muted);">
+    🛠️ FlowForge v0.11.2 — 面向 AI 辅助软件设计与交付的工作流工具包
+  </p>
+  <p style="font-size:0.82rem; color: var(--accent); margin-top: 8px;">
+    <code>./scripts/install.sh &lt;你的项目路径&gt;</code>
+  </p>
+</div>
+</section>
+
+<footer>
+  <p>本文基于 FlowForge v0.11.2 架构文档和 SKILL 定义撰写 · 调查数据截至 2026-06-06</p>
+</footer>
+
+</div>
+</body>
+</html>

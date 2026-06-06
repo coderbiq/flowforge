@@ -178,7 +178,7 @@ flowforge task add-tasks --proposal <CR-id> '[
 ]'
 ```
 
-每个 analysis 任务的 `title` 直接对应需求树叶子节点的描述。任务 ID 由后端自动生成（beads issue ID）。
+每个 analysis 任务的 `title` 直接对应需求树叶子节点的描述。任务 ID 由后端自动生成。
 #### 5.3 探索完善循环
 
 进入持续循环——**执行任务、完善需求树、拆解新任务交替进行**：

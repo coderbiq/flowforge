@@ -1,5 +1,27 @@
 # FlowForge 更新日志
 
+## 0.13.0 — 2026-06-06
+
+### 新增：任务编写规范
+- 新增 `guides/task-writing.md`，定义 title/description/deliverable 三要素和分析/设计/实施/修复四种模板
+- `flowforge-implement` SKILL 增加 deliverable 检查和编写规范引用
+
+### 改进：文档去后端化
+- `src/AGENTS.md` 精简 30→8 行，移除全部 bd/beads 引用
+- `guides/task-hierarchy.md` 替换 beads 章节为通用示例
+- `design SKILL` 和 hooks 注释去 beads 品牌名
+- `library/conventions/bd-sandbox-workaround.md` 标记 superseded
+
+### 改进：SKILL 工作流强化
+- `flowforge-feedback` SKILL 插入阶段 2.5（创建追踪任务），强制 bug/missing-requirement/design-flaw 先创建任务
+- `flowforge-implement` SKILL 增加 deliverable 检查步骤
+
+### 修复
+- `beads.js` _bd() 写操作自动加 --sandbox，Agent 无需感知后端超时
+- `feedback-capture.js` 支持 --proposal 标志统一 proposal ID 解析
+- `package.json` 加 `"type": "commonjs"` 消除 Node.js v22 ESM/CJS 歧义
+- `feedback-context.js` 顶层 await → async IIFE wrapper
+
 ## 0.12.0 — 2026-06-06
 
 ### 移除：proposal status 字段
