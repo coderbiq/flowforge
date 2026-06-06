@@ -98,7 +98,25 @@ FlowForge/
 - **变更完成后必须执行 `npm test`（或 `node tests/run.js`），确保全部检查通过，不引入回归**
 - **变更开始前先检查是否需要调整现有测试或新增测试覆盖**——新增 SKILL、修改 CLI 命令参数、改变 context 脚本输出格式、调整 Backend 接口签名时，对应测试必须同步更新
 
-<!-- BEGIN FLOWFORGE v:0.11.2 profile:default -->
+### bd 操作超时问题
+
+**症状**：`bd create/update/close` 等写操作超时 30-60s，`flowforge task` CLI 报 `ETIMEDOUT`。
+
+**原因**：`bd` 每次写操作后触发 `dolt auto-push` 到远端 GitLab（`git+ssh://git@gitlab.bytesforce.com:7001`）。SSH 端口 7001 在外网不可达时，push 挂起直到超时。**本地数据库写入本身是成功的**。
+
+**解决方案**：所有 `bd` 写操作加 `--sandbox` 标志，禁用 auto-sync：
+
+```bash
+bd --sandbox update <id> --claim
+bd --sandbox close <id> --reason "..."
+bd --sandbox create "title" --type task --parent <epic-id> --labels "..."
+```
+
+**注意**：`flowforge task` CLI 内部调 `bd` 时未传 `--sandbox`，在网络不通时会超时。遇到此情况改用 `bd --sandbox` 直接操作，操作完成后用 `flowforge task status` 验证（只读命令不受影响）。
+
+会话收尾时运行 `bd dolt push` 手动同步远端——仅在网络可达时执行，不可达则跳过。
+
+<!-- BEGIN FLOWFORGE v:0.12.0 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -118,6 +136,7 @@ FlowForge/
 - ✅ **必须** 使用 `flowforge task status/ready/claim/done` 等命令
 - ✅ `bd create/update/close` 仅限与任何 proposal 无关的独立事务
 - ✅ 知识持久化用 `bd remember`
+- ⚠️ `flowforge task` CLI 超时时，可用 `bd --sandbox` 直接操作（见上方 bd 操作超时问题）
 
 ### 任务层级
 

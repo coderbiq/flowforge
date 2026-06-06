@@ -1,5 +1,22 @@
 # FlowForge 更新日志
 
+## 0.12.0 — 2026-06-06
+
+### 移除：proposal status 字段
+
+**破坏性变更**：从 proposal 数据模型中移除 `meta.yaml.status` 属性，改为基于目录位置（active/completed）和任务状态的任务数检查机制。
+
+**实现**：
+- `proposal.schema.json`：required 中移除 status，删除 properties.status 定义
+- `validate-proposal.js`：移除 status 必填校验和枚举值校验
+- 5 个 context 脚本：`findActiveProposal` 改为扫描 active/ 目录；`findProposal` 改为扫描 completed/ 目录
+- `refresh-index.js`：改为按目录位置分组，移除 INDEX.md 状态列
+- `move-proposal.js`：移除 status 写入逻辑，仅保留 updated_at 更新
+- 3 个 SKILL.md：移除 status 门控，改为任务数/目录位置检查
+- AGENTS.md 模板和 proposal.md 指南：移除 status 字段描述
+
+**向后兼容**：现有 proposal 的 meta.yaml 中 status 字段保留，新 proposal 不再需要。
+
 ## 0.11.2 — 2026-06-06
 
 ### 新增：`task init` 安全门控
