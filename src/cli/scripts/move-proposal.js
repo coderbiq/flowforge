@@ -77,11 +77,11 @@ metaContent = metaContent.replace(/^(\s*status\s*:\s*).*\n/m, '');
 fs.writeFileSync(metaPath, metaContent, 'utf8');
 result.steps.push({ step: 'update_meta', status: 'done', detail: 'updated_at 已刷新' });
 
-if (proposalLocation.currentSub === 'active') {
-  const wikiWs = path.join(projectRoot, proposalLocation.wikiRoot, 'workspace');
-  const activeDir = path.join(wikiWs, 'proposals', 'active', proposalId);
-  const completedDir = path.join(wikiWs, 'proposals', 'completed');
-  const targetDir = path.join(completedDir, proposalId);
+  if (proposalLocation.currentSub === 'active') {
+    const wikiWs = path.join(projectRoot, proposalLocation.wikiRoot, 'workspace');
+    const completedDir = path.join(wikiWs, 'proposals', 'completed');
+    const dirName = path.basename(proposalLocation.proposalDir);
+    const targetDir = path.join(completedDir, dirName);
 
   if (!fs.existsSync(completedDir)) {
     fs.mkdirSync(completedDir, { recursive: true });
@@ -91,7 +91,7 @@ if (proposalLocation.currentSub === 'active') {
   if (fs.existsSync(targetDir)) {
     result.steps.push({ step: 'move_directory', status: 'skipped', detail: `目标已存在: ${targetDir}` });
   } else {
-    fs.renameSync(activeDir, targetDir);
+    fs.renameSync(proposalLocation.proposalDir, targetDir);
     result.steps.push({ step: 'move_directory', status: 'done', detail: `active → completed: ${path.relative(projectRoot, targetDir)}` });
   }
 } else {

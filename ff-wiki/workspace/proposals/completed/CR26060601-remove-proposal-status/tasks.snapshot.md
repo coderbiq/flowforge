@@ -1,5 +1,5 @@
 # Tasks — CR26060601
-> Auto-generated at 2026-06-06 04:22:27. Do not edit manually.
+> Auto-generated at 2026-06-06 12:43:46. Do not edit manually.
 
 ## 分析 (5 tasks, 5 done)
 
@@ -20,16 +20,16 @@
 | ✅ done | flowforge-cbe.2.3 | 设计 INDEX.md 生成逻辑改造方案 |
 | ✅ done | flowforge-cbe.2.4 | 设计 SKILL 描述和文档更新方案 |
 
-## 实施 (8 tasks, 0 done)
+## 实施 (8 tasks, 8 done)
 
 | Status | ID | Title |
 |--------|----|-------|
-| ⏳ pending | flowforge-cbe.3.1 | 修改 proposal.schema.json 移除 status 字段 |
-| ⏳ pending | flowforge-cbe.3.2 | 修改 validate-proposal.js 移除 status 校验 |
-| ⏳ pending | flowforge-cbe.3.3 | 重构 context 脚本的 findProposal 函数 |
-| ⏳ pending | flowforge-cbe.3.4 | 改造 refresh-index.js 移除 status 依赖 |
-| ⏳ pending | flowforge-cbe.3.5 | 修改 move-proposal.js 移除 status 写入 |
-| ⏳ pending | flowforge-cbe.3.6 | 更新 6 个 SKILL.md 移除 status 引用 |
-| ⏳ pending | flowforge-cbe.3.7 | 更新 AGENTS.md 模板和指南文档 |
-| ⏳ pending | flowforge-cbe.3.8 | 运行测试并修复回归 |
+| ✅ done | flowforge-cbe.3.1 | 修改 proposal.schema.json 移除 status 字段 |
+| ✅ done | flowforge-cbe.3.2 | 修改 validate-proposal.js 移除 status 校验 |
+| ✅ done | flowforge-cbe.3.3 | 重构 context 脚本的 findProposal 函数 |
+| ✅ done | flowforge-cbe.3.4 | 改造 refresh-index.js 移除 status 依赖 |
+| ✅ done | flowforge-cbe.3.5 | 修改 move-proposal.js 移除 status 写入 |
+| ✅ done | flowforge-cbe.3.6 | 更新 6 个 SKILL.md 移除 status 引用 |
+| ✅ done | flowforge-cbe.3.7 | 更新 AGENTS.md 模板和指南文档 |
+| ✅ done | flowforge-cbe.3.8 | 运行测试并修复回归 |
 
