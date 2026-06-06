@@ -17,6 +17,7 @@ const suites = [
   { name: 'backend-interface', file: 'suite-backend-interface.js' },
   { name: 'schema-validation', file: 'suite-schema-validation.js' },
   { name: 'version-consistency', file: 'suite-version-consistency.js' },
+  { name: 'move-proposal', file: 'suite-move-proposal.js' },
 ];
 
 let totalPassed = 0;
