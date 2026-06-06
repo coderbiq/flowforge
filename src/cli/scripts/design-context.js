@@ -210,8 +210,14 @@ function findProposalById(projectRoot, projects, id) {
   for (const p of projects) {
     const ws = path.join(projectRoot, p.wikiRoot, 'workspace');
     for (const sub of ['active', 'completed']) {
-      const cand = path.join(ws, 'proposals', sub, id);
-      if (fs.existsSync(cand)) return { proposalDir: cand, projectId: p.id, wikiRoot: p.wikiRoot };
+      const subDir = path.join(ws, 'proposals', sub);
+      if (!fs.existsSync(subDir)) continue;
+      const dirs = fs.readdirSync(subDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const d of dirs) {
+        if (d.name === id || d.name.startsWith(id + '-')) {
+          return { proposalDir: path.join(subDir, d.name), projectId: p.id, wikiRoot: p.wikiRoot };
+        }
+      }
     }
   }
   return null;
