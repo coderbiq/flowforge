@@ -69,11 +69,13 @@ const metaPath = path.join(proposalLocation.proposalDir, 'meta.yaml');
 let metaContent = fs.readFileSync(metaPath, 'utf8');
 const now = new Date().toISOString();
 
-metaContent = metaContent.replace(/^(\s*status\s*:\s*).*/m, '$1"archived"');
 metaContent = metaContent.replace(/^(\s*updated_at\s*:\s*).*/m, `$1${now}`);
 
+// 移除 status 行（如果存在）
+metaContent = metaContent.replace(/^(\s*status\s*:\s*).*\n/m, '');
+
 fs.writeFileSync(metaPath, metaContent, 'utf8');
-result.steps.push({ step: 'update_meta', status: 'done', detail: 'status → archived, updated_at 已刷新' });
+result.steps.push({ step: 'update_meta', status: 'done', detail: 'updated_at 已刷新' });
 
 if (proposalLocation.currentSub === 'active') {
   const wikiWs = path.join(projectRoot, proposalLocation.wikiRoot, 'workspace');

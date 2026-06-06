@@ -4,7 +4,7 @@
   "title": "提案 Meta 契约",
   "description": "proposal 目录下 meta.yaml 的结构定义，描述提案容器级别的元信息。",
   "type": "object",
-  "required": ["id", "title", "status", "project", "created_at", "updated_at"],
+  "required": ["id", "title", "project", "created_at", "updated_at"],
   "properties": {
     "id": {
       "type": "string",
@@ -19,11 +19,6 @@
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]*$",
       "description": "提案归属的 project id，引用 config.yaml projects[].id。一次性决策，proposal 创建后不应变更。下游 SKILL/脚本通过此字段定位该 proposal 所属的 wikiRoot。"
-    },
-    "status": {
-      "type": "string",
-      "description": "提案状态，可在以下状态间任意流转",
-      "enum": ["draft", "active", "implemented", "archived", "rejected"]
     },
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" },

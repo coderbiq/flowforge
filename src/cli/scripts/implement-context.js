@@ -34,7 +34,7 @@ if (proposalId) {
 }
 
 if (!proposalLocation) {
-  console.error('ERROR: 未找到活跃状态的 proposal。请先在 design SKILL 中将 proposal 状态设为 active。');
+  console.error('ERROR: 未找到活跃状态的 proposal。请确认 active/ 目录下存在 proposal。');
   process.exit(1);
 }
 
@@ -163,7 +163,7 @@ function findActiveProposal(projectRoot, projects) {
     for (const d of dirs) {
       const pd = path.join(activeDir, d.name);
       const meta = loadMeta(pd);
-      if (meta && meta.status === 'active') {
+      if (meta) {
         return { proposalDir: pd, projectId: p.id, wikiRoot: p.wikiRoot };
       }
     }

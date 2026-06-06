@@ -224,7 +224,7 @@ function findActiveProposal(projectRoot, projects) {
     for (const d of dirs) {
       const pd = path.join(activeDir, d.name);
       const meta = loadMeta(pd);
-      if (meta && meta.status === 'active') {
+      if (meta) {
         return { proposalDir: pd, projectId: p.id, wikiRoot: p.wikiRoot };
       }
     }

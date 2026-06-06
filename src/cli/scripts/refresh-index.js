@@ -37,8 +37,6 @@ function generateIndex(projectRoot, project) {
     return;
   }
 
-  const activeStatuses = ['draft', 'active', 'implemented'];
-  const completedStatuses = ['archived', 'rejected'];
   const activeProposals = [];
   const completedProposals = [];
 
@@ -51,9 +49,9 @@ function generateIndex(projectRoot, project) {
       const meta = loadMeta(pd);
       if (!meta) continue;
       const item = { ...meta, _relPath: `${subdir}/${entry.name}` };
-      if (activeStatuses.includes(meta.status)) {
+      if (subdir === 'active') {
         activeProposals.push(item);
-      } else if (completedStatuses.includes(meta.status)) {
+      } else {
         completedProposals.push(item);
       }
     }
@@ -76,8 +74,8 @@ function generateIndex(projectRoot, project) {
   if (activeProposals.length === 0) {
     md += '（无）\n\n';
   } else {
-    md += '| ID | 标题 | 规模 | 状态 | 模块 | 更新 | 进度 |\n';
-    md += '|----|------|------|------|------|------|------|\n';
+    md += '| ID | 标题 | 规模 | 模块 | 更新 | 进度 |\n';
+    md += '|----|------|------|------|------|------|\n';
     for (const p of activeProposals) {
       md += row(p);
     }
@@ -88,8 +86,8 @@ function generateIndex(projectRoot, project) {
   if (completedProposals.length === 0) {
     md += '（无）\n\n';
   } else {
-    md += '| ID | 标题 | 规模 | 状态 | 模块 | 更新 | 进度 |\n';
-    md += '|----|------|------|------|------|------|------|\n';
+    md += '| ID | 标题 | 规模 | 模块 | 更新 | 进度 |\n';
+    md += '|----|------|------|------|------|------|\n';
     for (const p of completedProposals) {
       md += row(p);
     }
@@ -104,11 +102,10 @@ function generateIndex(projectRoot, project) {
 function row(p) {
   const idLink = `[${p.id}](./${p._relPath}/)`;
   const size = p.size_class || '—';
-  const status = `\`${p.status}\``;
   const modules = formatModules(p.modules);
   const updated = formatDate(p.updated_at);
   const progress = p.latest_progress || '—';
-  return `| ${idLink} | ${p.title || '—'} | ${size} | ${status} | ${modules} | ${updated} | ${progress} |\n`;
+  return `| ${idLink} | ${p.title || '—'} | ${size} | ${modules} | ${updated} | ${progress} |\n`;
 }
 
 function formatModules(modules) {

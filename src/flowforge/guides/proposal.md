@@ -28,7 +28,6 @@ proposal.md 是供人阅读的高层总结——**不重复 design/ 的详细内
 ---
 doc_type: proposal
 title: <标题>
-status: draft|active|implemented|archived|rejected
 proposal_id: CR<YYMMDDNN>
 size_class: small|medium|large
 ---

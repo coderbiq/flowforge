@@ -30,11 +30,11 @@ let proposalLocation = null;
 if (proposalId) {
   proposalLocation = findProposalById(projectRoot, allProjects, proposalId);
 } else {
-  proposalLocation = findProposal(projectRoot, allProjects, ['implemented', 'archived']);
+  proposalLocation = findProposal(projectRoot, allProjects);
 }
 
 if (!proposalLocation) {
-  console.error('ERROR: 未找到 implemented 或 archived 状态的 proposal');
+  console.error('ERROR: 未找到已完成（completed/）状态的 proposal');
   process.exit(1);
 }
 
@@ -47,7 +47,6 @@ const plan = {
   proposal: {
     id: meta ? meta.id : 'unknown',
     title: meta ? meta.title : 'unknown',
-    status: meta ? meta.status : 'unknown',
     path: path.relative(projectRoot, proposalLocation.proposalDir),
     wikiRoot: proposalLocation.wikiRoot,
     projectId: proposalLocation.projectId,
@@ -336,19 +335,17 @@ function findProposalById(projectRoot, projects, id) {
   return null;
 }
 
-function findProposal(projectRoot, projects, statuses) {
+function findProposal(projectRoot, projects) {
   for (const p of projects) {
     const wikiWs = path.join(projectRoot, p.wikiRoot, 'workspace');
-    for (const sub of ['active', 'completed']) {
-      const subDir = path.join(wikiWs, 'proposals', sub);
-      if (!fs.existsSync(subDir)) continue;
-      const dirs = fs.readdirSync(subDir, { withFileTypes: true }).filter(d => d.isDirectory());
-      for (const d of dirs) {
-        const pd = path.join(subDir, d.name);
-        const meta = loadMeta(pd);
-        if (meta && statuses.includes(meta.status)) {
-          return { proposalDir: pd, projectId: p.id, wikiRoot: p.wikiRoot };
-        }
+    const subDir = path.join(wikiWs, 'proposals', 'completed');
+    if (!fs.existsSync(subDir)) continue;
+    const dirs = fs.readdirSync(subDir, { withFileTypes: true }).filter(d => d.isDirectory());
+    for (const d of dirs) {
+      const pd = path.join(subDir, d.name);
+      const meta = loadMeta(pd);
+      if (meta) {
+        return { proposalDir: pd, projectId: p.id, wikiRoot: p.wikiRoot };
       }
     }
   }

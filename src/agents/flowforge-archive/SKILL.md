@@ -6,11 +6,11 @@ description: |
 
   必须在以下场景激活：
   - 用户明确表达"归档"、"沉淀"、"总结到 library"、"提取知识"
-  - proposal 状态为 implemented 且用户确认归档
+  - proposal 所有任务已完成（all-done）且用户确认归档
   - 用户要求将已完成方案的知识整理到 library
 
   不要在以下情况激活：
-  - proposal 状态尚未到 implemented（需要先完成实施）
+  - proposal 任务尚未全部完成（需要先完成实施）
   - 仅是查阅 library 中的已有知识
   - 用于更新进度索引——那是 flowforge-progress 的职责
   - notes.md 中有 `note_kind: knowledge` 的记录等待提取到 library——先激活 flowforge-feedback 确认是否需要单独沉淀
@@ -31,7 +31,7 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `flowforge archive-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找 implemented/archived 状态的 proposal；指定时加载目标 proposal 的上下文。
+运行 `flowforge archive-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找 completed/ 目录下的 proposal；指定时加载目标 proposal 的上下文。
 
 - `## Current Proposal`（路径、project、wikiRoot、meta）
 - `## 归档目标`（从 proposal 内各文档的 domain frontmatter 自动推导的归档路径）
@@ -94,7 +94,7 @@ flowforge task all-done --proposal <CR-id>
 
 运行 `flowforge move-proposal <projectRoot> <proposalId>`。自动执行：
 
-1. 更新 `meta.yaml` 的 `status` 为 `archived`，刷新 `updated_at`
+1. 刷新 `meta.yaml` 的 `updated_at`
 2. 如 proposal 在 `active/` 中，移动到 `completed/`
 3. 如 `autoUpdateHistory` 为 true，在关联模块的 `HISTORY.md` 中追加归档记录
 
@@ -110,7 +110,7 @@ flowforge task all-done --proposal <CR-id>
 | `flowforge validate-doc <路径>` | 校验 library 文档 frontmatter |
 | `flowforge task all-done --proposal <id>` | 归档前检查是否所有任务已完成 |
 | `flowforge task snapshot --proposal <id>` | 生成最终 tasks.snapshot.md |
-| `flowforge move-proposal <root> <id>` | 更新 meta.yaml status + 移动目录 + autoUpdateHistory |
+| `flowforge move-proposal <root> <id>` | 刷新 meta.yaml + 移动目录 + autoUpdateHistory |
 
 ## 引用的 SKILL
 

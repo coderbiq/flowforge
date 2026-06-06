@@ -7,12 +7,12 @@ description: |
 
   必须在以下场景激活：
   - 用户明确表达"执行任务"、"开始实施"、"继续推进"、"做下一个任务"
-  - 当前 active 状态的 proposal 有未完成的 任务，用户要求推进
+  - 当前 active/ 目录下有未完成任务的 proposal，用户要求推进
   - 用户引用某个 active proposal 的 CR-id 并要求继续工作
 
   不要在以下情况激活：
   - 用于"更新进度索引"——那是 flowforge-progress 的职责
-  - proposal 状态为 draft（尚未进入实施）或 archived/rejected（已完成）
+  - proposal 所有 analysis 和 design 任务尚未完成（不应开始实施），且无 implementation 任务
   - 需要修改设计——应交给 flowforge-design
   - 用户要求归档已完成的方案——应交给 flowforge-archive
   - 测试失败或发现新认知需要结构化捕获——先激活 flowforge-feedback 分类和路由，不要直接把 bug/finding 写入 notes.md 或创建非结构化任务
@@ -35,7 +35,7 @@ description: |
 
 ### 阶段 1：定位上下文
 
-运行 `flowforge implement-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找当前 active 状态的 proposal；指定时加载目标 proposal 的上下文（用于跨 proposal 场景）。输出包含：
+运行 `flowforge implement-context [CR-id]` 加载上下文。不指定 CR-id 时自动查找 active/ 目录下的 proposal；指定时加载目标 proposal 的上下文（用于跨 proposal 场景）。输出包含：
 
 - `## Implement Rules`（task_states、notes.fields）
 - `## Implement Strategy`（项目级实施指导，如存在）
@@ -43,7 +43,7 @@ description: |
 - `## Current Proposal`（路径、project、wikiRoot、任务状态、notes.md 全文）
 - `## Task Type Breakdown`：按 type 分组的任务状态概览
 
-如果找不到活跃状态的 proposal，提示用户先在 design SKILL 中将 proposal 状态设为 `active`。
+如果找不到活跃状态的 proposal，提示用户确认 active/ 目录下存在 proposal。
 
 ---
 
@@ -109,7 +109,7 @@ flowforge task status --proposal <CR-id>
 ```
 
 - 还有未完成的任务 → 回到阶段 2 继续
-- 所有任务完成 → 更新 `meta.yaml` 的 `status` 为 `implemented`
+- 所有任务完成 → 实施阶段结束，可进行归档
 - 如果在执行中发现设计缺陷 → 停止执行，说明缺陷所在的任务和需要修正的设计点，路由给 `flowforge-design`
 - 执行中发现新任务，通过脚本记录：
 

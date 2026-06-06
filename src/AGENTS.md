@@ -57,7 +57,6 @@ flowforge task --help                         # 任务管理帮助
 
 以下动作后**必须**激活 `flowforge-progress`：
 
-- 修改 proposal 的 `meta.yaml` status
 - 通过 `flowforge task` 完成任务操作
 - 在 notes.md 中追加日志
 - 创建、归档或移动 proposal 目录

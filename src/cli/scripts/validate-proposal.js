@@ -23,15 +23,12 @@ if (!fs.existsSync(metaPath)) {
   errors.push('缺少 meta.yaml');
 } else {
   const meta = parseYaml(fs.readFileSync(metaPath, 'utf8'));
-  const requiredFields = ['id', 'title', 'status', 'created_at', 'updated_at'];
+  const requiredFields = ['id', 'title', 'created_at', 'updated_at'];
   for (const field of requiredFields) {
     if (!meta[field]) errors.push(`meta.yaml 缺少必填字段: ${field}`);
   }
   if (meta.id && !/^[A-Z]*\d{6}\d{2}$/.test(meta.id)) {
     errors.push(`meta.yaml id 格式疑似错误: ${meta.id}（期望 前缀+YYMMDDNN）`);
-  }
-  if (meta.status && !['draft', 'active', 'implemented', 'archived', 'rejected'].includes(meta.status)) {
-    errors.push(`meta.yaml status 无效: ${meta.status}`);
   }
 }
 
