@@ -1,5 +1,14 @@
 # FlowForge 更新日志
 
+## 0.13.1 — 2026-06-06
+
+### 新增：flowforge prime 命令
+- `flowforge prime --full` 输出 FlowForge 上下文（版本、活跃 proposal、SKILL路由、task命令、禁止规则）
+- `flowforge prime --mcp` 输出一行摘要（~50 tokens），适合 MCP 模式
+- 自动扫描 active/ 目录，输出最近更新的 proposal 及其任务进度
+- 安装脚本新增 `install_ai_hooks()`：管理 `.codex/hooks.json` + `.claude/settings.json`，将 `bd prime` 替换为 `flowforge prime`
+- 覆盖 beads 注册的 14 个 AI 工具中的 hooks.json 方式工具（claude/codex/gemini）
+
 ## 0.13.0 — 2026-06-06
 
 ### 新增：任务编写规范

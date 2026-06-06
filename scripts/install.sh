@@ -189,6 +189,71 @@ install_beads_hooks() {
   info "beads hooks 已安装 (.beads/hooks/ — 自动刷新 task snapshot)"
 }
 
+# 安装 AI 工具 hooks（替换 bd prime 为 flowforge prime）
+install_ai_hooks() {
+  local target="$1"
+  local hooks_files=(
+    "$target/.codex/hooks.json"
+    "$target/.claude/settings.json"
+  )
+
+  for hooks_file in "${hooks_files[@]}"; do
+    local ai_dir
+    ai_dir="$(dirname "$hooks_file")"
+    local ai_name
+    ai_name="$(basename "$ai_dir")"
+
+    if [ ! -f "$hooks_file" ]; then
+      mkdir -p "$ai_dir"
+      cat > "$hooks_file" <<'JSONEOF'
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "flowforge prime" }]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "flowforge prime" }]
+      }
+    ]
+  }
+}
+JSONEOF
+      info "$ai_name/hooks 已创建 (flowforge prime)"
+      continue
+    fi
+
+    node -e "
+      const fs = require('fs');
+      const hooks = JSON.parse(fs.readFileSync('$hooks_file', 'utf8'));
+      let changed = false;
+      for (const event of ['SessionStart', 'PreCompact']) {
+        if (hooks.hooks?.[event]) {
+          for (const group of hooks.hooks[event]) {
+            if (group.hooks) {
+              const origLen = group.hooks.length;
+              group.hooks = group.hooks.map(h =>
+                h.command === 'bd prime' ? { ...h, command: 'flowforge prime' } : h
+              );
+              if (group.hooks.some(h => h.command === 'flowforge prime') && origLen === group.hooks.length) {
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+      if (changed) {
+        fs.writeFileSync('$hooks_file', JSON.stringify(hooks, null, 2) + '\n');
+        console.log('$ai_name/hooks 已更新 (bd prime → flowforge prime)');
+      }
+    " 2>/dev/null
+  done
+}
+
 # 安装并初始化 beads
 setup_beads() {
   local target="$1"
@@ -267,6 +332,9 @@ setup_beads() {
 
   # 安装 beads hooks（双向同步的关键）
   install_beads_hooks "$target"
+
+  # 安装 AI 工具 hooks（替换 bd prime → flowforge prime）
+  install_ai_hooks "$target"
 }
 
 if [ "$MODE" = "upgrade" ]; then
