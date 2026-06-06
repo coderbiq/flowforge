@@ -1,5 +1,12 @@
 # FlowForge 更新日志
 
+## 0.13.2 — 2026-06-06
+
+### 修复：findProposalById 前缀匹配
+- 4 个 context 脚本的 `findProposalById` 从精确匹配改为 `startsWith(id + '-')` 前缀匹配
+- 修复 `feedback-context CR-id` 等命令在目录名为 `CR-id-xxx` 时找不到 proposal 的 bug
+- 新增 7 个单元测试覆盖 findProposalById 的精确匹配、前缀匹配、边界条件
+
 ## 0.13.1 — 2026-06-06
 
 ### 新增：flowforge prime 命令

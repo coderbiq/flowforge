@@ -116,7 +116,7 @@ bd --sandbox create "title" --type task --parent <epic-id> --labels "..."
 
 会话收尾时运行 `bd dolt push` 手动同步远端——仅在网络可达时执行，不可达则跳过。
 
-<!-- BEGIN FLOWFORGE v:0.13.1 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.13.2 profile:default -->
 
 ## FlowForge SKILL 路由
 

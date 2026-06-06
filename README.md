@@ -1,4 +1,4 @@
-# FlowForge <sup>v0.13.1</sup>
+# FlowForge <sup>v0.13.2</sup>
 
 面向 AI 辅助软件设计与交付的工作流工具包。通过 SKILL 体系将 AI Agent 的探索、设计、实施和知识沉淀工作流程化——非线性的、可回退的、持续积累的。
 
