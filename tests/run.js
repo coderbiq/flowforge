@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 const suites = [
   { name: 'js-syntax', file: 'suite-js-syntax.js' },
   { name: 'js-runtime', file: 'suite-js-runtime.js' },
+  { name: 'config', file: 'suite-config.js' },
   { name: 'skill-frontmatter', file: 'suite-skill-frontmatter.js' },
   { name: 'skill-descriptions', file: 'suite-skill-descriptions.js' },
   { name: 'cli-cross-ref', file: 'suite-cli-cross-ref.js' },

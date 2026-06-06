@@ -3,7 +3,7 @@
 ## 概述
 
 v0.9.0 的核心变化是 **完全抛弃 task-map.yaml，以 Beads 作为任务的唯一真理源**。
-引入统一 CLI `./flowforge` 替代 20+ 个分散脚本。
+引入统一 CLI `flowforge`（通过 npm link 全局安装）替代 20+ 个分散脚本。
 
 ### 关键变化
 

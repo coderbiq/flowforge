@@ -1,5 +1,21 @@
 # FlowForge 更新日志
 
+## 0.11.1 — 2026-06-06
+
+### 修复：`./flowforge` 路径解析与 CLI 入口健壮性
+
+**问题**：当从项目子目录调用 CLI 时，context 脚本使用 `process.cwd()` 作为 `projectRoot`，无法找到 `.flowforge/config.yaml`。同时文档中多处将 CLI 描述为 `./flowforge`（本地文件），实际 CLI 通过 npm link 全局安装为 `flowforge` 命令。
+
+**修复**：
+- 提取 `findProjectRoot()` 到 `lib/config.js` 作为共享方法，向上遍历目录查找 `.flowforge/config.yaml`
+- 全部 9 个 context/data 脚本改用 `findProjectRoot()` 替代裸 `process.cwd()`
+- 主 CLI 入口 `src/cli/flowforge` 使用 `findProjectRoot()` 作为 fallback
+- 文档中 12 处 `./flowforge` 引用修正为 `flowforge`
+- 移除 `update-progress.js` 中重复的 `findProjectRoot()` 实现
+
+**测试**：
+- 新增 `suite-config.js`（22 项），覆盖 `findProjectRoot` 向上遍历、返回 null、文件路径处理、以及 `loadMainConfig`/`getProjects`/`readYamlFile`/`loadMeta` 等全部 config.js 导出
+
 ## 0.11.0 — 2026-06-05
 
 ### 4 层任务层级系统
@@ -98,12 +114,12 @@
 
 ### Beads-Centric 架构重构
 
-完全抛弃 `task-map.yaml`，以 Beads 作为任务的唯一真理源。引入统一 CLI `./flowforge` 替代 20+ 个分散脚本。
+完全抛弃 `task-map.yaml`，以 Beads 作为任务的唯一真理源。引入统一 CLI `flowforge`（通过 npm link 全局安装）替代 20+ 个分散脚本。
 
 **核心变更**：
 
-- **移除 task-map.yaml**：任务不再存储在 YAML 文件中。Agent 不手写 YAML，所有操作通过 `./flowforge task` CLI 走 Beads 后端
-- **统一 CLI 入口** `./flowforge`：`./flowforge task <action>` 替代全部 12 个 task-*.js 脚本；`./flowforge <skill>-context` 替代 context 脚本
+- **移除 task-map.yaml**：任务不再存储在 YAML 文件中。Agent 不手写 YAML，所有操作通过 `flowforge task` CLI 走 Beads 后端
+- **统一 CLI 入口** `flowforge`：`flowforge task <action>` 替代全部 12 个 task-*.js 脚本；`flowforge <skill>-context` 替代 context 脚本
 - **TaskBackend 接口**：任务后端可替换（当前实现 BeadsBackend），`config.taskBackend.adapter` 从 `yaml|beads` 简化为仅 `beads`
 - **Hook 用途变更**：beads hooks 从「双向同步 YAML」变为「自动刷新 tasks.snapshot.md」
 - **Agent 上下文优化**：context 脚本不再 dump 整个 task-map.yaml，改为查询 Backend 输出结构化状态摘要
@@ -121,10 +137,10 @@
 - `docs/upgrade-0.8-to-0.9.md` — 升级指南
 
 **SKILL 更新**：
-- `flowforge-design`：阶段 5.2 不再手写 YAML，改为 `./flowforge task init` + `./flowforge task add-tasks`；所有脚本引用更新
-- `flowforge-implement`：全部 task-*.js 调用替换为 `./flowforge task <action>`
-- `flowforge-feedback`：`task-discover.js` → `./flowforge task discover`
-- `flowforge-archive`：`task-cleanup.js` → `./flowforge task all-done`
+- `flowforge-design`：阶段 5.2 不再手写 YAML，改为 `flowforge task init` + `flowforge task add-tasks`；所有脚本引用更新
+- `flowforge-implement`：全部 task-*.js 调用替换为 `flowforge task <action>`
+- `flowforge-feedback`：`task-discover.js` → `flowforge task discover`
+- `flowforge-archive`：`task-cleanup.js` → `flowforge task all-done`
 - `flowforge-progress`：触发信号更新
 
 **配置变更**：
@@ -133,8 +149,8 @@
 - `default.yaml`：移除 `subtasks` 字段和 `time_estimate`
 
 **升级支持**：
-- `./flowforge upgrade migrate-from-yaml` — 将 task-map.yaml 迁移到 beads
-- `./flowforge upgrade cleanup-orphans` — 清理 beads 孤儿 issue
+- `flowforge upgrade migrate-from-yaml` — 将 task-map.yaml 迁移到 beads
+- `flowforge upgrade cleanup-orphans` — 清理 beads 孤儿 issue
 
 ## 0.8.0 — 2026-06-04
 

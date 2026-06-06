@@ -45,7 +45,7 @@ flowforge-progress     ← 进度记录：按 type 分组总结进展 + 刷新 I
 
 ### CLI 层（新增 v0.9）
 
-`./flowforge` 统一入口，替代所有分散脚本调用：
+`flowforge` 统一入口（通过 npm link 全局安装），替代所有分散脚本调用：
 
 ```
 flowforge task <action>        → BeadsBackend（任务增删改查）

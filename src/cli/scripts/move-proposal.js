@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
 
-const projectRoot = process.argv[2] || process.cwd();
+const projectRoot = require('./lib/config').findProjectRoot(process.argv[2] || process.cwd());
 const proposalId = process.argv[3];
 
 if (!proposalId) {

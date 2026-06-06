@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
 
-const projectRoot = process.argv[2] || process.cwd();
+const projectRoot = require('./lib/config').findProjectRoot(process.argv[2] || process.cwd());
 const crId = process.argv[3];
 const type = process.argv[4];    // bug | finding | knowledge | missing-requirement | design-flaw
 const title = process.argv[5];

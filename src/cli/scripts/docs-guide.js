@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { findProjectRoot } = require('./lib/config');
 
 let projectRoot = process.argv[2] || process.cwd();
 let docType = process.argv[3];
@@ -12,6 +13,9 @@ if (!docType && projectRoot !== process.cwd() && !projectRoot.startsWith('/')) {
   docType = projectRoot;
   projectRoot = process.cwd();
 }
+
+const resolved = findProjectRoot(projectRoot);
+if (resolved) projectRoot = resolved;
 
 const guidesDir = path.join(projectRoot, '.flowforge', 'guides');
 

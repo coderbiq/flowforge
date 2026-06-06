@@ -43,6 +43,16 @@ function loadMeta(proposalDir) {
   return readYamlFile(metaPath);
 }
 
+function findProjectRoot(startPath) {
+  let dir = fs.lstatSync(startPath).isDirectory() ? startPath : path.dirname(startPath);
+  while (true) {
+    if (fs.existsSync(path.join(dir, CONFIG_DIR, 'config.yaml'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
 function findProposalDir(projectRoot, config, proposalId) {
   if (!config || !config.projects) return null;
   for (const ref of config.projects) {
@@ -62,4 +72,4 @@ function findProposalDir(projectRoot, config, proposalId) {
   return null;
 }
 
-module.exports = { readYamlFile, loadMainConfig, loadProjectConfig, getProjects, getProject, loadMeta, findProposalDir };
+module.exports = { readYamlFile, loadMainConfig, loadProjectConfig, getProjects, getProject, loadMeta, findProjectRoot, findProposalDir };

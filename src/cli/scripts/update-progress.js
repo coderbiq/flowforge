@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
+const { loadMainConfig, loadProjectConfig, loadMeta, findProjectRoot } = require('./lib/config');
 
 // 兼容 CLI 模式（argv[2]=projectRoot, argv[3]=proposalPath, argv[4]=text）
 // 和直接调用模式（argv[2]=proposalPath, argv[3]=text）
@@ -59,16 +59,6 @@ if (fs.existsSync(refreshScript)) {
     console.log(output.trim());
   } catch (e) {
     console.error(`WARNING: refresh-index.js 执行失败: ${e.message}`);
-  }
-}
-
-function findProjectRoot(startPath) {
-  let dir = fs.lstatSync(startPath).isDirectory() ? startPath : path.dirname(startPath);
-  while (true) {
-    if (fs.existsSync(path.join(dir, '.flowforge', 'config.yaml'))) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) return null;
-    dir = parent;
   }
 }
 
