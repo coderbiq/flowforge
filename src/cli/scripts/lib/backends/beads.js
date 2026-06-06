@@ -101,6 +101,11 @@ class BeadsBackend extends TaskBackend {
     return { epicId: mainEpicId, subEpics };
   }
 
+  async hasTaskSpace(proposalId) {
+    const epicId = await this._resolveEpic(proposalId);
+    return epicId !== null;
+  }
+
   async teardown(proposalId) {
     try {
       // 关闭所有子 epic

@@ -125,6 +125,47 @@ function run(root) {
     passed++;
   }
 
+  // Check 9: task init safety gate — hasTaskSpace check before init
+  if (!cliContent.includes('hasTaskSpace')) {
+    failed++;
+    errors.push('CLI: task init must call backend.hasTaskSpace() before backend.init()');
+  } else {
+    passed++;
+  }
+
+  // Check 10: task init safety gate — --force flag extraction
+  if (!cliContent.includes('extractFlag(actionRest, \'--force\')')) {
+    failed++;
+    errors.push('CLI: task init must check --force flag via extractFlag');
+  } else {
+    passed++;
+  }
+
+  // Check 11: task init safety gate — clear error message on missing --force
+  if (!cliContent.includes('Use --force true to confirm this destructive operation')) {
+    failed++;
+    errors.push('CLI: task init must output clear error message when --force true is missing');
+  } else {
+    passed++;
+  }
+
+  // Check 12: task init help text mentions --force true
+  if (!cliContent.includes('init <title> [--force true]')) {
+    failed++;
+    errors.push('CLI: printTaskHelp must document --force true for init');
+  } else {
+    passed++;
+  }
+
+  // Check 13: task init help text must appear in both printHelp AND printTaskHelp
+  const helpMatches = (cliContent.match(/init <title> \[--force true\]/g) || []).length;
+  if (helpMatches < 2) {
+    failed++;
+    errors.push('CLI: --force true must appear in both printHelp() and printTaskHelp()');
+  } else {
+    passed++;
+  }
+
   return { passed, failed, errors };
 }
 

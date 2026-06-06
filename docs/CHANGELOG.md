@@ -1,5 +1,16 @@
 # FlowForge 更新日志
 
+## 0.11.2 — 2026-06-06
+
+### 新增：`task init` 安全门控
+
+**问题**：Agent 可无提示地多次执行 `task init`，导致已有任务树被静默清空重建。
+
+**实现**：
+- `task init` 在检测到 proposal 已有任务空间时，拒绝执行并报错
+- 必须显式传 `--force true` 参数才能重建任务树
+- 新增 `hasTaskSpace(proposalId)` 后端查询方法
+
 ## 0.11.1 — 2026-06-06
 
 ### 修复：`./flowforge` 路径解析与 CLI 入口健壮性

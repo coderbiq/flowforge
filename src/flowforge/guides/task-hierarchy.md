@@ -28,7 +28,7 @@ Main Epic: "CRID: Proposal Title"
 - **格式**: `CRID: Proposal Title`（如 `CR26060201: Excel 上传/下载配置模块`）
 - **标签**: `type:epic, type:main-epic, proposal:<CR-id>`
 - **创建方式**: `flowforge task init --proposal <CR-id> "<title>"`
-- **重建**: 再次运行 init 会关闭旧 epic 重建
+- **重建**: 再次运行 init 需要 `--force true`，会关闭旧 epic 重建
 
 ### 层 2: Type Sub-Epic
 

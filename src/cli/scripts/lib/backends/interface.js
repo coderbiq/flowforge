@@ -89,6 +89,17 @@ class TaskBackend {
   }
 
   /**
+   * 检查 proposal 是否已有任务空间（至少存在主 epic）。
+   * 在 Design SKILL 阶段 5.2 的 task init 前调用，用于安全门控。
+   *
+   * @param {string} proposalId — CR-id
+   * @returns {Promise<boolean>}
+   */
+  async hasTaskSpace(proposalId) {
+    return false;
+  }
+
+  /**
    * 归档/清理 proposal 的任务空间（关闭 epic、清理关联 issue）。
    * 在 Archive SKILL 阶段 4 调用。
    *

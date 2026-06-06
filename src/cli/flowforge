@@ -120,7 +120,19 @@ async function handleTask(args) {
     switch (action) {
       case 'init': {
         const title = actionRest[0];
-        if (!title) { console.error('Usage: flowforge task init <title>'); process.exit(1); }
+        if (!title) { console.error('Usage: flowforge task init <title> [--force true]'); process.exit(1); }
+        const exists = await backend.hasTaskSpace(proposalId);
+        if (exists) {
+          const forceFlag = extractFlag(actionRest, '--force');
+          if (forceFlag !== 'true') {
+            console.error(
+              `ERROR: Proposal ${proposalId} already has an active task tree.\n` +
+              `Re-running 'task init' will CLOSE all existing tasks and recreate.\n` +
+              `Use --force true to confirm this destructive operation.`
+            );
+            process.exit(1);
+          }
+        }
         const result = await backend.init(proposalId, title);
         console.log(JSON.stringify(result));
         break;
@@ -453,7 +465,7 @@ Commands:
   upgrade <action>           Upgrade/migration helpers
 
 Task Actions:
-  init <title>                          Initialize proposal task space
+  init <title> [--force true]            Initialize proposal task space (--force true required if already exists)
   add <type> <title> [--desc "..."] [--parent <id>] [--dep id1,id2] [--label l1,l2]  Add task
   label <add|remove|list> <taskId> [label]    Manage task labels
   add-tasks '<json>'                    Batch add tasks
@@ -504,7 +516,7 @@ function printVersion() {
     const meta = require(path.join(projectRoot, '.flowforge', 'meta.yaml'));
     console.log(`FlowForge v${meta.version || '0.9.0'}`);
   } catch (_) {
-    console.log('FlowForge v0.11.1');
+    console.log('FlowForge v0.11.2');
   }
 }
 
@@ -514,7 +526,7 @@ function printTaskHelp() {
 Usage: flowforge task <action> --proposal <id> [options]
 
 Actions:
-  init <title>                          Initialize proposal task space
+  init <title> [--force true]            Initialize proposal task space (--force true required if already exists)
   add <type> <title> [--desc "..."] [--parent <id>] [--dep id1,id2] [--label l1,l2]
                                         Add a single task
   label <add|remove|list> <taskId> [label]

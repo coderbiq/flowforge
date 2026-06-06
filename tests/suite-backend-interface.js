@@ -8,7 +8,7 @@ const BEADS_PATH = 'src/cli/scripts/lib/backends/beads.js';
 
 const REQUIRED_METHODS = [
   'getCapabilities', 'checkAvailability',
-  'init', 'teardown',
+  'init', 'hasTaskSpace', 'teardown',
   'addTask', 'addTasks', 'discoverTask', 'cancelTask',
   'claimTask', 'completeTask', 'blockTask', 'unclaimTask', 'reopenTask',
   'addDependency', 'removeDependency',

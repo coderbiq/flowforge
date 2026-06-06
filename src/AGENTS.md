@@ -1,4 +1,4 @@
-<!-- BEGIN FLOWFORGE v:0.11.1 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.11.2 profile:default -->
 
 ## FlowForge SKILL 路由
 

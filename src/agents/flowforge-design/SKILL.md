@@ -163,6 +163,11 @@ flowforge design-context <projectRoot> --project <projectId>
 flowforge task init --proposal <CR-id> "<proposal标题>"
 ```
 
+> 如果 proposal 已有任务空间（重建场景），需加 `--force true`：
+> ```bash
+> flowforge task init --proposal <CR-id> "<proposal标题>" --force true
+> ```
+
  2. 为需求树中**已知的叶子节点**批量创建 analysis 任务：
 
 ```bash
@@ -385,7 +390,7 @@ flowforge task reopen --proposal <CR-id> <taskId>
 | 脚本 | 用途 |
 |------|------|
 | `flowforge design-context` | 加载 projects 列表、intake、naming、当前 proposal 状态 |
-| `flowforge task init --proposal <id> <title>` | 初始化 proposal 任务空间 |
+| `flowforge task init --proposal <id> <title> [--force true]` | 初始化 proposal 任务空间（已存在时需 --force true） |
 | `flowforge task add-tasks --proposal <id> '<json>'` | 批量创建初始任务 |
 | `flowforge task add --proposal <id> <type> <title> [flags]` | 增量添加单个任务 |
 | `flowforge task cancel --proposal <id> <taskId> [--reason "..."]` | 废弃不再需要的任务 |

@@ -66,6 +66,7 @@ function run(root) {
 
   const methods = {
     init: ['proposalId', 'title'],
+    hasTaskSpace: ['proposalId'],
     addTask: ['proposalId', 'task'],
     addTasks: ['proposalId', 'tasks'],
     claimTask: ['proposalId', 'taskId'],
