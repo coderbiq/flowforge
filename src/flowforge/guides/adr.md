@@ -39,5 +39,24 @@ domain:
   scope: system|module
   module: <模块名>
   type: decision
+  importance: should
+  maturity: growing
 ---
 ```
+
+### importance 取值指引
+
+| 值 | 语义 | 何时使用 |
+|----|------|---------|
+| must | 铁律 | 仅人工确认 |
+| should | 建议 | 默认值 |
+| may | 参考 | 可选 |
+| info | 备忘 | 纯背景 |
+
+### maturity 取值指引
+
+| 值 | 语义 | 自动变化 |
+|----|------|---------|
+| growing | 成长中 | 被引用 → stable |
+| stable | 成熟 | 被 superseded → deprecated |
+| deprecated | 废弃 | — |

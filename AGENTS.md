@@ -98,25 +98,7 @@ FlowForge/
 - **变更完成后必须执行 `npm test`（或 `node tests/run.js`），确保全部检查通过，不引入回归**
 - **变更开始前先检查是否需要调整现有测试或新增测试覆盖**——新增 SKILL、修改 CLI 命令参数、改变 context 脚本输出格式、调整 Backend 接口签名时，对应测试必须同步更新
 
-### bd 操作超时问题
-
-**症状**：`bd create/update/close` 等写操作超时 30-60s，`flowforge task` CLI 报 `ETIMEDOUT`。
-
-**原因**：`bd` 每次写操作后触发 `dolt auto-push` 到远端 GitLab（`git+ssh://git@gitlab.bytesforce.com:7001`）。SSH 端口 7001 在外网不可达时，push 挂起直到超时。**本地数据库写入本身是成功的**。
-
-**解决方案**：所有 `bd` 写操作加 `--sandbox` 标志，禁用 auto-sync：
-
-```bash
-bd --sandbox update <id> --claim
-bd --sandbox close <id> --reason "..."
-bd --sandbox create "title" --type task --parent <epic-id> --labels "..."
-```
-
-**注意**：`flowforge task` CLI 内部调 `bd` 时未传 `--sandbox`，在网络不通时会超时。遇到此情况改用 `bd --sandbox` 直接操作，操作完成后用 `flowforge task status` 验证（只读命令不受影响）。
-
-会话收尾时运行 `bd dolt push` 手动同步远端——仅在网络可达时执行，不可达则跳过。
-
-<!-- BEGIN FLOWFORGE v:0.13.4 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.14.0 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -125,6 +107,9 @@ bd --sandbox create "title" --type task --parent <epic-id> --labels "..."
 - 归档、沉淀到 library → `flowforge-archive`
 - 实施中发现问题、新认知 → `flowforge-feedback`
 - 创建/修改 wiki 文档 → `flowforge-docs`
+- 检查 library 健康 / 诊断过期断链 → `flowforge-library-doctor`
+- 探索记录 / 优化重组 library 内容 → `flowforge-library-surgeon`
+- 定期维护 / 持续监控 library → `flowforge-library-keeper`
 
 ## 任务操作规则
 

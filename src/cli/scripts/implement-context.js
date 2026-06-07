@@ -59,6 +59,8 @@ if (r && r.implement) {
   }
 }
 
+outputLibraryConventions(projectRoot, proposalLocation, activeProject);
+
 if (r && r.design && r.design.task_rules) {
   console.log('## Task Rules\n');
   const tr = r.design.task_rules;
@@ -159,6 +161,52 @@ function findProposalById(projectRoot, projects, id) {
     }
   }
   return null;
+}
+
+function outputLibraryConventions(projectRoot, proposalLocation, activeProject) {
+  if (!activeProject) return;
+  const libRoot = path.join(projectRoot, activeProject.wikiRoot, 'library', 'conventions');
+  if (!fs.existsSync(libRoot)) return;
+
+  const modules = [];
+  try {
+    const meta = loadMeta(proposalLocation.proposalDir);
+    if (meta?.modules) modules.push(...meta.modules);
+  } catch (_) {}
+
+  const conventions = [];
+  for (const entry of fs.readdirSync(libRoot, { withFileTypes: true })) {
+    if (entry.isDirectory() || !entry.name.endsWith('.md')) continue;
+    const full = path.join(libRoot, entry.name);
+    const content = fs.readFileSync(full, 'utf8');
+    const m = content.match(/^---\n([\s\S]*?)\n---/);
+    if (!m) continue;
+    const fm = {};
+    let currentKey = null;
+    for (const line of m[1].split('\n')) {
+      const nested = line.match(/^  (\w+)\s*:\s*(.*)/);
+      if (nested && currentKey === 'domain') {
+        if (!fm.domain) fm.domain = {};
+        fm.domain[nested[1]] = nested[2].trim().replace(/^["']|["']$/g, '');
+        continue;
+      }
+      const kv = line.match(/^(\w+)\s*:\s*(.*)/);
+      if (kv) { currentKey = kv[1]; fm[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, ''); }
+      else { currentKey = null; }
+    }
+    const importance = fm.domain?.importance || 'should';
+    if (importance === 'must') {
+      conventions.push({ title: fm.title, enforcement: fm.enforcement || '', path: entry.name });
+    }
+  }
+
+  if (conventions.length === 0) return;
+
+  console.log('## Related Library Conventions\n');
+  for (const c of conventions) {
+    console.log(`- ⚠️ **${c.title}** (enforcement: ${c.enforcement}) — \`conventions/${c.path}\``);
+  }
+  console.log('');
 }
 
 function findActiveProposal(projectRoot, projects) {

@@ -35,5 +35,23 @@ domain:
   scope: module
   module: <模块标识>
   type: design
+  importance: should
+  maturity: growing
 ---
 ```
+
+### importance 取值指引
+
+| 值 | 语义 | 何时使用 |
+|----|------|---------|
+| must | 铁律 | 仅人工确认 |
+| should | 建议 | 默认值 |
+| may/info | 参考/备忘 | 按需 |
+
+### maturity 取值指引
+
+| 值 | 语义 | 自动变化 |
+|----|------|---------|
+| growing | 成长中 | 被引用 → stable |
+| stable | 成熟 | 被推翻 → deprecated |
+| deprecated | 废弃 | — |

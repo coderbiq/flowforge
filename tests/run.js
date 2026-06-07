@@ -19,6 +19,10 @@ const suites = [
   { name: 'version-consistency', file: 'suite-version-consistency.js' },
   { name: 'move-proposal', file: 'suite-move-proposal.js' },
   { name: 'find-proposal', file: 'suite-find-proposal.js' },
+  { name: 'library-cli', file: 'suite-library-cli.js' },
+  { name: 'library-check', file: 'suite-library-check.js' },
+  { name: 'library-graph', file: 'suite-library-graph.js' },
+  { name: 'library-path', file: 'suite-library-path.js' },
 ];
 
 let totalPassed = 0;

@@ -103,7 +103,7 @@ flowforge feedback-capture <CR-id> <type> <title> "<content>"
 | type | 写入行为 |
 |------|---------|
 | `bug` | 在 notes.md 追加结构化 bug 记录（含 `note_kind: bug`、根因、影响范围、处置方案），同时通过 `flowforge task discover` 创建修复任务 |
-| `finding` | 直接写入 library/：根据 proposal 的 module 推断 domain → 写入 `library/modules/<name>/findings/` 或 `library/architecture/` |
+| `finding` | 直接写入 library/：根据 proposal 的 module 推断 domain → 写入 `library/modules/<name>/findings/` 或 `library/architecture/`。脚本自动设 `importance: info`（备忘性质）、`maturity: seed`（待验证） |
 | `knowledge` | 在 notes.md 追加 `note_kind: knowledge` 记录，标记为待 archive 提取 |
 | `missing-requirement` | 输出路由指引到 stdout，提示应激活 flowforge-design 补充设计 |
 | `design-flaw` | 输出路由指引到 stdout，提示应激活 flowforge-design 修改方案 |

@@ -63,8 +63,25 @@
       "properties": {
         "scope": { "type": "string", "enum": ["system", "module"], "description": "全系统或某个模块" },
         "module": { "type": "string", "description": "模块名，仅 scope=module 时需要" },
-        "type": { "type": "string", "enum": ["design", "decision", "convention"], "description": "设计 / 决策 / 约定" }
+        "type": { "type": "string", "enum": ["design", "decision", "convention"], "description": "设计 / 决策 / 约定" },
+        "importance": { "type": "string", "enum": ["must", "should", "may", "info"], "default": "should", "description": "重要度：must=铁律 should=建议 may=参考 info=备忘" },
+        "maturity": { "type": "string", "enum": ["seed", "growing", "stable", "deprecated"], "default": "growing", "description": "成熟度：seed=骨架 growing=成长中 stable=成熟 deprecated=废弃" }
       }
+    },
+    "review_interval": {
+      "type": "number",
+      "default": 180,
+      "description": "内容审查间隔（天），超过触发 stale 标记"
+    },
+    "last_reviewed": {
+      "type": "string",
+      "format": "date-time",
+      "description": "上次审查时间，ISO-8601"
+    },
+    "covers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "文档覆盖的源文件 glob 模式，用于 code_changes 过期检测"
     },
     "related": {
       "type": "array",

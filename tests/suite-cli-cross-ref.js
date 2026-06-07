@@ -20,6 +20,7 @@ const CLI_COMMANDS = [
   'archive-context', 'validate-proposal', 'validate-doc',
   'update-progress', 'refresh-index', 'docs-guide',
   'move-proposal', 'archive-synthesize', 'feedback-capture', 'upgrade',
+  'library',
 ];
 
 function run(root) {

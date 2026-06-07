@@ -5,7 +5,6 @@ description: |
   将本次进展总结为一句话写入 meta.latest_progress 并刷新 INDEX.md。
 
   必须在以下信号出现后立即激活：
-  - 刚刚修改了 wiki 内 proposal 的 meta.yaml 的 status 字段
   - 刚刚通过 `flowforge task` 完成了任务操作（done/claim/block/cancel）
   - 刚刚在 notes.md 追加了实施日志
   - 刚刚创建、归档或移动了 proposal 目录

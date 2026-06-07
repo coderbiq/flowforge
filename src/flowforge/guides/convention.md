@@ -35,5 +35,25 @@ domain:
   scope: system|module
   module: <模块名>
   type: convention
+  importance: should
+  maturity: growing
 ---
 ```
+
+### importance 取值指引
+
+| 值 | 语义 | 何时使用 |
+|----|------|---------|
+| must | 铁律 | 仅人工确认后设置 |
+| should | 建议 | 默认值，编码规范通常设此值 |
+| may | 参考 | 可选建议 |
+| info | 备忘 | 纯背景记录 |
+
+### maturity 取值指引
+
+| 值 | 语义 | 自动变化 |
+|----|------|---------|
+| seed | 骨架 | → growing |
+| growing | 成长中 | 被引用验证 → stable |
+| stable | 成熟 | 被推翻 → deprecated |
+| deprecated | 废弃 | — |

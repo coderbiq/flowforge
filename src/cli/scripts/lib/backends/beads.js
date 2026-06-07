@@ -183,7 +183,7 @@ class BeadsBackend extends TaskBackend {
       throw new Error(`No epic found for proposal ${proposalId}. Run 'flowforge task init' first.`);
     }
     const labels = this._buildLabels(task, proposalId);
-    const depFlag = `--dep discovered-from:${parentTaskId}`;
+    const depFlag = `--deps discovered-from:${parentTaskId}`;
     const result = this._bd(
       `create "${_escape(task.title)}" --type task --parent ${parentTaskId} ` +
       `${depFlag} --labels ${labels} --json`

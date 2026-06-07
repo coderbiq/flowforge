@@ -80,6 +80,9 @@ rules:
   library:
     requireReview: false
     autoUpdateHistory: true
+    defaultImportance: should
+    defaultMaturity: growing
+    reviewInterval: 180
     strategy: |
       按 scope（system/module）和 type（design/decision/convention）组织；
       同类知识合并而非覆盖，保留历史演进记录；

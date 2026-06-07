@@ -482,6 +482,7 @@ if [ "$MODE" = "upgrade" ]; then
   mkdir -p "$TARGET/ff-wiki/library/conventions"
   mkdir -p "$TARGET/ff-wiki/library/decisions"
   mkdir -p "$TARGET/ff-wiki/library/modules"
+  cp -rn "$SCRIPT_DIR/../src/wiki-tpl/library/"* "$TARGET/ff-wiki/library/" 2>/dev/null || true
   info "Wiki 目录结构已确保存在（含 active/completed 子目录）"
 
   # 安装/更新 CLI 入口
@@ -541,6 +542,7 @@ else
   mkdir -p "$TARGET/ff-wiki/library/conventions"
   mkdir -p "$TARGET/ff-wiki/library/decisions"
   mkdir -p "$TARGET/ff-wiki/library/modules"
+  cp -rn "$SCRIPT_DIR/../src/wiki-tpl/library/"* "$TARGET/ff-wiki/library/" 2>/dev/null || true
   info "Wiki 目录结构已创建 ff-wiki/"
 
   install_agents_flowforge "$TARGET" "install"

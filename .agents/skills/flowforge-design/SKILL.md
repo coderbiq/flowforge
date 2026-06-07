@@ -178,7 +178,7 @@ flowforge task add-tasks --proposal <CR-id> '[
 ]'
 ```
 
-每个 analysis 任务的 `title` 直接对应需求树叶子节点的描述。任务 ID 由后端自动生成（beads issue ID）。
+每个 analysis 任务的 `title` 直接对应需求树叶子节点的描述。任务 ID 由后端自动生成。
 #### 5.3 探索完善循环
 
 进入持续循环——**执行任务、完善需求树、拆解新任务交替进行**：
@@ -277,15 +277,33 @@ flowforge task add --proposal <CR-id> analysis "<分析子任务标题>" --desc 
 
 5. 设计文档完成 → `flowforge task done --proposal <CR-id> <taskId> --summary "<完成摘要>"`
 
-**判定 domain 的方法**（同之前，不变）：
+**判定 domain 的方法**：
+
 ```
-scope:  文档引用的源文件在哪个模块下？设计最终在哪个模块落地？
-        单模块边界内 → module；跨模块 / 全局架构 → system
-module: scope=module 时，模块名是什么（如 auth、payment）
-type:   架构/接口/数据模型/技术选型 → design
-        关键决策+理由+备选方案评估 → decision
-        编码规范/命名约定/反例 → convention
+scope:      文档引用的源文件在哪个模块下？设计最终在哪个模块落地？
+            单模块边界内 → module；跨模块 / 全局架构 → system
+module:     scope=module 时，模块名是什么（如 auth、payment）
+type:       架构/接口/数据模型/技术选型 → design
+            关键决策+理由+备选方案评估 → decision
+            编码规范/命名约定/反例 → convention
+importance: 重要度（新字段，默认值见下表）：
+            finding → info（备忘性质，不指导行为）
+            其他   → should（建议遵循）
+            must 仅可由人工确认后设置，Agent 绝不自动设 must
+maturity:   成熟度（新字段）：
+            finding → seed（待验证）
+            其他   → growing（有实质内容，待 proposal 验证）
+            被多个 proposal 引用验证后 → archive 阶段自动升 stable
 ```
+
+**阶段 4 增强：Library Context**
+
+`design-context` 输出 `## Library Context` 段，按 importance 排序展示 library 所有文档：
+- ⚠️ must → 先阅读，理解不可违背的铁律
+- 📌 should → 查阅设计参考，优先复用已有模式
+- 💡 may / 📄 info → 按需翻阅
+
+Agent 在探索前优先加载 Library Context，避免重复造轮或违反铁律。
 
 #### 5.4 终止条件
 

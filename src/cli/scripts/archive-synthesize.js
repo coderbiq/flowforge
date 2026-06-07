@@ -96,6 +96,8 @@ for (const group of domainGroups) {
   plan.targets.push(target);
 }
 
+plan.maturityChanges = buildMaturityChanges(plan.targets, proposalDir, wikiRoot);
+
 console.log(JSON.stringify(plan, null, 2));
 
 // ============================================================
@@ -333,6 +335,51 @@ function findProposalById(projectRoot, projects, id) {
     }
   }
   return null;
+}
+
+function buildMaturityChanges(targets, proposalDir, wikiRoot) {
+  const changes = [];
+  const libRoot = path.join(proposalDir, '..', '..', '..', wikiRoot, 'library');
+  
+  for (const target of targets) {
+    const libPath = path.join(libRoot, target.archivePath);
+    
+    if (target.libraryState.status === 'not_exists' || target.libraryState.status === 'directory_exists') {
+      changes.push({
+        docPath: target.archivePath,
+        change: 'growing',
+        reason: `新知识入库: ${target.source}`,
+      });
+      continue;
+    }
+
+    if (target.synthesisAction === 'replace') {
+      const existingFile = target.libraryState.existingFiles?.[0];
+      changes.push({
+        docPath: existingFile || target.archivePath,
+        change: 'deprecated',
+        reason: `被 ${target.source} 推翻`,
+        supersededBy: target.archivePath,
+      });
+      changes.push({
+        docPath: target.archivePath,
+        change: 'growing',
+        reason: `新知识入库: ${target.source}`,
+      });
+      continue;
+    }
+
+    if (target.synthesisAction === 'merge') {
+      const existingFile = target.libraryState.existingFiles?.[0];
+      changes.push({
+        docPath: existingFile || target.archivePath,
+        change: 'stable',
+        reason: `被 ${target.source} 验证`,
+      });
+    }
+  }
+  
+  return changes;
 }
 
 function findProposal(projectRoot, projects) {

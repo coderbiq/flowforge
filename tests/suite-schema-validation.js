@@ -72,6 +72,32 @@ function run(root) {
   }
   passed++;
 
+  const fmSchemaPath = path.join(schemaDir, 'frontmatter.schema.json');
+  if (fs.existsSync(fmSchemaPath)) {
+    const fmSchema = JSON.parse(fs.readFileSync(fmSchemaPath, 'utf8'));
+    const domain = fmSchema.properties?.domain?.properties || {};
+
+    if (domain.importance && domain.importance.enum && domain.importance.enum.includes('must')) {
+      passed++;
+    } else {
+      failed++;
+      errors.push('frontmatter.schema.json: domain.importance missing must/should/may/info enum');
+    }
+
+    if (domain.maturity && domain.maturity.enum && domain.maturity.enum.includes('seed')) {
+      passed++;
+    } else {
+      failed++;
+      errors.push('frontmatter.schema.json: domain.maturity missing seed/growing/stable/deprecated enum');
+    }
+
+    if (fmSchema.properties?.review_interval) { passed++; }
+    else { failed++; errors.push('frontmatter.schema.json: missing review_interval field'); }
+
+    if (fmSchema.properties?.last_reviewed) { passed++; }
+    else { failed++; errors.push('frontmatter.schema.json: missing last_reviewed field'); }
+  }
+
   return { passed, failed, errors };
 }
 

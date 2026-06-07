@@ -76,8 +76,9 @@ flowforge task claim --proposal <CR-id> <taskId>
 1. 确认任务 `type` 为 `implementation`（非 implementation 任务应路由给 `flowforge-design`）
 2. 检查任务的 deliverable（验收条件）是否明确——不明确则补充后执行
 3. 如有 `## Implement Strategy`，参照其中的代码规范、测试要求和提交策略指导实施工作
-4. 按 task 描述和验收条件执行实际编码工作（任务编写规范见 `.flowforge/guides/task-writing.md`）
-5. 完成后运行：
+4. 执行前查阅 `implement-context` 输出的 `## Related Library Conventions`，特别是 `importance: must` 的约定，确保不违反铁律
+5. 按 task 描述和验收条件执行实际编码工作（任务编写规范见 `.flowforge/guides/task-writing.md`）
+6. 完成后运行：
 
 ```bash
 flowforge task done --proposal <CR-id> <taskId> --summary "<完成摘要>"

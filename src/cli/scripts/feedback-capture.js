@@ -184,6 +184,8 @@ domain:
   scope: ${domainScope}
   module: ${domainModule || ''}
   type: ${domainType}
+  importance: info
+  maturity: seed
 ---
 
 # ${title}

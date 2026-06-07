@@ -6,6 +6,8 @@ decision_status: accepted
 domain:
   scope: system
   type: decision
+  importance: should
+  maturity: growing
 created: 2026-06-06
 updated: 2026-06-06
 ---

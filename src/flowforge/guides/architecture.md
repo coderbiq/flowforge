@@ -34,5 +34,25 @@ architecture_status: active|deprecated
 domain:
   scope: system
   type: design
+  importance: should
+  maturity: growing
 ---
 ```
+
+### importance 取值指引
+
+| 值 | 语义 | 何时使用 |
+|----|------|---------|
+| must | 铁律 | 仅人工确认后设置，Agent 不自动设 |
+| should | 建议 | 默认值，描述应遵循的架构模式 |
+| may | 参考 | 可选建议 |
+| info | 备忘 | 纯背景记录 |
+
+### maturity 取值指引
+
+| 值 | 语义 | 自动变化 |
+|----|------|---------|
+| seed | 骨架 | 待 Agent 填充内容 → growing |
+| growing | 成长 | 被 proposal 引用验证 → stable |
+| stable | 成熟 | 被 proposal 推翻 → deprecated |
+| deprecated | 废弃 | 仅保留历史记录 |

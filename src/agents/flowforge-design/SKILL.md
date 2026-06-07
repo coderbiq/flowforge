@@ -128,9 +128,7 @@ flowforge design-context <projectRoot> --project <projectId>
 
 进入阶段 5 后，**先不急于创建任务**——先快速草绘需求树，建立对提案需求的全景认知（不追求完整）：
 
-1. 根据 `naming.proposal_id` 的模板生成 CR-id，然后运行 `flowforge design-context --check-id <CR-id>` 检查唯一性：
-   - 输出 `"exists": false` → 无冲突，在 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
-   - 输出 `"exists": true` → 有冲突，检查 `conflicts` 字段了解冲突详情，运行 `flowforge design-context --suggest-id` 获取可用序号后重新生成 CR-id
+1. 根据 `naming.proposal_id` 的模板生成 CR-id，在 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
 
 2. 基于阶段 2-4 收集的信息（用户诉求、intake 材料、project 策略、library 知识），将提案涉及的需求按功能域/模块快速拆解为需求树草案，写入 `notes.md` 的 `## 需求树` 章节：
 
@@ -279,15 +277,33 @@ flowforge task add --proposal <CR-id> analysis "<分析子任务标题>" --desc 
 
 5. 设计文档完成 → `flowforge task done --proposal <CR-id> <taskId> --summary "<完成摘要>"`
 
-**判定 domain 的方法**（同之前，不变）：
+**判定 domain 的方法**：
+
 ```
-scope:  文档引用的源文件在哪个模块下？设计最终在哪个模块落地？
-        单模块边界内 → module；跨模块 / 全局架构 → system
-module: scope=module 时，模块名是什么（如 auth、payment）
-type:   架构/接口/数据模型/技术选型 → design
-        关键决策+理由+备选方案评估 → decision
-        编码规范/命名约定/反例 → convention
+scope:      文档引用的源文件在哪个模块下？设计最终在哪个模块落地？
+            单模块边界内 → module；跨模块 / 全局架构 → system
+module:     scope=module 时，模块名是什么（如 auth、payment）
+type:       架构/接口/数据模型/技术选型 → design
+            关键决策+理由+备选方案评估 → decision
+            编码规范/命名约定/反例 → convention
+importance: 重要度（新字段，默认值见下表）：
+            finding → info（备忘性质，不指导行为）
+            其他   → should（建议遵循）
+            must 仅可由人工确认后设置，Agent 绝不自动设 must
+maturity:   成熟度（新字段）：
+            finding → seed（待验证）
+            其他   → growing（有实质内容，待 proposal 验证）
+            被多个 proposal 引用验证后 → archive 阶段自动升 stable
 ```
+
+**阶段 4 增强：Library Context**
+
+`design-context` 输出 `## Library Context` 段，按 importance 排序展示 library 所有文档：
+- ⚠️ must → 先阅读，理解不可违背的铁律
+- 📌 should → 查阅设计参考，优先复用已有模式
+- 💡 may / 📄 info → 按需翻阅
+
+Agent 在探索前优先加载 Library Context，避免重复造轮或违反铁律。
 
 #### 5.4 终止条件
 

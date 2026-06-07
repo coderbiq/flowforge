@@ -47,5 +47,17 @@ domain:
   scope: system|module
   module: <模块名>
   type: design|decision|convention
+  importance: info
+  maturity: seed
 ---
 ```
+
+### importance 取值指引
+
+finding 固定设 `importance: info`（备忘性质，不指导行为）。
+如需提升为 should/must，应在后续 design 阶段重新评估。
+
+### maturity 取值指引
+
+finding 固定设 `maturity: seed`。
+被 proposal 引用验证后，archive 阶段自动升至 growing。 |

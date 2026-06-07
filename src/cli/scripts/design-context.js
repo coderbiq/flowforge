@@ -169,6 +169,8 @@ if (activeProject && activeProject.rules) {
   console.log('注意: proposal.md、task-map.yaml、journal、notes.md 不需要 domain（不含可归档知识）。');
   console.log('');
 
+  outputLibraryContext(projectRoot, activeProject);
+
   if (activeProject.modules && Object.keys(activeProject.modules).length > 0) {
     console.log('## Modules\n');
     for (const [name, mod] of Object.entries(activeProject.modules)) {
@@ -259,4 +261,78 @@ function findActiveProposal(projectRoot, projects) {
     }
   }
   return null;
+}
+
+function outputLibraryContext(projectRoot, activeProject) {
+  if (!activeProject) return;
+  const libRoot = path.join(projectRoot, activeProject.wikiRoot, 'library');
+  if (!fs.existsSync(libRoot)) return;
+
+  const docs = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(full); continue; }
+      if (!entry.name.endsWith('.md')) continue;
+      const content = fs.readFileSync(full, 'utf8');
+      const fm = extractFrontmatter(content);
+      if (!fm || !fm.title || !fm.doc_type) continue;
+      docs.push({
+        relPath: path.relative(libRoot, full),
+        title: fm.title,
+        doc_type: fm.doc_type,
+        status: fm.status || '',
+        importance: fm.domain?.importance || 'should',
+        maturity: fm.domain?.maturity || 'growing',
+      });
+    }
+  };
+  walk(libRoot);
+
+  if (docs.length === 0) return;
+
+  const importanceOrder = { must: 0, should: 1, may: 2, info: 3 };
+  const importanceIcons = { must: '⚠️', should: '📌', may: '💡', info: '📄' };
+  const maturityIcons = { seed: '🌱', growing: '🌿', stable: '✅', deprecated: '🗑️' };
+  const groups = {};
+  for (const d of docs) {
+    const imp = d.importance in importanceOrder ? d.importance : 'should';
+    if (!groups[imp]) groups[imp] = [];
+    groups[imp].push(d);
+  }
+
+  console.log('## Library Context\n');
+  const sortedKeys = Object.keys(groups).sort((a, b) => (importanceOrder[a] || 99) - (importanceOrder[b] || 99));
+  for (const imp of sortedKeys) {
+    const icon = importanceIcons[imp] || '📌';
+    console.log(`### ${icon} ${imp}\n`);
+    for (const d of groups[imp]) {
+      const mIcon = maturityIcons[d.maturity] || '';
+      console.log(`- ${mIcon} **${d.title}** — \`${d.relPath}\` (${d.doc_type}, ${d.maturity})`);
+    }
+    console.log('');
+  }
+}
+
+function extractFrontmatter(text) {
+  const m = text.match(/^---\n([\s\S]*?)\n---/);
+  if (!m) return null;
+  const result = {};
+  let currentKey = null;
+  for (const line of m[1].split('\n')) {
+    const nested = line.match(/^  (\w+)\s*:\s*(.*)/);
+    if (nested && currentKey === 'domain') {
+      if (!result.domain) result.domain = {};
+      result.domain[nested[1]] = nested[2].trim().replace(/^["']|["']$/g, '');
+      continue;
+    }
+    const kv = line.match(/^(\w+)\s*:\s*(.*)/);
+    if (kv) {
+      currentKey = kv[1];
+      result[kv[1]] = kv[2].trim().replace(/^["']|["']$/g, '');
+    } else {
+      currentKey = null;
+    }
+  }
+  return result;
 }

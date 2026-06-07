@@ -1,4 +1,4 @@
-<!-- BEGIN FLOWFORGE v:0.13.4 profile:default -->
+<!-- BEGIN FLOWFORGE v:0.14.0 profile:default -->
 
 ## FlowForge SKILL 路由
 
@@ -7,6 +7,9 @@
 - 归档、沉淀到 library → `flowforge-archive`
 - 实施中发现问题、新认知 → `flowforge-feedback`
 - 创建/修改 wiki 文档 → `flowforge-docs`
+- 检查 library 健康 / 诊断过期断链 → `flowforge-library-doctor`
+- 探索记录 / 优化重组 library 内容 → `flowforge-library-surgeon`
+- 定期维护 / 持续监控 library → `flowforge-library-keeper`
 
 ## 任务操作规则
 

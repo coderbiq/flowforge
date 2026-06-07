@@ -64,6 +64,76 @@ if (frontmatter.domain) {
   errors.push('缺少 domain 字段（可归档文档必须设置 domain）');
 }
 
+// L2: doc_type 专属字段校验
+const TYPE_SPECIFIC = {
+  finding: {
+    required: ['source'],
+    validStatus: ['active'],
+    defaultImportance: 'info',
+    defaultMaturity: 'seed'
+  },
+  convention: {
+    required: ['enforcement'],
+    validStatus: ['active', 'superseded', 'deprecated'],
+    defaultImportance: 'should',
+    defaultMaturity: 'growing'
+  },
+  architecture: {
+    required: [],
+    validStatus: ['draft', 'active', 'deprecated'],
+    defaultImportance: 'should',
+    defaultMaturity: 'growing'
+  },
+  decision: {
+    required: ['decision_status'],
+    validStatus: ['accepted', 'rejected', 'superseded'],
+    defaultImportance: 'should',
+    defaultMaturity: 'growing'
+  },
+  adr: {
+    required: ['adr_id'],
+    validStatus: ['proposed', 'accepted', 'rejected', 'superseded', 'deprecated'],
+    defaultImportance: 'should',
+    defaultMaturity: 'growing'
+  },
+  module: {
+    required: [],
+    validStatus: ['draft', 'active', 'deprecated'],
+    defaultImportance: 'should',
+    defaultMaturity: 'growing'
+  }
+};
+
+const docRules = TYPE_SPECIFIC[frontmatter.doc_type];
+if (docRules) {
+  for (const field of docRules.required) {
+    if (!frontmatter[field]) {
+      errors.push(`缺少 ${frontmatter.doc_type} 专属必填字段: ${field}`);
+    }
+  }
+  if (frontmatter.status && !docRules.validStatus.includes(frontmatter.status)) {
+    errors.push(`${frontmatter.doc_type} 的 status 无效: ${frontmatter.status}（合法值: ${docRules.validStatus.join(', ')}）`);
+  }
+}
+
+// L1+: importance/maturity 枚举校验
+const validImportance = ['must', 'should', 'may', 'info'];
+const validMaturity = ['seed', 'growing', 'stable', 'deprecated'];
+if (frontmatter.domain?.importance && !validImportance.includes(frontmatter.domain.importance)) {
+  errors.push(`domain.importance 无效: ${frontmatter.domain.importance}`);
+}
+if (frontmatter.domain?.maturity && !validMaturity.includes(frontmatter.domain.maturity)) {
+  errors.push(`domain.maturity 无效: ${frontmatter.domain.maturity}`);
+}
+
+// 其他可选字段格式校验
+if (frontmatter.review_interval && isNaN(Number(frontmatter.review_interval))) {
+  errors.push(`review_interval 格式错误: ${frontmatter.review_interval}（期望数字）`);
+}
+if (frontmatter.last_reviewed && !isISODate(frontmatter.last_reviewed)) {
+  errors.push(`last_reviewed 格式错误: ${frontmatter.last_reviewed}（期望 ISO-8601）`);
+}
+
 if (errors.length === 0) {
   console.log(`PASS: ${path.basename(docPath)} (doc_type: ${frontmatter.doc_type})`);
 } else {

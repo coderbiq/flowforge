@@ -17,6 +17,7 @@ const REQUIRED_SCRIPTS = [
   'archive-context.js', 'validate-proposal.js', 'validate-doc.js',
   'update-progress.js', 'refresh-index.js', 'docs-guide.js',
   'move-proposal.js', 'archive-synthesize.js', 'feedback-capture.js',
+  'library-check.js', 'library-index.js', 'library-graph.js',
 ];
 
 function run(root) {
@@ -115,6 +116,18 @@ function run(root) {
       errors.push('validate-proposal.js: missing self-exclusion logic for uniqueness check');
     }
   }
+
+  const designContent = fs.readFileSync(path.join(scriptsDir, 'design-context.js'), 'utf8');
+  if (designContent.includes('outputLibraryContext')) { passed++; }
+  else { failed++; errors.push('design-context.js: missing outputLibraryContext function'); }
+  if (designContent.includes('## Library Context')) { passed++; }
+  else { failed++; errors.push('design-context.js: missing Library Context section'); }
+
+  const implContent = fs.readFileSync(path.join(scriptsDir, 'implement-context.js'), 'utf8');
+  if (implContent.includes('outputLibraryConventions')) { passed++; }
+  else { failed++; errors.push('implement-context.js: missing outputLibraryConventions function'); }
+  if (implContent.includes('Related Library Conventions')) { passed++; }
+  else { failed++; errors.push('implement-context.js: missing Related Library Conventions section'); }
 
   return { passed, failed, errors };
 }

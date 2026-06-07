@@ -99,18 +99,35 @@ result.steps.push({ step: 'update_meta', status: 'done', detail: 'updated_at 已
 }
 
 if (activeProject && activeProject.rules && activeProject.rules.library && activeProject.rules.library.autoUpdateHistory) {
+  const modules = new Set();
+
+  // 新标准：从 design/*.md 的 domain.module 提取
+  const designDir = path.join(proposalLocation.proposalDir, 'design');
+  if (fs.existsSync(designDir)) {
+    const walk = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) { walk(path.join(dir, entry.name)); continue; }
+        if (!entry.name.endsWith('.md')) continue;
+        const content = fs.readFileSync(path.join(dir, entry.name), 'utf8');
+        const m = content.match(/^\s{4}module\s*:\s*(.+)/m);
+        if (m) modules.add(m[1].trim());
+      }
+    };
+    walk(designDir);
+  }
+
+  // 兼容旧格式：meta.archive_targets
   const archiveTargets = meta.archive_targets || [];
   for (const target of archiveTargets) {
-    const key = typeof target === 'string' ? target : target.key;
-    if (!key) continue;
+    const name = extractModuleName(typeof target === 'string' ? target : target.key);
+    if (name) modules.add(name);
+  }
 
-    const moduleName = extractModuleName(key);
-    if (moduleName) {
-      const historyPath = path.join(projectRoot, proposalLocation.wikiRoot, 'library', 'modules', moduleName, 'HISTORY.md');
-      const entry = `| ${now} | ${meta.id || proposalId} | ${meta.title || ''} | archived |\n`;
-      appendHistory(historyPath, entry);
-      result.steps.push({ step: 'update_history', module: moduleName, status: 'done', detail: `已追加归档记录到 ${path.relative(projectRoot, historyPath)}` });
-    }
+  for (const moduleName of modules) {
+    const historyPath = path.join(projectRoot, proposalLocation.wikiRoot, 'library', 'modules', moduleName, 'HISTORY.md');
+    const entry = `| ${now} | ${meta.id || proposalId} | ${meta.title || ''} | archived |\n`;
+    appendHistory(historyPath, entry);
+    result.steps.push({ step: 'update_history', module: moduleName, status: 'done', detail: `已追加归档记录到 ${path.relative(projectRoot, historyPath)}` });
   }
 }
 

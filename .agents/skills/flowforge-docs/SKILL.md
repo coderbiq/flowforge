@@ -31,7 +31,7 @@ description: |
 - **位置**：文档在 wiki 下的相对路径——拼接 `<wikiRoot>/` 前缀后创建文件
 - **结构**：单文件还是目录——决定创建一个 `.md` 还是创建目录 + 多个文件
 - **各文件/章节的写作要求**：逐条执行——每个文件或章节按指南中的描述撰写内容
-- **Frontmatter**：该文档需要的 YAML frontmatter 字段——写入文件头部
+- **Frontmatter**：该文档需要的 YAML frontmatter 字段——写入文件头部。注意 domain 中新增 `importance`（must/should/may/info）和 `maturity`（seed/growing/stable/deprecated）字段，各 doc_type 的 writing guide 中定义了默认值和取值指引。
 
 文档创建或修改完成后，运行 `flowforge validate-doc <文档路径>` 校验 frontmatter。校验通过才能继续。
 
