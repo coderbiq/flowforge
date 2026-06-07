@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadMainConfig, checkProposalId } = require('./lib/config');
 
 // 兼容 CLI 模式（argv[2]=projectRoot, argv[3]=proposalDir）和直接调用模式（argv[2]=proposalDir）
 const proposalDir = process.argv[3] || process.argv[2];
@@ -29,6 +30,27 @@ if (!fs.existsSync(metaPath)) {
   }
   if (meta.id && !/^[A-Z]*\d{6}\d{2}$/.test(meta.id)) {
     errors.push(`meta.yaml id 格式疑似错误: ${meta.id}（期望 前缀+YYMMDDNN）`);
+  }
+  // ID 唯一性检查：排除自身目录，仅报告外部冲突
+  if (meta.id) {
+    try {
+      const projectRoot = require('./lib/config').findProjectRoot(proposalDir);
+      const config = loadMainConfig(projectRoot);
+      if (config) {
+        const result = checkProposalId(projectRoot, config, meta.id);
+        const otherConflicts = result.conflicts.filter(
+          c => !proposalDir.endsWith(c.dir)
+        );
+        if (otherConflicts.length > 0) {
+          errors.push(`meta.yaml id "${meta.id}" 与其他 proposal 冲突:`);
+          for (const c of otherConflicts) {
+            errors.push(`  - ${c.dir} (${c.status}, ${c.project})`);
+          }
+        }
+      }
+    } catch (_) {
+      // 非关键校验，失败不阻塞
+    }
   }
 }
 

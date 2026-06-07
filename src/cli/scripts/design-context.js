@@ -3,17 +3,24 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadMainConfig, loadProjectConfig, loadMeta } = require('./lib/config');
+const { loadMainConfig, loadProjectConfig, loadMeta, checkProposalId, suggestProposalId } = require('./lib/config');
 
 const projectRoot = require('./lib/config').findProjectRoot(process.argv[2] || process.cwd());
 let proposalId = null;
 let explicitProjectId = null;
+let checkId = null;
+let suggestId = false;
 
 for (let i = 3; i < process.argv.length; i++) {
   const arg = process.argv[i];
   if (arg === '--project') {
     explicitProjectId = process.argv[i + 1];
     i++;
+  } else if (arg === '--check-id') {
+    checkId = process.argv[i + 1];
+    i++;
+  } else if (arg === '--suggest-id') {
+    suggestId = true;
   } else if (!arg.startsWith('--')) {
     proposalId = arg;
   }
@@ -192,6 +199,21 @@ if (config.taskBackend && config.taskBackend.adapter && config.taskBackend.adapt
   console.log('\n## Task Backend\n');
   console.log(`backend: ${config.taskBackend.adapter}`);
   console.log('任务创建/查询/更新将通过脚本调用存储层，Agent 无需直接操作 task-map 文件。');
+}
+
+// ── ID 检查 / 建议（末尾 JSON，不干扰正常输出）──
+
+if (suggestId) {
+  try {
+    const id = suggestProposalId(projectRoot, config);
+    console.log(`\n${JSON.stringify({ suggestId: id })}`);
+  } catch (e) {
+    console.log(`\n${JSON.stringify({ error: e.message })}`);
+    process.exit(1);
+  }
+} else if (checkId) {
+  const result = checkProposalId(projectRoot, config, checkId);
+  console.log(`\n${JSON.stringify({ checkId: result })}`);
 }
 
 function collectIntake(projectRoot, projects) {

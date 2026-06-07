@@ -82,6 +82,40 @@ function run(root) {
     }
   }
 
+  // Check 4: design-context.js must handle --check-id and --suggest-id
+  {
+    const content = fs.readFileSync(path.join(scriptsDir, 'design-context.js'), 'utf8');
+    if (content.includes('--check-id') && content.includes('checkProposalId')) {
+      passed++;
+    } else {
+      failed++;
+      errors.push('design-context.js: missing --check-id flag handling');
+    }
+    if (content.includes('--suggest-id') && content.includes('suggestProposalId')) {
+      passed++;
+    } else {
+      failed++;
+      errors.push('design-context.js: missing --suggest-id flag handling');
+    }
+  }
+
+  // Check 5: validate-proposal.js must include ID uniqueness check
+  {
+    const content = fs.readFileSync(path.join(scriptsDir, 'validate-proposal.js'), 'utf8');
+    if (content.includes('checkProposalId')) {
+      passed++;
+    } else {
+      failed++;
+      errors.push('validate-proposal.js: missing ID uniqueness check (checkProposalId)');
+    }
+    if (content.includes('otherConflicts') || content.includes('conflicts.filter')) {
+      passed++;
+    } else {
+      failed++;
+      errors.push('validate-proposal.js: missing self-exclusion logic for uniqueness check');
+    }
+  }
+
   return { passed, failed, errors };
 }
 

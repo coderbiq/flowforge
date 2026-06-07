@@ -1,5 +1,22 @@
 # FlowForge 更新日志
 
+## 0.13.4 — 2026-06-07
+
+### 新增：Proposal ID 唯一性校验
+
+- `lib/config.js` 新增 `checkProposalId` / `suggestProposalId`，扫描所有 project 的 active/completed 目录检测 CR-id 冲突，自动计算可用序号
+- `design-context.js` 新增 `--check-id <CR-id>` 和 `--suggest-id` 模式，JSON 在末尾追加不干扰正常输出
+- `validate-proposal.js` 新增目录层级 ID 唯一性检查，排除自身目录仅报告外部冲突
+- `flowforge-design/SKILL.md` 阶段 5.1 步骤增加 `--check-id` 查重流程
+- `tests/suite-context-output.js` 新增 Check 4/5 覆盖新功能
+
+## 0.13.3 — 2026-06-06
+
+### 修复：task discover 调用 bd create 传参错误
+- `beads.js:186` 的 `discoverTask()` 将 `--dep` 改为 `--deps`，匹配 `bd create` 实际支持的标志名
+- `bd create` 只接受 `--deps`（复数），不接受 `--dep`（单数）
+- 修复 `flowforge task discover` 命令报 `unknown flag: --dep` 的错误
+
 ## 0.13.2 — 2026-06-06
 
 ### 修复：findProposalById 前缀匹配

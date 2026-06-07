@@ -128,7 +128,9 @@ flowforge design-context <projectRoot> --project <projectId>
 
 进入阶段 5 后，**先不急于创建任务**——先快速草绘需求树，建立对提案需求的全景认知（不追求完整）：
 
-1. 根据 `naming.proposal_id` 的模板生成 CR-id，在 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
+1. 根据 `naming.proposal_id` 的模板生成 CR-id，然后运行 `flowforge design-context --check-id <CR-id>` 检查唯一性：
+   - 输出 `"exists": false` → 无冲突，在 `<project.wikiRoot>/workspace/proposals/active/<CR-id>/` 下创建 proposal 目录
+   - 输出 `"exists": true` → 有冲突，检查 `conflicts` 字段了解冲突详情，运行 `flowforge design-context --suggest-id` 获取可用序号后重新生成 CR-id
 
 2. 基于阶段 2-4 收集的信息（用户诉求、intake 材料、project 策略、library 知识），将提案涉及的需求按功能域/模块快速拆解为需求树草案，写入 `notes.md` 的 `## 需求树` 章节：
 
