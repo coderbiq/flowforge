@@ -1,0 +1,105 @@
+# InsmateV4 Backend 项目配置模板
+
+wikiRoot: ff-wiki-be
+srcDirs:
+  - src/main/groovy
+description: InsmateV4 后端服务，DDD 分层架构（Groovy + Java）
+keywords:
+  - backend
+  - groovy
+  - java
+  - ddd
+  - insmatev4
+
+rules:
+  exploration:
+    strategy: |
+      DDD 分层架构: application/domain/infrastructure/client/models。
+      应用层 Cmd(命令)+Qry(查询)+DTO 分开放置，领域层 Service 不带 Domain 后缀，
+      基础设施层 Repository(继承 AbstractBaseRepository)+Converter(按层分开放置)。
+
+      以业务模型为核心逐层展开，每层有明确产出标准:
+
+      1. 领域模型层 → library/modules/<name>/model/
+         识别 Entity/ValueObject/DomainService，记录字段、关系、代码路径
+      2. 应用层 → library/modules/<name>/design/
+         识别 Cmd/Qry/DTO/ApplicationService，记录调用链
+      3. 基础设施层 → library/modules/<name>/findings/
+         识别 Repository/Converter/Client，记录实现细节
+      4. 跨模块通用模式 → library/architecture/ (仅当适用 2+ 模块)
+
+      必须遵守的 library 约定: library/conventions/data-dictionary-sync.md
+
+  design:
+    naming:
+      proposal_id: BCR{YYMMDD}{NN}
+    task_rules:
+      fields:
+        - id
+        - title
+        - type
+        - description
+        - deliverable
+        - dependencies
+    strategy: |
+      1. 设计前先参考已有类似模块的包结构和分层方式(gi-product, gi-policy)
+      2. 优先复用 library 中已有的 DDD 架构决策
+      3. 变更涉及多个 DDD 层时先画影响范围:
+         领域层变更→检查应用层; 应用层变更→检查 API 契约; 基础设施层变更→检查 Converter/Repository
+      4. 模型变更标注类型(新建/修改/删除)和上下游影响
+      5. 跨模块变更先梳理模块间依赖关系
+
+  implement:
+    task_states:
+      - pending
+      - in_progress
+      - done
+      - blocked
+    notes:
+      fields:
+        - timestamp
+        - status
+        - summary
+    strategy: |
+      ## 项目已有工具（实施前必查）
+
+      工具类: com.bytesforce.pub.MyStringUtils/MyDateUtils/MyNumberUtils/MyJsonUtils/MyCollectionUtils
+      工具类: MyBeanUtils/MyEncryptionUtils/MyExcelUtils/ParamAssert
+      API 基类: AbstractBaseAPI → runAndWrap(Closure) 统一返回值 + downloadFile()
+      Repository 基类: AbstractBaseRepository<T extends BasePoModel> → create/batchCreate/update/delete 自动填充审计字段+主键+版本+租户
+      Converter: MapStruct @Mapper(config=MapperConfigWithoutMetaClass) 接口定义 DTO/Param/DO 转换
+      分页: PageHelper / SqlBuilder
+
+      ## 禁止操作
+
+      - 不要 Controller-Service-DAO → 项目使用 DDD Cmd/Qry/DomainService 分层，混用会导致分层混乱和职责不清
+      - 不要 new Dto() 后逐字段 set → 使用 MapStruct Converter 接口，手动赋值容易遗漏字段和类型不匹配
+      - 不要在 DomainService 中直接操作数据库 → 通过 Repository，否则绕过审计字段和租户隔离
+      - 不要新建模块时不参考现有模块的包结构 → 导致项目结构不一致
+
+      ## 实施约束
+
+      1. 不跨层重构，保持 DDD 各层契约
+      2. 新增 Entity 需同步创建 model/ 文档
+      3. 遇到阻塞 → flowforge-feedback 结构化记录
+
+  archive:
+    strategy: |
+      优先提取可跨模块复用的 DDD 模式和决策;
+      模块级知识 → library/modules/<name>/;
+      系统级决策 → library/architecture/ 或 library/decisions/;
+      DDD 通用模式 → library/conventions/。
+
+  feedback:
+    strategy: |
+      测试失败或新认知 → 先分类再回流;
+      DDD 模型相关发现 → exploration findings/;
+      bug → 修复任务，不阻塞当前提案;
+      Groovy 陷阱/框架限制 → knowledge 标记后等 archive。
+
+  library:
+    requireReview: false
+    autoUpdateHistory: true
+    strategy: |
+      按 scope(system/module)和 type(design/decision/convention)组织;
+      同类知识合并而非覆盖，保留历史演进记录。

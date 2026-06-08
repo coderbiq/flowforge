@@ -455,6 +455,13 @@ if [ "$MODE" = "upgrade" ]; then
     info "project 配置已更新（旧版备份在 .flowforge/projects/.backup-*）"
   fi
 
+  # 产品级模板：升级时覆盖
+  if [ -d "$SRC_DIR/flowforge/project-templates" ]; then
+    mkdir -p "$TARGET/.flowforge/project-templates"
+    cp -f "$SRC_DIR/flowforge/project-templates/"* "$TARGET/.flowforge/project-templates/"
+    info "project 模板已更新"
+  fi
+
   # 指南：只添加不覆盖（项目可能定制过）
   for guide in "$SRC_DIR/flowforge/guides/"*.md; do
     name=$(basename "$guide")
@@ -543,6 +550,12 @@ else
   mkdir -p "$TARGET/ff-wiki/library/decisions"
   mkdir -p "$TARGET/ff-wiki/library/modules"
   cp -rn "$SCRIPT_DIR/../src/wiki-tpl/library/"* "$TARGET/ff-wiki/library/" 2>/dev/null || true
+  # 产品级模板
+  if [ -d "$SRC_DIR/flowforge/project-templates" ]; then
+    mkdir -p "$TARGET/.flowforge/project-templates"
+    cp -f "$SRC_DIR/flowforge/project-templates/"* "$TARGET/.flowforge/project-templates/"
+  fi
+
   info "Wiki 目录结构已创建 ff-wiki/"
 
   install_agents_flowforge "$TARGET" "install"
