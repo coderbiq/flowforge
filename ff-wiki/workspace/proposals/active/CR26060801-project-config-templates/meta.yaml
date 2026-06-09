@@ -1,0 +1,10 @@
+id: CR26060801
+title: 项目配置模板体系
+status: active
+created_at: 2026-06-08
+updated_at: 2026-06-08
+project: default
+modules:
+  - cli
+  - config
+  - template
