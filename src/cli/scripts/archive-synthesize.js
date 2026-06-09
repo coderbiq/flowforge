@@ -96,7 +96,7 @@ for (const group of domainGroups) {
   plan.targets.push(target);
 }
 
-plan.maturityChanges = buildMaturityChanges(plan.targets, proposalDir, wikiRoot);
+plan.maturityChanges = buildMaturityChanges(plan.targets, proposalLocation.proposalDir, proposalLocation.wikiRoot);
 
 console.log(JSON.stringify(plan, null, 2));
 
