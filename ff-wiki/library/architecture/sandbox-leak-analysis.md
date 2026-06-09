@@ -5,6 +5,8 @@ status: active
 domain:
   scope: system
   type: design
+  importance: info
+  maturity: seed
 created: 2026-06-06
 updated: 2026-06-06
 ---

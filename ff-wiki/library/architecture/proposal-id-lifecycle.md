@@ -1,12 +1,16 @@
 ---
 doc_type: architecture
 title: Proposal ID 生命周期
-status: draft
+status: active
+architecture_topic: proposal-id
+architecture_status: active
 created: 2026-06-07
 updated: 2026-06-07
 domain:
   scope: system
   type: design
+  importance: should
+  maturity: growing
 ---
 
 # Proposal ID 生命周期
