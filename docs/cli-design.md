@@ -6,10 +6,11 @@
 
 | 原则 | 说明 |
 |------|------|
-| **标准 CLI** | npm 全局安装，`flowforge init/upgrade/uninstall` |
+| **独立二进制** | Go 编译为各平台独立二进制（~10-15MB），零运行时依赖 |
 | **CLI 唯一入口** | Agent 通过 CLI 命令读写卡片，不直接操作文件 |
 | **多项目支持** | CLI 全局可用，每个项目独立配置 |
-| **版本检测** | 后台异步检查 + 启动提示 |
+| **自更新** | 从自建 CDN 拉取 manifest，原子替换二进制，支持回滚 |
+| **跨平台** | 一键安装脚本（macOS/Linux/Windows），不依赖包管理器 |
 
 ---
 
@@ -66,17 +67,16 @@ flowforge init [path] [--yes] [--template <name>]
     |
     v
 2. 环境检查
-    +-- 目标目录是否存在 package.json？（没有则提示先 npm init）
+    +-- 目标目录是否为空或已有项目？
     +-- 是否已有 .flowforge/？（已有则提示已初始化，建议 upgrade）
-    +-- Node.js 版本检查（>= 18）
     |
     v
 3. 交互式配置收集（--yes 跳过）
-    +-- 是否安装 SKILL 到 agents/？(Y/n)
+    +-- 是否安装 SKILL 到 .agents/skills/？(Y/n)
     +-- 是否需要写入 AGENTS.md 标记块？(Y/n)
     |
     v
-4. 文件生成
+4. 文件生成（从 assets/ 复制到目标项目）
     +-- 创建 .flowforge/ 目录结构
     |   +-- config.yaml（项目配置）
     |   +-- workspace/（工作区）
@@ -91,8 +91,8 @@ flowforge init [path] [--yes] [--template <name>]
     |   |   +-- findings/（发现卡片）
     |   |   +-- modules/（模块卡片）
     |   |   +-- INDEX.md（多维索引）
-    +-- 创建 agents/（SKILL 定义文件）
-    +-- 更新 AGENTS.md（标记块方式，不覆盖已有内容）
+    +-- 复制 assets/skills/ → .agents/skills/（SKILL 定义文件）
+    +-- 复制 assets/AGENTS.md → AGENTS.md（标记块方式，不覆盖已有内容）
     +-- 更新 .gitignore（添加 .flowforge/cache/）
     |
     v
@@ -181,14 +181,45 @@ context:
 
 ### 4.1 执行流程
 
+`flowforge upgrade` 有两层含义：CLI 自身升级 + 目标项目制品升级。
+
+#### CLI 自更新
+
 ```
-flowforge upgrade [--dry-run] [--version <target>]
+flowforge upgrade（无参数）
+    |
+    v
+1. 版本检查（后台异步，7 天 debounce）
+    +-- GET cdn.flowforge.dev/release-latest.txt → "v1.2.3"
+    +-- semver.Compare(latest, current) > 0 ?
+    |
+    v
+2. 获取 manifest 并验证
+    +-- GET cdn.flowforge.dev/release/v1.2.3/manifest.json
+    +-- 验证 Ed25519 签名
+    +-- 检查 min_supported_version（低于则强制升级）
+    |
+    v
+3. 下载 + 校验
+    +-- 下载对应平台的二进制 tar.gz
+    +-- 验证 SHA256
+    |
+    v
+4. 原子替换
+    +-- minio/selfupdate: 备份当前二进制为 .old
+    +-- 写入新二进制
+    +-- 失败自动回滚到 .old
+```
+
+#### 目标项目制品升级
+
+```
+flowforge upgrade --project [path]
     |
     v
 1. 版本检查
     +-- 读取 .flowforge/config.yaml 中的 version 字段
-    +-- 查询 npm registry 获取最新版本
-    +-- 使用 semver 比较版本
+    +-- 与 CLI 内置的 assets 版本比较
     |
     v
 2. 兼容性检查
@@ -202,9 +233,9 @@ flowforge upgrade [--dry-run] [--version <target>]
     +-- 备份 AGENTS.md 标记块
     |
     v
-4. 更新托管文件
+4. 更新托管文件（从 CLI 内置的 assets/ 复制）
     +-- 更新 .agents/skills/（SKILL 定义）
-    +-- 更新 schema 文件
+    +-- 更新模板文件
     +-- 保留用户定制内容（config.yaml、library 卡片）
     |
     v
@@ -220,21 +251,48 @@ flowforge upgrade [--dry-run] [--version <target>]
 CLI 启动时
     |
     v
-读取版本缓存: ~/.cache/flowforge/last-check
+读取版本缓存: ~/.flowforge/last-update-check
     |
     v
 距上次检查 > 7 天？
     |
-    +-- 是: 后台 spawn 子进程检查 npm registry
+    +-- 是: 异步 GET cdn.flowforge.dev/release-latest.txt
     |       不阻塞主命令执行
-    |       将结果写入缓存
+    |       将检查时间写入缓存
     |
-    +-- 否: 使用缓存的版本信息
+    +-- 否: 跳过检查
     |
     v
 如果检测到新版本:
     在命令输出末尾追加提示:
-    "FlowForge v2.1.0 is available (current: v2.0.0). Run `flowforge upgrade` to update."
+    "FlowForge v1.2.3 is available (current: v1.0.0). Run `flowforge upgrade` to update."
+```
+
+#### CDN 分发架构
+
+```
+发布管道:
+  git tag v1.2.3
+  → GoReleaser 编译 6 平台二进制
+  → 生成 checksums.txt + manifest.json
+  → Ed25519 签名
+  → 上传到 七牛云 OSS / 阿里云 OSS
+
+CDN 文件结构:
+  cdn.flowforge.dev/
+  ├── release-latest.txt                              → "v1.2.3"
+  └── release/v1.2.3/
+      ├── flowforge-x86_64-unknown-linux-gnu.tar.gz
+      ├── flowforge-x86_64-unknown-linux-gnu.tar.gz.sha256
+      ├── flowforge-aarch64-apple-darwin.tar.gz
+      ├── flowforge-aarch64-apple-darwin.tar.gz.sha256
+      ├── flowforge-x86_64-pc-windows-msvc.zip
+      ├── checksums.txt
+      ├── manifest.json
+      └── manifest.json.sig
+
+降级链:
+  七牛云 CDN (主) → 阿里云 OSS (备) → GitHub Releases (最后手段)
 ```
 
 ---
@@ -520,69 +578,160 @@ Level 3: Structure Note 摘要（如有剩余预算）
 ### 9.1 项目结构
 
 ```
-src/
-+-- cli/
-|   +-- index.js              # CLI 入口
-|   +-- commands/
-|   |   +-- init.js           # flowforge init
-|   |   +-- upgrade.js        # flowforge upgrade
-|   |   +-- uninstall.js      # flowforge uninstall
-|   |   +-- task/             # flowforge task <action>
-|   |   |   +-- index.js      # 子命令路由
-|   |   |   +-- create.js     # 创建任务
-|   |   |   +-- list.js       # 列出任务
-|   |   |   +-- ready.js      # 就绪任务
-|   |   |   +-- claim.js      # 认领任务
-|   |   |   +-- done.js       # 完成任务
-|   |   |   +-- block.js      # 阻塞任务
-|   |   |   +-- status.js     # 任务详情
-|   |   +-- card/             # flowforge card <action>
-|   |   |   +-- index.js      # 子命令路由
-|   |   |   +-- create.js     # 创建卡片（含文件名生成）
-|   |   |   +-- read.js       # 读取卡片
-|   |   |   +-- update.js     # 更新卡片（含文件重命名）
-|   |   |   +-- delete.js     # 删除卡片
-|   |   |   +-- list.js       # 列出卡片（文件名筛选）
-|   |   |   +-- link.js       # 添加链接
-|   |   |   +-- search.js     # 全文搜索
-|   |   |   +-- related.js    # 图遍历
-|   |   +-- context.js        # flowforge context
-|   |   +-- validate.js       # flowforge validate
-|   |   +-- config.js         # flowforge config
-|   +-- lib/
-|       +-- config.js         # cosmiconfig 配置管理
-|       +-- card-store.js     # 卡片存储引擎（文件名解析/CRUD）
-|       +-- card-naming.js    # 文件名生成与解析
-|       +-- context-aggregator.js  # 上下文聚合
-|       +-- version-checker.js     # 版本检测
-|       +-- graph.js               # 卡片链接图遍历
-|       +-- index-manager.js       # INDEX.md 管理
-+-- skills/                    # SKILL 定义
-|   +-- flowforge-design/SKILL.md
-|   +-- flowforge-implement/SKILL.md
-|   +-- ...
-+-- templates/                 # 项目模板
-    +-- default/
-    +-- minimal/
+flowforge/
+├── cmd/flowforge/main.go          # CLI 入口（< 50 行）
+├── internal/                      # 私有业务逻辑（Go 编译器保护）
+│   ├── command/                   # Cobra 命令定义
+│   │   ├── root.go                # 根命令 + Viper 配置初始化
+│   │   ├── init.go                # flowforge init
+│   │   ├── upgrade.go             # flowforge upgrade
+│   │   ├── uninstall.go           # flowforge uninstall
+│   │   ├── version.go             # flowforge version
+│   │   ├── task/                  # flowforge task <action>
+│   │   │   ├── create.go
+│   │   │   ├── list.go
+│   │   │   ├── ready.go
+│   │   │   ├── claim.go
+│   │   │   ├── done.go
+│   │   │   ├── block.go
+│   │   │   └── status.go
+│   │   ├── card/                  # flowforge card <action>
+│   │   │   ├── create.go
+│   │   │   ├── read.go
+│   │   │   ├── update.go
+│   │   │   ├── delete.go
+│   │   │   ├── list.go
+│   │   │   ├── link.go
+│   │   │   ├── search.go
+│   │   │   └── related.go
+│   │   ├── context.go             # flowforge context
+│   │   ├── validate.go            # flowforge validate
+│   │   ├── config.go              # flowforge config
+│   │   └── daemon.go              # flowforge daemon (未来)
+│   ├── config/                    # 配置加载（Viper）
+│   ├── core/                      # 核心业务
+│   │   ├── card_store.go          # 卡片 CRUD
+│   │   ├── card_naming.go         # 文件名生成与解析
+│   │   ├── context_aggregator.go  # 上下文聚合
+│   │   ├── graph.go               # 卡片链接图遍历
+│   │   └── index_manager.go       # INDEX.md 管理
+│   ├── update/                    # 自更新引擎
+│   │   ├── checker.go             # 版本检查（HTTP manifest）
+│   │   ├── manifest.go            # Manifest 解析
+│   │   ├── apply.go               # 二进制替换（minio/selfupdate）
+│   │   └── verify.go              # SHA256 + Ed25519 签名验证
+│   ├── daemon/                    # 守护进程（未来）
+│   └── version/                   # 版本注入（ldflags）
+│       └── version.go
+├── assets/                        # 部署制品（复制到目标项目）
+│   ├── skills/                    # → .agents/skills/
+│   ├── templates/                 # → .flowforge/templates/
+│   ├── wiki/                      # → wiki 根目录
+│   └── AGENTS.md                  # → 目标项目根目录
+├── scripts/
+│   ├── build.sh                   # 交叉编译
+│   ├── release.sh                 # 打包 + 签名 + 上传
+│   ├── install.sh                 # macOS/Linux 安装脚本
+│   └── install.ps1                # Windows 安装脚本
+├── go.mod
+├── go.sum
+└── Makefile
 ```
 
-### 9.2 依赖清单
+### 9.2 Go 依赖清单
 
-```json
-{
-  "dependencies": {
-    "commander": "^12.0.0",
-    "cosmiconfig": "^9.0.0",
-    "@clack/prompts": "^0.8.0",
-    "semver": "^7.6.0",
-    "ejs": "^3.1.0",
-    "chalk": "^5.3.0",
-    "ora": "^8.0.0",
-    "js-yaml": "^4.1.0",
-    "glob": "^10.0.0"
-  },
-  "devDependencies": {
-    "vitest": "^2.0.0"
-  }
+```go
+// go.mod
+module flowforge
+
+go 1.24
+
+require (
+    github.com/spf13/cobra v1.10.2       // CLI 框架
+    github.com/spf13/viper v1.21.0       // 配置管理
+    github.com/Masterminds/semver/v3     // 版本比较
+    github.com/minio/selfupdate          // 二进制原子替换
+    gopkg.in/yaml.v3                     // YAML 解析
+    golang.org/x/crypto                  // Ed25519 签名验证
+)
+```
+
+### 9.3 版本注入
+
+通过 `-ldflags` 在编译时注入版本信息：
+
+```go
+// internal/version/version.go
+var injected = "dev"  // GoReleaser / Makefile 通过 -ldflags 注入
+
+var Version = resolve(injected)
+
+func resolve(ldflagsVal string) string {
+    if ldflagsVal != "" && ldflagsVal != "dev" {
+        return ldflagsVal
+    }
+    // go install @version 时从 BuildInfo 获取
+    if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+        return info.Main.Version
+    }
+    return "dev"
+}
+```
+
+编译时注入：
+```bash
+go build -ldflags="-s -w -X flowforge/internal/version.injected=v1.2.3" \
+    -trimpath -o bin/flowforge ./cmd/flowforge
+```
+
+### 9.4 跨平台编译
+
+```bash
+# 6 个目标平台
+targets=(
+    "linux/amd64"      # → flowforge-x86_64-unknown-linux-gnu.tar.gz
+    "linux/arm64"      # → flowforge-aarch64-unknown-linux-gnu.tar.gz
+    "darwin/amd64"     # → flowforge-x86_64-apple-darwin.tar.gz
+    "darwin/arm64"     # → flowforge-aarch64-apple-darwin.tar.gz
+    "windows/amd64"    # → flowforge-x86_64-pc-windows-msvc.zip
+)
+
+for target in "${targets[@]}"; do
+    IFS='/' read -r goos goarch <<< "$target"
+    GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 \
+        go build -ldflags="$LDFLAGS" -trimpath \
+        -o "dist/${VERSION}/flowforge" ./cmd/flowforge
+done
+```
+
+### 9.5 自更新流程
+
+```go
+// internal/update/checker.go
+func (c *Checker) Check() (*Manifest, *Artifact, error) {
+    // 1. debounce（7 天）
+    if c.recentlyChecked() { return nil, nil, nil }
+
+    // 2. 获取最新版本号
+    latest, _ := http.Get(c.cdnBaseURL + "/release-latest.txt")
+
+    // 3. 版本比较
+    if !semver.NewVersion(latest).GreaterThan(current) { return nil, nil, nil }
+
+    // 4. 获取 manifest 并验证 Ed25519 签名
+    manifest := c.fetchAndVerifyManifest(latest)
+
+    // 5. 找到当前平台的 artifact
+    artifact := manifest.ArtifactFor(runtime.GOOS, runtime.GOARCH)
+
+    return manifest, artifact, nil
+}
+
+// internal/update/apply.go
+func ApplyUpdate(artifact *Artifact) error {
+    // 1. 下载 + 边下载边计算 SHA256
+    // 2. 验证 SHA256
+    // 3. minio/selfupdate 原子替换（自动备份 .old，失败回滚）
+    return selfupdate.Apply(newBinary, selfupdate.Options{})
 }
 ```

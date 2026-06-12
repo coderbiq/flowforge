@@ -35,14 +35,20 @@ FlowForge 采用 **Agent-First, Human-Readable** 的双层设计：
 
 ## 2. 核心设计决策
 
-### 2.1 决策一：标准 CLI 工具
+### 2.1 决策一：Go 独立二进制 CLI
 
-标准 npm 全局 CLI 工具，支持初始化、升级、卸载：
+编译为各平台独立二进制（~10-15MB），零运行时依赖，用户无需安装 Node.js：
 
 ```bash
-npm install -g @flowforge/cli    # 全局安装
+# 一键安装（macOS/Linux）
+curl -fsSL https://get.flowforge.dev | sh
+
+# 一键安装（Windows）
+irm https://get.flowforge.dev/install.ps1 | iex
+
+# 使用
 flowforge init                   # 在目标项目中初始化
-flowforge upgrade                # 升级
+flowforge upgrade                # 自更新（从自建 CDN）
 flowforge uninstall              # 卸载
 ```
 
@@ -50,11 +56,13 @@ flowforge uninstall              # 卸载
 
 | 组件 | 选择 | 理由 |
 |------|------|------|
-| CLI 框架 | Commander.js | 5-15 个子命令的最佳平衡，API 稳定 |
-| 配置搜索 | cosmiconfig | ESLint/Prettier 验证过的多层配置方案 |
-| 用户交互 | @clack/prompts | 轻量、美观的交互式向导 |
-| 版本管理 | semver | 业界标准 |
-| 模板引擎 | ejs | 根据用户选择渲染不同配置 |
+| 语言 | Go | 零依赖、跨平台编译简单、~10-15MB 二进制 |
+| CLI 框架 | Cobra + Viper | Go 社区标准，命令路由 + 配置管理 |
+| 版本管理 | Masterminds/semver | Go 生态标准 |
+| 自更新 | minio/selfupdate | 原子替换 + 回滚，经 MinIO 生产验证 |
+| 版本发现 | 自建 HTTP JSON manifest | 不依赖 GitHub，国内 CDN 加速 |
+| 分发 | 七牛云/阿里云 OSS + CDN | 国内访问最快 |
+| 发布工具 | GoReleaser | 多平台编译 + checksum + 签名 |
 
 **详细设计** -> [CLI 架构设计](./cli-design.md)
 
@@ -152,7 +160,7 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 ```
 +---------------------------------------------------+
 |                  FlowForge CLI                      |
-|  (@flowforge/cli -- npm global install)             |
+|  (Go binary -- 独立二进制，零依赖)                    |
 +---------------------------------------------------+
 |                                                     |
 |  +---------+  +----------+  +------------------+   |
@@ -170,6 +178,13 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 |  |  | Renderer | | Aggreg.  | |   Traversal |    |  |
 |  |  +----------+ +----------+ +-------------+    |  |
 |  +------------------------------------------------+  |
+|                                                     |
+|  +------------------------------------------------+ |
+|  |              Update Engine                      | |
+|  |  - HTTP manifest 版本发现（自建 CDN）             | |
+|  |  - SHA256 + Ed25519 签名验证                     | |
+|  |  - minio/selfupdate 原子替换 + 回滚               | |
+|  +------------------------------------------------+ |
 |                                                     |
 +---------------------------------------------------+
                         |
@@ -227,14 +242,18 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 - wiki 内容（workspace/library）路径由 `config.yaml` 中的 `wikiRoot` 指定
 - SKILL 部署到 `.agents/skills/`，符合 OpenCode 标准 skill 格式
 
-### 3.2 模块划分
+### 3.2 模块划分（Go 包结构）
 
-| 模块 | 职责 | 包名 |
-|------|------|------|
-| CLI | 命令路由、参数解析、输出格式化 | `@flowforge/cli` |
-| Core | 配置管理、卡片引擎、文件名解析、图遍历 | `@flowforge/core` |
-| SKILLs | Agent 触发入口定义 | `@flowforge/skills` |
-| Templates | 项目模板、配置模板 | `@flowforge/templates` |
+| 模块 | 职责 | Go 包路径 |
+|------|------|-----------|
+| CLI 入口 | 依赖注入、启动 | `cmd/flowforge/` |
+| 命令路由 | Cobra 命令定义、参数解析 | `internal/command/` |
+| 配置管理 | Viper 配置加载、多层配置合并 | `internal/config/` |
+| 核心引擎 | 卡片 CRUD、文件名解析、图遍历 | `internal/core/` |
+| 自更新 | HTTP manifest 版本发现、二进制替换 | `internal/update/` |
+| 守护进程 | 后台进程管理（未来） | `internal/daemon/` |
+| 版本注入 | ldflags 版本信息 | `internal/version/` |
+| 部署制品 | SKILL、模板、wiki 规范 | `assets/` |
 
 ---
 
@@ -327,7 +346,8 @@ Knowledge card network accumulates for future proposals
 
 ### 行业实践
 
-- CLI 设计：Commander.js, oclif, Vue CLI, ESLint --init, Husky init
+- CLI 设计：Cobra (Go), oclif (Node.js), Vue CLI, ESLint --init, Husky init
+- 自更新：minio/selfupdate, GoReleaser, rustup, Deno install script
 - 知识管理：Zettelkasten (Luhmann), Obsidian, Logseq
 - 上下文管理：Anthropic (Compaction, Context Editing), Cursor (Priompt), Claude Code (JIT)
 
