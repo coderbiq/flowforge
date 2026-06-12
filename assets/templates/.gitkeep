@@ -1,0 +1,5 @@
+# FlowForge Templates
+
+卡片模板文件将放置在此目录。
+
+部署时复制到目标项目的 `.flowforge/templates/` 目录。

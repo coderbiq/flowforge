@@ -1,0 +1,5 @@
+# FlowForge Skills
+
+SKILL 文件将放置在此目录。
+
+每个 SKILL 文件定义一个 Agent 技能，部署时复制到目标项目的 `.agents/skills/` 目录。
