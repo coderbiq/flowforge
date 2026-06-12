@@ -1,8 +1,0 @@
-id: CR26060701
-title: 加强 Proposal ID 唯一性校验
-status: active
-created_at: 2026-06-07
-updated_at: 2026-06-07T01:16:02.968Z
-latest_progress: "实施完成：新增 checkProposalId/suggestProposalId [实施 5/5]，全量测试 533 passed 0 failed，等待归档"
-project: default
-modules: []
