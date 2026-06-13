@@ -25,7 +25,7 @@ func TestCardSearchScopesAndFilters(t *testing.T) {
 	workspaceCard := core.NewCard(core.CardTypeDesign, "Keyword from workspace")
 	workspaceCard.ID = "DES-work-1"
 	workspaceCard.Status = core.CardStatusActive
-	workspaceCard.Tags = []string{"searchable"}
+	workspaceCard.Tags = []string{"searchable", "shared"}
 	workspaceCard.Domain = "workspace-domain"
 	workspaceCard.Body = "This body mentions UniqueKeyword only here."
 	if _, err := store.CreateCard(workspaceCard, "CR26061301"); err != nil {
@@ -35,7 +35,7 @@ func TestCardSearchScopesAndFilters(t *testing.T) {
 	libraryCard := core.NewCard(core.CardTypeConvention, "Keyword from library")
 	libraryCard.ID = "CONV-lib-1"
 	libraryCard.Status = core.CardStatusActive
-	libraryCard.Tags = []string{"library-tag"}
+	libraryCard.Tags = []string{"library-tag", "shared"}
 	libraryCard.Domain = "library-domain"
 	libraryCard.Body = "Library body with UniqueKeyword and search text."
 	if _, err := store.CreateCard(libraryCard, ""); err != nil {
@@ -45,31 +45,63 @@ func TestCardSearchScopesAndFilters(t *testing.T) {
 	otherCard := core.NewCard(core.CardTypeTask, "Different topic")
 	otherCard.ID = "TASK-work-2"
 	otherCard.Status = core.CardStatusReady
-	otherCard.Body = "No match here."
+	otherCard.Tags = []string{"other-tag"}
+	otherCard.Domain = "other-domain"
+	otherCard.Body = "UniqueKeyword also appears here."
 	if _, err := store.CreateCard(otherCard, "CR26061301"); err != nil {
 		t.Fatalf("creating other card failed: %v", err)
 	}
 
-	cmd := newCardSearchCmd()
-	var out bytes.Buffer
-	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"UniqueKeyword", "--scope", "workspace", "--type", "design", "--limit", "5"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("card search failed: %v", err)
+	cases := []struct {
+		name       string
+		args       []string
+		wantIDs    []string
+		wantMatch  string
+		wantNotIDs []string
+	}{
+		{
+			name:       "status filter",
+			args:       []string{"UniqueKeyword", "--scope", "all", "--status", "active", "--limit", "5"},
+			wantIDs:    []string{"CONV-lib-1", "DES-work-1"},
+			wantMatch:  "Match: matched body | status=active",
+			wantNotIDs: []string{"TASK-work-2"},
+		},
+		{
+			name:       "domain filter",
+			args:       []string{"UniqueKeyword", "--scope", "all", "--domain", "workspace-domain", "--limit", "5"},
+			wantIDs:    []string{"DES-work-1"},
+			wantMatch:  "Match: matched body | domain=workspace-domain",
+			wantNotIDs: []string{"CONV-lib-1", "TASK-work-2"},
+		},
+		{
+			name:       "tag filter",
+			args:       []string{"UniqueKeyword", "--scope", "all", "--tag", "missing, searchable", "--limit", "5"},
+			wantIDs:    []string{"DES-work-1"},
+			wantMatch:  "Match: matched body | tag=searchable",
+			wantNotIDs: []string{"CONV-lib-1", "TASK-work-2"},
+		},
 	}
 
-	text := out.String()
-	if !strings.Contains(text, "DES-work-1") {
-		t.Fatalf("expected workspace design card in output:\n%s", text)
-	}
-	if strings.Contains(text, "CONV-lib-1") {
-		t.Fatalf("expected library card to be excluded from workspace search:\n%s", text)
-	}
-	if !strings.Contains(text, "Match: matched body") {
-		t.Fatalf("expected match reason in output:\n%s", text)
-	}
-	if strings.Contains(text, "UniqueKeyword only here") || strings.Contains(text, "Library body with UniqueKeyword") {
-		t.Fatalf("expected search output to omit full body text:\n%s", text)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := runCardSearchCommand(t, tc.args...)
+			for _, id := range tc.wantIDs {
+				if !strings.Contains(out, id) {
+					t.Fatalf("expected output to include %s:\n%s", id, out)
+				}
+			}
+			for _, id := range tc.wantNotIDs {
+				if strings.Contains(out, id) {
+					t.Fatalf("expected output to exclude %s:\n%s", id, out)
+				}
+			}
+			if !strings.Contains(out, tc.wantMatch) {
+				t.Fatalf("expected output to include match reason %q:\n%s", tc.wantMatch, out)
+			}
+			if strings.Contains(out, "UniqueKeyword only here.") || strings.Contains(out, "Library body with UniqueKeyword") {
+				t.Fatalf("expected search output to omit full body text:\n%s", out)
+			}
+		})
 	}
 }
 
@@ -107,4 +139,40 @@ func TestCardSearchAllScopeIncludesLibraryCards(t *testing.T) {
 	if !strings.Contains(out.String(), "CONV-all-1") {
 		t.Fatalf("expected all-scope search to find library card:\n%s", out.String())
 	}
+}
+
+func TestCardSearchInvalidTypeRejected(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+
+	cmd := newCardSearchCmd()
+	cmd.SetArgs([]string{"UniqueKeyword", "--type", "not-a-type"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected invalid type to fail")
+	}
+	if !strings.Contains(err.Error(), "invalid card type: not-a-type") {
+		t.Fatalf("expected invalid type error, got: %v", err)
+	}
+}
+
+func runCardSearchCommand(t *testing.T, args ...string) string {
+	t.Helper()
+
+	cmd := newCardSearchCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs(args)
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("card search failed: %v", err)
+	}
+	return out.String()
 }

@@ -36,6 +36,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newCardCmd())
 	cmd.AddCommand(newTaskCmd())
 	cmd.AddCommand(newProposalCmd())
+	cmd.AddCommand(newIndexCmd())
 	cmd.AddCommand(newLibraryCmd())
 	cmd.AddCommand(newContextCmd())
 	cmd.AddCommand(newLogCmd())

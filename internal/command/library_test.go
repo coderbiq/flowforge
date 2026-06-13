@@ -77,14 +77,20 @@ func TestLibrarySuggestRanksAndFiltersCards(t *testing.T) {
 	}
 
 	text := out.String()
-	if !strings.Contains(text, "CONV-lib-1") {
-		t.Fatalf("expected convention card in output:\n%s", text)
-	}
-	if !strings.Contains(text, "MOD-lib-1") {
-		t.Fatalf("expected module card in output:\n%s", text)
-	}
-	if !strings.Contains(text, "constrains") {
-		t.Fatalf("expected constrains relation in output:\n%s", text)
+	for _, want := range []string{
+		"## Library Suggestions",
+		"| ID | Type | Title | Status | Importance | Domain | Score | SuggestedRelation |",
+		"CONV-lib-1",
+		"MOD-lib-1",
+		"constrains",
+		"## Match Reasons",
+		"## Recommended Reads",
+		"flowforge card read CONV-lib-1 --summary",
+		"## Not Included",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("library suggest output missing %q:\n%s", want, text)
+		}
 	}
 	if strings.Contains(text, "DES-lib-2") {
 		t.Fatalf("expected deprecated card to be omitted:\n%s", text)

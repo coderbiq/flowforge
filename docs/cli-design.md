@@ -127,6 +127,12 @@ projects: []
 
 详见 [索引与缓存设计](./index-management.md)。
 
+### 3.7 `flowforge library` 命令设计
+
+第一版提供 `flowforge library suggest --for <card-id>`，用于从当前焦点卡推荐可能相关的 library 卡片。输出只包含候选摘要、匹配原因、建议关系和后续 `card read --summary` 命令，不展开卡片全文。
+
+MVP 使用本地卡片扫描和关键词打分，不依赖 embedding；后续可切换到 sqlite FTS / BM25，但 CLI 输出契约保持稳定。
+
 ---
 
 ## 4. `flowforge upgrade` 命令设计
@@ -399,8 +405,8 @@ flowforge card
 +-- unlink <from-id> <to-id>
 |       # 移除链接关系
 |
-+-- search <query> [--scope workspace|library|all] [--type <type>] [--limit <n>]
-|       # 搜索卡片索引和全文索引，默认返回摘要与匹配理由
++-- search <query> [--scope workspace|library|all] [--type <type>] [--status <status>] [--domain <domain>] [--tag <tags>] [--limit <n>]
+|       # 先按 query 命中，再按 type/status/domain/tag 缩小范围，默认只返回摘要与匹配理由
 ```
 
 ### 7.2 定点读取
@@ -447,15 +453,15 @@ $ flowforge card list --type task
 
 # 列出依赖某张卡片的所有卡片
 $ flowforge card dependents DES-2x9k3m00-5z0o4p3s
-# 通过 .flowforge/cache/flowforge.sqlite 快速查找
+# 扫描卡片链接关系；sqlite 反链查询由 index backlinks 提供
 
 # 列出某类型 + 某状态
 $ flowforge card list --type task --status ready
 # 扫描 + frontmatter status 字段
 
-# 在 library 中搜索候选规范或历史设计；--type/--types 都接受逗号分隔类型
-$ flowforge card search "分页 查询 条件" --scope library --type convention,module,design --limit 10
-# 返回候选卡片摘要、tags、matchedBy、suggestedRelation，不直接输出全文
+# 在 library 中搜索候选规范或历史设计；--type/--types、--tag 都接受逗号分隔值
+$ flowforge card search "分页 查询 条件" --scope library --type convention,module,design --status active --tag search,query --limit 10
+# 返回候选卡片摘要、status/domain/tags 命中原因，不直接输出全文
 ```
 
 ### 7.5 链接类型
@@ -496,46 +502,45 @@ $ flowforge card search "分页 查询 条件" --scope library --type convention
 ### 8.1 按场景裁剪
 
 ```
-flowforge context <mode> [--proposal <id>] [--task <id>] [--cards <ids>] [--max-tokens <n>]
+flowforge context <mode> [--proposal <id>] [--task <id>] [--cards <ids>]
 
 mode:
   proposal     # 输出 proposal 根卡、需求索引树入口、活跃任务摘要
   task         # 输出单个任务的目标/依据/约束卡，以及反链证据摘要
-  feedback     # 输出问题相关卡、反链日志、待跟踪任务
-  archive      # 输出 proposal 归档候选、library 对比与合成线索
-  search       # 基于查询条件输出候选卡片摘要
+  feedback     # 后续：输出问题相关卡、反链日志、待跟踪任务
+  archive      # 后续：输出 proposal 归档候选、library 对比与合成线索
+  search       # 后续：基于查询条件输出候选卡片摘要
 ```
+
+当前 MVP 已实现：
+
+- `context proposal`：输出 proposal root、需求索引、焦点卡、反链证据和深读建议。
+- `context task --task <task-id>`：输出任务摘要、任务直接链接卡、指向任务的 log/finding/design/decision 反链证据，以及后续 `card read --summary` 深读命令。
 
 ### 8.2 输出格式
 
 ```markdown
-## Context for: TASK-2x9k3m00-i-7b2q6r5u
+## Task Context: TASK-2x9k3m00-i-7b2q6r5u
 
-### Task
-| ID | Type | Title | Status |
-|----|------|-------|--------|
-| TASK-2x9k3m00-i-7b2q6r5u | task | 实现 init 命令 | in_progress |
+- Title: 实现 init 命令
+- Status: in_progress
+- Proposal: CR26061201
 
-### Stable Context Cards
-| ID | Type | Title | Importance |
-|----|------|-------|------------|
-| REQ-2x9k3m00-3x8m2n1q | requirement | 支持 CLI 全局安装 | must |
-| DES-2x9k3m00-6a1p5q4t | design | init 命令参数设计 | should |
-| DEC-2x9k3m00-5z0o4p3s | decision | 使用 Commander.js | should |
+## Stable Context Cards
+| ID | Type | Title | Status | Summary |
+|----|------|-------|--------|---------|
+| REQ-2x9k3m00-3x8m2n1q | requirement | 支持 CLI 全局安装 | active | 支持 CLI 全局安装 |
 
-### Evidence From Backlinks
-| ID | Type | Title | Relation |
-|----|------|-------|----------|
-| LOG-2x9k3m00-8c3r7s6v | log | 创建 Cobra 子命令 | records |
-| FIND-2x8k5m6s-8c4s9t7v | finding | init 已存在目录处理 | discovers |
+## Evidence From Backlinks
+| ID | Type | Title | Status | Summary |
+|----|------|-------|--------|---------|
+| LOG-2x9k3m00-8c3r7s6v | log | 创建 Cobra 子命令 | done | 创建 Cobra 子命令 |
 
-### Token Budget
-- Used: 3,200 / 20,000
-- Available for deep read: 16,800
+## Warnings
+- None
 
-### Commands
-- Read full card: flowforge card read <card-id>
-- Find related: flowforge card related <card-id>
+## Deep Read Commands
+- flowforge card read REQ-2x9k3m00-3x8m2n1q --summary
 ```
 
 ### 8.3 上下文聚合策略
@@ -572,15 +577,13 @@ flowforge library
 +-- suggest --for <card-id> [--types <types>] [--relation <relation>] [--limit <n>]
 |       # 基于某张需求/任务/设计卡推荐 library 候选卡片摘要
 |
-+-- search <query> [--types <types>] [--domain <domain>] [--tags <tags>] [--limit <n>]
-|       # 等价于 card search --scope library 的快捷入口
 ```
 
 ### 9.2 输出约束
 
 `library suggest` 默认只输出候选摘要，不输出全文：
 
-当前 MVP 不依赖 sqlite 索引，直接扫描当前项目 library 卡片；后续 `index rebuild` 完成后可替换为索引查询。
+当前 MVP 不依赖 sqlite 索引，直接扫描当前项目 library 卡片；后续索引查询实现完成后可替换内部查询方式。
 
 | 字段 | 说明 |
 |------|------|

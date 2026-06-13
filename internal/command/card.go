@@ -790,9 +790,12 @@ func newCardUnlinkCmd() *cobra.Command {
 
 func newCardSearchCmd() *cobra.Command {
 	var (
-		scope string
-		types string
-		limit int
+		scope  string
+		types  string
+		status string
+		domain string
+		tag    string
+		limit  int
 	)
 
 	cmd := &cobra.Command{
@@ -810,7 +813,7 @@ func newCardSearchCmd() *cobra.Command {
 				return err
 			}
 
-			cards, err := searchCards(store, query, scope, types, limit)
+			cards, err := searchCards(store, query, scope, types, status, domain, tag, limit)
 			if err != nil {
 				return err
 			}
@@ -840,6 +843,9 @@ func newCardSearchCmd() *cobra.Command {
 	cmd.Flags().StringVar(&scope, "scope", "all", "Search scope (library/workspace/all)")
 	cmd.Flags().StringVar(&types, "type", "", "Comma-separated card types to include")
 	cmd.Flags().StringVar(&types, "types", "", "Comma-separated card types to include")
+	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
+	cmd.Flags().StringVar(&domain, "domain", "", "Filter by domain")
+	cmd.Flags().StringVar(&tag, "tag", "", "Comma-separated tags; match any tag")
 	cmd.Flags().IntVar(&limit, "limit", 10, "Maximum number of results")
 
 	return cmd
@@ -850,7 +856,7 @@ type cardSearchResult struct {
 	MatchReason string
 }
 
-func searchCards(store *core.CardStore, query, scope, types string, limit int) ([]cardSearchResult, error) {
+func searchCards(store *core.CardStore, query, scope, types, status, domain, tag string, limit int) ([]cardSearchResult, error) {
 	if limit <= 0 {
 		limit = 10
 	}
@@ -858,13 +864,16 @@ func searchCards(store *core.CardStore, query, scope, types string, limit int) (
 	typeFilter := map[core.CardType]bool{}
 	if strings.TrimSpace(types) != "" {
 		for _, raw := range strings.Split(types, ",") {
-			ct := core.CardType(strings.TrimSpace(raw))
+			trimmed := strings.TrimSpace(raw)
+			ct := core.CardType(trimmed)
 			if !ct.Valid() {
-				return nil, fmt.Errorf("invalid card type: %s", raw)
+				return nil, fmt.Errorf("invalid card type: %s", trimmed)
 			}
 			typeFilter[ct] = true
 		}
 	}
+
+	tagFilter := splitNonEmptyCSV(tag)
 
 	dirs, err := searchScopes(store, scope)
 	if err != nil {
@@ -889,11 +898,16 @@ func searchCards(store *core.CardStore, query, scope, types string, limit int) (
 
 	results := make([]cardSearchResult, 0, len(cards))
 	for _, card := range cards {
-		if len(typeFilter) > 0 && !typeFilter[card.Type] {
-			continue
-		}
 		if match, ok := matchCardQuery(card, query); ok {
-			results = append(results, cardSearchResult{Card: card, MatchReason: match})
+			filterReason, ok := matchCardSearchFilters(card, typeFilter, status, domain, tagFilter)
+			if !ok {
+				continue
+			}
+			reasonParts := []string{match}
+			if filterReason != "" {
+				reasonParts = append(reasonParts, filterReason)
+			}
+			results = append(results, cardSearchResult{Card: card, MatchReason: strings.Join(reasonParts, " | ")})
 		}
 	}
 
@@ -948,6 +962,64 @@ func matchCardQuery(card *core.Card, query string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func matchCardSearchFilters(card *core.Card, typeFilter map[core.CardType]bool, status, domain string, tagFilter []string) (string, bool) {
+	if len(typeFilter) > 0 && !typeFilter[card.Type] {
+		return "", false
+	}
+	if strings.TrimSpace(status) != "" && !strings.EqualFold(string(card.Status), strings.TrimSpace(status)) {
+		return "", false
+	}
+	if strings.TrimSpace(domain) != "" && !strings.EqualFold(card.Domain, strings.TrimSpace(domain)) {
+		return "", false
+	}
+
+	reasons := make([]string, 0, 4)
+	if strings.TrimSpace(status) != "" {
+		reasons = append(reasons, "status="+strings.TrimSpace(status))
+	}
+	if strings.TrimSpace(domain) != "" {
+		reasons = append(reasons, "domain="+strings.TrimSpace(domain))
+	}
+	if len(tagFilter) > 0 {
+		matchedTag, ok := matchCardTagFilter(card.Tags, tagFilter)
+		if !ok {
+			return "", false
+		}
+		reasons = append(reasons, "tag="+matchedTag)
+	}
+
+	return strings.Join(reasons, " | "), true
+}
+
+func matchCardTagFilter(cardTags, tagFilter []string) (string, bool) {
+	if len(tagFilter) == 0 {
+		return "", true
+	}
+	for _, want := range tagFilter {
+		for _, tag := range cardTags {
+			if strings.EqualFold(strings.TrimSpace(tag), want) {
+				return want, true
+			}
+		}
+	}
+	return "", false
+}
+
+func splitNonEmptyCSV(value string) []string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	filtered := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			filtered = append(filtered, trimmed)
+		}
+	}
+	return filtered
 }
 
 func getOutputFormat() string {

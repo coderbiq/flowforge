@@ -52,6 +52,24 @@ CREATE TABLE IF NOT EXISTS runtime_state (
 	key TEXT PRIMARY KEY,
 	value TEXT NOT NULL,
 	updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS card_index (
+	id TEXT PRIMARY KEY,
+	type TEXT NOT NULL,
+	title TEXT NOT NULL,
+	status TEXT NOT NULL,
+	importance TEXT NOT NULL,
+	source TEXT NOT NULL,
+	domain TEXT NOT NULL,
+	file_path TEXT NOT NULL,
+	updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS card_link (
+	from_id TEXT NOT NULL,
+	to_id TEXT NOT NULL,
+	relation TEXT NOT NULL
 );`
 
 	if _, err := s.db.Exec(query); err != nil {

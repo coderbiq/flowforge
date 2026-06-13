@@ -200,7 +200,13 @@ flowforge context proposal --proposal <id> --task <task-id>
 
 ### 4.2 候选来源
 
-第一版候选来自 sqlite 派生索引：
+当前 MVP 候选来自 CLI 对 library 卡片的文件扫描和关键词打分：
+
+- 焦点卡 title、domain、tags、body 中的关键词。
+- 候选卡 title、domain、tags、body 的命中情况。
+- 候选卡 type、status、importance。
+
+后续可把内部候选来源替换为 sqlite 派生索引：
 
 - `card_index`：title、summary、type、status、importance、tags、domain。
 - `card_search`：FTS/BM25 关键词命中。
@@ -275,7 +281,7 @@ Agent 拿到候选后：
 
 - 默认只返回摘要、匹配字段、命中片段的短摘要。
 - 不输出全文。
-- 必须支持按 type、status、domain、tag 缩小范围。
+- 必须支持按 type、status、domain、tag 缩小范围；第一版 `--tag` 接受逗号分隔并按任意 tag 命中。
 - 如果结果过多，应提示缩小查询，而不是返回大量卡片。
 
 ## 6. `card read`
@@ -408,4 +414,3 @@ analysis task 进入 ready 必须满足：
 - implementation task 可以只有标题进入 ready。
 - log / finding 大量回写到 task 或 root，导致中心卡膨胀。
 - open question 只出现在对话中，没有落到卡片或 inspect 输出。
-

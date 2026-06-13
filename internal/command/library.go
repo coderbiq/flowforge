@@ -88,6 +88,7 @@ type librarySuggestion struct {
 func defaultLibrarySuggestionTypes() []core.CardType {
 	return []core.CardType{
 		core.CardTypeConvention,
+		core.CardTypeDecision,
 		core.CardTypeModule,
 		core.CardTypeDesign,
 		core.CardTypeFinding,
@@ -135,10 +136,7 @@ func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map
 			continue
 		}
 
-		suggestedRelation := "related"
-		if strings.EqualFold(strings.TrimSpace(relation), "constrains") && constrainsPreferredType(card.Type) {
-			suggestedRelation = "constrains"
-		}
+		suggestedRelation := suggestedLibraryRelation(card.Type, relation)
 
 		suggestions = append(suggestions, librarySuggestion{
 			Card:              card,
@@ -169,6 +167,25 @@ func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map
 	}
 
 	return suggestions, nil
+}
+
+func suggestedLibraryRelation(cardType core.CardType, requested string) string {
+	requested = strings.ToLower(strings.TrimSpace(requested))
+	if requested != "" {
+		if requested == "constrains" && constrainsPreferredType(cardType) {
+			return "constrains"
+		}
+		return requested
+	}
+
+	switch cardType {
+	case core.CardTypeConvention, core.CardTypeModule:
+		return "constrains"
+	case core.CardTypeDecision, core.CardTypeDesign, core.CardTypeFinding:
+		return "references"
+	default:
+		return "related"
+	}
 }
 
 func constrainsPreferredType(cardType core.CardType) bool {
@@ -287,17 +304,51 @@ func matchedTerms(text string, terms []string) []string {
 func writeLibrarySuggestions(out io.Writer, focus *core.Card, candidates []librarySuggestion) {
 	fmt.Fprintf(out, "## Library Suggestions\n\n")
 	fmt.Fprintf(out, "For: %s\n\n", focus.ID)
-	fmt.Fprintf(out, "| ID | Type | Title | Status | Importance | SuggestedRelation | MatchReason |\n")
-	fmt.Fprintf(out, "|----|------|-------|--------|------------|-------------------|-------------|\n")
+	fmt.Fprintf(out, "| ID | Type | Title | Status | Importance | Domain | Score | SuggestedRelation |\n")
+	fmt.Fprintf(out, "|----|------|-------|--------|------------|--------|-------|-------------------|\n")
 	for _, candidate := range candidates {
-		fmt.Fprintf(out, "| %s | %s | %s | %s | %s | %s | %s |\n",
+		fmt.Fprintf(out, "| %s | %s | %s | %s | %s | %s | %d | %s |\n",
 			candidate.Card.ID,
 			candidate.Card.Type,
-			candidate.Card.Title,
+			escapeTableCell(candidate.Card.Title),
 			candidate.Card.Status,
 			candidate.Card.Importance,
+			escapeTableCell(candidate.Card.Domain),
+			candidate.Score,
 			candidate.SuggestedRelation,
-			candidate.MatchReason,
 		)
 	}
+
+	fmt.Fprintln(out, "\n## Match Reasons")
+	fmt.Fprintln(out)
+	if len(candidates) == 0 {
+		fmt.Fprintln(out, "- No candidates matched the focus card.")
+	} else {
+		fmt.Fprintln(out, "| ID | matchedBy | Reason |")
+		fmt.Fprintln(out, "|----|-----------|--------|")
+		for _, candidate := range candidates {
+			fmt.Fprintf(out, "| %s | keyword | %s |\n",
+				candidate.Card.ID,
+				escapeTableCell(candidate.MatchReason),
+			)
+		}
+	}
+
+	fmt.Fprintln(out, "\n## Recommended Reads")
+	fmt.Fprintln(out)
+	if len(candidates) == 0 {
+		fmt.Fprintln(out, "- None")
+	} else {
+		fmt.Fprintln(out, "| ID | Section | Reason |")
+		fmt.Fprintln(out, "|----|---------|--------|")
+		for _, candidate := range candidates {
+			fmt.Fprintf(out, "| %s | summary | Validate before linking with `flowforge card read %s --summary` |\n",
+				candidate.Card.ID,
+				candidate.Card.ID,
+			)
+		}
+	}
+
+	fmt.Fprintln(out, "\n## Not Included")
+	fmt.Fprintln(out, "- Deprecated and superseded cards are omitted by default.")
 }
