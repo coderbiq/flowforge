@@ -106,6 +106,112 @@ func TestLibrarySuggestRanksAndFiltersCards(t *testing.T) {
 	}
 }
 
+func TestLibraryFacetsClassifyAndSuggestByFacet(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	store := testCardStore(t, tmpDir)
+
+	serviceRule := core.NewCard(core.CardTypeConvention, "Service page query rule")
+	serviceRule.ID = "CONV-service-page-query"
+	serviceRule.Status = core.CardStatusActive
+	serviceRule.Importance = core.ImportanceMust
+	serviceRule.Tags = []string{"layer:service", "scenario:page-query"}
+	serviceRule.Body = "Service page-query implementations validate filters before repository calls."
+	if _, err := store.CreateCard(serviceRule, ""); err != nil {
+		t.Fatalf("creating service rule failed: %v", err)
+	}
+
+	controllerRule := core.NewCard(core.CardTypeConvention, "Controller create rule")
+	controllerRule.ID = "CONV-controller-create"
+	controllerRule.Status = core.CardStatusActive
+	controllerRule.Tags = []string{"layer:controller", "scenario:create"}
+	controllerRule.Body = "Controller create endpoints validate request payloads."
+	if _, err := store.CreateCard(controllerRule, ""); err != nil {
+		t.Fatalf("creating controller rule failed: %v", err)
+	}
+
+	task := core.NewCard(core.CardTypeTask, "Implement customer service pagination")
+	task.ID = "TASK-focus-service-page"
+	task.Status = core.CardStatusReady
+	task.Tags = []string{"layer:service"}
+	task.Body = "Implement customer page-query behavior in the service layer."
+	if _, err := store.CreateCard(task, "CR26061401"); err != nil {
+		t.Fatalf("creating task failed: %v", err)
+	}
+
+	facetsCmd := newLibraryFacetsCmd()
+	var facetsOut bytes.Buffer
+	facetsCmd.SetOut(&facetsOut)
+	if err := facetsCmd.Execute(); err != nil {
+		t.Fatalf("library facets failed: %v", err)
+	}
+	facetsText := facetsOut.String()
+	for _, want := range []string{
+		"## Library Facets",
+		"| layer | service | 1 |",
+		"| scenario | page-query | 1 |",
+		"layer:service + scenario:page-query",
+	} {
+		if !strings.Contains(facetsText, want) {
+			t.Fatalf("library facets output missing %q:\n%s", want, facetsText)
+		}
+	}
+
+	classifyCmd := newLibraryClassifyCmd()
+	var classifyOut bytes.Buffer
+	classifyCmd.SetOut(&classifyOut)
+	classifyCmd.SetArgs([]string{"--for", task.ID})
+	if err := classifyCmd.Execute(); err != nil {
+		t.Fatalf("library classify failed: %v", err)
+	}
+	classifyText := classifyOut.String()
+	for _, want := range []string{
+		"## Library Classification",
+		"| layer:service | tag | layer:service | 1 |",
+		"| scenario:page-query | text | page-query | 1 |",
+		"flowforge library suggest --for TASK-focus-service-page",
+		"--facet layer:service",
+	} {
+		if !strings.Contains(classifyText, want) {
+			t.Fatalf("library classify output missing %q:\n%s", want, classifyText)
+		}
+	}
+
+	suggestCmd := newLibrarySuggestCmd()
+	var suggestOut bytes.Buffer
+	suggestCmd.SetOut(&suggestOut)
+	suggestCmd.SetArgs([]string{
+		"--for", task.ID,
+		"--facet", "layer:service",
+		"--facet", "scenario:page-query",
+		"--types", "convention",
+	})
+	if err := suggestCmd.Execute(); err != nil {
+		t.Fatalf("library suggest failed: %v", err)
+	}
+	suggestText := suggestOut.String()
+	for _, want := range []string{
+		"CONV-service-page-query",
+		"facets:layer:service,scenario:page-query",
+		"constrains",
+	} {
+		if !strings.Contains(suggestText, want) {
+			t.Fatalf("library suggest output missing %q:\n%s", want, suggestText)
+		}
+	}
+	if strings.Contains(suggestText, "CONV-controller-create") {
+		t.Fatalf("facet-filtered suggestion should omit controller rule:\n%s", suggestText)
+	}
+}
+
 func TestLibrarySuggestRequiresFocusCard(t *testing.T) {
 	cmd := newLibrarySuggestCmd()
 	cmd.SetArgs([]string{})

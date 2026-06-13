@@ -90,6 +90,7 @@ AGENTS.md                           # Agent entry rules
 | [CLI 架构设计](docs/cli-design.md) | 命令体系、init/upgrade/uninstall、task/card 命令 |
 | [知识卡片系统](docs/knowledge-system.md) | 卡片模型、文件名规范、sqlite 索引、上下文聚合 |
 | [Design SKILL 工作流](docs/design-skill-workflow.md) | flowforge-design 的执行流程、卡片模板、walkthrough |
+| [Library 知识导入设计](docs/library-knowledge-ingestion-design.md) | library facet、外部知识导入、proposal 知识沉淀 |
 | [flowforge-design SKILL 草案](docs/flowforge-design-skill-draft.md) | SKILL 本体草案、reference 拆分、CLI 前置清单 |
 | [v1 分析](docs/v1-analysis.md) | v1 版本问题诊断（历史参考） |
 
@@ -137,6 +138,11 @@ flowforge card dependents DES...  # 查看谁依赖它
 # 索引
 flowforge index rebuild           # 重建 sqlite 索引
 flowforge index status            # 查看索引状态
+
+# Library 推荐
+flowforge library facets
+flowforge library classify --for TASK...
+flowforge library suggest --for TASK... --facet layer:service
 
 # 上下文
 flowforge context proposal --proposal CR...

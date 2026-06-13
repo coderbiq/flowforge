@@ -5,7 +5,10 @@ Do not grep markdown, do not read `02-library/` directly, and do not batch-load 
 
 ## Roles of the CLI commands
 
+- `flowforge library facets`: discover the project's library facet vocabulary before guessing tags or dimensions.
+- `flowforge library classify --for <card-id>`: classify a requirement, design, or task against discovered facets.
 - `flowforge library suggest --for <card-id>`: primary recommendation pass for a requirement, analysis task, design, or implementation task.
+- `flowforge library suggest --for <card-id> --facet key:value`: recommendation pass constrained by confirmed project facets.
 - `flowforge card search <query> --scope library`: targeted keyword and type search when you need to narrow the candidate set.
 - `flowforge card read <id> --summary`: quick validation of a candidate.
 - `flowforge card read <id> --section <name>`: deep read for a confirmed candidate.
@@ -20,6 +23,8 @@ Start from the focus card:
 - status
 - direct relationships
 
+Run `library facets` first if you do not already know the project's facet vocabulary.
+Run `library classify --for <card-id>` before facet-constrained suggestions.
 Use the user request and the current proposal context to form the query.
 Prefer candidates that match the same project, module, or domain.
 

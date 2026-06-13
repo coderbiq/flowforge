@@ -20,6 +20,8 @@ func newLibraryCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newLibrarySuggestCmd())
+	cmd.AddCommand(newLibraryFacetsCmd())
+	cmd.AddCommand(newLibraryClassifyCmd())
 
 	return cmd
 }
@@ -29,6 +31,7 @@ func newLibrarySuggestCmd() *cobra.Command {
 		forCardID string
 		types     string
 		relation  string
+		facets    []string
 		limit     int
 	)
 
@@ -58,7 +61,12 @@ func newLibrarySuggestCmd() *cobra.Command {
 				return err
 			}
 
-			candidates, err := suggestLibraryCards(store, focus, typeFilter, relation, limit)
+			facetFilter, err := parseFacetArgs(facets)
+			if err != nil {
+				return err
+			}
+
+			candidates, err := suggestLibraryCards(store, focus, typeFilter, relation, facetFilter, limit)
 			if err != nil {
 				return err
 			}
@@ -73,8 +81,71 @@ func newLibrarySuggestCmd() *cobra.Command {
 	cmd.Flags().StringVar(&types, "types", "", "Comma-separated card types to include")
 	cmd.Flags().StringVar(&types, "type", "", "Comma-separated card types to include")
 	cmd.Flags().StringVar(&relation, "relation", "", "Suggested relation to prefer")
+	cmd.Flags().StringSliceVar(&facets, "facet", nil, "Facet filter (format: key:value, repeatable or comma-separated)")
 	cmd.Flags().IntVar(&limit, "limit", 10, "Maximum number of results")
 
+	return cmd
+}
+
+func newLibraryFacetsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "facets",
+		Short: "List discovered library facets",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			cards, err := store.ListCards(store.LibraryDir())
+			if err != nil {
+				return err
+			}
+
+			writeLibraryFacets(cmd.OutOrStdout(), buildLibraryFacetIndex(cards))
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func newLibraryClassifyCmd() *cobra.Command {
+	var forCardID string
+
+	cmd := &cobra.Command{
+		Use:   "classify",
+		Short: "Classify a focus card against discovered library facets",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(forCardID) == "" {
+				return fmt.Errorf("--for is required")
+			}
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			focus, err := store.ReadCard(forCardID)
+			if err != nil {
+				return err
+			}
+
+			cards, err := store.ListCards(store.LibraryDir())
+			if err != nil {
+				return err
+			}
+
+			index := buildLibraryFacetIndex(cards)
+			matches := classifyLibraryFacets(focus, index)
+			writeLibraryClassification(cmd.OutOrStdout(), focus, index, matches)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&forCardID, "for", "", "Focus card ID")
 	return cmd
 }
 
@@ -83,6 +154,35 @@ type librarySuggestion struct {
 	Score             int
 	MatchReason       string
 	SuggestedRelation string
+}
+
+type libraryFacet struct {
+	Key   string
+	Value string
+}
+
+type libraryFacetValue struct {
+	Facet libraryFacet
+	Count int
+}
+
+type libraryFacetCombination struct {
+	Left  libraryFacet
+	Right libraryFacet
+	Count int
+}
+
+type libraryFacetIndex struct {
+	Values       map[string]map[string]int
+	Combinations map[string]int
+	CardCount    int
+}
+
+type libraryFacetMatch struct {
+	Facet    libraryFacet
+	Source   string
+	Evidence string
+	CardHits int
 }
 
 func defaultLibrarySuggestionTypes() []core.CardType {
@@ -115,7 +215,7 @@ func parseCardTypeFilter(raw string, defaults []core.CardType) (map[core.CardTyp
 	return filter, nil
 }
 
-func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map[core.CardType]bool, relation string, limit int) ([]librarySuggestion, error) {
+func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map[core.CardType]bool, relation string, facetFilter []libraryFacet, limit int) ([]librarySuggestion, error) {
 	cards, err := store.ListCards(store.LibraryDir())
 	if err != nil {
 		return nil, err
@@ -130,10 +230,22 @@ func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map
 		if card.Status == core.CardStatusDeprecated || card.Status == core.CardStatusSuperseded {
 			continue
 		}
-
-		score, reason, ok := scoreLibraryCandidate(card, terms)
+		facetScore, facetReason, ok := matchFacetFilter(card, facetFilter)
 		if !ok {
 			continue
+		}
+
+		score, reason, ok := scoreLibraryCandidate(card, terms)
+		if !ok && facetScore == 0 {
+			continue
+		}
+		if facetScore > 0 {
+			score += facetScore
+			if reason == "" {
+				reason = facetReason
+			} else {
+				reason = reason + "; " + facetReason
+			}
 		}
 
 		suggestedRelation := suggestedLibraryRelation(card.Type, relation)
@@ -167,6 +279,235 @@ func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map
 	}
 
 	return suggestions, nil
+}
+
+func parseFacetArgs(values []string) ([]libraryFacet, error) {
+	var facets []libraryFacet
+	for _, value := range values {
+		for _, raw := range strings.Split(value, ",") {
+			raw = strings.TrimSpace(raw)
+			if raw == "" {
+				continue
+			}
+			facet, ok := parseFacetTag(raw)
+			if !ok {
+				return nil, fmt.Errorf("invalid facet %q (expected key:value)", raw)
+			}
+			facets = append(facets, facet)
+		}
+	}
+	return facets, nil
+}
+
+func parseFacetTag(tag string) (libraryFacet, bool) {
+	tag = strings.TrimSpace(tag)
+	if tag == "" {
+		return libraryFacet{}, false
+	}
+
+	if strings.HasPrefix(tag, "facet:") {
+		tag = strings.TrimPrefix(tag, "facet:")
+	}
+
+	parts := strings.SplitN(tag, ":", 2)
+	if len(parts) != 2 {
+		return libraryFacet{}, false
+	}
+
+	key := strings.ToLower(strings.TrimSpace(parts[0]))
+	value := strings.ToLower(strings.TrimSpace(parts[1]))
+	if key == "" || value == "" {
+		return libraryFacet{}, false
+	}
+	return libraryFacet{Key: key, Value: value}, true
+}
+
+func facetString(facet libraryFacet) string {
+	return facet.Key + ":" + facet.Value
+}
+
+func cardFacets(card *core.Card) []libraryFacet {
+	if card == nil {
+		return nil
+	}
+	var facets []libraryFacet
+	seen := map[string]bool{}
+	for _, tag := range card.Tags {
+		facet, ok := parseFacetTag(tag)
+		if !ok {
+			continue
+		}
+		key := facetString(facet)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		facets = append(facets, facet)
+	}
+	sort.SliceStable(facets, func(i, j int) bool {
+		if facets[i].Key == facets[j].Key {
+			return facets[i].Value < facets[j].Value
+		}
+		return facets[i].Key < facets[j].Key
+	})
+	return facets
+}
+
+func buildLibraryFacetIndex(cards []*core.Card) libraryFacetIndex {
+	index := libraryFacetIndex{
+		Values:       map[string]map[string]int{},
+		Combinations: map[string]int{},
+	}
+
+	for _, card := range cards {
+		if card.Status == core.CardStatusDeprecated || card.Status == core.CardStatusSuperseded {
+			continue
+		}
+		facets := cardFacets(card)
+		if len(facets) == 0 {
+			continue
+		}
+		index.CardCount++
+		for _, facet := range facets {
+			if index.Values[facet.Key] == nil {
+				index.Values[facet.Key] = map[string]int{}
+			}
+			index.Values[facet.Key][facet.Value]++
+		}
+		for i := 0; i < len(facets); i++ {
+			for j := i + 1; j < len(facets); j++ {
+				key := facetString(facets[i]) + " + " + facetString(facets[j])
+				index.Combinations[key]++
+			}
+		}
+	}
+
+	return index
+}
+
+func sortedFacetValues(index libraryFacetIndex) []libraryFacetValue {
+	var values []libraryFacetValue
+	for key, byValue := range index.Values {
+		for value, count := range byValue {
+			values = append(values, libraryFacetValue{
+				Facet: libraryFacet{Key: key, Value: value},
+				Count: count,
+			})
+		}
+	}
+	sort.SliceStable(values, func(i, j int) bool {
+		if values[i].Facet.Key == values[j].Facet.Key {
+			if values[i].Count == values[j].Count {
+				return values[i].Facet.Value < values[j].Facet.Value
+			}
+			return values[i].Count > values[j].Count
+		}
+		return values[i].Facet.Key < values[j].Facet.Key
+	})
+	return values
+}
+
+func sortedFacetCombinations(index libraryFacetIndex, limit int) []libraryFacetCombination {
+	var combinations []libraryFacetCombination
+	for raw, count := range index.Combinations {
+		parts := strings.Split(raw, " + ")
+		if len(parts) != 2 {
+			continue
+		}
+		left, leftOK := parseFacetTag(parts[0])
+		right, rightOK := parseFacetTag(parts[1])
+		if !leftOK || !rightOK {
+			continue
+		}
+		combinations = append(combinations, libraryFacetCombination{Left: left, Right: right, Count: count})
+	}
+	sort.SliceStable(combinations, func(i, j int) bool {
+		if combinations[i].Count == combinations[j].Count {
+			leftI := facetString(combinations[i].Left) + " + " + facetString(combinations[i].Right)
+			leftJ := facetString(combinations[j].Left) + " + " + facetString(combinations[j].Right)
+			return leftI < leftJ
+		}
+		return combinations[i].Count > combinations[j].Count
+	})
+	if limit > 0 && len(combinations) > limit {
+		combinations = combinations[:limit]
+	}
+	return combinations
+}
+
+func matchFacetFilter(card *core.Card, filter []libraryFacet) (int, string, bool) {
+	if len(filter) == 0 {
+		return 0, "", true
+	}
+
+	cardFacetSet := map[string]bool{}
+	for _, facet := range cardFacets(card) {
+		cardFacetSet[facetString(facet)] = true
+	}
+
+	var matched []string
+	for _, facet := range filter {
+		key := facetString(facet)
+		if !cardFacetSet[key] {
+			return 0, "", false
+		}
+		matched = append(matched, key)
+	}
+
+	return 75 * len(matched), "facets:" + strings.Join(matched, ","), true
+}
+
+func classifyLibraryFacets(focus *core.Card, index libraryFacetIndex) []libraryFacetMatch {
+	text := strings.ToLower(strings.Join([]string{focus.Title, focus.Domain, strings.Join(focus.Tags, " "), focus.Body}, " "))
+	focusFacetSet := map[string]bool{}
+	for _, facet := range cardFacets(focus) {
+		focusFacetSet[facetString(facet)] = true
+	}
+
+	var matches []libraryFacetMatch
+	for _, value := range sortedFacetValues(index) {
+		facetKey := facetString(value.Facet)
+		if focusFacetSet[facetKey] {
+			matches = append(matches, libraryFacetMatch{
+				Facet:    value.Facet,
+				Source:   "tag",
+				Evidence: facetKey,
+				CardHits: value.Count,
+			})
+			continue
+		}
+
+		if containsFacetValue(text, value.Facet.Value) {
+			matches = append(matches, libraryFacetMatch{
+				Facet:    value.Facet,
+				Source:   "text",
+				Evidence: value.Facet.Value,
+				CardHits: value.Count,
+			})
+		}
+	}
+
+	sort.SliceStable(matches, func(i, j int) bool {
+		if matches[i].Source != matches[j].Source {
+			return matches[i].Source == "tag"
+		}
+		if matches[i].CardHits != matches[j].CardHits {
+			return matches[i].CardHits > matches[j].CardHits
+		}
+		return facetString(matches[i].Facet) < facetString(matches[j].Facet)
+	})
+	return matches
+}
+
+func containsFacetValue(text string, value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return false
+	}
+	if strings.Contains(text, value) {
+		return true
+	}
+	return strings.Contains(text, strings.ReplaceAll(value, "-", " "))
 }
 
 func suggestedLibraryRelation(cardType core.CardType, requested string) string {
@@ -351,4 +692,75 @@ func writeLibrarySuggestions(out io.Writer, focus *core.Card, candidates []libra
 
 	fmt.Fprintln(out, "\n## Not Included")
 	fmt.Fprintln(out, "- Deprecated and superseded cards are omitted by default.")
+}
+
+func writeLibraryFacets(out io.Writer, index libraryFacetIndex) {
+	fmt.Fprintln(out, "## Library Facets")
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "- CardsWithFacets: %d\n", index.CardCount)
+	fmt.Fprintln(out)
+
+	values := sortedFacetValues(index)
+	if len(values) == 0 {
+		fmt.Fprintln(out, "- None")
+	} else {
+		fmt.Fprintln(out, "| Facet | Value | Cards |")
+		fmt.Fprintln(out, "|-------|-------|-------|")
+		for _, value := range values {
+			fmt.Fprintf(out, "| %s | %s | %d |\n", value.Facet.Key, value.Facet.Value, value.Count)
+		}
+	}
+
+	fmt.Fprintln(out, "\n## Common Combinations")
+	combinations := sortedFacetCombinations(index, 10)
+	if len(combinations) == 0 {
+		fmt.Fprintln(out, "- None")
+		return
+	}
+	fmt.Fprintln(out, "| Facets | Cards |")
+	fmt.Fprintln(out, "|--------|-------|")
+	for _, combination := range combinations {
+		fmt.Fprintf(out, "| %s + %s | %d |\n", facetString(combination.Left), facetString(combination.Right), combination.Count)
+	}
+}
+
+func writeLibraryClassification(out io.Writer, focus *core.Card, index libraryFacetIndex, matches []libraryFacetMatch) {
+	fmt.Fprintln(out, "## Library Classification")
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "For: %s\n", focus.ID)
+	fmt.Fprintf(out, "KnownFacetCards: %d\n", index.CardCount)
+	fmt.Fprintln(out)
+
+	fmt.Fprintln(out, "## Extracted Facets")
+	if len(matches) == 0 {
+		fmt.Fprintln(out, "- None")
+	} else {
+		fmt.Fprintln(out, "| Facet | Source | Evidence | LibraryCards |")
+		fmt.Fprintln(out, "|-------|--------|----------|--------------|")
+		for _, match := range matches {
+			fmt.Fprintf(out, "| %s | %s | %s | %d |\n",
+				facetString(match.Facet),
+				match.Source,
+				escapeTableCell(match.Evidence),
+				match.CardHits,
+			)
+		}
+	}
+
+	fmt.Fprintln(out, "\n## Suggested Commands")
+	if len(matches) == 0 {
+		fmt.Fprintf(out, "- flowforge library facets\n")
+		fmt.Fprintf(out, "- flowforge library suggest --for %s\n", focus.ID)
+		return
+	}
+
+	var args []string
+	limit := len(matches)
+	if limit > 4 {
+		limit = 4
+	}
+	for i := 0; i < limit; i++ {
+		args = append(args, "--facet "+facetString(matches[i].Facet))
+	}
+	fmt.Fprintf(out, "- flowforge library suggest --for %s %s\n", focus.ID, strings.Join(args, " "))
 }
