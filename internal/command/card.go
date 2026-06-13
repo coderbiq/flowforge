@@ -3,6 +3,7 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strings"
@@ -26,6 +27,8 @@ func newCardCmd() *cobra.Command {
 	cmd.AddCommand(newCardDeleteCmd())
 	cmd.AddCommand(newCardRelatedCmd())
 	cmd.AddCommand(newCardDependentsCmd())
+	cmd.AddCommand(newCardLinkCmd())
+	cmd.AddCommand(newCardUnlinkCmd())
 	cmd.AddCommand(newCardSearchCmd())
 
 	return cmd
@@ -128,7 +131,11 @@ Examples:
 }
 
 func newCardReadCmd() *cobra.Command {
-	var outputJSON bool
+	var (
+		outputJSON bool
+		summary    bool
+		section    string
+	)
 
 	cmd := &cobra.Command{
 		Use:   "read <card-id>",
@@ -146,30 +153,47 @@ func newCardReadCmd() *cobra.Command {
 				return err
 			}
 
+			if summary && section != "" {
+				return fmt.Errorf("--summary and --section cannot be used together")
+			}
+
+			out := cmd.OutOrStdout()
 			if outputJSON {
 				data, _ := json.MarshalIndent(card, "", "  ")
-				fmt.Println(string(data))
+				fmt.Fprintln(out, string(data))
+			} else if summary {
+				printCardSummary(out, card)
+			} else if section != "" {
+				body, ok := extractCardSection(card.Body, section)
+				if !ok {
+					return fmt.Errorf("section %q not found in card %s", section, card.ID)
+				}
+				printCardFrontmatterSummary(out, card)
+				if body != "" {
+					fmt.Fprintln(out)
+					fmt.Fprintln(out, body)
+				}
 			} else {
-				fmt.Printf("ID: %s\n", card.ID)
-				fmt.Printf("Type: %s\n", card.Type)
-				fmt.Printf("Title: %s\n", card.Title)
-				fmt.Printf("Status: %s\n", card.Status)
-				fmt.Printf("Importance: %s\n", card.Importance)
+				fmt.Fprintf(out, "ID: %s\n", card.ID)
+				fmt.Fprintf(out, "Type: %s\n", card.Type)
+				fmt.Fprintf(out, "Title: %s\n", card.Title)
+				fmt.Fprintf(out, "Status: %s\n", card.Status)
+				fmt.Fprintf(out, "Importance: %s\n", card.Importance)
 				if len(card.Tags) > 0 {
-					fmt.Printf("Tags: %s\n", strings.Join(card.Tags, ", "))
+					fmt.Fprintf(out, "Tags: %s\n", strings.Join(card.Tags, ", "))
 				}
 				if len(card.Links) > 0 {
-					fmt.Println("Links:")
+					fmt.Fprintln(out, "Links:")
 					for _, link := range card.Links {
-						fmt.Printf("  - %s (%s)\n", link.Target, link.Relation)
+						fmt.Fprintf(out, "  - %s (%s)\n", link.Target, link.Relation)
 					}
 				}
-				fmt.Printf("Created: %s\n", card.Created.Format("2006-01-02 15:04:05"))
-				fmt.Printf("Updated: %s\n", card.Updated.Format("2006-01-02 15:04:05"))
-				fmt.Printf("File: %s\n", card.FilePath)
+				fmt.Fprintf(out, "Created: %s\n", card.Created.Format("2006-01-02 15:04:05"))
+				fmt.Fprintf(out, "Updated: %s\n", card.Updated.Format("2006-01-02 15:04:05"))
+				fmt.Fprintf(out, "File: %s\n", card.FilePath)
 				if card.Body != "" {
-					fmt.Println("\n--- Body ---")
-					fmt.Println(card.Body)
+					fmt.Fprintln(out, "\n--- Body ---")
+					fmt.Fprintln(out, card.Body)
 				}
 			}
 
@@ -178,8 +202,184 @@ func newCardReadCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&outputJSON, "json", false, "Output as JSON")
+	cmd.Flags().BoolVar(&summary, "summary", false, "Output a card summary")
+	cmd.Flags().StringVar(&section, "section", "", "Output a single markdown section by heading")
 
 	return cmd
+}
+
+func printCardFrontmatterSummary(out io.Writer, card *core.Card) {
+	fmt.Fprintf(out, "ID: %s\n", card.ID)
+	fmt.Fprintf(out, "Type: %s\n", card.Type)
+	fmt.Fprintf(out, "Title: %s\n", card.Title)
+	fmt.Fprintf(out, "Status: %s\n", card.Status)
+	fmt.Fprintf(out, "Importance: %s\n", card.Importance)
+	if len(card.Tags) > 0 {
+		fmt.Fprintf(out, "Tags: %s\n", strings.Join(card.Tags, ", "))
+	}
+	if card.Source != "" {
+		fmt.Fprintf(out, "Proposal: %s\n", card.Source)
+	}
+	if card.Domain != "" {
+		fmt.Fprintf(out, "Domain: %s\n", card.Domain)
+	}
+}
+
+func printCardSummary(out io.Writer, card *core.Card) {
+	printCardFrontmatterSummary(out, card)
+	if summary, heading := firstMeaningfulSectionSummary(card.Body); summary != "" {
+		fmt.Fprintln(out)
+		fmt.Fprintf(out, "Summary: %s\n", summary)
+		if heading != "" {
+			fmt.Fprintf(out, "First section: %s\n", heading)
+		}
+	}
+	if len(card.Links) > 0 {
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Links:")
+		for _, link := range card.Links {
+			fmt.Fprintf(out, "  - %s (%s)\n", link.Target, link.Relation)
+		}
+	}
+	headings := collectMarkdownHeadings(card.Body)
+	if len(headings) > 0 {
+		fmt.Fprintln(out)
+		fmt.Fprintln(out, "Sections:")
+		for _, heading := range headings {
+			fmt.Fprintf(out, "  - %s\n", heading)
+		}
+	}
+}
+
+func firstMeaningfulSectionSummary(body string) (string, string) {
+	preamble := summarizeSectionBody(bodyBeforeFirstHeading(body))
+	if preamble != "" {
+		return preamble, ""
+	}
+	sections := parseMarkdownSections(body)
+	for _, section := range sections {
+		summary := summarizeSectionBody(section.Body)
+		if summary != "" {
+			return summary, section.Heading
+		}
+	}
+	return "", ""
+}
+
+func bodyBeforeFirstHeading(body string) string {
+	lines := strings.Split(body, "\n")
+	var collected []string
+	for _, raw := range lines {
+		if _, _, ok := parseMarkdownHeading(strings.TrimSpace(raw)); ok {
+			break
+		}
+		collected = append(collected, raw)
+	}
+	return strings.TrimSpace(strings.Join(collected, "\n"))
+}
+
+type markdownSection struct {
+	Level   int
+	Heading string
+	Body    string
+}
+
+func parseMarkdownSections(body string) []markdownSection {
+	var sections []markdownSection
+	lines := strings.Split(body, "\n")
+	var current *markdownSection
+	for _, raw := range lines {
+		line := strings.TrimSpace(raw)
+		if level, heading, ok := parseMarkdownHeading(line); ok {
+			sections = append(sections, markdownSection{Level: level, Heading: heading})
+			current = &sections[len(sections)-1]
+			continue
+		}
+		if current != nil {
+			if current.Body == "" {
+				current.Body = line
+			} else {
+				current.Body += "\n" + raw
+			}
+		}
+	}
+	return sections
+}
+
+func extractCardSection(body, section string) (string, bool) {
+	target := strings.ToLower(strings.TrimSpace(section))
+	if target == "" {
+		return "", false
+	}
+
+	lines := strings.Split(body, "\n")
+	var capture []string
+	var active bool
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+		if _, heading, ok := parseMarkdownHeading(trimmed); ok {
+			heading = strings.ToLower(heading)
+			if active {
+				break
+			}
+			if heading == target {
+				active = true
+				continue
+			}
+		}
+		if active {
+			capture = append(capture, line)
+		}
+	}
+	if !active {
+		return "", false
+	}
+	return strings.TrimSpace(strings.Join(capture, "\n")), true
+}
+
+func collectMarkdownHeadings(body string) []string {
+	var headings []string
+	for _, section := range parseMarkdownSections(body) {
+		headings = append(headings, section.Heading)
+	}
+	return headings
+}
+
+func summarizeSectionBody(body string) string {
+	for _, line := range strings.Split(strings.TrimSpace(body), "\n") {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case trimmed == "":
+			continue
+		case strings.HasPrefix(trimmed, "#"):
+			continue
+		case strings.HasPrefix(trimmed, "- "):
+			return strings.TrimSpace(strings.TrimPrefix(trimmed, "- "))
+		default:
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func parseMarkdownHeading(line string) (int, string, bool) {
+	if !strings.HasPrefix(line, "#") {
+		return 0, "", false
+	}
+
+	level := 0
+	for level < len(line) && line[level] == '#' {
+		level++
+	}
+	if level == 0 || level > len(line) || (len(line) > level && line[level] != ' ') {
+		return 0, "", false
+	}
+	heading := strings.TrimSpace(line[level:])
+	if heading == "" {
+		return 0, "", false
+	}
+	return level, heading, true
 }
 
 func newCardListCmd() *cobra.Command {
@@ -406,8 +606,9 @@ func newCardDeleteCmd() *cobra.Command {
 
 func newCardRelatedCmd() *cobra.Command {
 	var (
-		relation string
-		depth    int
+		relation  string
+		depth     int
+		direction string
 	)
 
 	cmd := &cobra.Command{
@@ -421,21 +622,38 @@ func newCardRelatedCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			related, err := store.GetRelated(cardID, relation, depth)
-			if err != nil {
-				return err
+			if direction != "forward" && direction != "backlinks" {
+				return fmt.Errorf("invalid direction %q (expected forward/backlinks)", direction)
+			}
+			var related []*core.Card
+			if direction == "backlinks" {
+				dependents, err := store.GetDependents(cardID)
+				if err != nil {
+					return err
+				}
+				for _, dependent := range dependents {
+					if relation == "" || hasLinkRelation(dependent, cardID, relation) {
+						related = append(related, dependent)
+					}
+				}
+			} else {
+				related, err = store.GetRelated(cardID, relation, depth)
+				if err != nil {
+					return err
+				}
 			}
 
+			out := cmd.OutOrStdout()
 			if len(related) == 0 {
-				fmt.Println("No related cards found.")
+				fmt.Fprintln(out, "No related cards found.")
 				return nil
 			}
 
-			fmt.Printf("Related cards for %s:\n\n", cardID)
+			fmt.Fprintf(out, "Related cards for %s:\n\n", cardID)
 			for _, card := range related {
-				fmt.Printf("  %s [%s] %s\n", card.ID, card.Type, card.Title)
-				fmt.Printf("    Status: %s\n", card.Status)
-				fmt.Println()
+				fmt.Fprintf(out, "  %s [%s] %s\n", card.ID, card.Type, card.Title)
+				fmt.Fprintf(out, "    Status: %s\n", card.Status)
+				fmt.Fprintln(out)
 			}
 
 			return nil
@@ -444,8 +662,18 @@ func newCardRelatedCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&relation, "relation", "", "Filter by relation type")
 	cmd.Flags().IntVar(&depth, "depth", 1, "Traversal depth")
+	cmd.Flags().StringVar(&direction, "direction", "forward", "Traversal direction (forward/backlinks)")
 
 	return cmd
+}
+
+func hasLinkRelation(card *core.Card, target, relation string) bool {
+	for _, link := range card.Links {
+		if link.Target == target && link.Relation == relation {
+			return true
+		}
+	}
+	return false
 }
 
 func newCardDependentsCmd() *cobra.Command {
@@ -466,21 +694,97 @@ func newCardDependentsCmd() *cobra.Command {
 			}
 
 			if len(dependents) == 0 {
-				fmt.Println("No cards depend on this card.")
+				fmt.Fprintln(cmd.OutOrStdout(), "No cards depend on this card.")
 				return nil
 			}
 
-			fmt.Printf("Cards depending on %s:\n\n", cardID)
+			out := cmd.OutOrStdout()
+			fmt.Fprintf(out, "Cards depending on %s:\n\n", cardID)
 			for _, card := range dependents {
-				fmt.Printf("  %s [%s] %s\n", card.ID, card.Type, card.Title)
-				fmt.Printf("    Status: %s\n", card.Status)
-				fmt.Println()
+				fmt.Fprintf(out, "  %s [%s] %s\n", card.ID, card.Type, card.Title)
+				fmt.Fprintf(out, "    Status: %s\n", card.Status)
+				fmt.Fprintln(out)
 			}
 
 			return nil
 		},
 	}
 
+	return cmd
+}
+
+func newCardLinkCmd() *cobra.Command {
+	var relation string
+
+	cmd := &cobra.Command{
+		Use:   "link <from-id> <to-id>",
+		Short: "Add a link between cards",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fromID := args[0]
+			toID := args[1]
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			card, err := store.ReadCard(fromID)
+			if err != nil {
+				return err
+			}
+			if _, err := store.ReadCard(toID); err != nil {
+				return fmt.Errorf("reading target card %s: %w", toID, err)
+			}
+
+			card.AddLink(toID, relation)
+			if err := store.UpdateCard(card); err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Linked %s -> %s (%s)\n", fromID, toID, relation)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&relation, "relation", "related", "Link relation type")
+	return cmd
+}
+
+func newCardUnlinkCmd() *cobra.Command {
+	var relation string
+
+	cmd := &cobra.Command{
+		Use:   "unlink <from-id> <to-id>",
+		Short: "Remove a link between cards",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fromID := args[0]
+			toID := args[1]
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			card, err := store.ReadCard(fromID)
+			if err != nil {
+				return err
+			}
+
+			if !card.RemoveLink(toID, relation) {
+				return fmt.Errorf("link not found: %s -> %s (%s)", fromID, toID, relation)
+			}
+			if err := store.UpdateCard(card); err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Unlinked %s -> %s (%s)\n", fromID, toID, relation)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&relation, "relation", "related", "Link relation type")
 	return cmd
 }
 

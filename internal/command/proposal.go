@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -22,6 +23,8 @@ func newProposalCmd() *cobra.Command {
 	cmd.AddCommand(newProposalCurrentCmd())
 	cmd.AddCommand(newProposalListCmd())
 	cmd.AddCommand(newProposalInspectCmd())
+	cmd.AddCommand(newProposalArchiveCmd())
+	cmd.AddCommand(newProposalDeleteCmd())
 
 	return cmd
 }
@@ -236,6 +239,95 @@ func newProposalInspectCmd() *cobra.Command {
 	return cmd
 }
 
+func newProposalArchiveCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "archive <proposal-id>",
+		Short: "Move an active proposal to completed",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			proposalID := args[0]
+
+			store, projectID, runtimeStore, err := currentProposalStoreWithState()
+			if err != nil {
+				return err
+			}
+			defer closeStateStore(runtimeStore)
+
+			src := store.ProposalDir(proposalID)
+			if err := ensureProposalDir(src, proposalID); err != nil {
+				return err
+			}
+
+			dst := filepath.Join(store.CompletedDir(), proposalID)
+			if _, err := os.Stat(dst); err == nil {
+				return fmt.Errorf("completed proposal %q already exists", proposalID)
+			} else if err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("checking completed proposal dir: %w", err)
+			}
+
+			if err := os.MkdirAll(store.CompletedDir(), 0755); err != nil {
+				return fmt.Errorf("creating completed directory: %w", err)
+			}
+			if err := os.Rename(src, dst); err != nil {
+				return fmt.Errorf("archiving proposal: %w", err)
+			}
+
+			if err := clearCurrentProposalIfMatches(runtimeStore, projectID, proposalID); err != nil {
+				return err
+			}
+
+			out := cmd.OutOrStdout()
+			fmt.Fprintf(out, "✓ Archived proposal %s\n", proposalID)
+			fmt.Fprintf(out, "  From: %s\n", src)
+			fmt.Fprintf(out, "  To: %s\n", dst)
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func newProposalDeleteCmd() *cobra.Command {
+	var force bool
+
+	cmd := &cobra.Command{
+		Use:   "delete <proposal-id>",
+		Short: "Delete a proposal directory",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			proposalID := args[0]
+			if !force {
+				return fmt.Errorf("proposal delete requires --force")
+			}
+
+			store, projectID, runtimeStore, err := currentProposalStoreWithState()
+			if err != nil {
+				return err
+			}
+			defer closeStateStore(runtimeStore)
+
+			proposalDir, err := findProposalDirForDelete(store, proposalID)
+			if err != nil {
+				return err
+			}
+
+			if err := os.RemoveAll(proposalDir); err != nil {
+				return fmt.Errorf("deleting proposal: %w", err)
+			}
+			if err := clearCurrentProposalIfMatches(runtimeStore, projectID, proposalID); err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Deleted proposal %s\n", proposalID)
+			return nil
+		},
+	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Delete without confirmation")
+
+	return cmd
+}
+
 func currentProposalIDForProject(runtimeStore *state.Store, projectID string) (string, error) {
 	if runtimeStore == nil {
 		return "", fmt.Errorf("runtime state store is required")
@@ -249,4 +341,73 @@ func currentProposalIDForProject(runtimeStore *state.Store, projectID string) (s
 	}
 
 	return proposalID, nil
+}
+
+func currentProposalStoreWithState() (*core.CardStore, string, *state.Store, error) {
+	projectRoot, cfg, runtimeStore, err := openProjectContext()
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	project, _, err := resolveCurrentProject(cfg, runtimeStore)
+	if err != nil {
+		if closeErr := runtimeStore.Close(); closeErr != nil {
+			return nil, "", nil, fmt.Errorf("resolving current project: %w (closing runtime store: %v)", err, closeErr)
+		}
+		return nil, "", nil, err
+	}
+
+	wikiRoot, err := cfg.WikiRootForProject(projectRoot, project.ID)
+	if err != nil {
+		if closeErr := runtimeStore.Close(); closeErr != nil {
+			return nil, "", nil, fmt.Errorf("resolving wiki root: %w (closing runtime store: %v)", err, closeErr)
+		}
+		return nil, "", nil, err
+	}
+
+	return core.NewCardStore(wikiRoot), project.ID, runtimeStore, nil
+}
+
+func ensureProposalDir(path string, proposalID string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("proposal %q does not exist", proposalID)
+		}
+		return fmt.Errorf("checking proposal dir: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("proposal %q is not a directory", proposalID)
+	}
+
+	return nil
+}
+
+func findProposalDirForDelete(store *core.CardStore, proposalID string) (string, error) {
+	candidates := []string{
+		store.ProposalDir(proposalID),
+		filepath.Join(store.CompletedDir(), proposalID),
+	}
+
+	for _, candidate := range candidates {
+		if err := ensureProposalDir(candidate, proposalID); err == nil {
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("proposal %q does not exist in active or completed", proposalID)
+}
+
+func clearCurrentProposalIfMatches(runtimeStore *state.Store, projectID string, proposalID string) error {
+	currentID, ok, err := runtimeStore.CurrentProposalID(projectID)
+	if err != nil {
+		return err
+	}
+	if ok && currentID == proposalID {
+		if err := runtimeStore.ClearCurrentProposalID(projectID); err != nil {
+			return fmt.Errorf("clearing current proposal: %w", err)
+		}
+	}
+
+	return nil
 }

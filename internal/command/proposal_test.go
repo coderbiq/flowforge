@@ -268,6 +268,67 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 	}
 }
 
+func TestProposalArchiveAndDeleteCommands(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Archive proposal")
+
+	store := testCardStore(t, tmpDir)
+	activeDir := store.ProposalDir(proposalID)
+	completedDir := filepath.Join(store.CompletedDir(), proposalID)
+
+	archiveCmd := newProposalArchiveCmd()
+	if err := archiveCmd.Execute(); err == nil {
+		t.Fatalf("expected archive to require proposal id")
+	}
+	archiveCmd.SetArgs([]string{proposalID})
+	if err := archiveCmd.Execute(); err != nil {
+		t.Fatalf("proposal archive failed: %v", err)
+	}
+
+	if _, err := os.Stat(activeDir); !os.IsNotExist(err) {
+		t.Fatalf("expected active proposal dir to be moved, stat err=%v", err)
+	}
+	if _, err := os.Stat(completedDir); err != nil {
+		t.Fatalf("expected completed proposal dir: %v", err)
+	}
+
+	runtimeStore := runtimeStateStore(t, tmpDir)
+	currentID, ok, err := runtimeStore.CurrentProposalID("default")
+	if err != nil {
+		t.Fatalf("CurrentProposalID failed: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected current proposal to be cleared, got %s", currentID)
+	}
+	if err := runtimeStore.Close(); err != nil {
+		t.Fatalf("closing runtime store failed: %v", err)
+	}
+
+	rejectDeleteCmd := newProposalDeleteCmd()
+	rejectDeleteCmd.SetArgs([]string{proposalID})
+	if err := rejectDeleteCmd.Execute(); err == nil {
+		t.Fatalf("expected proposal delete without --force to fail")
+	}
+
+	deleteCmd := newProposalDeleteCmd()
+	deleteCmd.SetArgs([]string{proposalID, "--force"})
+	if err := deleteCmd.Execute(); err != nil {
+		t.Fatalf("proposal delete failed: %v", err)
+	}
+	if _, err := os.Stat(completedDir); !os.IsNotExist(err) {
+		t.Fatalf("expected completed proposal dir to be deleted, stat err=%v", err)
+	}
+}
+
 func createProposalForTest(t *testing.T, projectRoot string, title string) string {
 	t.Helper()
 

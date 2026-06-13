@@ -387,8 +387,8 @@ flowforge card
 +-- list [--type <type>] [--status <status>] [--tag <tag>]
 |       # 列出卡片（基于类型目录 + frontmatter 筛选）
 |
-+-- related <card-id> [--relation <type>] [--depth <n>]
-|       # 查看关联卡片（图遍历）
++-- related <card-id> [--relation <type>] [--depth <n>] [--direction forward|backlinks]
+|       # 查看关联卡片或反向链接（图遍历）
 |
 +-- dependents <card-id>
 |       # 查看谁依赖它（通过缓存索引快速查找）
@@ -401,12 +401,17 @@ flowforge card
 |
 +-- search <query> [--scope workspace|library|all] [--type <type>] [--limit <n>]
 |       # 搜索卡片索引和全文索引，默认返回摘要与匹配理由
-|
-+-- related <card-id> [--depth <n>] [--relation <type>]
-|       # 图遍历：获取关联卡片
 ```
 
-### 7.2 文件名生成
+### 7.2 定点读取
+
+`card read` 是 Agent 深读卡片的入口：
+
+- `card read <id> --summary` 只输出 frontmatter 摘要、第一段有效摘要、链接和可读 section 列表。
+- `card read <id> --section <name>` 只输出指定 markdown section，section 名称大小写不敏感。
+- 不传裁剪参数时保留全文读取能力，但 design SKILL 应优先使用裁剪读取。
+
+### 7.3 文件名生成
 
 创建卡片时，CLI 根据 ID 和标题自动生成文件名：
 
@@ -431,7 +436,7 @@ $ flowforge task create --title "实现 init 命令" --type i --links DES-2x9k3m
 # <wiki-root>/01-workspace/01-active/CR26061201-cli/TASK-2x9k3m00-i-7b2q6r5u_实现init命令.md
 ```
 
-### 7.3 基于文件名的筛选
+### 7.4 基于文件名的筛选
 
 `flowforge card list` 使用类型目录 + frontmatter 筛选：
 
@@ -453,7 +458,7 @@ $ flowforge card search "分页 查询 条件" --scope library --type convention
 # 返回候选卡片摘要、tags、matchedBy、suggestedRelation，不直接输出全文
 ```
 
-### 7.4 链接类型
+### 7.5 链接类型
 
 | 关系 | 含义 | 示例 |
 |------|------|------|
@@ -574,6 +579,8 @@ flowforge library
 ### 9.2 输出约束
 
 `library suggest` 默认只输出候选摘要，不输出全文：
+
+当前 MVP 不依赖 sqlite 索引，直接扫描当前项目 library 卡片；后续 `index rebuild` 完成后可替换为索引查询。
 
 | 字段 | 说明 |
 |------|------|
