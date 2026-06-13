@@ -157,7 +157,7 @@ Produce the deployable skill body and reference files.
 - library discovery findings
 ```
 
-If the design is still missing constraints, keep the task `not_ready`.
+If the design is still missing constraints, create or update the task with `--status not_ready`.
 
 ## Step 8: End the turn
 

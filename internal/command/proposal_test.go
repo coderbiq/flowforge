@@ -221,9 +221,40 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 	task := core.NewCard(core.CardTypeTask, "Analyze command output")
 	task.ID = core.GenerateTaskID("260613", "a")
 	task.Status = core.CardStatusReady
-	task.Body = "## Open Questions\n\n- Which output fields are stable?\n"
+	task.Body = strings.Join([]string{
+		"## Goal\n\nInspect command output.",
+		"## Inputs\n\n- Proposal context",
+		"## Investigation Plan\n\n- Compare current output to contract",
+		"## Expected Outputs\n\n- Stable output fields",
+		"## Done When\n\n- Output fields are stable",
+		"## Open Questions\n\n- Which output fields are stable?",
+	}, "\n\n")
+	task.AddLink("STR-CR260613-REQ", "analyzes")
 	if _, err := store.CreateCard(task, "CR260613"); err != nil {
 		t.Fatalf("creating analysis task failed: %v", err)
+	}
+
+	notReadyTask := core.NewCard(core.CardTypeTask, "Implement command output")
+	notReadyTask.ID = core.GenerateTaskID("260613", "i")
+	notReadyTask.Status = core.CardStatusNotReady
+	notReadyTask.Body = "## Goal\n\nImplement command output."
+	if _, err := store.CreateCard(notReadyTask, "CR260613"); err != nil {
+		t.Fatalf("creating not-ready task failed: %v", err)
+	}
+
+	notReadyAnalysis := core.NewCard(core.CardTypeTask, "Clarify command output")
+	notReadyAnalysis.ID = "TASK-260613-a-notready"
+	notReadyAnalysis.Status = core.CardStatusNotReady
+	notReadyAnalysis.Body = "## Goal\n\nClarify command output."
+	if _, err := store.CreateCard(notReadyAnalysis, "CR260613"); err != nil {
+		t.Fatalf("creating not-ready analysis task failed: %v", err)
+	}
+
+	design := core.NewCard(core.CardTypeDesign, "Command output design")
+	design.ID = "DES-260613-output"
+	design.Body = "## Goal\n\nDesign command output."
+	if _, err := store.CreateCard(design, "CR260613"); err != nil {
+		t.Fatalf("creating design card failed: %v", err)
 	}
 
 	inspectCmd := newProposalInspectCmd()
@@ -241,10 +272,20 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		"## Task Summary",
 		"## Open Questions",
 		"Analyze command output",
+		"| ID | Title | Status | Analyzes | Done When |",
+		"STR-CR260613-REQ",
+		"Output fields are stable",
+		"| ID | Title | Status | Missing |",
+		"Implement command output",
+		"Deliverables",
+		"Clarify command output",
 	} {
 		if !strings.Contains(inspectText, want) {
 			t.Fatalf("proposal inspect output missing %q:\n%s", want, inspectText)
 		}
+	}
+	if strings.Contains(inspectText, "Clarify command output | not_ready | Inputs, Investigation Plan, Expected Outputs, Done When, links") {
+		t.Fatalf("not-ready analysis task should not require links:\n%s", inspectText)
 	}
 
 	contextCmd := newContextProposalCmd()
@@ -265,6 +306,9 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		if !strings.Contains(contextText, want) {
 			t.Fatalf("context proposal output missing %q:\n%s", want, contextText)
 		}
+	}
+	if strings.Contains(contextText, "Omitted: 1 non-focused requirement map cards") {
+		t.Fatalf("context proposal should not count design cards as omitted requirement map cards:\n%s", contextText)
 	}
 }
 

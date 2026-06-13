@@ -63,8 +63,7 @@
 
 ## Open Questions
 
-| ID | Source | Question | Blocks |
-|----|--------|----------|--------|
+- <source-card-id>: <question>
 
 ## Active Analysis
 
@@ -73,13 +72,12 @@
 
 ## Not Ready Tasks
 
-| ID | Title | Blocked By | Missing |
-|----|-------|------------|---------|
+| ID | Title | Status | Missing |
+|----|-------|--------|---------|
 
 ## Recent Important Logs
 
-| ID | Kind | Title | Related | Summary |
-|----|------|-------|---------|---------|
+- <log-id> [<status>] <title>
 
 ## Recommendations
 
@@ -121,7 +119,7 @@ flowforge context proposal --proposal <id> --cards <card-id>
 flowforge context proposal --proposal <id> --task <task-id>
 ```
 
-如果没有显式焦点，CLI 只输出 proposal 级摘要和建议焦点，不展开大量卡片。
+如果没有显式焦点，CLI 可以使用需求索引入口作为默认焦点，但仍必须保持窄上下文，并提示被省略的非焦点索引卡数量。
 
 ### 3.3 输出结构
 
@@ -400,7 +398,7 @@ analysis task 进入 ready 必须满足：
 | 分析推进 | 存在 ready analysis task | `task ready --type a`、`library suggest`、`card create --type finding/design` |
 | library 发现 | 当前设计缺规范、模块、历史设计 | `library suggest`、`card search`、`card read` |
 | 设计定稿 | 结论稳定但缺 design card | `card create --type design` |
-| 任务拆分 | design 足够明确 | `task create --type i` |
+| 任务拆分 | design 足够明确 | `task create --type i --status ready/not_ready` |
 
 一轮可以创建多个卡，但用户汇报必须围绕一个主线。
 

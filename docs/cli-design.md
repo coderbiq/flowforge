@@ -292,7 +292,7 @@ flowforge uninstall [--keep-cards]
 ```
 flowforge task
 |
-+-- create --title <title> --type <type> [--links <ids>] [--body <body>]
++-- create --title <title> --type <type> [--status <status>] [--links <ids>] [--body <body>]
 |       # 创建任务卡片（等效于 card create --type task）
 |       # type: a(analysis) | i(implementation) | t(test) | d(docs) | f(fix) | r(refactor) | c(config)
 |       # 自动生成文件名：{TASK_ID}_{title}.md
@@ -301,7 +301,7 @@ flowforge task
 |       # 列出任务卡片（基于类型目录 + frontmatter 筛选）
 |
 +-- ready [--type <type>]
-|       # 列出就绪任务（依赖已全部 done），可按任务类型过滤
+|       # 列出就绪任务；analysis task 还必须具备 Goal/Inputs/Investigation Plan/Expected Outputs/Done When
 |
 +-- claim <task-id>
 |       # 认领任务（status: ready -> in_progress）
@@ -349,7 +349,8 @@ cancelled
 
 ```bash
 # 创建任务
-$ flowforge task create --title "实现 init 命令" --type i --links DES-2x9k3m00-5z0o4p3s
+$ flowforge task create --title "实现 init 命令" --type i --status ready --links DES-2x9k3m00-5z0o4p3s
+$ flowforge task create --title "分析影响范围" --type a --status not_ready --links REQ-2x9k3m00-3x8m2n1q:analyzes
 
 # 生成文件：
 # <wiki-root>/01-workspace/01-active/CR26061201-cli/TASK-2x9k3m00-i-7b2q6r5u_实现init命令.md

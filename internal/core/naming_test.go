@@ -17,6 +17,15 @@ func TestGenerateCardTimestamp(t *testing.T) {
 	}
 }
 
+func TestGenerateCardTimestampSupportsRapidCreation(t *testing.T) {
+	first := GenerateCardTimestamp()
+	second := GenerateCardTimestamp()
+
+	if first == second {
+		t.Fatalf("expected rapid timestamp generation to be unique, got %s", first)
+	}
+}
+
 func TestGenerateCardID(t *testing.T) {
 	tests := []struct {
 		cardType   CardType

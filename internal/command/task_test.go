@@ -116,6 +116,113 @@ func TestTaskCreateDefaultsToCurrentProposal(t *testing.T) {
 	}
 }
 
+func TestTaskCreateAcceptsInitialStatus(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	createProposalForTest(t, tmpDir, "Task status proposal")
+
+	createCmd := newTaskCreateCmd()
+	createCmd.SetArgs([]string{"--title", "Clarify impact", "--type", "a", "--status", "not_ready"})
+	if err := createCmd.Execute(); err != nil {
+		t.Fatalf("task create failed: %v", err)
+	}
+
+	store := testCardStore(t, tmpDir)
+	tasks, err := store.ListCardsByType(core.CardTypeTask)
+	if err != nil {
+		t.Fatalf("listing tasks failed: %v", err)
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(tasks))
+	}
+	if tasks[0].Status != core.CardStatusNotReady {
+		t.Fatalf("expected created task to be not_ready, got %s", tasks[0].Status)
+	}
+	if !strings.Contains(tasks[0].ID, "-a-") {
+		t.Fatalf("expected analysis task ID, got %s", tasks[0].ID)
+	}
+}
+
+func TestTaskCreateRejectsInvalidInitialStatus(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+
+	createCmd := newTaskCreateCmd()
+	createCmd.SetArgs([]string{"--title", "Invalid status", "--status", "waiting"})
+	err := createCmd.Execute()
+	if err == nil {
+		t.Fatal("expected invalid task status to fail")
+	}
+	if !strings.Contains(err.Error(), "invalid task status: waiting") {
+		t.Fatalf("expected invalid status error, got %v", err)
+	}
+}
+
+func TestTaskReadyRequiresAnalysisSections(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	createProposalForTest(t, tmpDir, "Analysis ready proposal")
+
+	incompleteCmd := newTaskCreateCmd()
+	incompleteCmd.SetArgs([]string{"--title", "Incomplete analysis", "--type", "a", "--body", "## Goal\n\nInspect behavior."})
+	if err := incompleteCmd.Execute(); err != nil {
+		t.Fatalf("creating incomplete analysis task failed: %v", err)
+	}
+
+	completeBody := strings.Join([]string{
+		"## Goal\n\nInspect behavior.",
+		"## Inputs\n\n- Proposal context",
+		"## Investigation Plan\n\n- Check CLI output",
+		"## Expected Outputs\n\n- Design update",
+		"## Done When\n\n- Output contract is clear",
+	}, "\n\n")
+	completeCmd := newTaskCreateCmd()
+	completeCmd.SetArgs([]string{"--title", "Complete analysis", "--type", "a", "--body", completeBody})
+	if err := completeCmd.Execute(); err != nil {
+		t.Fatalf("creating complete analysis task failed: %v", err)
+	}
+
+	readyCmd := newTaskReadyCmd()
+	var out strings.Builder
+	readyCmd.SetOut(&out)
+	readyCmd.SetArgs([]string{"--type", "a"})
+	if err := readyCmd.Execute(); err != nil {
+		t.Fatalf("task ready failed: %v", err)
+	}
+
+	text := out.String()
+	if strings.Contains(text, "Incomplete analysis") {
+		t.Fatalf("expected incomplete analysis task to be filtered out:\n%s", text)
+	}
+	if !strings.Contains(text, "Complete analysis") {
+		t.Fatalf("expected complete analysis task to be listed:\n%s", text)
+	}
+}
+
 func restoreWorkingDir(t *testing.T) {
 	t.Helper()
 

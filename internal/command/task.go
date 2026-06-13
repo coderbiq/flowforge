@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -36,6 +37,7 @@ func newTaskCreateCmd() *cobra.Command {
 	var (
 		title      string
 		taskType   string
+		status     string
 		body       string
 		proposalID string
 		links      []string
@@ -52,6 +54,10 @@ func newTaskCreateCmd() *cobra.Command {
 			if err := validateTaskTypeFlag(taskType); err != nil {
 				return err
 			}
+			taskStatus := core.CardStatus(status)
+			if !taskStatus.Valid() {
+				return fmt.Errorf("invalid task status: %s", status)
+			}
 
 			store, err := currentCardStore()
 			if err != nil {
@@ -65,7 +71,7 @@ func newTaskCreateCmd() *cobra.Command {
 
 			task := core.NewCard(core.CardTypeTask, title)
 			task.ID = core.GenerateTaskID(proposalTimestamp(resolvedProposalID), taskType)
-			task.Status = core.CardStatusReady
+			task.Status = taskStatus
 			task.Body = body
 			task.Tags = tags
 			addParsedLinks(task, links)
@@ -84,6 +90,7 @@ func newTaskCreateCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&title, "title", "", "Task title")
 	cmd.Flags().StringVar(&taskType, "type", "i", "Task type: a/i/t/d/f/r/c")
+	cmd.Flags().StringVar(&status, "status", string(core.CardStatusReady), "Initial task status")
 	cmd.Flags().StringVar(&body, "body", "", "Task body content")
 	cmd.Flags().StringVar(&proposalID, "proposal", "", "Proposal ID to associate with")
 	cmd.Flags().StringSliceVar(&links, "links", nil, "Links to cards (format: CARD_ID or CARD_ID:relation)")
@@ -112,7 +119,7 @@ func newTaskListCmd() *cobra.Command {
 				return err
 			}
 			tasks = filterTasks(tasks, status, dep)
-			printTaskList(tasks)
+			printTaskList(cmd.OutOrStdout(), tasks)
 			return nil
 		},
 	}
@@ -160,7 +167,7 @@ func newTaskReadyCmd() *cobra.Command {
 				}
 			}
 
-			printTaskList(ready)
+			printTaskList(cmd.OutOrStdout(), ready)
 			return nil
 		},
 	}
@@ -475,6 +482,9 @@ func isTaskReady(store *core.CardStore, task *core.Card) (bool, error) {
 	if task.Status != core.CardStatusReady {
 		return false, nil
 	}
+	if isAnalysisTask(task) && !hasRequiredSections(task.Body, []string{"Goal", "Inputs", "Investigation Plan", "Expected Outputs", "Done When"}) {
+		return false, nil
+	}
 
 	for _, link := range task.Links {
 		if !strings.HasPrefix(link.Target, "TASK-") {
@@ -515,26 +525,26 @@ func appendTaskNote(task *core.Card, heading string, text string) {
 	task.Body = body + "\n\n" + note
 }
 
-func printTaskList(tasks []*core.Card) {
+func printTaskList(out io.Writer, tasks []*core.Card) {
 	if len(tasks) == 0 {
-		fmt.Println("No tasks found.")
+		fmt.Fprintln(out, "No tasks found.")
 		return
 	}
 
-	fmt.Printf("Found %d task(s):\n\n", len(tasks))
+	fmt.Fprintf(out, "Found %d task(s):\n\n", len(tasks))
 	for _, task := range tasks {
-		fmt.Printf("  %s [%s] %s\n", task.ID, task.Status, task.Title)
+		fmt.Fprintf(out, "  %s [%s] %s\n", task.ID, task.Status, task.Title)
 		if task.Source != "" {
-			fmt.Printf("    Proposal: %s\n", task.Source)
+			fmt.Fprintf(out, "    Proposal: %s\n", task.Source)
 		}
 		if len(task.Links) > 0 {
 			var links []string
 			for _, link := range task.Links {
 				links = append(links, fmt.Sprintf("%s:%s", link.Target, link.Relation))
 			}
-			fmt.Printf("    Links: %s\n", strings.Join(links, ", "))
+			fmt.Fprintf(out, "    Links: %s\n", strings.Join(links, ", "))
 		}
-		fmt.Println()
+		fmt.Fprintln(out)
 	}
 }
 

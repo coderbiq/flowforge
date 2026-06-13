@@ -194,8 +194,16 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	if len(activeAnalysis) == 0 {
 		fmt.Fprintln(w, "- None")
 	} else {
+		fmt.Fprintln(w, "| ID | Title | Status | Analyzes | Done When |")
+		fmt.Fprintln(w, "|----|-------|--------|----------|-----------|")
 		for _, item := range activeAnalysis {
-			fmt.Fprintf(w, "- %s [%s] %s\n", item.ID, item.Status, item.Title)
+			fmt.Fprintf(w, "| %s | %s | %s | %s | %s |\n",
+				item.ID,
+				escapeTableCell(item.Title),
+				item.Status,
+				escapeTableCell(item.Analyzes),
+				escapeTableCell(item.DoneWhen),
+			)
 		}
 	}
 	fmt.Fprintln(w)
@@ -204,8 +212,15 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	if len(notReadyTasks) == 0 {
 		fmt.Fprintln(w, "- None")
 	} else {
+		fmt.Fprintln(w, "| ID | Title | Status | Missing |")
+		fmt.Fprintln(w, "|----|-------|--------|---------|")
 		for _, item := range notReadyTasks {
-			fmt.Fprintf(w, "- %s [%s] %s\n", item.ID, item.Status, item.Title)
+			fmt.Fprintf(w, "| %s | %s | %s | %s |\n",
+				item.ID,
+				escapeTableCell(item.Title),
+				item.Status,
+				escapeTableCell(item.Missing),
+			)
 		}
 	}
 	fmt.Fprintln(w)
@@ -259,8 +274,13 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	fmt.Fprintln(w, "## Requirement Map")
 	fmt.Fprintln(w, "| ID | Kind | Title | Status | Entries | Notes |")
 	fmt.Fprintln(w, "|----|------|-------|--------|---------|-------|")
-	for _, card := range requirementMapCards(s.cards) {
+	requirementMap := requirementMapCardsForContext(s, focus)
+	allRequirementMap := contextRequirementMapCards(s.cards)
+	for _, card := range requirementMap {
 		fmt.Fprintf(w, "| %s | %s | %s | %s | %d | %s |\n", card.ID, card.Type, card.Title, card.Status, len(card.Links), requirementNote(card, s))
+	}
+	if len(requirementMap) < len(allRequirementMap) {
+		fmt.Fprintf(w, "\n- Omitted: %d non-focused requirement map cards. Use `proposal inspect` or `structure list` for broader navigation.\n", len(allRequirementMap)-len(requirementMap))
 	}
 	fmt.Fprintln(w)
 
@@ -317,9 +337,12 @@ type taskSummaryCounts struct {
 }
 
 type proposalTaskItem struct {
-	ID     string
-	Title  string
-	Status string
+	ID       string
+	Title    string
+	Status   string
+	Analyzes string
+	DoneWhen string
+	Missing  string
 }
 
 type linkedCard struct {
@@ -370,7 +393,13 @@ func collectAnalysisTasks(cards []*core.Card) []proposalTaskItem {
 	var items []proposalTaskItem
 	for _, card := range cards {
 		if card.Type == core.CardTypeTask && isAnalysisTask(card) && isActiveTaskStatus(card.Status) {
-			items = append(items, proposalTaskItem{ID: card.ID, Title: card.Title, Status: string(card.Status)})
+			items = append(items, proposalTaskItem{
+				ID:       card.ID,
+				Title:    card.Title,
+				Status:   string(card.Status),
+				Analyzes: linkedTargetsByRelation(card, "analyzes"),
+				DoneWhen: sectionSummaryOrMissing(card.Body, "Done When"),
+			})
 		}
 	}
 	sort.SliceStable(items, func(i, j int) bool { return items[i].ID < items[j].ID })
@@ -384,7 +413,12 @@ func collectNotReadyTasks(cards []*core.Card) []proposalTaskItem {
 			continue
 		}
 		if isNotReadyStatus(card.Status) {
-			items = append(items, proposalTaskItem{ID: card.ID, Title: card.Title, Status: string(card.Status)})
+			items = append(items, proposalTaskItem{
+				ID:      card.ID,
+				Title:   card.Title,
+				Status:  string(card.Status),
+				Missing: missingTaskReadiness(card),
+			})
 		}
 	}
 	sort.SliceStable(items, func(i, j int) bool { return items[i].ID < items[j].ID })
@@ -535,6 +569,61 @@ func requirementMapCards(cards []*core.Card) []*core.Card {
 	return filtered
 }
 
+func contextRequirementMapCards(cards []*core.Card) []*core.Card {
+	var filtered []*core.Card
+	for _, card := range cards {
+		if strings.HasPrefix(card.ID, "ROOT-") {
+			continue
+		}
+		if card.Type == core.CardTypeRequirement || card.Type == core.CardTypeStructure {
+			filtered = append(filtered, card)
+		}
+	}
+	sort.SliceStable(filtered, func(i, j int) bool {
+		if filtered[i].Type == filtered[j].Type {
+			return filtered[i].ID < filtered[j].ID
+		}
+		return filtered[i].Type < filtered[j].Type
+	})
+	return filtered
+}
+
+func requirementMapCardsForContext(snapshot *proposalSnapshot, focus *core.Card) []*core.Card {
+	if snapshot == nil {
+		return nil
+	}
+
+	seen := map[string]bool{}
+	var selected []*core.Card
+	add := func(card *core.Card) {
+		if card == nil || seen[card.ID] {
+			return
+		}
+		if strings.HasPrefix(card.ID, "ROOT-") {
+			return
+		}
+		if card.Type != core.CardTypeRequirement && card.Type != core.CardTypeStructure {
+			return
+		}
+		seen[card.ID] = true
+		selected = append(selected, card)
+	}
+
+	add(snapshot.requirementIndex)
+	add(focus)
+	if focus != nil {
+		for _, link := range focus.Links {
+			add(snapshot.cardByID[link.Target])
+		}
+		for _, backlink := range snapshot.backlinks[focus.ID] {
+			add(backlink.from)
+		}
+	}
+
+	sort.SliceStable(selected, func(i, j int) bool { return selected[i].ID < selected[j].ID })
+	return selected
+}
+
 func requirementNote(card *core.Card, snapshot *proposalSnapshot) string {
 	if card == nil {
 		return ""
@@ -668,38 +757,51 @@ func firstParagraph(body string) string {
 	return strings.Join(parts, " ")
 }
 
-func extractSection(body, section string) string {
-	marker := "## " + section
-	idx := strings.Index(body, marker)
-	if idx < 0 {
-		return ""
+func linkedTargetsByRelation(card *core.Card, relation string) string {
+	if card == nil {
+		return "None"
 	}
-	sectionBody := body[idx+len(marker):]
-	next := strings.Index(sectionBody, "\n## ")
-	if next >= 0 {
-		sectionBody = sectionBody[:next]
-	}
-	return strings.TrimSpace(sectionBody)
-}
-
-func splitBulletLines(section string) []string {
-	var lines []string
-	for _, raw := range strings.Split(section, "\n") {
-		line := strings.TrimSpace(raw)
-		if line == "" {
-			continue
-		}
-		line = strings.TrimPrefix(line, "- ")
-		line = strings.TrimSpace(line)
-		if line != "" {
-			lines = append(lines, line)
+	var targets []string
+	for _, link := range card.Links {
+		if link.Relation == relation {
+			targets = append(targets, link.Target)
 		}
 	}
-	return lines
+	return joinOrNone(targets)
 }
 
-func isAnalysisTask(card *core.Card) bool {
-	return taskKindFromID(card.ID) == "a"
+func sectionSummaryOrMissing(body, section string) string {
+	text := extractSection(body, section)
+	if text == "" {
+		return "missing"
+	}
+	if lines := splitBulletLines(text); len(lines) > 0 {
+		return strings.Join(lines, "; ")
+	}
+	summary := firstParagraph(text)
+	if summary == "" {
+		return "missing"
+	}
+	return summary
+}
+
+func missingTaskReadiness(card *core.Card) string {
+	if card == nil {
+		return "task"
+	}
+	var missing []string
+	if strings.TrimSpace(card.Body) == "" {
+		missing = append(missing, "body")
+	}
+	for _, section := range requiredTaskSections(card) {
+		if strings.TrimSpace(extractSection(card.Body, section)) == "" {
+			missing = append(missing, section)
+		}
+	}
+	if !isAnalysisTask(card) && len(card.Links) == 0 {
+		missing = append(missing, "links")
+	}
+	return joinOrNone(missing)
 }
 
 func isActiveTaskStatus(status core.CardStatus) bool {

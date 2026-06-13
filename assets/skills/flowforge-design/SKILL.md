@@ -4,13 +4,13 @@ Use when the user wants to analyze, clarify, design, or decompose a FlowForge pr
 
 ## Start
 
-Run `flowforge project current`, `flowforge proposal current`, `flowforge proposal inspect <proposal-id>`, then `flowforge context proposal --proposal <proposal-id>`. If project or proposal is missing, ask the user to create or select it.
+Run `flowforge project current`, `flowforge proposal current`, `flowforge proposal inspect <id>`, then `flowforge context proposal --proposal <id>`. If project/proposal is missing, ask the user to create or select it.
 
 ## Workflow
 
-Update STR with `structure add/remove`, create atomic requirements, turn uncertainty into analysis tasks, discover library context with `library suggest`, `card search --scope library`, and `card read --summary/--section`, then create focused design cards.
+Follow `references/workflow-rules.md`. Use `structure add/remove`, atomic requirement cards, analysis tasks for uncertainty, `library suggest` / `card search --scope library` / `card read --summary/--section` for library discovery, then focused design cards.
 
-Create implementation tasks only when requirement, design, constraints, and acceptance are present; otherwise mark `not_ready` or blocked. Record each turn with `log create --kind <kind>`.
+Use `references/card-templates.md` whenever creating or reviewing card bodies. Use `references/library-discovery.md` before reading or linking library cards. Record each real design turn with `log create --kind <kind>`.
 
 ## Hard Rules
 

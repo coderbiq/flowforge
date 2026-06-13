@@ -947,7 +947,7 @@ Acceptance：
 | `flowforge card search <query> --scope library` | 在 library 中做关键词和类型筛选 |
 | `flowforge card read <id> --summary/--section <name>` | 定点读取摘要或指定段落，避免全文加载 |
 | `flowforge card create --type requirement/structure/design/finding/log` | 创建核心设计卡片 |
-| `flowforge task create --type a/i` | 创建分析和实现任务 |
+| `flowforge task create --type a/i --status ready/not_ready` | 创建分析和实现任务 |
 | `flowforge task ready --type a` | 找出可执行分析任务 |
 | `flowforge structure add/remove` | 维护 STR 索引条目并处理 7-15 条上限提示 |
 | `flowforge log create --kind <kind>` | 高频创建过程记录 |
@@ -961,7 +961,7 @@ Acceptance：
 - `structure add/remove` 只维护 STR 索引条目和关系，不承担任意 markdown 编辑；当直接条目超过 15 时必须提示拆分。
 - `log create --kind` 负责统一 log frontmatter、note kind 和上下文链接，避免 design SKILL 手写 log 模板。
 - `card read --summary/--section` 是 library 定点读取的基础能力，默认仍可读取全文，但 design SKILL 应优先使用裁剪读取。
-- `task ready --type a` 是现有 `task ready` 的过滤能力，不引入新的任务查询语义。
+- `task ready --type a` 是现有 `task ready` 的过滤能力；analysis task 还必须具备 Goal、Inputs、Investigation Plan、Expected Outputs、Done When。
 
 ### 17.3 延后封装能力
 

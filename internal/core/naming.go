@@ -4,12 +4,24 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode"
 )
 
+var lastCardTimestampNano int64
+
 func GenerateCardTimestamp() string {
-	return strconv.FormatInt(time.Now().Unix(), 36)
+	now := time.Now().UnixNano()
+	for {
+		last := atomic.LoadInt64(&lastCardTimestampNano)
+		if now <= last {
+			now = last + 1
+		}
+		if atomic.CompareAndSwapInt64(&lastCardTimestampNano, last, now) {
+			return strconv.FormatInt(now, 36)
+		}
+	}
 }
 
 func GenerateCardID(cardType CardType, proposalTs string) string {
