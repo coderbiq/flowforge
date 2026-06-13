@@ -116,6 +116,88 @@ func TestTaskCreateDefaultsToCurrentProposal(t *testing.T) {
 	}
 }
 
+func TestTaskCreateParsesCommaSeparatedLinks(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	createProposalForTest(t, tmpDir, "Task links proposal")
+
+	createCmd := newTaskCreateCmd()
+	createCmd.SetArgs([]string{
+		"--title", "Implement linked task",
+		"--type", "i",
+		"--links", "REQ-abc:requires,DES-def:implements",
+		"--links", "CONV-ghi:constrains",
+	})
+	if err := createCmd.Execute(); err != nil {
+		t.Fatalf("task create failed: %v", err)
+	}
+
+	store := testCardStore(t, tmpDir)
+	tasks, err := store.ListCardsByType(core.CardTypeTask)
+	if err != nil {
+		t.Fatalf("listing tasks failed: %v", err)
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(tasks))
+	}
+	for _, want := range []core.Link{
+		{Target: "REQ-abc", Relation: "requires"},
+		{Target: "DES-def", Relation: "implements"},
+		{Target: "CONV-ghi", Relation: "constrains"},
+	} {
+		if !hasLinkRelation(tasks[0], want.Target, want.Relation) {
+			t.Fatalf("expected link %#v, got %#v", want, tasks[0].Links)
+		}
+	}
+}
+
+func TestTaskCreateRendersSelfIDPlaceholder(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	createProposalForTest(t, tmpDir, "Task self id proposal")
+
+	createCmd := newTaskCreateCmd()
+	createCmd.SetArgs([]string{
+		"--title", "Implement with self id",
+		"--type", "i",
+		"--body", "## Goal\n\nUpdate {{task.id}} and <self>.",
+	})
+	if err := createCmd.Execute(); err != nil {
+		t.Fatalf("task create failed: %v", err)
+	}
+
+	store := testCardStore(t, tmpDir)
+	tasks, err := store.ListCardsByType(core.CardTypeTask)
+	if err != nil {
+		t.Fatalf("listing tasks failed: %v", err)
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(tasks))
+	}
+	if strings.Contains(tasks[0].Body, "{{task.id}}") || strings.Contains(tasks[0].Body, "<self>") {
+		t.Fatalf("expected placeholders to be replaced, got body:\n%s", tasks[0].Body)
+	}
+	if !strings.Contains(tasks[0].Body, tasks[0].ID) {
+		t.Fatalf("expected body to contain task id %s, got:\n%s", tasks[0].ID, tasks[0].Body)
+	}
+}
+
 func TestTaskCreateAcceptsInitialStatus(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)

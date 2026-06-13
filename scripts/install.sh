@@ -116,6 +116,10 @@ main() {
 
     tar xzf "$archive" -C "$tmpdir"
     mv "$tmpdir/${APP_NAME}" "$bin_dir/"
+    if [ -d "$tmpdir/assets" ]; then
+        rm -rf "$install_dir/assets"
+        mv "$tmpdir/assets" "$install_dir/assets"
+    fi
     chmod +x "$bin_dir/${APP_NAME}"
 
     rm -rf "$tmpdir"

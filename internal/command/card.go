@@ -96,14 +96,12 @@ Examples:
 				card.ID = core.GenerateCardID(ct, proposalTs)
 			}
 
-			for _, linkStr := range links {
-				parts := strings.Split(linkStr, ":")
-				target := parts[0]
-				relation := "related"
-				if len(parts) > 1 {
-					relation = parts[1]
-				}
-				card.AddLink(target, relation)
+			parsedLinks, err := parseLinkArgs(links)
+			if err != nil {
+				return err
+			}
+			for _, link := range parsedLinks {
+				card.AddLink(link.target, link.relation)
 			}
 
 			filePath, err := store.CreateCard(card, resolvedProposalID)
@@ -515,24 +513,20 @@ func newCardUpdateCmd() *cobra.Command {
 					card.Body = body
 				}
 
-				for _, linkStr := range addLinks {
-					parts := strings.Split(linkStr, ":")
-					target := parts[0]
-					relation := "related"
-					if len(parts) > 1 {
-						relation = parts[1]
-					}
-					card.AddLink(target, relation)
+				parsedAddLinks, err := parseLinkArgs(addLinks)
+				if err != nil {
+					return err
+				}
+				for _, link := range parsedAddLinks {
+					card.AddLink(link.target, link.relation)
 				}
 
-				for _, linkStr := range removeLinks {
-					parts := strings.Split(linkStr, ":")
-					target := parts[0]
-					relation := "related"
-					if len(parts) > 1 {
-						relation = parts[1]
-					}
-					card.RemoveLink(target, relation)
+				parsedRemoveLinks, err := parseLinkArgs(removeLinks)
+				if err != nil {
+					return err
+				}
+				for _, link := range parsedRemoveLinks {
+					card.RemoveLink(link.target, link.relation)
 				}
 
 				return nil

@@ -19,15 +19,14 @@ cd flowforge
 # 当前平台构建
 make dev
 
-# 运行
+# 运行（make dev 会同时复制 assets 到 bin/assets）
 ./bin/flowforge version
 
 # 运行测试
 make test
 
-# 本地开发（链接到 PATH）
-go install ./cmd/flowforge
-flowforge --version
+# 本地开发（如需放入 PATH，优先链接或复制 bin/flowforge 与 bin/assets）
+./bin/flowforge --version
 ```
 
 ### 环境变量
@@ -85,7 +84,10 @@ go test -cover ./internal/...
 make dev
 # 或
 go build -trimpath -o bin/flowforge ./cmd/flowforge
+rm -rf bin/assets && cp -R assets bin/assets
 ```
+
+`flowforge init` 需要读取随 CLI 发布的 `assets/`。开发构建请优先使用 `make dev`；单独 `go install` 只安装二进制，不会安装 SKILL、模板等部署制品。
 
 ### 所有平台（发布用）
 
@@ -107,6 +109,8 @@ dist/v0.1.0/
 ├── flowforge-x86_64-pc-windows-msvc.zip.sha256
 └── checksums.txt
 ```
+
+每个压缩包内包含平台二进制和 `assets/` 目录。安装脚本会把二进制放入安装目录的 `bin/`，把 `assets/` 放入安装目录根路径，供 `flowforge init` 部署到目标项目。
 
 ## 发布流程
 

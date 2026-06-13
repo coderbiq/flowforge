@@ -140,7 +140,7 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	taskSummary := summarizeTasks(s.cards)
 	openQuestions := collectOpenQuestions(s.cards)
 	activeAnalysis := collectAnalysisTasks(s.cards)
-	notReadyTasks := collectNotReadyTasks(s.cards)
+	notReadyTasks := collectNotReadyTasks(s)
 	recentLogs := collectRecentLogs(s.cards, 5)
 	proposalTitle := proposalDisplayTitle(s)
 
@@ -406,9 +406,12 @@ func collectAnalysisTasks(cards []*core.Card) []proposalTaskItem {
 	return items
 }
 
-func collectNotReadyTasks(cards []*core.Card) []proposalTaskItem {
+func collectNotReadyTasks(snapshot *proposalSnapshot) []proposalTaskItem {
 	var items []proposalTaskItem
-	for _, card := range cards {
+	if snapshot == nil {
+		return items
+	}
+	for _, card := range snapshot.cards {
 		if card.Type != core.CardTypeTask {
 			continue
 		}
@@ -417,7 +420,7 @@ func collectNotReadyTasks(cards []*core.Card) []proposalTaskItem {
 				ID:      card.ID,
 				Title:   card.Title,
 				Status:  string(card.Status),
-				Missing: missingTaskReadiness(card),
+				Missing: missingTaskReadiness(card, snapshot),
 			})
 		}
 	}
@@ -785,7 +788,7 @@ func sectionSummaryOrMissing(body, section string) string {
 	return summary
 }
 
-func missingTaskReadiness(card *core.Card) string {
+func missingTaskReadiness(card *core.Card, snapshot *proposalSnapshot) string {
 	if card == nil {
 		return "task"
 	}
@@ -801,7 +804,37 @@ func missingTaskReadiness(card *core.Card) string {
 	if !isAnalysisTask(card) && len(card.Links) == 0 {
 		missing = append(missing, "links")
 	}
+	if card.Status == core.CardStatusBlocked {
+		if reason := sectionSummaryOrMissing(card.Body, "Blocked"); reason != "missing" {
+			missing = append(missing, "blocked: "+reason)
+		} else {
+			missing = append(missing, "blocked reason")
+		}
+	}
+	missing = append(missing, incompleteTaskDependencies(card, snapshot)...)
 	return joinOrNone(missing)
+}
+
+func incompleteTaskDependencies(card *core.Card, snapshot *proposalSnapshot) []string {
+	if card == nil || snapshot == nil {
+		return nil
+	}
+
+	var missing []string
+	for _, link := range card.Links {
+		if !strings.HasPrefix(link.Target, "TASK-") {
+			continue
+		}
+		dependency := snapshot.cardByID[link.Target]
+		if dependency == nil {
+			missing = append(missing, "dependency "+link.Target+" missing")
+			continue
+		}
+		if dependency.Status != core.CardStatusDone {
+			missing = append(missing, fmt.Sprintf("dependency %s is %s", dependency.ID, dependency.Status))
+		}
+	}
+	return missing
 }
 
 func isActiveTaskStatus(status core.CardStatus) bool {

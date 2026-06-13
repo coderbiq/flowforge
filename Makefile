@@ -14,6 +14,8 @@ LDFLAGS += -X flowforge/internal/version.injected=$(VERSION)
 ## 当前平台快速构建
 dev:
 	go build -ldflags="$(LDFLAGS)" -trimpath -o bin/flowforge ./cmd/flowforge
+	rm -rf bin/assets
+	cp -R assets bin/assets
 
 ## 运行测试
 test:

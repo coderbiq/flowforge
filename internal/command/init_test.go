@@ -66,4 +66,40 @@ func TestRunInitCreatesInstallOnly(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(tmpDir, "ff-wiki", "00-STR-HOME.md")); !os.IsNotExist(err) {
 		t.Fatalf("expected no default home index, stat err=%v", err)
 	}
+
+	for _, skill := range []string{"flowforge-design", "flowforge-implement"} {
+		skillPath := filepath.Join(tmpDir, ".agents", "skills", skill, "SKILL.md")
+		if _, err := os.Stat(skillPath); err != nil {
+			t.Fatalf("expected deployed skill %s: %v", skill, err)
+		}
+	}
+
+	if _, err := os.Stat(filepath.Join(tmpDir, ".flowforge", "templates")); err != nil {
+		t.Fatalf("expected deployed templates directory: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(tmpDir, "AGENTS.md")); err != nil {
+		t.Fatalf("expected deployed AGENTS.md: %v", err)
+	}
+}
+
+func TestRunInitPreservesExistingAgentRules(t *testing.T) {
+	tmpDir := t.TempDir()
+	agentPath := filepath.Join(tmpDir, "AGENTS.md")
+	original := []byte("# Existing Rules\n")
+	if err := os.WriteFile(agentPath, original, 0644); err != nil {
+		t.Fatalf("writing existing AGENTS.md failed: %v", err)
+	}
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+
+	content, err := os.ReadFile(agentPath)
+	if err != nil {
+		t.Fatalf("reading AGENTS.md failed: %v", err)
+	}
+	if string(content) != string(original) {
+		t.Fatalf("expected existing AGENTS.md to be preserved, got:\n%s", string(content))
+	}
 }

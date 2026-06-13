@@ -72,9 +72,11 @@ func newTaskCreateCmd() *cobra.Command {
 			task := core.NewCard(core.CardTypeTask, title)
 			task.ID = core.GenerateTaskID(proposalTimestamp(resolvedProposalID), taskType)
 			task.Status = taskStatus
-			task.Body = body
+			task.Body = renderTaskBody(body, task.ID)
 			task.Tags = tags
-			addParsedLinks(task, links)
+			if err := addParsedLinks(task, links); err != nil {
+				return err
+			}
 
 			filePath, err := store.CreateCard(task, resolvedProposalID)
 			if err != nil {
@@ -316,9 +318,11 @@ func newTaskSubCmd() *cobra.Command {
 			task.ID = subID
 			task.Status = core.CardStatusReady
 			task.Source = parent.Source
-			task.Body = body
+			task.Body = renderTaskBody(body, task.ID)
 			task.AddLink(parent.ID, "related")
-			addParsedLinks(task, links)
+			if err := addParsedLinks(task, links); err != nil {
+				return err
+			}
 
 			filePath, err := store.CreateCard(task, parent.Source)
 			if err != nil {
@@ -439,21 +443,27 @@ func proposalTimestamp(proposalID string) string {
 	return proposalID
 }
 
-func parseLinkArg(linkStr string) (target string, relation string) {
-	parts := strings.SplitN(linkStr, ":", 2)
-	target = parts[0]
-	relation = "related"
-	if len(parts) == 2 && parts[1] != "" {
-		relation = parts[1]
+func addParsedLinks(task *core.Card, links []string) error {
+	parsedLinks, err := parseLinkArgs(links)
+	if err != nil {
+		return err
 	}
-	return target, relation
+	for _, link := range parsedLinks {
+		task.AddLink(link.target, link.relation)
+	}
+	return nil
 }
 
-func addParsedLinks(task *core.Card, links []string) {
-	for _, linkStr := range links {
-		target, relation := parseLinkArg(linkStr)
-		task.AddLink(target, relation)
+func renderTaskBody(body string, taskID string) string {
+	replacements := map[string]string{
+		"{{task.id}}": taskID,
+		"{{TASK_ID}}": taskID,
+		"<self>":      taskID,
 	}
+	for placeholder, value := range replacements {
+		body = strings.ReplaceAll(body, placeholder, value)
+	}
+	return body
 }
 
 func filterTasks(tasks []*core.Card, status string, dep string) []*core.Card {

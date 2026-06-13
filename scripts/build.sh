@@ -15,11 +15,13 @@ build_native() {
     echo "Building for current platform..."
     mkdir -p bin
     go build -ldflags="$LDFLAGS" -trimpath -o bin/flowforge ./cmd/flowforge
+    rm -rf bin/assets
+    cp -R assets bin/assets
     echo "→ bin/flowforge ($(du -h bin/flowforge | cut -f1))"
 }
 
 build_all() {
-    local out="dist/${VERSION}"
+    local out="$(pwd)/dist/${VERSION}"
     rm -rf "$out"
     mkdir -p "$out"
 
@@ -36,7 +38,12 @@ build_all() {
 
         local ext=""
         local archive_ext=".tar.gz"
-        local platform="${goarch}-"
+        local cpu="$goarch"
+        case "$goarch" in
+            amd64) cpu="x86_64" ;;
+            arm64) cpu="aarch64" ;;
+        esac
+        local platform="${cpu}-"
 
         case "$goos" in
             linux)   platform+="unknown-linux-gnu" ;;
@@ -46,17 +53,23 @@ build_all() {
 
         local bin_name="flowforge${ext}"
         local archive_name="flowforge-${platform}${archive_ext}"
+        local package_dir="${out}/package-${goos}-${goarch}"
 
         echo "Building ${goos}/${goarch} → ${archive_name}"
 
+        rm -rf "$package_dir"
+        mkdir -p "$package_dir"
+
         GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 \
             go build -ldflags="$LDFLAGS" -trimpath \
-            -o "${out}/${bin_name}" ./cmd/flowforge
+            -o "${package_dir}/${bin_name}" ./cmd/flowforge
+
+        cp -R assets "${package_dir}/assets"
 
         if [ "$goos" = "windows" ]; then
-            (cd "$out" && zip "${archive_name}" "${bin_name}")
+            (cd "$package_dir" && zip -r "${out}/${archive_name}" "${bin_name}" assets >/dev/null)
         else
-            tar czf "${out}/${archive_name}" -C "$out" "${bin_name}"
+            tar czf "${out}/${archive_name}" -C "$package_dir" "${bin_name}" assets
         fi
 
         if command -v sha256sum >/dev/null 2>&1; then
@@ -65,7 +78,7 @@ build_all() {
             shasum -a 256 "${out}/${archive_name}" | awk '{print $1}' > "${out}/${archive_name}.sha256"
         fi
 
-        rm "${out}/${bin_name}"
+        rm -rf "$package_dir"
     done
 
     cat "${out}"/*.sha256 > "${out}/checksums.txt"

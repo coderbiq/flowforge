@@ -292,6 +292,20 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		t.Fatalf("creating not-ready analysis task failed: %v", err)
 	}
 
+	blockedTask := core.NewCard(core.CardTypeTask, "Implement after analysis")
+	blockedTask.ID = "TASK-260613-i-blocked"
+	blockedTask.Status = core.CardStatusBlocked
+	blockedTask.Body = strings.Join([]string{
+		"## Goal\n\nImplement after analysis.",
+		"## Deliverables\n\n- Command implementation",
+		"## Acceptance\n\n- Tests pass",
+		"## Blocked\n\n- Waiting for analysis output",
+	}, "\n\n")
+	blockedTask.AddLink(task.ID, "depends")
+	if _, err := store.CreateCard(blockedTask, "CR260613"); err != nil {
+		t.Fatalf("creating blocked task failed: %v", err)
+	}
+
 	design := core.NewCard(core.CardTypeDesign, "Command output design")
 	design.ID = "DES-260613-output"
 	design.Body = "## Goal\n\nDesign command output."
@@ -321,6 +335,9 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		"Implement command output",
 		"Deliverables",
 		"Clarify command output",
+		"Implement after analysis",
+		"blocked: Waiting for analysis output",
+		"dependency " + task.ID + " is ready",
 	} {
 		if !strings.Contains(inspectText, want) {
 			t.Fatalf("proposal inspect output missing %q:\n%s", want, inspectText)

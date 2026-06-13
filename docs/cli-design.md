@@ -28,15 +28,15 @@ flowforge
 +-- library <action>         # library 查询与推荐
 +-- structure <action>       # STR 索引卡维护
 +-- log <action>             # 过程记录快捷命令
-+-- upgrade                  # 升级到最新版本
-+-- uninstall                # 从当前项目卸载 FlowForge
 |
 +-- task <action>            # 任务管理（快捷命令组）
 +-- card <action>            # 卡片管理（通用 CRUD）
-+-- context <mode>           # 上下文输出（按任务/提案/反馈/归档场景裁剪）
++-- context <mode>           # 上下文输出（当前支持 proposal/task）
 |
-+-- validate <target>        # 校验（card / config）
-+-- config <action>          # 配置管理（get / set / list）
++-- upgrade                  # 规划：升级到最新版本
++-- uninstall                # 规划：从当前项目卸载 FlowForge
++-- validate <target>        # 规划：校验（card / config）
++-- config <action>          # 规划：配置管理（get / set / list）
 |
 +-- --version                # 版本信息
 +-- --help                   # 帮助
@@ -53,12 +53,12 @@ flowforge
 | **知识库查询** | `library <action>` | 从 library 中推荐规范、模块、历史设计 |
 | **结构索引** | `structure <action>` | 维护 STR 索引条目并提示拆分 |
 | **过程记录** | `log <action>` | 创建标准化 log 卡 |
-| **生命周期** | `upgrade`, `uninstall` | CLI 升级与卸载 |
+| **生命周期** | `upgrade`, `uninstall` | 规划能力：CLI 升级与卸载 |
 | **任务管理** | `task <action>` | 任务快捷命令（创建/认领/完成/状态） |
 | **卡片管理** | `card <action>` | 所有卡片的通用 CRUD + 链接 + 搜索 |
-| **上下文** | `context <mode>` | 按任务、提案、反馈、归档等场景输出裁剪后的上下文 |
-| **校验** | `validate <target>` | 结构校验 |
-| **配置** | `config <action>` | 配置读写 |
+| **上下文** | `context <mode>` | 当前支持 proposal/task；反馈、归档上下文后续扩展 |
+| **校验** | `validate <target>` | 规划能力：结构校验 |
+| **配置** | `config <action>` | 规划能力：配置读写 |
 
 > **task vs card**：任务是卡片（`type: task`），但操作频率高、流程固定，
 > 因此提供独立的 `task` 命令组作为快捷入口。`task create` 底层调用 `card create --type task`。
@@ -88,6 +88,9 @@ flowforge init [path] [--yes]
     +-- 创建 .flowforge/config.yaml
     +-- 创建 .flowforge/cache/
     +-- 创建 sqlite 状态库（保存 currentProjectId 与索引数据）
+    +-- 部署 assets/skills 到 .agents/skills/
+    +-- 部署 assets/templates 到 .flowforge/templates/
+    +-- 若目标项目没有 AGENTS.md，则部署 assets/AGENTS.md
     |
     v
 4. 安装确认
@@ -102,8 +105,12 @@ target-project/
 +-- .flowforge/
 |   +-- config.yaml           # 项目注册表与静态配置
 |   +-- cache/                # 运行时缓存（gitignore）
+|   +-- templates/            # FlowForge 模板
 |
-+-- AGENTS.md                 # 追加 FlowForge 标记块
++-- .agents/
+|   +-- skills/               # flowforge-design / flowforge-implement
+|
++-- AGENTS.md                 # 若不存在则创建；已有文件不会覆盖
 ```
 
 ### 3.3 配置文件模板

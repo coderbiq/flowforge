@@ -105,6 +105,52 @@ func TestCardLinkAndUnlinkCommands(t *testing.T) {
 	}
 }
 
+func TestCardCreateAndUpdateParseCommaSeparatedLinks(t *testing.T) {
+	tmpDir := prepareCardCommandFixture(t)
+	store := testCardStore(t, tmpDir)
+
+	createCmd := newCardCreateCmd()
+	createCmd.SetArgs([]string{
+		"--type", "design",
+		"--title", "Comma linked design",
+		"--links", "REQ-260613-01:requires,DEC-260613-01:references",
+	})
+	if err := createCmd.Execute(); err != nil {
+		t.Fatalf("card create failed: %v", err)
+	}
+
+	cards, err := store.ListCardsByType(core.CardTypeDesign)
+	if err != nil {
+		t.Fatalf("listing design cards failed: %v", err)
+	}
+	var created *core.Card
+	for _, card := range cards {
+		if card.Title == "Comma linked design" {
+			created = card
+			break
+		}
+	}
+	if created == nil {
+		t.Fatal("expected created design card")
+	}
+	if !hasLinkRelation(created, "REQ-260613-01", "requires") || !hasLinkRelation(created, "DEC-260613-01", "references") {
+		t.Fatalf("created card links not parsed correctly: %#v", created.Links)
+	}
+
+	updateCmd := newCardUpdateCmd()
+	updateCmd.SetArgs([]string{created.ID, "--add-link", "TASK-260613-i-01:implements,LOG-260613-01:records"})
+	if err := updateCmd.Execute(); err != nil {
+		t.Fatalf("card update failed: %v", err)
+	}
+	updated, err := store.ReadCard(created.ID)
+	if err != nil {
+		t.Fatalf("reading updated card failed: %v", err)
+	}
+	if !hasLinkRelation(updated, "TASK-260613-i-01", "implements") || !hasLinkRelation(updated, "LOG-260613-01", "records") {
+		t.Fatalf("updated card links not parsed correctly: %#v", updated.Links)
+	}
+}
+
 func TestCardRelatedBacklinksDirection(t *testing.T) {
 	prepareCardCommandFixture(t)
 

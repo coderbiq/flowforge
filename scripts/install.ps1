@@ -51,7 +51,21 @@ try {
 }
 
 # 解压
-tar.exe xf $ZipPath -C $BinDir
+$ExtractDir = Join-Path $env:TEMP "$AppName-install"
+if (Test-Path $ExtractDir) {
+    Remove-Item $ExtractDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $ExtractDir -Force | Out-Null
+tar.exe xf $ZipPath -C $ExtractDir
+Move-Item -Path (Join-Path $ExtractDir "$AppName.exe") -Destination (Join-Path $BinDir "$AppName.exe") -Force
+if (Test-Path (Join-Path $ExtractDir "assets")) {
+    $AssetsDir = Join-Path $InstallDir "assets"
+    if (Test-Path $AssetsDir) {
+        Remove-Item $AssetsDir -Recurse -Force
+    }
+    Move-Item -Path (Join-Path $ExtractDir "assets") -Destination $AssetsDir -Force
+}
+Remove-Item $ExtractDir -Recurse -Force
 Remove-Item $ZipPath
 
 # 添加到 PATH

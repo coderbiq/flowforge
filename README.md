@@ -36,45 +36,48 @@ flowforge/                          # 本仓库（FlowForge 开发）
 |   +-- cli-design.md               # CLI 架构设计
 |   +-- knowledge-system.md         # 知识卡片系统设计
 |   +-- v1-analysis.md              # v1 版本分析（历史参考）
-+-- src/                            # 源代码
++-- cmd/flowforge/                  # CLI 入口
++-- internal/                       # 私有业务逻辑
++-- assets/                         # init 部署到目标项目的制品
++-- scripts/                        # 构建、安装脚本
 +-- AGENTS.md                       # Agent 配置
 +-- README.md                       # 本文件
 
 # 初始化后的目标项目：
-.flowforge/                         # FlowForge 配置（只存配置）
+.flowforge/                         # FlowForge 配置与运行态缓存
 +-- config.yaml                     # 项目注册表与静态配置
 +-- cache/                          # 运行态缓存
 |   +-- flowforge.sqlite             # 当前项目 / 当前提案 / 索引数据
++-- templates/                      # FlowForge 模板
+
+.agents/
++-- skills/                         # flowforge-design / flowforge-implement
 
 <wiki-root>/                        # wiki 内容（路径由 config.yaml 指定）
 +-- 00-STR-HOME.md                  # 全局入口索引
 |
-|   +-- 01-workspace/               # 工作区
-|   |   +-- 01-active/              # 进行中的 proposal
-|   |   +-- CR26061201-cli/         # 每个 proposal 一个目录
++-- 01-workspace/                   # 工作区
+|   +-- 01-active/                  # 进行中的 proposal
+|   |   +-- CR26061201/             # 每个 proposal 一个目录
 |   |   |   +-- ROOT-CR26061201.md  # proposal root card
 |   |   |   +-- STR-CR26061201-REQ.md  # 顶层需求索引入口
 |   |   |   +-- 90-cards/           # 内容卡集中存放
-|   |   |       +-- REQ-2x9k3m00-3x8m2n1q_xxx.md
-|   |   |       +-- DEC-2x9k3m00-4y9n3o2r_xxx.md
-|   |   |       +-- TASK-2x9k3m00-i-7b2q6r5u_xxx.md
-|   |   |       +-- TASK-2x9k3m00-i-7b2q6r5u-a_xxx.md  # 子任务
-|   |   |       +-- LOG-2x9k3m00-8c3r7s6v_xxx.md
-|   |   +-- 02-intake/              # 待处理需求入口
-|   |   +-- 03-completed/           # 已完成 proposal
+|   |   |       +-- REQ-CR26061201-xxx.md
+|   |   |       +-- DES-CR26061201-xxx.md
+|   |   |       +-- TASK-CR26061201-i-xxx.md
+|   |   |       +-- LOG-CR26061201-xxx.md
+|   +-- 02-intake/                  # 待处理需求入口
+|   +-- 03-completed/               # 已完成 proposal
 |
-|   +-- 02-library/                 # 知识区（已沉淀的卡片）
-|   +-- 01-STR-CLI.md               # 主题索引
-|   +-- 02-STR-CLI-INIT.md          # 子索引
-|   +-- 03-STR-CARD-SYSTEM.md       # 主题索引
-|   +-- 10-requirements/            # REQ-*.md (status: active)
-|   +-- 20-decisions/               # DEC-*.md (status: accepted)
-|   +-- 30-designs/                 # DES-*.md (status: active)
-|   +-- 40-tasks/                   # TASK-*.md (status: done)
-|   +-- 50-logs/                    # LOG-*.md (status: active)
-|   +-- 60-conventions/             # CONV-*.md (status: active)
-|   +-- 70-findings/                # FIND-*.md (status: active)
-|   +-- 80-modules/                 # MOD-*.md (status: active)
++-- 02-library/                     # 知识区（已沉淀的卡片）
+    +-- 10-requirements/
+    +-- 20-decisions/
+    +-- 30-designs/
+    +-- 40-tasks/
+    +-- 50-logs/
+    +-- 60-conventions/
+    +-- 70-findings/
+    +-- 80-modules/
 
 AGENTS.md                           # Agent entry rules
 ```
@@ -104,10 +107,8 @@ AGENTS.md                           # Agent entry rules
 |-------|---------|------|
 | `flowforge-design` | 新需求、变更意图、"分析"、"设计" | 需求树驱动渐进式探索 |
 | `flowforge-implement` | "执行任务"、"继续推进" | 执行 implementation 任务 |
-| `flowforge-feedback` | 测试失败、发现新认知 | 分类发现并回流到知识库 |
-| `flowforge-archive` | "归档"、"沉淀到 library" | 合成知识到卡片网络 |
-| `flowforge-docs` | 创建/修改文档 | 加载写作指南、校验文档 |
-| `flowforge-progress` | 工作单元完成后 | 更新进度摘要 |
+
+后续规划：`flowforge-feedback` 与 `flowforge-archive` 暂缓实现，当前重点是从安装、设计到任务执行的闭环稳定性。
 
 ## CLI 命令概览
 
@@ -117,8 +118,6 @@ flowforge init                    # 初始化
 flowforge project create <id>     # 注册项目
 flowforge project use <id>        # 切换当前项目
 flowforge proposal create "..."   # 创建提案
-flowforge upgrade                 # 升级
-flowforge uninstall               # 卸载
 
 # 任务管理（快捷命令）
 flowforge task create --title "..." --type a --links "STR..."
@@ -146,7 +145,7 @@ flowforge context task --task TASK...
 
 ## 当前状态
 
-**v2.0.0-alpha** — 架构设计阶段，尚未开始编码实现。
+**v2.0.0-alpha** — 已具备 init、project、proposal、card、task、log、structure、index、library suggest、context proposal/task，以及 flowforge-design / flowforge-implement 两个可部署 SKILL。当前暂缓 archive SKILL，优先加固安装到任务执行的闭环。
 
 ## 许可证
 
