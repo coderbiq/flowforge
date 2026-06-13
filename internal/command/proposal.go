@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -54,7 +56,10 @@ func newProposalCreateCmd() *cobra.Command {
 			}
 			store := core.NewCardStore(wikiRoot)
 
-			proposalID := core.GenerateProposalID()
+			proposalID, err := nextProposalID(store)
+			if err != nil {
+				return err
+			}
 			rootPath, indexPath, err := store.CreateProposal(proposalID, title)
 			if err != nil {
 				return err
@@ -396,6 +401,54 @@ func findProposalDirForDelete(store *core.CardStore, proposalID string) (string,
 	}
 
 	return "", fmt.Errorf("proposal %q does not exist in active or completed", proposalID)
+}
+
+func nextProposalID(store *core.CardStore) (string, error) {
+	return nextProposalIDForPrefix(store, core.GenerateProposalIDPrefix())
+}
+
+func nextProposalIDForPrefix(store *core.CardStore, prefix string) (string, error) {
+	maxSeq := 0
+	for _, dir := range []string{store.ActiveDir(), store.CompletedDir()} {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return "", fmt.Errorf("reading proposal directory %s: %w", dir, err)
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			seq, ok := proposalSequenceForPrefix(entry.Name(), prefix)
+			if ok && seq > maxSeq {
+				maxSeq = seq
+			}
+		}
+	}
+
+	return fmt.Sprintf("%s%02d", prefix, maxSeq+1), nil
+}
+
+func proposalSequenceForPrefix(proposalID string, prefix string) (int, bool) {
+	if proposalID == prefix {
+		return 0, true
+	}
+	if !strings.HasPrefix(proposalID, prefix) {
+		return 0, false
+	}
+
+	suffix := strings.TrimPrefix(proposalID, prefix)
+	if len(suffix) < 2 {
+		return 0, false
+	}
+	seq, err := strconv.Atoi(suffix)
+	if err != nil || seq < 1 {
+		return 0, false
+	}
+	return seq, true
 }
 
 func clearCurrentProposalIfMatches(runtimeStore *state.Store, projectID string, proposalID string) error {

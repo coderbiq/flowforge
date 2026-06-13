@@ -194,6 +194,48 @@ func TestProposalCurrentPointerIsolatedPerProject(t *testing.T) {
 	}
 }
 
+func TestNextProposalIDForPrefixUsesDailySequence(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := core.NewCardStore(filepath.Join(tmpDir, "ff-wiki"))
+
+	nextID, err := nextProposalIDForPrefix(store, "CR260613")
+	if err != nil {
+		t.Fatalf("nextProposalIDForPrefix on empty store failed: %v", err)
+	}
+	if nextID != "CR26061301" {
+		t.Fatalf("expected first proposal ID CR26061301, got %s", nextID)
+	}
+
+	if _, _, err := store.CreateProposal("CR260613", "Old format proposal"); err != nil {
+		t.Fatalf("creating old format proposal failed: %v", err)
+	}
+	nextID, err = nextProposalIDForPrefix(store, "CR260613")
+	if err != nil {
+		t.Fatalf("nextProposalIDForPrefix with old format proposal failed: %v", err)
+	}
+	if nextID != "CR26061301" {
+		t.Fatalf("expected old format proposal to reserve only base ID, got %s", nextID)
+	}
+
+	for _, proposalID := range []string{"CR26061301", "CR26061303"} {
+		if _, _, err := store.CreateProposal(proposalID, proposalID); err != nil {
+			t.Fatalf("creating active proposal %s failed: %v", proposalID, err)
+		}
+	}
+	completedProposalDir := filepath.Join(store.CompletedDir(), "CR26061302")
+	if err := os.MkdirAll(completedProposalDir, 0755); err != nil {
+		t.Fatalf("creating completed proposal dir failed: %v", err)
+	}
+
+	nextID, err = nextProposalIDForPrefix(store, "CR260613")
+	if err != nil {
+		t.Fatalf("nextProposalIDForPrefix with existing sequence failed: %v", err)
+	}
+	if nextID != "CR26061304" {
+		t.Fatalf("expected next proposal ID CR26061304, got %s", nextID)
+	}
+}
+
 func TestProposalInspectAndContextCommands(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)

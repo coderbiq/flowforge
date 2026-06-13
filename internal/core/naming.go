@@ -67,6 +67,10 @@ func GenerateSubTaskID(parentTaskID string) (string, error) {
 }
 
 func GenerateProposalID() string {
+	return GenerateProposalIDPrefix() + "01"
+}
+
+func GenerateProposalIDPrefix() string {
 	now := time.Now()
 	yy := now.Year() % 100
 	mm := int(now.Month())
