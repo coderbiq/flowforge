@@ -19,6 +19,7 @@ func newStructureCmd() *cobra.Command {
 	cmd.AddCommand(newStructureAddCmd())
 	cmd.AddCommand(newStructureRemoveCmd())
 	cmd.AddCommand(newStructureListCmd())
+	cmd.AddCommand(newStructureRefreshCmd())
 
 	return cmd
 }
@@ -37,27 +38,27 @@ func newStructureAddCmd() *cobra.Command {
 				return err
 			}
 
-			structureCard, err := store.ReadCard(structureID)
-			if err != nil {
+			var indexedCount int
+			var changed bool
+			if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
+				if card.Type != core.CardTypeStructure {
+					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
+				}
+				if _, err := store.ReadCard(cardID); err != nil {
+					return err
+				}
+				before := len(structureIndexedCardIDs(card))
+				card.AddLink(cardID, "indexes")
+				card.Body = refreshStructureEntriesBody(store, card)
+				indexedCount = len(structureIndexedCardIDs(card))
+				changed = indexedCount > before
+				return nil
+			}); err != nil {
 				return err
 			}
-			if structureCard.Type != core.CardTypeStructure {
-				return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, structureCard.Type)
-			}
-
-			if _, err := store.ReadCard(cardID); err != nil {
-				return err
-			}
-
-			before := len(structureIndexedCardIDs(structureCard))
-			structureCard.AddLink(cardID, "indexes")
-			if err := store.UpdateCard(structureCard); err != nil {
-				return err
-			}
-			indexedCount := len(structureIndexedCardIDs(structureCard))
 
 			out := cmd.OutOrStdout()
-			if indexedCount == before {
+			if !changed {
 				fmt.Fprintf(out, "No change: %s already indexes %s\n", structureID, cardID)
 				return nil
 			}
@@ -89,22 +90,21 @@ func newStructureRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			structureCard, err := store.ReadCard(structureID)
-			if err != nil {
+			var removed bool
+			if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
+				if card.Type != core.CardTypeStructure {
+					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
+				}
+				removed = card.RemoveLink(cardID, "indexes")
+				card.Body = refreshStructureEntriesBody(store, card)
+				return nil
+			}); err != nil {
 				return err
 			}
-			if structureCard.Type != core.CardTypeStructure {
-				return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, structureCard.Type)
-			}
 
-			removed := structureCard.RemoveLink(cardID, "indexes")
 			if !removed {
 				fmt.Fprintf(cmd.OutOrStdout(), "No change: %s does not index %s\n", structureID, cardID)
 				return nil
-			}
-
-			if err := store.UpdateCard(structureCard); err != nil {
-				return err
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Removed %s from %s\n", cardID, structureID)
@@ -163,6 +163,40 @@ func newStructureListCmd() *cobra.Command {
 	return cmd
 }
 
+func newStructureRefreshCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "refresh <structure-id>",
+		Short: "Refresh a structure card's readable entries",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			structureID := args[0]
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			var indexedCount int
+			if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
+				if card.Type != core.CardTypeStructure {
+					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
+				}
+				card.Body = refreshStructureEntriesBody(store, card)
+				indexedCount = len(structureIndexedCardIDs(card))
+				return nil
+			}); err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Refreshed %s\n", structureID)
+			fmt.Fprintf(cmd.OutOrStdout(), "  entries: %d\n", indexedCount)
+			return nil
+		},
+	}
+
+	return cmd
+}
+
 func structureIndexedCardIDs(card *core.Card) []string {
 	ids := make([]string, 0, len(card.Links))
 	for _, link := range card.Links {
@@ -172,4 +206,71 @@ func structureIndexedCardIDs(card *core.Card) []string {
 		ids = append(ids, strings.TrimSpace(link.Target))
 	}
 	return ids
+}
+
+func refreshStructureEntriesBody(store *core.CardStore, card *core.Card) string {
+	entries := renderStructureEntries(store, card)
+	body := strings.TrimSpace(card.Body)
+	if body == "" {
+		body = "# " + card.Title + "\n\n## Purpose\n\nStructure index."
+	}
+	return upsertMarkdownSection(body, "Entries", entries)
+}
+
+func renderStructureEntries(store *core.CardStore, card *core.Card) string {
+	indexedIDs := structureIndexedCardIDs(card)
+	if len(indexedIDs) == 0 {
+		return "- None"
+	}
+
+	var lines []string
+	for _, cardID := range indexedIDs {
+		linkedCard, err := store.ReadCard(cardID)
+		if err != nil {
+			lines = append(lines, fmt.Sprintf("- [[%s]] - missing card", cardID))
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("- [[%s]] (%s, %s) - %s", linkedCard.ID, linkedCard.Type, linkedCard.Status, linkedCard.Title))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func upsertMarkdownSection(body string, section string, content string) string {
+	heading := "## " + section
+	replacement := heading + "\n\n" + strings.TrimSpace(content)
+	trimmed := strings.TrimSpace(body)
+	if trimmed == "" {
+		return replacement + "\n"
+	}
+
+	idx := strings.Index(trimmed, heading)
+	if idx >= 0 {
+		before := strings.TrimRight(trimmed[:idx], "\n")
+		afterStart := idx + len(heading)
+		after := trimmed[afterStart:]
+		next := strings.Index(after, "\n## ")
+		if next >= 0 {
+			after = after[next:]
+		} else {
+			after = ""
+		}
+		parts := []string{}
+		if before != "" {
+			parts = append(parts, before)
+		}
+		parts = append(parts, replacement)
+		if strings.TrimSpace(after) != "" {
+			parts = append(parts, strings.TrimLeft(after, "\n"))
+		}
+		return strings.Join(parts, "\n\n") + "\n"
+	}
+
+	openQuestions := "\n## Open Questions"
+	if idx := strings.Index(trimmed, openQuestions); idx >= 0 {
+		before := strings.TrimRight(trimmed[:idx], "\n")
+		after := strings.TrimLeft(trimmed[idx:], "\n")
+		return before + "\n\n" + replacement + "\n\n" + after + "\n"
+	}
+
+	return trimmed + "\n\n" + replacement + "\n"
 }

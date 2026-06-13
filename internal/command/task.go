@@ -389,21 +389,22 @@ func updateTask(taskID string, change func(*core.Card) error) error {
 		return err
 	}
 
-	task, err := readTask(store, taskID)
-	if err != nil {
+	var status core.CardStatus
+	if err := store.UpdateCardWithLock(taskID, func(task *core.Card) error {
+		if task.Type != core.CardTypeTask {
+			return fmt.Errorf("card %s is %s, not task", taskID, task.Type)
+		}
+		if err := change(task); err != nil {
+			return err
+		}
+		status = task.Status
+		return nil
+	}); err != nil {
 		return err
 	}
 
-	if err := change(task); err != nil {
-		return err
-	}
-
-	if err := store.UpdateCard(task); err != nil {
-		return err
-	}
-
-	fmt.Printf("✓ Updated task %s\n", task.ID)
-	fmt.Printf("  Status: %s\n", task.Status)
+	fmt.Printf("✓ Updated task %s\n", taskID)
+	fmt.Printf("  Status: %s\n", status)
 	return nil
 }
 

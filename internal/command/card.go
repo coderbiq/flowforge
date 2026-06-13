@@ -500,49 +500,47 @@ func newCardUpdateCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			card, err := store.ReadCard(cardID)
-			if err != nil {
+
+			if err := store.UpdateCardWithLock(cardID, func(card *core.Card) error {
+				if title != "" {
+					card.Title = title
+				}
+				if status != "" {
+					card.Status = core.CardStatus(status)
+				}
+				if importance != "" {
+					card.Importance = core.Importance(importance)
+				}
+				if body != "" {
+					card.Body = body
+				}
+
+				for _, linkStr := range addLinks {
+					parts := strings.Split(linkStr, ":")
+					target := parts[0]
+					relation := "related"
+					if len(parts) > 1 {
+						relation = parts[1]
+					}
+					card.AddLink(target, relation)
+				}
+
+				for _, linkStr := range removeLinks {
+					parts := strings.Split(linkStr, ":")
+					target := parts[0]
+					relation := "related"
+					if len(parts) > 1 {
+						relation = parts[1]
+					}
+					card.RemoveLink(target, relation)
+				}
+
+				return nil
+			}); err != nil {
 				return err
 			}
 
-			if title != "" {
-				card.Title = title
-			}
-			if status != "" {
-				card.Status = core.CardStatus(status)
-			}
-			if importance != "" {
-				card.Importance = core.Importance(importance)
-			}
-			if body != "" {
-				card.Body = body
-			}
-
-			for _, linkStr := range addLinks {
-				parts := strings.Split(linkStr, ":")
-				target := parts[0]
-				relation := "related"
-				if len(parts) > 1 {
-					relation = parts[1]
-				}
-				card.AddLink(target, relation)
-			}
-
-			for _, linkStr := range removeLinks {
-				parts := strings.Split(linkStr, ":")
-				target := parts[0]
-				relation := "related"
-				if len(parts) > 1 {
-					relation = parts[1]
-				}
-				card.RemoveLink(target, relation)
-			}
-
-			if err := store.UpdateCard(card); err != nil {
-				return err
-			}
-
-			fmt.Printf("✓ Updated card %s\n", card.ID)
+			fmt.Printf("✓ Updated card %s\n", cardID)
 			return nil
 		},
 	}
@@ -729,16 +727,13 @@ func newCardLinkCmd() *cobra.Command {
 				return err
 			}
 
-			card, err := store.ReadCard(fromID)
-			if err != nil {
-				return err
-			}
-			if _, err := store.ReadCard(toID); err != nil {
-				return fmt.Errorf("reading target card %s: %w", toID, err)
-			}
-
-			card.AddLink(toID, relation)
-			if err := store.UpdateCard(card); err != nil {
+			if err := store.UpdateCardWithLock(fromID, func(card *core.Card) error {
+				if _, err := store.ReadCard(toID); err != nil {
+					return fmt.Errorf("reading target card %s: %w", toID, err)
+				}
+				card.AddLink(toID, relation)
+				return nil
+			}); err != nil {
 				return err
 			}
 
@@ -767,15 +762,12 @@ func newCardUnlinkCmd() *cobra.Command {
 				return err
 			}
 
-			card, err := store.ReadCard(fromID)
-			if err != nil {
-				return err
-			}
-
-			if !card.RemoveLink(toID, relation) {
-				return fmt.Errorf("link not found: %s -> %s (%s)", fromID, toID, relation)
-			}
-			if err := store.UpdateCard(card); err != nil {
+			if err := store.UpdateCardWithLock(fromID, func(card *core.Card) error {
+				if !card.RemoveLink(toID, relation) {
+					return fmt.Errorf("link not found: %s -> %s (%s)", fromID, toID, relation)
+				}
+				return nil
+			}); err != nil {
 				return err
 			}
 

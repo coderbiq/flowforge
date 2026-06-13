@@ -6,6 +6,10 @@ node_modules/
 # Testing
 coverage/
 
+# FlowForge runtime state
+.flowforge/
+ff-wiki/
+
 # Production
 dist/
 build/

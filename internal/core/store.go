@@ -1,10 +1,14 @@
 package core
 
 import (
+	"crypto/rand"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type CardStore struct {
@@ -103,7 +107,7 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	rootCard.ID = "ROOT-" + proposalID
 	rootCard.Status = CardStatusActive
 	rootCard.Source = proposalID
-	rootCard.Body = fmt.Sprintf("# %s\n\nProposal root card.\n\n## Summary\n\nStable entry for this proposal.\n", title)
+	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Entries\n\n- [[STR-%s-REQ]] - Requirement index\n\n## Summary\n\nProposal root card.\n", title, proposalID, proposalID)
 	rootCard.AddLink("STR-"+proposalID+"-REQ", "references")
 	if err := rootCard.Save(rootPath); err != nil {
 		return "", "", fmt.Errorf("writing root card: %w", err)
@@ -113,7 +117,7 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	indexCard.ID = "STR-" + proposalID + "-REQ"
 	indexCard.Status = CardStatusActive
 	indexCard.Source = proposalID
-	indexCard.Body = fmt.Sprintf("# %s Requirements\n\nTop-level requirement index for %s.\n\n## Open Questions\n\n- None\n", title, title)
+	indexCard.Body = fmt.Sprintf("# %s Requirements\n\n## Purpose\n\nTop-level requirement index for %s.\n\n## Entries\n\n- None\n\n## Open Questions\n\n- None\n", title, title)
 	if err := indexCard.Save(indexPath); err != nil {
 		return "", "", fmt.Errorf("writing requirement index card: %w", err)
 	}
@@ -188,6 +192,35 @@ func (s *CardStore) UpdateCard(card *Card) error {
 			return fmt.Errorf("removing old file: %w", err)
 		}
 		card.FilePath = newPath
+	}
+
+	return nil
+}
+
+func (s *CardStore) UpdateCardWithLock(cardID string, mutate func(*Card) error) (err error) {
+	lockPath := s.cardLockPath(cardID)
+	release, err := acquireCardLock(lockPath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		releaseErr := release()
+		if err == nil && releaseErr != nil {
+			err = releaseErr
+		}
+	}()
+
+	card, err := s.ReadCard(cardID)
+	if err != nil {
+		return fmt.Errorf("reading card %s: %w", cardID, err)
+	}
+
+	if err := mutate(card); err != nil {
+		return err
+	}
+
+	if err := s.UpdateCard(card); err != nil {
+		return fmt.Errorf("updating card %s: %w", cardID, err)
 	}
 
 	return nil
@@ -398,4 +431,72 @@ func (s *CardStore) GetRelated(cardID string, relation string, depth int) ([]*Ca
 	}
 
 	return related, nil
+}
+
+func (s *CardStore) cardLockPath(cardID string) string {
+	sum := sha1.Sum([]byte(s.wikiRoot + "\x00" + cardID))
+	lockDir := filepath.Join(os.TempDir(), "flowforge-card-locks")
+	return filepath.Join(lockDir, hex.EncodeToString(sum[:])+".lock")
+}
+
+func acquireCardLock(lockPath string) (func() error, error) {
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0755); err != nil {
+		return nil, fmt.Errorf("creating lock directory: %w", err)
+	}
+
+	ownerToken, err := newLockOwnerToken()
+	if err != nil {
+		return nil, err
+	}
+
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		if err == nil {
+			if _, writeErr := file.WriteString(ownerToken); writeErr != nil {
+				closeErr := file.Close()
+				_ = os.Remove(lockPath)
+				if closeErr != nil {
+					return nil, fmt.Errorf("writing lock owner: %w (closing lock file: %v)", writeErr, closeErr)
+				}
+				return nil, fmt.Errorf("writing lock owner: %w", writeErr)
+			}
+			if closeErr := file.Close(); closeErr != nil {
+				_ = os.Remove(lockPath)
+				return nil, fmt.Errorf("closing lock file: %w", closeErr)
+			}
+			return func() error {
+				data, readErr := os.ReadFile(lockPath)
+				if os.IsNotExist(readErr) {
+					return nil
+				}
+				if readErr != nil {
+					return fmt.Errorf("reading lock owner: %w", readErr)
+				}
+				if string(data) != ownerToken {
+					return nil
+				}
+				if removeErr := os.Remove(lockPath); removeErr != nil && !os.IsNotExist(removeErr) {
+					return fmt.Errorf("removing lock file: %w", removeErr)
+				}
+				return nil
+			}, nil
+		}
+		if !os.IsExist(err) {
+			return nil, fmt.Errorf("creating lock file: %w", err)
+		}
+
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timed out waiting for card lock %s", lockPath)
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
+func newLockOwnerToken() (string, error) {
+	randomBytes := make([]byte, 16)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", fmt.Errorf("creating lock owner token: %w", err)
+	}
+	return fmt.Sprintf("%d:%s", os.Getpid(), hex.EncodeToString(randomBytes)), nil
 }

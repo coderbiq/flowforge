@@ -55,6 +55,9 @@ func TestStructureCommandsAddListRemove(t *testing.T) {
 	if reloaded.Links[0].Target != "REQ-001" || reloaded.Links[0].Relation != "indexes" {
 		t.Fatalf("unexpected structure link: %#v", reloaded.Links[0])
 	}
+	if !strings.Contains(reloaded.Body, "## Entries") || !strings.Contains(reloaded.Body, "[[REQ-001]] (requirement, draft) - Indexed requirement") {
+		t.Fatalf("expected structure body to include readable entry, got:\n%s", reloaded.Body)
+	}
 
 	dupCmd := newStructureAddCmd()
 	dupCmd.SetArgs([]string{"STR-ROOT", "REQ-001"})
@@ -97,6 +100,62 @@ func TestStructureCommandsAddListRemove(t *testing.T) {
 	}
 	if len(reloaded.Links) != 0 {
 		t.Fatalf("expected 0 links after remove, got %d", len(reloaded.Links))
+	}
+	if !strings.Contains(reloaded.Body, "## Entries\n\n- None") {
+		t.Fatalf("expected structure body to show empty entries after remove, got:\n%s", reloaded.Body)
+	}
+}
+
+func TestStructureRefreshRebuildsReadableEntries(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+
+	store := testCardStore(t, tmpDir)
+	structureCard := core.NewCard(core.CardTypeStructure, "Readable structure")
+	structureCard.ID = "STR-READABLE"
+	structureCard.Body = "# Readable structure\n\n## Purpose\n\nNavigation."
+	structureCard.AddLink("REQ-READABLE", "indexes")
+	if _, err := store.CreateCard(structureCard, ""); err != nil {
+		t.Fatalf("creating structure card failed: %v", err)
+	}
+
+	linkedCard := core.NewCard(core.CardTypeRequirement, "Readable requirement")
+	linkedCard.ID = "REQ-READABLE"
+	if _, err := store.CreateCard(linkedCard, ""); err != nil {
+		t.Fatalf("creating linked card failed: %v", err)
+	}
+
+	cmd := newStructureRefreshCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"STR-READABLE"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("structure refresh failed: %v", err)
+	}
+	if !strings.Contains(out.String(), "entries: 1") {
+		t.Fatalf("unexpected refresh output:\n%s", out.String())
+	}
+
+	reloaded, err := store.ReadCard("STR-READABLE")
+	if err != nil {
+		t.Fatalf("reading structure card failed: %v", err)
+	}
+	for _, want := range []string{
+		"## Purpose\n\nNavigation.",
+		"## Entries",
+		"[[REQ-READABLE]] (requirement, draft) - Readable requirement",
+	} {
+		if !strings.Contains(reloaded.Body, want) {
+			t.Fatalf("refreshed body missing %q:\n%s", want, reloaded.Body)
+		}
 	}
 }
 
