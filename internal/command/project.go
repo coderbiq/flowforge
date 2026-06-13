@@ -302,6 +302,47 @@ func currentCardStore() (*core.CardStore, error) {
 	return core.NewCardStore(wikiRoot), nil
 }
 
+func resolveDefaultProposalID(explicitProposalID string, cardType core.CardType) (string, error) {
+	if explicitProposalID != "" || !cardTypeDefaultsToCurrentProposal(cardType) {
+		return explicitProposalID, nil
+	}
+
+	_, cfg, store, err := openProjectContext()
+	if err != nil {
+		return "", err
+	}
+	defer closeStateStore(store)
+
+	project, _, err := resolveCurrentProject(cfg, store)
+	if err != nil {
+		return "", err
+	}
+
+	proposalID, ok, err := store.CurrentProposalID(project.ID)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", nil
+	}
+
+	return proposalID, nil
+}
+
+func cardTypeDefaultsToCurrentProposal(cardType core.CardType) bool {
+	switch cardType {
+	case core.CardTypeRequirement,
+		core.CardTypeDecision,
+		core.CardTypeDesign,
+		core.CardTypeTask,
+		core.CardTypeLog,
+		core.CardTypeFinding:
+		return true
+	default:
+		return false
+	}
+}
+
 func defaultWikiRootForProject(projectID string) string {
 	if projectID == "default" {
 		return "ff-wiki"

@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"flowforge/internal/config"
 	"flowforge/internal/core"
 )
 
@@ -26,6 +26,7 @@ func newCardCmd() *cobra.Command {
 	cmd.AddCommand(newCardDeleteCmd())
 	cmd.AddCommand(newCardRelatedCmd())
 	cmd.AddCommand(newCardDependentsCmd())
+	cmd.AddCommand(newCardSearchCmd())
 
 	return cmd
 }
@@ -65,33 +66,25 @@ Examples:
 				return fmt.Errorf("invalid card type: %s", cardType)
 			}
 
-			projectRoot, err := config.FindProjectRoot(".")
+			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 
 			card := core.NewCard(ct, title)
 			card.Body = body
 			card.Tags = tags
 
-			var proposalTs string
-			if proposalID != "" {
-				parts := strings.Split(proposalID, "-")
-				if len(parts) >= 2 {
-					proposalTs = parts[1]
-				}
+			resolvedProposalID, err := resolveDefaultProposalID(proposalID, ct)
+			if err != nil {
+				return err
 			}
+
+			proposalTs := proposalTimestamp(resolvedProposalID)
 
 			if ct == core.CardTypeTask {
 				taskType := "i"
-				if len(proposalID) > 0 {
+				if len(resolvedProposalID) > 0 {
 					card.ID = core.GenerateTaskID(proposalTs, taskType)
 				} else {
 					card.ID = core.GenerateTaskID("", taskType)
@@ -110,7 +103,7 @@ Examples:
 				card.AddLink(target, relation)
 			}
 
-			filePath, err := store.CreateCard(card, proposalID)
+			filePath, err := store.CreateCard(card, resolvedProposalID)
 			if err != nil {
 				return err
 			}
@@ -144,17 +137,10 @@ func newCardReadCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cardID := args[0]
 
-			projectRoot, err := config.FindProjectRoot(".")
+			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 			card, err := store.ReadCard(cardID)
 			if err != nil {
 				return err
@@ -216,17 +202,10 @@ Examples:
   flowforge card list --proposal CR24010101
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			projectRoot, err := config.FindProjectRoot(".")
+			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 
 			var cards []*core.Card
 
@@ -267,23 +246,24 @@ Examples:
 				cards = filtered
 			}
 
+			out := cmd.OutOrStdout()
 			if jsonOut {
 				data, _ := json.MarshalIndent(cards, "", "  ")
-				fmt.Println(string(data))
+				fmt.Fprintln(out, string(data))
 			} else {
 				if len(cards) == 0 {
-					fmt.Println("No cards found.")
+					fmt.Fprintln(out, "No cards found.")
 					return nil
 				}
 
-				fmt.Printf("Found %d card(s):\n\n", len(cards))
+				fmt.Fprintf(out, "Found %d card(s):\n\n", len(cards))
 				for _, card := range cards {
-					fmt.Printf("  %s [%s] %s\n", card.ID, card.Type, card.Title)
-					fmt.Printf("    Status: %s | Importance: %s\n", card.Status, card.Importance)
+					fmt.Fprintf(out, "  %s [%s] %s\n", card.ID, card.Type, card.Title)
+					fmt.Fprintf(out, "    Status: %s | Importance: %s\n", card.Status, card.Importance)
 					if card.Source != "" {
-						fmt.Printf("    Proposal: %s\n", card.Source)
+						fmt.Fprintf(out, "    Proposal: %s\n", card.Source)
 					}
-					fmt.Println()
+					fmt.Fprintln(out)
 				}
 			}
 
@@ -316,17 +296,10 @@ func newCardUpdateCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cardID := args[0]
 
-			projectRoot, err := config.FindProjectRoot(".")
+			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 			card, err := store.ReadCard(cardID)
 			if err != nil {
 				return err
@@ -394,17 +367,10 @@ func newCardDeleteCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cardID := args[0]
 
-			projectRoot, err := config.FindProjectRoot(".")
+			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 
 			if !force {
 				card, err := store.ReadCard(cardID)
@@ -451,17 +417,10 @@ func newCardRelatedCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cardID := args[0]
 
-			projectRoot, err := config.FindProjectRoot(".")
+			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 			related, err := store.GetRelated(cardID, relation, depth)
 			if err != nil {
 				return err
@@ -497,17 +456,10 @@ func newCardDependentsCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cardID := args[0]
 
-			projectRoot, err := config.FindProjectRoot(".")
+			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 			dependents, err := store.GetDependents(cardID)
 			if err != nil {
 				return err
@@ -530,6 +482,168 @@ func newCardDependentsCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func newCardSearchCmd() *cobra.Command {
+	var (
+		scope string
+		types string
+		limit int
+	)
+
+	cmd := &cobra.Command{
+		Use:   "search <query>",
+		Short: "Search cards by keyword",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			query := strings.TrimSpace(args[0])
+			if query == "" {
+				return fmt.Errorf("query is required")
+			}
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			cards, err := searchCards(store, query, scope, types, limit)
+			if err != nil {
+				return err
+			}
+
+			out := cmd.OutOrStdout()
+			if len(cards) == 0 {
+				fmt.Fprintln(out, "No cards found.")
+				return nil
+			}
+
+			fmt.Fprintf(out, "Found %d card(s):\n\n", len(cards))
+			for _, result := range cards {
+				fmt.Fprintf(out, "  %s [%s] %s\n", result.Card.ID, result.Card.Type, result.Card.Title)
+				fmt.Fprintf(out, "    Status: %s", result.Card.Status)
+				if result.Card.Source != "" {
+					fmt.Fprintf(out, " | Proposal: %s", result.Card.Source)
+				}
+				fmt.Fprintln(out)
+				fmt.Fprintf(out, "    Match: %s\n", result.MatchReason)
+				fmt.Fprintln(out)
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&scope, "scope", "all", "Search scope (library/workspace/all)")
+	cmd.Flags().StringVar(&types, "type", "", "Comma-separated card types to include")
+	cmd.Flags().StringVar(&types, "types", "", "Comma-separated card types to include")
+	cmd.Flags().IntVar(&limit, "limit", 10, "Maximum number of results")
+
+	return cmd
+}
+
+type cardSearchResult struct {
+	Card        *core.Card
+	MatchReason string
+}
+
+func searchCards(store *core.CardStore, query, scope, types string, limit int) ([]cardSearchResult, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+
+	typeFilter := map[core.CardType]bool{}
+	if strings.TrimSpace(types) != "" {
+		for _, raw := range strings.Split(types, ",") {
+			ct := core.CardType(strings.TrimSpace(raw))
+			if !ct.Valid() {
+				return nil, fmt.Errorf("invalid card type: %s", raw)
+			}
+			typeFilter[ct] = true
+		}
+	}
+
+	dirs, err := searchScopes(store, scope)
+	if err != nil {
+		return nil, err
+	}
+
+	var cards []*core.Card
+	seen := map[string]bool{}
+	for _, dir := range dirs {
+		dirCards, err := store.ListCards(dir)
+		if err != nil {
+			return nil, err
+		}
+		for _, card := range dirCards {
+			if seen[card.ID] {
+				continue
+			}
+			seen[card.ID] = true
+			cards = append(cards, card)
+		}
+	}
+
+	results := make([]cardSearchResult, 0, len(cards))
+	for _, card := range cards {
+		if len(typeFilter) > 0 && !typeFilter[card.Type] {
+			continue
+		}
+		if match, ok := matchCardQuery(card, query); ok {
+			results = append(results, cardSearchResult{Card: card, MatchReason: match})
+		}
+	}
+
+	sort.SliceStable(results, func(i, j int) bool {
+		if results[i].Card.ID == results[j].Card.ID {
+			return results[i].Card.Title < results[j].Card.Title
+		}
+		return results[i].Card.ID < results[j].Card.ID
+	})
+
+	if len(results) > limit {
+		results = results[:limit]
+	}
+
+	return results, nil
+}
+
+func searchScopes(store *core.CardStore, scope string) ([]string, error) {
+	switch strings.ToLower(strings.TrimSpace(scope)) {
+	case "", "all":
+		return []string{store.ActiveDir(), store.IntakeDir(), store.LibraryDir()}, nil
+	case "workspace":
+		return []string{store.ActiveDir(), store.IntakeDir()}, nil
+	case "library":
+		return []string{store.LibraryDir()}, nil
+	default:
+		return nil, fmt.Errorf("invalid scope: %s", scope)
+	}
+}
+
+func matchCardQuery(card *core.Card, query string) (string, bool) {
+	needle := strings.ToLower(strings.TrimSpace(query))
+	if needle == "" {
+		return "", false
+	}
+
+	if strings.Contains(strings.ToLower(card.ID), needle) {
+		return "matched id", true
+	}
+	if strings.Contains(strings.ToLower(card.Title), needle) {
+		return "matched title", true
+	}
+	if strings.Contains(strings.ToLower(card.Body), needle) {
+		return "matched body", true
+	}
+	if strings.Contains(strings.ToLower(card.Domain), needle) {
+		return "matched domain", true
+	}
+	for _, tag := range card.Tags {
+		if strings.Contains(strings.ToLower(tag), needle) {
+			return "matched tag", true
+		}
+	}
+	return "", false
 }
 
 func getOutputFormat() string {

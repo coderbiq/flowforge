@@ -37,7 +37,9 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newTaskCmd())
 	cmd.AddCommand(newProposalCmd())
 	cmd.AddCommand(newContextCmd())
+	cmd.AddCommand(newLogCmd())
 	cmd.AddCommand(newValidateCmd())
+	cmd.AddCommand(newStructureCmd())
 	// TODO: upgrade, context, daemon commands
 
 	return cmd

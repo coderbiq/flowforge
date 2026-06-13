@@ -58,14 +58,19 @@ func newTaskCreateCmd() *cobra.Command {
 				return err
 			}
 
+			resolvedProposalID, err := resolveDefaultProposalID(proposalID, core.CardTypeTask)
+			if err != nil {
+				return err
+			}
+
 			task := core.NewCard(core.CardTypeTask, title)
-			task.ID = core.GenerateTaskID(proposalTimestamp(proposalID), taskType)
+			task.ID = core.GenerateTaskID(proposalTimestamp(resolvedProposalID), taskType)
 			task.Status = core.CardStatusReady
 			task.Body = body
 			task.Tags = tags
 			addParsedLinks(task, links)
 
-			filePath, err := store.CreateCard(task, proposalID)
+			filePath, err := store.CreateCard(task, resolvedProposalID)
 			if err != nil {
 				return err
 			}

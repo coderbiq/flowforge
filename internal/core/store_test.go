@@ -135,6 +135,31 @@ func TestCreateProposal(t *testing.T) {
 	}
 }
 
+func TestReadCardFindsProposalRootAndIndexFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewCardStore(tmpDir)
+
+	if _, _, err := store.CreateProposal("CR260612", "Test Proposal"); err != nil {
+		t.Fatalf("CreateProposal failed: %v", err)
+	}
+
+	root, err := store.ReadCard("ROOT-CR260612")
+	if err != nil {
+		t.Fatalf("ReadCard root failed: %v", err)
+	}
+	if root.Type != CardTypeStructure {
+		t.Fatalf("expected root type structure, got %s", root.Type)
+	}
+
+	index, err := store.ReadCard("STR-CR260612-REQ")
+	if err != nil {
+		t.Fatalf("ReadCard requirement index failed: %v", err)
+	}
+	if index.Type != CardTypeStructure {
+		t.Fatalf("expected index type structure, got %s", index.Type)
+	}
+}
+
 func TestCreateCard(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)

@@ -2,6 +2,7 @@ package command
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"flowforge/internal/config"
@@ -69,6 +70,49 @@ func TestTaskLifecycleCommands(t *testing.T) {
 	}
 	if done.Body == "" {
 		t.Fatal("expected done summary to be appended to body")
+	}
+}
+
+func TestTaskCreateDefaultsToCurrentProposal(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Task default proposal")
+
+	createCmd := newTaskCreateCmd()
+	createCmd.SetArgs([]string{"--title", "Implement default proposal task", "--type", "i"})
+	if err := createCmd.Execute(); err != nil {
+		t.Fatalf("task create failed: %v", err)
+	}
+
+	store := testCardStore(t, tmpDir)
+	tasks, err := store.ListCards(store.ProposalCardsDir(proposalID))
+	if err != nil {
+		t.Fatalf("listing proposal cards failed: %v", err)
+	}
+
+	var found *core.Card
+	for _, task := range tasks {
+		if task.Type == core.CardTypeTask && strings.Contains(task.Title, "Implement default proposal task") {
+			found = task
+			break
+		}
+	}
+	if found == nil {
+		t.Fatalf("expected task to be created under current proposal %s", proposalID)
+	}
+	if found.Source != proposalID {
+		t.Fatalf("expected task source %s, got %q", proposalID, found.Source)
+	}
+	if !strings.Contains(found.ID, proposalID) {
+		t.Fatalf("expected task ID %q to include proposal %s", found.ID, proposalID)
 	}
 }
 

@@ -268,9 +268,9 @@ func TestIsSubTaskID(t *testing.T) {
 
 func TestGetParentTaskID(t *testing.T) {
 	tests := []struct {
-		subTaskID  string
-		expected   string
-		hasError   bool
+		subTaskID string
+		expected  string
+		hasError  bool
 	}{
 		{"TASK-abc-i-123-a", "TASK-abc-i-123", false},
 		{"TASK-abc-i-123-b", "TASK-abc-i-123", false},

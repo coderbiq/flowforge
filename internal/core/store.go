@@ -241,7 +241,7 @@ func (s *CardStore) findCardInDir(cardID string, dir string) (string, error) {
 		filename := filepath.Base(path)
 		id, _, parseErr := ParseFilename(filename)
 		if parseErr != nil {
-			return nil
+			id = strings.TrimSuffix(filename, ".md")
 		}
 
 		if id == cardID {
