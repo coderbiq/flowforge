@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -31,13 +32,6 @@ type WikiConfig struct {
 
 var defaultConfig = Config{
 	Version: "2.0.0",
-	Projects: []ProjectConfig{
-		{
-			ID:       "default",
-			WikiRoot: "ff-wiki",
-			SrcDirs:  []string{},
-		},
-	},
 	Wiki: WikiConfig{
 		Root: "ff-wiki",
 	},
@@ -45,6 +39,43 @@ var defaultConfig = Config{
 
 func DefaultConfig() Config {
 	return defaultConfig
+}
+
+func ConfigPath(projectRoot string) string {
+	return filepath.Join(projectRoot, ConfigDirName, ConfigFileName)
+}
+
+func (c *Config) Save(projectRoot string) error {
+	if c == nil {
+		return fmt.Errorf("config is required")
+	}
+
+	type fileConfig struct {
+		Version  string          `yaml:"version"`
+		Projects []ProjectConfig `yaml:"projects"`
+	}
+
+	payload := fileConfig{
+		Version:  c.Version,
+		Projects: c.Projects,
+	}
+
+	data, err := yaml.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshaling config: %w", err)
+	}
+
+	configDir := filepath.Join(projectRoot, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
+
+	configPath := ConfigPath(projectRoot)
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+
+	return nil
 }
 
 func FindProjectRoot(startDir string) (string, error) {
@@ -89,6 +120,29 @@ func Load(projectRoot string) (*Config, error) {
 
 func (c *Config) WikiRoot(projectRoot string) string {
 	project := c.primaryProject()
+	return c.projectWikiRoot(projectRoot, project)
+}
+
+func (c *Config) ProjectByID(id string) (ProjectConfig, bool) {
+	for _, project := range c.Projects {
+		if project.ID == id {
+			return project, true
+		}
+	}
+
+	return ProjectConfig{}, false
+}
+
+func (c *Config) WikiRootForProject(projectRoot string, projectID string) (string, error) {
+	project, ok := c.ProjectByID(projectID)
+	if !ok {
+		return "", fmt.Errorf("project %q is not registered", projectID)
+	}
+
+	return c.projectWikiRoot(projectRoot, project), nil
+}
+
+func (c *Config) projectWikiRoot(projectRoot string, project ProjectConfig) string {
 	if project.WikiRoot != "" {
 		if filepath.IsAbs(project.WikiRoot) {
 			return project.WikiRoot

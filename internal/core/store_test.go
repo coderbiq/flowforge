@@ -12,6 +12,17 @@ func setupTestStore(t *testing.T) (*CardStore, string) {
 	return store, tmpDir
 }
 
+func createTestProposal(t *testing.T, store *CardStore, proposalID, title string) (string, string) {
+	t.Helper()
+
+	rootPath, indexPath, err := store.CreateProposal(proposalID, title)
+	if err != nil {
+		t.Fatalf("failed to create proposal: %v", err)
+	}
+
+	return rootPath, indexPath
+}
+
 func createTestDirs(t *testing.T, wikiRoot string) {
 	dirs := []string{
 		filepath.Join(wikiRoot, "01-workspace", "01-active"),
@@ -90,10 +101,8 @@ func TestCreateProposal(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	proposalDir, err := store.CreateProposal("CR260612", "Test Proposal")
-	if err != nil {
-		t.Fatalf("failed to create proposal: %v", err)
-	}
+	rootPath, indexPath := createTestProposal(t, store, "CR260612", "Test Proposal")
+	proposalDir := store.ProposalDir("CR260612")
 
 	if _, err := os.Stat(proposalDir); err != nil {
 		t.Errorf("proposal directory not created: %v", err)
@@ -104,12 +113,23 @@ func TestCreateProposal(t *testing.T) {
 		t.Errorf("cards directory not created: %v", err)
 	}
 
-	indexPath := filepath.Join(proposalDir, "00-STR-PROPOSAL.md")
-	if _, err := os.Stat(indexPath); err != nil {
-		t.Errorf("index card not created: %v", err)
+	expectedRootPath := filepath.Join(proposalDir, "ROOT-CR260612.md")
+	if rootPath != expectedRootPath {
+		t.Fatalf("expected rootPath %s, got %s", expectedRootPath, rootPath)
+	}
+	if _, err := os.Stat(rootPath); err != nil {
+		t.Errorf("root card not created: %v", err)
 	}
 
-	_, err = store.CreateProposal("CR260612", "Duplicate")
+	expectedIndexPath := filepath.Join(proposalDir, "STR-CR260612-REQ.md")
+	if indexPath != expectedIndexPath {
+		t.Fatalf("expected indexPath %s, got %s", expectedIndexPath, indexPath)
+	}
+	if _, err := os.Stat(indexPath); err != nil {
+		t.Errorf("requirement index card not created: %v", err)
+	}
+
+	_, _, err := store.CreateProposal("CR260612", "Duplicate")
 	if err == nil {
 		t.Error("expected error for duplicate proposal")
 	}
@@ -119,7 +139,7 @@ func TestCreateCard(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	card := NewCard(CardTypeRequirement, "Test Requirement")
 	card.ID = "REQ-abc-123"
@@ -142,7 +162,7 @@ func TestReadCard(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	card := NewCard(CardTypeDecision, "Test Decision")
 	card.ID = "DEC-abc-456"
@@ -182,7 +202,7 @@ func TestUpdateCard(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	card := NewCard(CardTypeRequirement, "Original Title")
 	card.ID = "REQ-abc-789"
@@ -205,7 +225,7 @@ func TestDeleteCard(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	card := NewCard(CardTypeRequirement, "To Delete")
 	card.ID = "REQ-abc-del"
@@ -224,7 +244,7 @@ func TestDeleteCardNonDraft(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	card := NewCard(CardTypeRequirement, "Active Card")
 	card.ID = "REQ-abc-act"
@@ -241,7 +261,7 @@ func TestListCards(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	for i := 0; i < 3; i++ {
 		card := NewCard(CardTypeRequirement, "Req "+string(rune('A'+i)))
@@ -264,7 +284,7 @@ func TestListCardsByType(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	req1 := NewCard(CardTypeRequirement, "Req 1")
 	req1.ID = "REQ-abc-r1"
@@ -293,7 +313,7 @@ func TestGetDependents(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	req := NewCard(CardTypeRequirement, "Requirement")
 	req.ID = "REQ-abc-main"
@@ -322,7 +342,7 @@ func TestGetRelated(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	req := NewCard(CardTypeRequirement, "Requirement")
 	req.ID = "REQ-abc-rel"
@@ -351,7 +371,7 @@ func TestGetRelatedWithFilter(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
-	store.CreateProposal("CR260612", "Test")
+	createTestProposal(t, store, "CR260612", "Test")
 
 	req := NewCard(CardTypeRequirement, "Requirement")
 	req.ID = "REQ-abc-fil"

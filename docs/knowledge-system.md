@@ -31,10 +31,8 @@
 +-- 01-workspace/                     # 工作区
 |   +-- 01-active/                    # 进行中的 proposal
 |   |   +-- CR26061201-cli/           # 每个 proposal 一个目录
-|   |   |   +-- 00-STR-PROPOSAL.md    # 总索引
-|   |   |   +-- 01-STR-REQUIREMENTS.md # 需求维度索引
-|   |   |   +-- 02-STR-DESIGN.md      # 设计维度索引
-|   |   |   +-- 03-STR-TASKS.md       # 任务维度索引
+|   |   |   +-- ROOT-CR26061201.md    # proposal root card，稳定入口
+|   |   |   +-- STR-CR26061201-REQ.md # 顶层需求索引入口，可裂变成索引树
 |   |   |   +-- 90-cards/             # 内容卡集中存放（排在最后）
 |   |   |       +-- REQ-2x9k3m00-3x8m2n1q_xxx.md
 |   |   |       +-- DEC-2x9k3m00-4y9n3o2r_xxx.md
@@ -77,12 +75,13 @@
 
 proposal 完成后，`flowforge archive` 执行：
 
-1. 将 01-workspace/01-active/\<proposal\>/ 中的卡片**复制**到 02-library/ 对应类型目录
-2. 更新卡片状态（draft → active）
-3. 将 proposal 目录移至 01-workspace/03-completed/（保留追溯）
-4. 更新相关 Structure Note
+1. 扫描 01-workspace/01-active/\<proposal\>/ 中的卡片和链接关系
+2. 识别可复用知识候选：稳定需求、设计决策、规范、模块认知、关键 finding
+3. 复制或合成新的 library 卡片，避免把过程性 log 机械搬运到 library
+4. 将 proposal 目录移至 01-workspace/03-completed/（保留追溯）
+5. 更新相关 Structure Note 与 sqlite 索引
 
-**关键**：不是"提取知识"，而是**卡片本身的迁移和状态变更**。所有知识从一开始就是卡片形式存在。
+**关键**：archive 不是破坏 proposal 事实链的迁移。proposal 内的原始卡片保留为追溯证据；library 中沉淀的是可复用知识的复制件或合成件。
 
 ---
 
@@ -144,15 +143,16 @@ FlowForge v2 需要一个 CLI 框架来管理 5-15 个子命令。
 | `decision` | `DEC` | 架构决策 (ADR) | 一个技术选择 + 理由 | ~~所有技术选型放一张卡~~ |
 | `design` | `DES` | 设计方案 | 一个接口/函数/行为的设计 | ~~一个模块的完整详细设计~~ |
 | `task` | `TASK` | 可执行任务 | 一个原子实施单元 | ~~一个 proposal 的所有任务~~ |
-| `log` | `LOG` | 实施日志 | 一次操作/一个进展记录 | ~~整个 proposal 的实施日志~~ |
+| `log` | `LOG` | 过程记录 | 一次操作、一次反馈、一个阶段性进展 | ~~整个 proposal 的 notes.md~~ |
 | `convention` | `CONV` | 编码约定 | 一条可执行的规则 | ~~整个编码规范文档~~ |
 | `finding` | `FIND` | 探索发现 | 一个意外行为或认知 | ~~所有发现汇总~~ |
 | `module` | `MOD` | 模块知识 | 一个模块的定位和职责概述 | ~~一个模块的完整设计文档~~ |
 | `structure` | `STR` | 索引卡 | 组织 7-15 张同主题卡片 | ~~所有卡片的总索引~~ |
+| `proposal` | `ROOT` | 提案根卡 | 一个 proposal 的导航入口和状态摘要 | ~~完整 proposal 长文档~~ |
 
 **粒度判定标准**：卡片是否能够独立于其他卡片被理解？如果读完卡片还需要翻其他文档才能理解，说明粒度太粗，需要拆分。
 
-**日志也是卡片。** 实施过程中的每一步操作（创建文件、执行命令、调试问题）都应记录为 `log` 卡片，而非散落在 proposal 的 notes.md 中。
+**日志也是卡片。** design、implement、feedback、archive 中的重要过程记录都应记录为 `log` 卡片，而非散落在 proposal 的 notes.md 中。
 
 **任务卡片是一等公民。** 任务作为卡片存在于知识网络中，通过链接关联到它实现的需求、依赖的设计，形成完整的追溯链。
 
@@ -163,7 +163,7 @@ FlowForge v2 需要一个 CLI 框架来管理 5-15 个子命令。
 id: TASK-2x9k3m00-i-7b2q6r5u
 title: 实现 flowforge init 命令
 type: task
-status: done                  # backlog | ready | in_progress | done | blocked | cancelled
+status: done                  # backlog | not_ready | ready | in_progress | done | blocked | cancelled
 importance: must
 assignee: agent
 tags: [cli, init]
@@ -174,8 +174,8 @@ links:
     relation: satisfies        # 满足哪个需求
   - target: TASK-2x9k3m00-i-8c3r7s6v
     relation: blocks           # 阻塞哪个任务
-  - target: FIND-2x9k3m00-9d4s8t7w
-    relation: produced         # 产生了哪个发现
+  - target: CONV-001
+    relation: constrains       # 执行必须遵守的约束
 created: 2026-06-12
 updated: 2026-06-12
 source: CR26061201
@@ -195,24 +195,28 @@ domain: cli
 3. 写入项目注册表骨架
 4. 项目创建移交 `flowforge project create`
 
-## 实施记录
+## 执行上下文
 
-- 使用 Commander.js 注册 init 子命令
-- 使用 ejs 渲染配置模板
-- 使用 @clack/prompts 实现交互向导
+- 目标卡：REQ-2x9k3m00-3x8m2n1q、DES-2x9k3m00-5z0o4p3s
+- 依据卡：DEC-2x9k3m00-4y9n3o2r
+- 约束卡：CONV-001
+
+执行过程中产生的 log / finding 不持续写回本任务卡；由新卡主动链接本任务卡，任务视图通过反向链接索引展示证据链。
 ```
 
 #### 任务卡片状态流转
 
 ```
-backlog --> ready --> in_progress --> done
-  |                      |
-  |                      v
-  |                  blocked --> ready (解除阻塞)
+backlog --> not_ready --> ready --> in_progress --> done
+  |           |                         |
+  |           |                         v
+  |           +-------------------- blocked --> ready (解除阻塞)
   |
   v
 cancelled
 ```
+
+`not_ready` 表示任务已经被识别出来，但仍依赖未确认假设、open question 或分析任务，不能被 `task ready` 选中。
 
 ### 3.3 卡片 ID 规范
 
@@ -232,12 +236,14 @@ cancelled
 | 需求/设计/决策/发现/日志 | `{TYPE}-{proposalTs}-{cardTs}` | `REQ-2x9k3m00-3x8m2n1q` | proposal 归属 + 自身时间戳 |
 | 任务 | `TASK-{proposalTs}-{type}-{taskTs}` | `TASK-2x9k3m00-i-5z0o4p3s` | 含任务类型字母 |
 | 子任务 | `{父任务ID}-{letter}` | `TASK-2x9k3m00-i-5z0o4p3s-a` | 父 ID + `-a/b/c` |
+| proposal 根卡 | `ROOT-{proposalId}` | `ROOT-CR26061201` | proposal 稳定入口 |
 | 全局卡片 | `{TYPE}-{NN}` | `CONV-001`, `MOD-001` | 无 proposal 归属 |
 
 #### 任务类型字母编码
 
 | 字母 | 类型 | 说明 |
 |------|------|------|
+| `a` | analysis | 需求分析、调研、探索 |
 | `i` | implementation | 功能实现 |
 | `t` | test | 测试 |
 | `d` | docs | 文档 |
@@ -293,7 +299,8 @@ function generateCardTimestamp() {
 +-- TASK-2x9k3m00-i-7b2q6r5u-a_添加参数解析.md
 +-- LOG-2x9k3m00-8c3r7s6v_创建Commander子命令.md
 +-- FIND-2x9k3m00-9d4s8t7w_npm-link不可靠.md
-+-- STR-PROPOSAL.md               # 该 proposal 的索引卡
++-- ROOT-CR26061201.md           # proposal root card
++-- STR-CR26061201-REQ.md        # 顶层需求索引入口
 ```
 
 **02-library/** 中的卡片（按类型组织）：
@@ -405,41 +412,39 @@ cards:
 - [[FIND-2x9k3m00-9d4s8t7w]] npm link 在开发/部署耦合中的问题
 ```
 
-### 4.4 Proposal 索引卡
+### 4.4 Proposal Root Card 与需求索引树
 
-每个 proposal 在 01-workspace/01-active/\<proposal\>/ 中也有一张 STR-PROPOSAL.md，组织该 proposal 产生的所有卡片：
+每个 proposal 在 01-workspace/01-active/\<proposal\>/ 中至少有一张 root card。root card 是稳定入口，记录 proposal 摘要、当前状态摘要、顶层需求索引入口和关键任务入口，但不承载完整需求和设计。
 
 ```markdown
 ---
-id: STR-PROPOSAL
+id: ROOT-CR26061201
 title: "CR26061201 - CLI 工具化改造"
-type: structure
+type: proposal
 proposal: CR26061201
-cards:
-  - REQ-2x9k3m00-3x8m2n1q
-  - REQ-2x9k3m00-4y9n3o2r
-  - DEC-2x9k3m00-5z0o4p3s
-  - DES-2x9k3m00-6a1p5q4t
-  - TASK-2x9k3m00-i-7b2q6r5u
-  - TASK-2x9k3m00-i-8c3r7s6v
+status: active
+links:
+  - target: STR-CR26061201-REQ
+    relation: indexes
+  - target: TASK-2x9k3m00-a-7b2q6r5u
+    relation: decomposes
 ---
 
 # CR26061201 - CLI 工具化改造
 
-## 需求
-- [[REQ-2x9k3m00-3x8m2n1q]] 支持 CLI 全局安装
-- [[REQ-2x9k3m00-4y9n3o2r]] 支持多项目初始化
+## 摘要
 
-## 决策
-- [[DEC-2x9k3m00-5z0o4p3s]] 使用 Commander.js
+把 FlowForge v2 的初始化、项目管理、proposal 管理从长文档流程改成卡片驱动流程。
 
-## 设计
-- [[DES-2x9k3m00-6a1p5q4t]] init 命令参数设计
+## 入口
 
-## 任务
-- [[TASK-2x9k3m00-i-7b2q6r5u]] 实现 init 命令 `done`
-- [[TASK-2x9k3m00-i-8c3r7s6v]] 实现 upgrade 命令 `backlog`
+- 需求索引：[[STR-CR26061201-REQ]]
+- 活跃任务视图：由 `flowforge context proposal` 基于 sqlite 查询生成
 ```
+
+需求索引入口是一张 STR 卡，随着需求增长可以裂变成索引树。单张索引卡直接条目不应长期超过 15 条；超过时父索引保留主题入口，把一组需求点替换成子索引卡链接。
+
+设计、任务、日志不要求固定创建阶段型总索引。它们可以按主题创建 STR 卡，但日常视图优先通过 typed links、backlinks 和 sqlite 查询生成。
 
 ### 4.5 索引维护
 
@@ -473,7 +478,19 @@ $ flowforge card read STR-CLI
 | `implements` | 实现 | 任务实现设计 | TASK -> DES |
 | `satisfies` | 满足 | 任务满足需求 | TASK -> REQ |
 | `blocks` | 阻塞 | 任务阻塞另一任务 | TASK -> TASK |
-| `produced` | 产出 | 任务产出发现 | TASK -> FIND |
+| `indexes` | 索引 | STR/root 指向索引入口 | ROOT -> STR |
+| `decomposes` | 拆解 | 索引或任务拆解子项 | STR -> STR / TASK -> TASK |
+| `analyzes` | 分析 | 分析任务指向需求或问题 | TASK -> REQ |
+| `designs` | 设计 | 设计任务指向需求 | TASK -> REQ |
+| `constrains` | 约束 | 规范约束任务或设计 | TASK -> CONV |
+| `records` | 记录 | LOG 记录任务、反馈或归档动作 | LOG -> TASK |
+| `discovers` | 发现 | LOG 指向发现卡 | LOG -> FIND |
+
+链接方向遵循 Obsidian 式反链实践：
+
+- 新生成的 log / finding / feedback 卡主动链接它记录的任务或上下文卡。
+- 任务卡、root card、需求索引卡不持续回写所有证据卡，避免中心卡关系爆炸。
+- 反向视图由 sqlite 的 backlink index 生成，例如“某任务的全部执行日志”“某需求影响的任务列表”。
 
 ### 5.2 链接遍历
 
@@ -555,7 +572,7 @@ cards:
 | 场景 | 行为 |
 |------|------|
 | Agent 开始设计阶段 | 先通过 `flowforge card read STR-CLI` 加载索引 -> 按需读取具体卡片 |
-| Agent 归档知识 | 将新卡片添加到对应 Structure Note |
+| Agent 归档知识 | 复制或合成可复用 library 卡，并更新对应 Structure Note |
 | Agent 发现新领域 | 创建新的 Structure Note 作为入口 |
 
 ---
@@ -584,31 +601,26 @@ Level 2: 完整层（Agent 主动读取，按 token 预算）
 ### 7.2 上下文输出示例
 
 ```bash
-$ flowforge context design --proposal CR26061201
+$ flowforge context task --task TASK-2x9k3m00-i-7b2q6r5u
 ```
 
 输出：
 
 ```markdown
-## Proposal: CR26061201 - CLI 工具化改造
+## Task Context: TASK-2x9k3m00-i-7b2q6r5u
 
-### Phase: design
-
-### Must-Know Cards (3)
+### Stable Context Cards
 | ID | Type | Title | Summary |
 |----|------|-------|---------|
 | CONV-001 | convention | CLI 命名规范 | 命令使用 kebab-case... |
-| CONV-002 | convention | 配置格式 | 使用 YAML 格式... |
-| DEC-2x8k2m1a-5z0o4p3s | decision | 零依赖原则 | 基础版不依赖外部... |
-
-### Should-Know Cards (5)
-| ID | Type | Title | Summary |
-|----|------|-------|---------|
-| DEC-2x9k3m00-4y9n3o2r | decision | Commander.js | 选择 Commander 作为... |
 | DES-2x9k3m00-6a1p5q4t | design | init 命令参数 | init 命令参数设计... |
 | REQ-2x9k3m00-3x8m2n1q | requirement | CLI 全局安装 | 用户应能通过 npm... |
+
+### Evidence From Backlinks
+| ID | Type | Title | Summary |
+|----|------|-------|---------|
+| LOG-2x9k3m00-8c3r7s6v | log | 创建 init 命令骨架 | 已创建 Cobra 子命令... |
 | FIND-2x9k3m00-9d4s8t7w | finding | npm link 问题 | npm link 绑定开发目录... |
-| STR-CLI | structure | CLI 知识索引 | 组织 CLI 相关卡片... |
 
 ### Token Budget: 3,200 / 20,000
 
@@ -621,15 +633,15 @@ $ flowforge context design --proposal CR26061201
 
 ```javascript
 // context-aggregator.js
-function aggregateContext(proposal, phase, maxTokens = 20000) {
+function aggregateContext(scope, maxTokens = 20000) {
   const result = {
-    permanent: loadPermanentContext(proposal),   // ~500 tokens
+    permanent: loadPermanentContext(scope),      // ~500 tokens
     summaries: [],                                 // ~2000 tokens
     fullCards: [],                                 // 剩余预算
   };
   
   // Level 1: 加载摘要
-  const relatedCards = findRelatedCards(proposal, phase);
+  const relatedCards = findRelatedCards(scope);
   const sorted = sortByImportance(relatedCards);
   
   let usedTokens = result.permanent.tokens;
@@ -709,5 +721,5 @@ Suggestion: Review and update or deprecate these cards.
 | **按需加载** | 初始只读卡片摘要，需要时才通过 CLI 读取卡片全文 |
 | **类型化链接** | 卡片间通过 typed links 关联，支持图遍历 |
 | **原子性** | 每张卡片一个焦点，宁可多拆也不合并 |
-| **日志卡片化** | 实施过程中的每一步操作都记录为 LOG 卡片，而非散落在 notes.md 中 |
+| **日志卡片化** | proposal 生命周期中的关键过程记录都写入 LOG 卡片，而非散落在 notes.md 中 |
 | **写入门禁** | 新卡片默认 draft + should，经验证后才升级为 active |

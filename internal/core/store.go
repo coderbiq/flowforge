@@ -70,11 +70,19 @@ func (s *CardStore) ProposalCardsDir(proposalID string) string {
 	return filepath.Join(s.ProposalDir(proposalID), "90-cards")
 }
 
-func (s *CardStore) CreateProposal(proposalID, title string) (string, error) {
+func (s *CardStore) ProposalRootCardPath(proposalID string) string {
+	return filepath.Join(s.ProposalDir(proposalID), "ROOT-"+proposalID+".md")
+}
+
+func (s *CardStore) ProposalRequirementIndexPath(proposalID string) string {
+	return filepath.Join(s.ProposalDir(proposalID), "STR-"+proposalID+"-REQ.md")
+}
+
+func (s *CardStore) CreateProposal(proposalID, title string) (string, string, error) {
 	proposalDir := s.ProposalDir(proposalID)
 
 	if _, err := os.Stat(proposalDir); err == nil {
-		return "", fmt.Errorf("proposal %s already exists", proposalID)
+		return "", "", fmt.Errorf("proposal %s already exists", proposalID)
 	}
 
 	dirs := []string{
@@ -84,35 +92,33 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, error) {
 
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			return "", fmt.Errorf("creating directory %s: %w", dir, err)
+			return "", "", fmt.Errorf("creating directory %s: %w", dir, err)
 		}
 	}
 
-	indexCard := NewCard(CardTypeStructure, title)
-	indexCard.ID = "STR-PROPOSAL"
-	indexCard.Status = CardStatusActive
-	indexCard.Source = proposalID
+	rootPath := s.ProposalRootCardPath(proposalID)
+	indexPath := s.ProposalRequirementIndexPath(proposalID)
 
-	indexContent := fmt.Sprintf(`---
-id: STR-PROPOSAL
-title: "%s"
-type: structure
-status: active
-source: %s
-cards: []
----
-
-# %s
-
-Proposal overview and card index.
-`, title, proposalID, title)
-
-	indexPath := filepath.Join(proposalDir, "00-STR-PROPOSAL.md")
-	if err := os.WriteFile(indexPath, []byte(indexContent), 0644); err != nil {
-		return "", fmt.Errorf("writing index card: %w", err)
+	rootCard := NewCard(CardTypeStructure, title)
+	rootCard.ID = "ROOT-" + proposalID
+	rootCard.Status = CardStatusActive
+	rootCard.Source = proposalID
+	rootCard.Body = fmt.Sprintf("# %s\n\nProposal root card.\n\n## Summary\n\nStable entry for this proposal.\n", title)
+	rootCard.AddLink("STR-"+proposalID+"-REQ", "references")
+	if err := rootCard.Save(rootPath); err != nil {
+		return "", "", fmt.Errorf("writing root card: %w", err)
 	}
 
-	return proposalDir, nil
+	indexCard := NewCard(CardTypeStructure, title+" Requirements")
+	indexCard.ID = "STR-" + proposalID + "-REQ"
+	indexCard.Status = CardStatusActive
+	indexCard.Source = proposalID
+	indexCard.Body = fmt.Sprintf("# %s Requirements\n\nTop-level requirement index for %s.\n\n## Open Questions\n\n- None\n", title, title)
+	if err := indexCard.Save(indexPath); err != nil {
+		return "", "", fmt.Errorf("writing requirement index card: %w", err)
+	}
+
+	return rootPath, indexPath, nil
 }
 
 func (s *CardStore) CreateCard(card *Card, proposalID string) (string, error) {

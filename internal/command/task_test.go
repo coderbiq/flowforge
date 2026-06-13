@@ -18,6 +18,7 @@ func TestTaskLifecycleCommands(t *testing.T) {
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatalf("chdir failed: %v", err)
 	}
+	createProjectForTest(t, "default")
 
 	createCmd := newTaskCreateCmd()
 	createCmd.SetArgs([]string{"--title", "Implement task command", "--type", "i", "--links", "DES-abc123:implements"})
@@ -93,4 +94,14 @@ func testCardStore(t *testing.T, projectRoot string) *core.CardStore {
 		t.Fatalf("loading config failed: %v", err)
 	}
 	return core.NewCardStore(cfg.WikiRoot(projectRoot))
+}
+
+func createProjectForTest(t *testing.T, projectID string) {
+	t.Helper()
+
+	cmd := newProjectCreateCmd()
+	cmd.SetArgs([]string{projectID})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("project create failed: %v", err)
+	}
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"flowforge/internal/config"
 	"flowforge/internal/core"
 )
 
@@ -79,7 +78,7 @@ func newTaskCreateCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&title, "title", "", "Task title")
-	cmd.Flags().StringVar(&taskType, "type", "i", "Task type: i/t/d/f/r/c")
+	cmd.Flags().StringVar(&taskType, "type", "i", "Task type: a/i/t/d/f/r/c")
 	cmd.Flags().StringVar(&body, "body", "", "Task body content")
 	cmd.Flags().StringVar(&proposalID, "proposal", "", "Proposal ID to associate with")
 	cmd.Flags().StringSliceVar(&links, "links", nil, "Links to cards (format: CARD_ID or CARD_ID:relation)")
@@ -120,10 +119,18 @@ func newTaskListCmd() *cobra.Command {
 }
 
 func newTaskReadyCmd() *cobra.Command {
+	var taskType string
+
 	cmd := &cobra.Command{
 		Use:   "ready",
 		Short: "List ready task cards",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if taskType != "" {
+				if err := validateTaskTypeFlag(taskType); err != nil {
+					return err
+				}
+			}
+
 			store, err := currentCardStore()
 			if err != nil {
 				return err
@@ -136,6 +143,9 @@ func newTaskReadyCmd() *cobra.Command {
 
 			var ready []*core.Card
 			for _, task := range tasks {
+				if taskType != "" && taskKindFromID(task.ID) != taskType {
+					continue
+				}
 				ok, err := isTaskReady(store, task)
 				if err != nil {
 					return err
@@ -149,6 +159,8 @@ func newTaskReadyCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&taskType, "type", "", "Filter by task type: a/i/t/d/f/r/c")
 
 	return cmd
 }
@@ -346,20 +358,6 @@ func newTaskLinkRemoveCmd() *cobra.Command {
 	return cmd
 }
 
-func currentCardStore() (*core.CardStore, error) {
-	projectRoot, err := config.FindProjectRoot(".")
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := config.Load(projectRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	return core.NewCardStore(cfg.WikiRoot(projectRoot)), nil
-}
-
 func updateTaskStatus(taskID string, next core.CardStatus, beforeSave func(*core.Card) error) error {
 	return updateTask(taskID, func(task *core.Card) error {
 		if beforeSave != nil {
@@ -410,10 +408,10 @@ func readTask(store *core.CardStore, taskID string) (*core.Card, error) {
 
 func validateTaskTypeFlag(taskType string) error {
 	switch taskType {
-	case "i", "t", "d", "f", "r", "c":
+	case "a", "i", "t", "d", "f", "r", "c":
 		return nil
 	default:
-		return fmt.Errorf("invalid task type: %s (expected i/t/d/f/r/c)", taskType)
+		return fmt.Errorf("invalid task type: %s (expected a/i/t/d/f/r/c)", taskType)
 	}
 }
 

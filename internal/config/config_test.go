@@ -13,16 +13,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("expected version 2.0.0, got %s", cfg.Version)
 	}
 
-	if len(cfg.Projects) != 1 {
-		t.Fatalf("expected 1 default project, got %d", len(cfg.Projects))
-	}
-
-	if cfg.Projects[0].ID != "default" {
-		t.Errorf("expected project id default, got %s", cfg.Projects[0].ID)
-	}
-
-	if cfg.Projects[0].WikiRoot != "ff-wiki" {
-		t.Errorf("expected wiki root ff-wiki, got %s", cfg.Projects[0].WikiRoot)
+	if len(cfg.Projects) != 0 {
+		t.Fatalf("expected no default projects, got %d", len(cfg.Projects))
 	}
 }
 
@@ -79,12 +71,8 @@ func TestLoadConfigMissing(t *testing.T) {
 		t.Errorf("expected default version, got %s", cfg.Version)
 	}
 
-	if len(cfg.Projects) != 1 {
-		t.Fatalf("expected 1 default project, got %d", len(cfg.Projects))
-	}
-
-	if cfg.Projects[0].ID != "default" {
-		t.Errorf("expected default project id, got %s", cfg.Projects[0].ID)
+	if len(cfg.Projects) != 0 {
+		t.Fatalf("expected no default projects, got %d", len(cfg.Projects))
 	}
 }
 
@@ -144,5 +132,55 @@ func TestWikiRootAbsolute(t *testing.T) {
 	expected := "/absolute/path"
 	if wikiRoot != expected {
 		t.Errorf("expected %s, got %s", expected, wikiRoot)
+	}
+}
+
+func TestProjectByID(t *testing.T) {
+	cfg := &Config{
+		Projects: []ProjectConfig{
+			{ID: "frontend", WikiRoot: "ff-wiki-fe"},
+			{ID: "backend", WikiRoot: "ff-wiki-be"},
+		},
+	}
+
+	project, ok := cfg.ProjectByID("backend")
+	if !ok {
+		t.Fatalf("expected backend project to be found")
+	}
+	if project.WikiRoot != "ff-wiki-be" {
+		t.Fatalf("expected backend wiki root ff-wiki-be, got %s", project.WikiRoot)
+	}
+
+	if _, ok := cfg.ProjectByID("missing"); ok {
+		t.Fatalf("expected missing project to not be found")
+	}
+}
+
+func TestWikiRootForProject(t *testing.T) {
+	cfg := &Config{
+		Projects: []ProjectConfig{
+			{ID: "frontend", WikiRoot: "ff-wiki-fe"},
+			{ID: "backend", WikiRoot: "/absolute/wiki"},
+		},
+	}
+
+	frontendRoot, err := cfg.WikiRootForProject("/project", "frontend")
+	if err != nil {
+		t.Fatalf("WikiRootForProject frontend failed: %v", err)
+	}
+	if frontendRoot != "/project/ff-wiki-fe" {
+		t.Fatalf("expected /project/ff-wiki-fe, got %s", frontendRoot)
+	}
+
+	backendRoot, err := cfg.WikiRootForProject("/project", "backend")
+	if err != nil {
+		t.Fatalf("WikiRootForProject backend failed: %v", err)
+	}
+	if backendRoot != "/absolute/wiki" {
+		t.Fatalf("expected /absolute/wiki, got %s", backendRoot)
+	}
+
+	if _, err := cfg.WikiRootForProject("/project", "missing"); err == nil {
+		t.Fatalf("expected missing project to fail")
 	}
 }

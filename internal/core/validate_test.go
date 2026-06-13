@@ -336,6 +336,8 @@ func TestIsValidRelation(t *testing.T) {
 		"references", "extends", "refines", "contradicts",
 		"supersedes", "supports", "questions", "related",
 		"implements", "satisfies", "blocks", "produced",
+		"indexes", "decomposes", "analyzes", "designs",
+		"constrains", "records", "discovers",
 	}
 
 	for _, rel := range validRelations {
@@ -350,7 +352,7 @@ func TestIsValidRelation(t *testing.T) {
 }
 
 func TestIsValidTaskType(t *testing.T) {
-	validTypes := []string{"i", "t", "d", "f", "r", "c"}
+	validTypes := []string{"a", "i", "t", "d", "f", "r", "c"}
 
 	for _, tt := range validTypes {
 		if !isValidTaskType(tt) {

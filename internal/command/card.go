@@ -301,11 +301,11 @@ Examples:
 
 func newCardUpdateCmd() *cobra.Command {
 	var (
-		title      string
-		status     string
-		importance string
-		body       string
-		addLinks   []string
+		title       string
+		status      string
+		importance  string
+		body        string
+		addLinks    []string
 		removeLinks []string
 	)
 
@@ -524,58 +524,6 @@ func newCardDependentsCmd() *cobra.Command {
 				fmt.Printf("    Status: %s\n", card.Status)
 				fmt.Println()
 			}
-
-			return nil
-		},
-	}
-
-	return cmd
-}
-
-func newProposalCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "proposal",
-		Short: "Manage proposals",
-	}
-
-	cmd.AddCommand(newProposalCreateCmd())
-
-	return cmd
-}
-
-func newProposalCreateCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create <title>",
-		Short: "Create a new proposal",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			title := args[0]
-
-			projectRoot, err := config.FindProjectRoot(".")
-			if err != nil {
-				return err
-			}
-
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
-
-			proposalID := core.GenerateProposalID()
-
-			proposalDir, err := store.CreateProposal(proposalID, title)
-			if err != nil {
-				return err
-			}
-
-			fmt.Printf("✓ Created proposal %s\n", proposalID)
-			fmt.Printf("  Title: %s\n", title)
-			fmt.Printf("  Directory: %s\n", proposalDir)
-			fmt.Println()
-			fmt.Println("Next steps:")
-			fmt.Printf("  flowforge card create --type requirement --title \"...\" --proposal %s\n", proposalID)
 
 			return nil
 		},

@@ -90,6 +90,7 @@ const (
 	CardStatusDeprecated CardStatus = "deprecated"
 	CardStatusSuperseded CardStatus = "superseded"
 	CardStatusBacklog    CardStatus = "backlog"
+	CardStatusNotReady   CardStatus = "not_ready"
 	CardStatusReady      CardStatus = "ready"
 	CardStatusInProgress CardStatus = "in_progress"
 	CardStatusDone       CardStatus = "done"
@@ -101,7 +102,7 @@ func (s CardStatus) Valid() bool {
 	switch s {
 	case CardStatusDraft, CardStatusActive, CardStatusAccepted, CardStatusDeprecated, CardStatusSuperseded:
 		return true
-	case CardStatusBacklog, CardStatusReady, CardStatusInProgress, CardStatusDone, CardStatusBlocked, CardStatusCancelled:
+	case CardStatusBacklog, CardStatusNotReady, CardStatusReady, CardStatusInProgress, CardStatusDone, CardStatusBlocked, CardStatusCancelled:
 		return true
 	}
 	return false

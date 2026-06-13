@@ -285,7 +285,7 @@ $ flowforge card search "CLI framework"
 $ flowforge card related DEC-260612-001 --depth 2
 
 # Level 3: 预算控制
-$ flowforge context design --proposal CR26061201 --max-tokens 20000
+$ flowforge context proposal --proposal CR26061201 --max-tokens 20000
 ```
 
 ---

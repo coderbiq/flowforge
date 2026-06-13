@@ -45,10 +45,16 @@ sqlite 中保存的是派生数据和运行态指针，包含：
 | `project_state` | 项目注册后的索引视图 |
 | `proposal_state` | 当前项目下的提案指针与目录映射 |
 | `card_index` | 卡片摘要索引，供列表、筛选、搜索使用 |
+| `card_search` | 卡片全文 / 摘要搜索索引，可用 sqlite FTS 实现 |
+| `library_candidate` | 面向 `library suggest` 的候选排序视图 |
 | `card_link` | 卡片间有向关系 |
+| `card_backlink` | 由 `card_link` 派生的反向引用索引 |
 | `card_graph` | 由链接关系派生出的图查询缓存 |
+| `timeline_view` | proposal 生命周期内 log / feedback / archive 事件视图 |
 
-如果后续要做全文检索，可以在 sqlite 里挂 FTS 视图，但仍然只服务于查询，不改变卡片事实本身。
+全文检索可以在 sqlite 里挂 FTS 视图，但仍然只服务于查询，不改变卡片事实本身。
+
+library 查询也走 sqlite 派生索引。Agent 只能通过 CLI 获取候选摘要和定点卡片内容，不直接读取 `02-library/` 文件。
 
 ## 4. 命令集
 
@@ -58,6 +64,7 @@ sqlite 中保存的是派生数据和运行态指针，包含：
 | `flowforge index rebuild --project <id>` | 仅重建某个项目 |
 | `flowforge index rebuild --proposal <id>` | 仅重建某个提案 |
 | `flowforge index status` | 查看索引健康状态 |
+| `flowforge index backlinks <card-id>` | 查看指向某卡片的反向链接 |
 
 当前阶段至少需要 `rebuild`，其他命令可以后续补齐。
 
@@ -69,23 +76,54 @@ sqlite 中保存的是派生数据和运行态指针，包含：
 2. 读取该项目对应的 wiki 目录
 3. 扫描卡片 markdown
 4. 解析 frontmatter 与 links
-5. 清空 sqlite 中的派生索引
-6. 重建运行态指针和索引表
+5. 保留 runtime_state 中的当前项目 / 当前提案指针
+6. 清空 sqlite 中的派生索引
+7. 重建 card_index、card_search、card_link、card_backlink 和图查询缓存
 
 重建必须具备以下特征：
 
 - 幂等
 - 可重复执行
 - 可从损坏状态恢复
-- 不要求先读 sqlite 才能重建 sqlite
+- 不要求先读派生索引才可以重建索引
+- 不把 sqlite 当成卡片事实来源
 
-## 6. 指针策略
+## 6. 反向链接与查询视图
 
-### 6.1 当前项目
+反向链接是当前业务层设计的关键能力。为了避免 task、root、requirement 这类中心卡被反复回写，执行过程中新增的 log / finding / feedback 卡应主动链接它们的上下文卡，sqlite 负责把反向关系查询出来。
+
+最小需要支持的查询视图：
+
+| 视图 | 来源 | 用途 |
+|------|------|------|
+| task evidence | `LOG/FIND -> TASK` 反链 | 查看某任务的执行日志、发现和阻塞记录 |
+| proposal timeline | proposal 内 LOG 按时间排序 | 还原 design / implement / feedback / archive 全生命周期过程 |
+| requirement trace | `TASK/DES/FIND -> REQ` 与反链 | 查看某需求关联的设计、任务和反馈 |
+| index tree | `STR -> STR/REQ` 链接 | 展示需求索引树和拆分后的子索引 |
+| library suggestion | `card_index + card_search + card_link` | 为 requirement/task/design 推荐规范、模块、历史设计和 finding |
+
+## 7. Library 查询索引
+
+`library suggest` 的目标不是替 Agent 做最终判断，而是用索引层给出低噪声候选。
+
+推荐排序信号：
+
+- 关键词命中：title、summary、正文 FTS。
+- 元数据命中：type、tags、domain、status、importance。
+- 结构命中：被相关 STR / MOD 卡索引。
+- 关系命中：与当前卡已有邻居共享链接。
+- 项目命中：同 project、同 source、同模块目录。
+- 时效命中：active / accepted 优先，deprecated / superseded 降权。
+
+输出必须是摘要级候选，包含匹配理由和建议关系；全文读取由 `card read` 单独执行。
+
+## 8. 指针策略
+
+### 8.1 当前项目
 
 `currentProjectId` 建议存放在 sqlite 的运行态表中，初始化时默认为空或指向默认项目。
 
-### 6.2 当前提案
+### 8.2 当前提案
 
 当前提案仍然按项目命名空间隔离，只是从“文件指针”改为“sqlite 中的分区记录”。
 
@@ -96,7 +134,7 @@ sqlite 中保存的是派生数据和运行态指针，包含：
 
 这样前后端项目切换时不会互相覆盖。
 
-## 7. 失败恢复
+## 9. 失败恢复
 
 如果 sqlite 丢失或损坏：
 

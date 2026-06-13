@@ -16,11 +16,12 @@
 
 ```bash
 # 安装 CLI
-npm install -g @flowforge/cli
+curl -fsSL https://get.flowforge.dev | sh
 
 # 在项目中初始化
 cd your-project
 flowforge init
+flowforge project create default --wiki-root ff-wiki --src-dir .
 
 # 开始使用
 # Agent 将根据用户意图自动激活对应的 flowforge-* SKILL
@@ -51,10 +52,8 @@ flowforge/                          # 本仓库（FlowForge 开发）
 |   +-- 01-workspace/               # 工作区
 |   |   +-- 01-active/              # 进行中的 proposal
 |   |   +-- CR26061201-cli/         # 每个 proposal 一个目录
-|   |   |   +-- 00-STR-PROPOSAL.md  # 总索引
-|   |   |   +-- 01-STR-REQUIREMENTS.md  # 需求维度索引
-|   |   |   +-- 02-STR-DESIGN.md    # 设计维度索引
-|   |   |   +-- 03-STR-TASKS.md     # 任务维度索引
+|   |   |   +-- ROOT-CR26061201.md  # proposal root card
+|   |   |   +-- STR-CR26061201-REQ.md  # 顶层需求索引入口
 |   |   |   +-- 90-cards/           # 内容卡集中存放
 |   |   |       +-- REQ-2x9k3m00-3x8m2n1q_xxx.md
 |   |   |       +-- DEC-2x9k3m00-4y9n3o2r_xxx.md
@@ -87,6 +86,8 @@ AGENTS.md                           # Agent entry rules
 | [架构设计](docs/architecture.md) | 项目定位、核心设计决策 |
 | [CLI 架构设计](docs/cli-design.md) | 命令体系、init/upgrade/uninstall、task/card 命令 |
 | [知识卡片系统](docs/knowledge-system.md) | 卡片模型、文件名规范、sqlite 索引、上下文聚合 |
+| [Design SKILL 工作流](docs/design-skill-workflow.md) | flowforge-design 的执行流程、卡片模板、walkthrough |
+| [flowforge-design SKILL 草案](docs/flowforge-design-skill-draft.md) | SKILL 本体草案、reference 拆分、CLI 前置清单 |
 | [v1 分析](docs/v1-analysis.md) | v1 版本问题诊断（历史参考） |
 
 ### 背景参考
@@ -120,6 +121,7 @@ flowforge upgrade                 # 升级
 flowforge uninstall               # 卸载
 
 # 任务管理（快捷命令）
+flowforge task create --title "..." --type a --links "STR..."
 flowforge task create --title "..." --type i --links "DES..."
 flowforge task ready              # 查看就绪任务
 flowforge task claim TASK...      # 认领
@@ -138,7 +140,8 @@ flowforge index rebuild           # 重建 sqlite 索引
 flowforge index status            # 查看索引状态
 
 # 上下文
-flowforge context design --proposal CR...
+flowforge context proposal --proposal CR...
+flowforge context task --task TASK...
 ```
 
 ## 当前状态

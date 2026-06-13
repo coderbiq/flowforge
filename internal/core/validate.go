@@ -103,7 +103,7 @@ func validateCardID(id string, cardType CardType, result *ValidationResult) {
 		} else if len(parts) >= 3 {
 			taskType := parts[2]
 			if !isValidTaskType(taskType) && len(taskType) == 1 {
-				result.AddError("id", fmt.Sprintf("invalid task type letter: %s (expected i/t/d/f/r/c)", taskType))
+				result.AddError("id", fmt.Sprintf("invalid task type letter: %s (expected a/i/t/d/f/r/c)", taskType))
 			}
 		}
 	}
@@ -123,12 +123,20 @@ func isValidRelation(relation string) bool {
 		"satisfies":   true,
 		"blocks":      true,
 		"produced":    true,
+		"indexes":     true,
+		"decomposes":  true,
+		"analyzes":    true,
+		"designs":     true,
+		"constrains":  true,
+		"records":     true,
+		"discovers":   true,
 	}
 	return validRelations[relation]
 }
 
 func isValidTaskType(taskType string) bool {
 	validTypes := map[string]bool{
+		"a": true,
 		"i": true,
 		"t": true,
 		"d": true,

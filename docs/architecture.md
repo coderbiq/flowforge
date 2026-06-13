@@ -80,7 +80,7 @@ flowforge uninstall              # 卸载
 | **CLI 唯一入口** | Agent 通过 CLI 命令读写卡片，不直接操作文件 |
 | **workspace/library 同构** | 两者结构相同（原子卡片），区别在于卡片状态/生命周期 |
 | **主题索引** | 每个主题一个 Structure Note（STR 卡片），sqlite 负责查询加速 |
-| **日志卡片化** | 实施过程中的每一步操作都记录为 LOG 卡片，而非散落在 notes.md 中 |
+| **日志卡片化** | proposal 生命周期中的关键过程记录都写入 LOG 卡片，而非散落在 notes.md 中 |
 
 #### 卡片类型
 
@@ -90,7 +90,7 @@ flowforge uninstall              # 卸载
 | `decision` | 架构决策 (ADR) | 一个技术选择 + 理由 |
 | `design` | 设计方案 | 一个接口/函数/行为的设计 |
 | `task` | 可执行任务 | 一等公民，通过链接关联需求/设计 |
-| `log` | 实施日志 | 一次操作/一个进展记录 |
+| `log` | 过程记录 | 一次操作、一次反馈、一个阶段性进展 |
 | `convention` | 编码约定 | 一条可执行的规则 |
 | `finding` | 探索发现 | 一个意外行为或认知 |
 | `module` | 模块知识 | 一个模块的定位和职责概述 |
@@ -207,10 +207,8 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 |  01-workspace/                                      |
 |  +-- 01-active/                                     |
 |  |   +-- CR26061201-cli/                            |
-|  |   |   +-- 00-STR-PROPOSAL.md    <- 总索引        |
-|  |   |   +-- 01-STR-REQUIREMENTS.md <- 需求索引     |
-|  |   |   +-- 02-STR-DESIGN.md      <- 设计索引      |
-|  |   |   +-- 03-STR-TASKS.md       <- 任务索引      |
+|  |   |   +-- ROOT-CR26061201.md    <- proposal 入口 |
+|  |   |   +-- STR-CR26061201-REQ.md <- 需求索引树入口|
 |  |   |   +-- 90-cards/             <- 内容卡集中存放|
 |  |   |       +-- REQ-*.md (draft)                   |
 |  |   |       +-- DEC-*.md (draft)                   |
@@ -269,10 +267,10 @@ User expresses requirement
 Agent activates flowforge-design SKILL
     |
     v
-flowforge context --proposal <id> --phase design
+flowforge context proposal --proposal <id>
     |
-    +-- output: related card summaries (requirement/decision/convention)
-    +-- output: current proposal status
+    +-- output: proposal root card 摘要
+    +-- output: 需求索引树入口
     +-- output: active task overview
     |
     v
@@ -331,8 +329,8 @@ All proposal tasks completed
 flowforge archive <proposal-id>
     |
     +-- 扫描 01-workspace/01-active/<proposal>/ 中的所有卡片
-    +-- 更新卡片状态：draft → active, in_progress → done
-    +-- 将卡片复制到 02-library/ 对应类型目录
+    +-- 保留 proposal 原始卡片作为事实链
+    +-- 复制或合成可复用知识到 02-library/
     +-- 检测与 library 中已有卡片的重复/冲突
     +-- 合并或创建新卡片
     +-- 更新相关 Structure Note（STR 卡片）

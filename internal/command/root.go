@@ -32,9 +32,11 @@ through a CLI-first interface.`,
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newInitCmd())
+	cmd.AddCommand(newProjectCmd())
 	cmd.AddCommand(newCardCmd())
 	cmd.AddCommand(newTaskCmd())
 	cmd.AddCommand(newProposalCmd())
+	cmd.AddCommand(newContextCmd())
 	cmd.AddCommand(newValidateCmd())
 	// TODO: upgrade, context, daemon commands
 

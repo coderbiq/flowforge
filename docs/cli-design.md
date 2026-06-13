@@ -25,12 +25,15 @@ flowforge
 +-- project <action>         # 项目管理（注册/切换/删除）
 +-- proposal <action>        # 提案管理（创建/切换/归档）
 +-- index <action>           # 索引管理（重建/状态）
++-- library <action>         # library 查询与推荐
++-- structure <action>       # STR 索引卡维护
++-- log <action>             # 过程记录快捷命令
 +-- upgrade                  # 升级到最新版本
 +-- uninstall                # 从当前项目卸载 FlowForge
 |
 +-- task <action>            # 任务管理（快捷命令组）
 +-- card <action>            # 卡片管理（通用 CRUD）
-+-- context <phase>          # 上下文输出（按阶段裁剪）
++-- context <mode>           # 上下文输出（按任务/提案/反馈/归档场景裁剪）
 |
 +-- validate <target>        # 校验（card / config）
 +-- config <action>          # 配置管理（get / set / list）
@@ -47,10 +50,13 @@ flowforge
 | **项目管理** | `project <action>` | 项目注册与当前项目切换 |
 | **提案管理** | `proposal <action>` | 提案目录创建与当前提案切换 |
 | **索引管理** | `index <action>` | sqlite 索引与运行态指针重建 |
+| **知识库查询** | `library <action>` | 从 library 中推荐规范、模块、历史设计 |
+| **结构索引** | `structure <action>` | 维护 STR 索引条目并提示拆分 |
+| **过程记录** | `log <action>` | 创建标准化 log 卡 |
 | **生命周期** | `upgrade`, `uninstall` | CLI 升级与卸载 |
 | **任务管理** | `task <action>` | 任务快捷命令（创建/认领/完成/状态） |
 | **卡片管理** | `card <action>` | 所有卡片的通用 CRUD + 链接 + 搜索 |
-| **上下文** | `context <phase>` | 按阶段输出裁剪后的上下文 |
+| **上下文** | `context <mode>` | 按任务、提案、反馈、归档等场景输出裁剪后的上下文 |
 | **校验** | `validate <target>` | 结构校验 |
 | **配置** | `config <action>` | 配置读写 |
 
@@ -282,14 +288,14 @@ flowforge task
 |
 +-- create --title <title> --type <type> [--links <ids>] [--body <body>]
 |       # 创建任务卡片（等效于 card create --type task）
-|       # type: i(implementation) | t(test) | d(docs) | f(fix) | r(refactor) | c(config)
+|       # type: a(analysis) | i(implementation) | t(test) | d(docs) | f(fix) | r(refactor) | c(config)
 |       # 自动生成文件名：{TASK_ID}_{title}.md
 |
 +-- list [--status <status>] [--dep <id>]
 |       # 列出任务卡片（基于类型目录 + frontmatter 筛选）
 |
-+-- ready
-|       # 列出就绪任务（依赖已全部 done）
++-- ready [--type <type>]
+|       # 列出就绪任务（依赖已全部 done），可按任务类型过滤
 |
 +-- claim <task-id>
 |       # 认领任务（status: ready -> in_progress）
@@ -309,8 +315,9 @@ flowforge task
 +-- sub <task-id> --title <title> [--links <ids>]
 |       # 创建子任务（自动生成子任务 ID: {parent-id}-a）
 |
-+-- link-add <task-id> <link-id>
-|       # 添加链接（更新 frontmatter + 重建缓存）
++-- link-add <task-id> <link-id> --relation <relation>
+|       # 添加稳定上下文链接（目标/依据/约束），更新任务卡 frontmatter + 重建缓存
+|       # 执行中产生的 log/finding 不持续回写任务卡，由新卡主动链接任务卡
 |
 +-- link-remove <task-id> <link-id>
 |       # 移除链接
@@ -319,14 +326,16 @@ flowforge task
 ### 6.2 任务状态流转
 
 ```
-backlog --> ready --> in_progress --> done
-  |                      |
-  |                      v
-  |                  blocked --> ready (解除阻塞)
+backlog --> not_ready --> ready --> in_progress --> done
+  |           |                         |
+  |           |                         v
+  |           +-------------------- blocked --> ready (解除阻塞)
   |
   v
 cancelled
 ```
+
+`task ready` 只返回 `ready` 状态任务。`not_ready` 用于已经拆出但依赖假设、open question 或分析结论的任务。
 
 ### 6.3 示例
 
@@ -362,8 +371,8 @@ flowforge card
 |       # 创建卡片，自动生成文件名（{ID}_{slug}.md）
 |       # --links: 链接卡片 ID，逗号分隔，写入 frontmatter.links
 |
-+-- read <card-id>
-|       # 读取卡片全文内容
++-- read <card-id> [--summary] [--section <name>]
+|       # 读取卡片内容；可只读摘要或指定段落，避免一次加载全文
 |
 +-- update <card-id> [--title] [--body] [--links] [--status] [--importance]
 |       # 更新卡片，标题变更时自动重命名文件
@@ -386,8 +395,8 @@ flowforge card
 +-- unlink <from-id> <to-id>
 |       # 移除链接关系
 |
-+-- search <query> [--type <type>]
-|       # 全文搜索卡片内容
++-- search <query> [--scope workspace|library|all] [--type <type>] [--limit <n>]
+|       # 搜索卡片索引和全文索引，默认返回摘要与匹配理由
 |
 +-- related <card-id> [--depth <n>] [--relation <type>]
 |       # 图遍历：获取关联卡片
@@ -434,6 +443,10 @@ $ flowforge card dependents DES-2x9k3m00-5z0o4p3s
 # 列出某类型 + 某状态
 $ flowforge card list --type task --status ready
 # 扫描 + frontmatter status 字段
+
+# 在 library 中搜索候选规范或历史设计
+$ flowforge card search "分页 查询 条件" --scope library --type convention,module,design --limit 10
+# 返回候选卡片摘要、tags、matchedBy、suggestedRelation，不直接输出全文
 ```
 
 ### 7.4 链接类型
@@ -451,44 +464,61 @@ $ flowforge card list --type task --status ready
 | `implements` | 实现 | 任务实现设计 |
 | `satisfies` | 满足 | 任务满足需求 |
 | `blocks` | 阻塞 | 任务阻塞另一任务 |
-| `produced` | 产出 | 任务执行中产出的发现卡片 |
+| `indexes` | 索引 | STR 索引卡指向被索引卡片 |
+| `decomposes` | 拆解 | 索引卡或任务卡拆解出子卡片 |
+| `analyzes` | 分析 | 分析任务指向需求或问题卡 |
+| `designs` | 设计 | 设计任务指向需求卡 |
+| `constrains` | 约束 | 规范卡约束任务或设计 |
+| `records` | 记录 | LOG 卡记录任务、反馈或归档动作 |
+| `discovers` | 发现 | LOG 卡记录并指向新发现 |
+
+链接方向规则：
+
+- 任务卡只维护稳定的执行上下文链接：目标卡、依据卡、约束卡。
+- 执行过程中新增的 log / finding / blocked 等证据卡主动链接任务卡或相关卡。
+- 任务视图、proposal 时间线、证据链通过 sqlite 反向链接索引生成，不要求持续回写中心卡。
 
 ---
 
 ## 8. `flowforge context` 命令设计
 
-### 8.1 按阶段裁剪
+> Design SKILL 依赖的 `context proposal` 输出分区和上下文裁剪规则详见 [Design SKILL CLI 契约设计](./design-skill-cli-contracts.md)。
+
+### 8.1 按场景裁剪
 
 ```
-flowforge context <phase> [--proposal <id>] [--cards <ids>] [--max-tokens <n>]
+flowforge context <mode> [--proposal <id>] [--task <id>] [--cards <ids>] [--max-tokens <n>]
 
-phase:
-  design       # 设计阶段：输出需求卡片 + 相关决策 + 约定
-  implement    # 实施阶段：输出设计卡片 + 约定（must）+ 任务上下文
-  feedback     # 反馈阶段：输出相关模块卡片 + 活跃任务
-  archive      # 归档阶段：输出 proposal 卡片 + library 现状对比
+mode:
+  proposal     # 输出 proposal 根卡、需求索引树入口、活跃任务摘要
+  task         # 输出单个任务的目标/依据/约束卡，以及反链证据摘要
+  feedback     # 输出问题相关卡、反链日志、待跟踪任务
+  archive      # 输出 proposal 归档候选、library 对比与合成线索
+  search       # 基于查询条件输出候选卡片摘要
 ```
 
 ### 8.2 输出格式
 
 ```markdown
-## Context for: CR26061201 (design phase)
+## Context for: TASK-2x9k3m00-i-7b2q6r5u
 
-### Active Cards (3)
+### Task
+| ID | Type | Title | Status |
+|----|------|-------|--------|
+| TASK-2x9k3m00-i-7b2q6r5u | task | 实现 init 命令 | in_progress |
+
+### Stable Context Cards
 | ID | Type | Title | Importance |
 |----|------|-------|------------|
 | REQ-2x9k3m00-3x8m2n1q | requirement | 支持 CLI 全局安装 | must |
-| REQ-2x9k3m00-4y9n3o2r | requirement | 支持多项目初始化 | should |
+| DES-2x9k3m00-6a1p5q4t | design | init 命令参数设计 | should |
 | DEC-2x9k3m00-5z0o4p3s | decision | 使用 Commander.js | should |
 
-### Related Cards (5)
+### Evidence From Backlinks
 | ID | Type | Title | Relation |
 |----|------|-------|----------|
-| CONV-001 | convention | CLI 命令命名规范 | references |
-| CONV-002 | convention | 配置文件格式 | references |
-| FIND-2x8k5m6s-8c4s9t7v | finding | npm link 不可靠 | supports |
-| MOD-001 | module | CLI 模块定位 | extends |
-| STR-CLI | structure | CLI 知识索引 | related |
+| LOG-2x9k3m00-8c3r7s6v | log | 创建 Cobra 子命令 | records |
+| FIND-2x8k5m6s-8c4s9t7v | finding | init 已存在目录处理 | discovers |
 
 ### Token Budget
 - Used: 3,200 / 20,000
@@ -503,13 +533,13 @@ phase:
 
 ```
 Level 1: 精确匹配（始终输出）
-  +-- 当前 proposal 直接关联的卡片
-  +-- importance: must 的约定卡片
-  +-- 活跃任务的依赖卡片
+  +-- 当前任务或 proposal root card 的直接链接卡片
+  +-- importance: must 的约束卡片
+  +-- 通过 backlinks 查询到的关键 log / finding 摘要
 
 Level 2: 图遍历扩展（按 token 预算）
   +-- 一阶邻居：links(C) + backlinks(C)
-  +-- 按 relation 优先级排序：supersedes > extends > references > related
+  +-- 按 relation 优先级排序：constrains > implements/satisfies > records/discovers > references > related
   +-- 直到 token 预算用完
 
 Level 3: Structure Note 摘要（如有剩余预算）
@@ -519,9 +549,101 @@ Level 3: Structure Note 摘要（如有剩余预算）
 
 ---
 
-## 9. 技术实现
+## 9. `flowforge library` 命令设计
 
-### 9.1 项目结构
+`library` 命令用于让 Agent 通过 CLI 查找 library 中的规范、模块知识、历史设计和 finding。Agent 不直接遍历 `02-library/` 文件。
+
+> `library suggest` 的候选排序、输出字段和 Agent 使用规则详见 [Design SKILL CLI 契约设计](./design-skill-cli-contracts.md)。
+
+### 9.1 子命令
+
+```
+flowforge library
+|
++-- suggest --for <card-id> [--types <types>] [--relation <relation>] [--limit <n>]
+|       # 基于某张需求/任务/设计卡推荐 library 候选卡片摘要
+|
++-- search <query> [--types <types>] [--domain <domain>] [--tags <tags>] [--limit <n>]
+|       # 等价于 card search --scope library 的快捷入口
+```
+
+### 9.2 输出约束
+
+`library suggest` 默认只输出候选摘要，不输出全文：
+
+| 字段 | 说明 |
+|------|------|
+| id | 卡片 ID |
+| type | 卡片类型 |
+| title | 标题 |
+| summary | 短摘要 |
+| tags / domain | 筛选依据 |
+| matchedBy | 命中原因，如 keyword / tag / relation / structure |
+| suggestedRelation | 建议关系，如 `constrains` / `references` |
+| score | 排序分数，仅作参考 |
+
+Agent 只有确认候选相关后，才使用 `flowforge card read <id>` 定点读取。
+
+---
+
+## 10. `flowforge structure` 命令设计
+
+`structure` 命令专门维护 STR 索引卡。它不是通用 markdown 编辑器，只负责索引条目和关系，避免 Agent 手写 STR 卡导致格式漂移。
+
+### 10.1 子命令
+
+```
+flowforge structure
+|
++-- add <structure-id> <card-id> [--relation indexes]
+|       # 向 STR 卡添加索引条目，并写入 typed link
+|
++-- remove <structure-id> <card-id>
+|       # 从 STR 卡移除索引条目，并移除对应关系
+|
++-- list <structure-id>
+|       # 查看 STR 直接条目
+```
+
+### 10.2 语义约束
+
+- 单张 STR 卡健康范围是 7-15 个直接条目。
+- 添加后超过 15 条时，命令必须提示拆分子索引。
+- `structure add/remove` 不修改任意正文段落，不承担 `card append-section` 的职责。
+- 对需求索引树，父索引卡只保留主题级入口，不直接收纳所有需求点。
+
+---
+
+## 11. `flowforge log` 命令设计
+
+`log` 命令是 `card create --type log` 的快捷入口，用于保证过程记录格式稳定。
+
+### 11.1 子命令
+
+```
+flowforge log
+|
++-- create --kind <kind> --title <title> [--for <card-id>] [--summary <text>]
+|       # 创建 log 卡，并主动链接上下文卡
+```
+
+### 11.2 kind
+
+| kind | 用途 |
+|------|------|
+| `progress` | 记录进展事件 |
+| `bug` | 记录问题事实 |
+| `finding` | 记录发现过程 |
+| `knowledge` | 记录知识产生背景 |
+| `blocked` | 记录阻塞事实 |
+
+`log create` 必须写入 proposal / task / related card 上下文。它主动 `records -> <card-id>`，不回写中心卡。
+
+---
+
+## 12. 技术实现
+
+### 12.1 项目结构
 
 ```
 flowforge/

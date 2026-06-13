@@ -65,6 +65,7 @@ func TestCardStatusValid(t *testing.T) {
 		{CardStatusDeprecated, true},
 		{CardStatusSuperseded, true},
 		{CardStatusBacklog, true},
+		{CardStatusNotReady, true},
 		{CardStatusReady, true},
 		{CardStatusInProgress, true},
 		{CardStatusDone, true},
