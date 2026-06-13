@@ -341,7 +341,7 @@ $ flowforge context design --proposal CR26061201 --max-tokens 20000
 | **原子性优先** | 每张卡片一个焦点，宁可多拆分也不合并 | REQ/DEC/DES/TASK 各自独立 |
 | **类型化链接** | 链接必须标注类型（references/supersedes/extends...） | 12 种 typed links |
 | **Structure Note 作为网关** | 避免 Agent 在几千张卡片中迷路 | INDEX.md + STR 卡片 |
-| **纯文件存储** | 以 Markdown 文件为持久化格式 | `.flowforge/library/*.md` |
+| **纯文件存储** | 以 Markdown 文件为持久化格式 | `ff-wiki/02-library/*.md` |
 | **组合 > 搜索** | 核心价值不是搜索单张卡片，而是通过图遍历组合多张卡片 | `flowforge card related` |
 | **Token Budget Aware** | 上下文聚合必须考虑 token 预算 | `--max-tokens` 参数 |
 | **文件名即索引** | 类型、ID、标题、依赖编码在文件名中 | `REQ-260612-001_标题__依赖.md` |

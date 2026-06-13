@@ -9,7 +9,7 @@
 - **文件名简洁**：文件名只包含 `{ID}_{slug}.md`，依赖关系通过 frontmatter 和缓存索引管理
 - **CLI 唯一入口**：Agent 通过 CLI 命令读写卡片，不直接操作文件
 - **workspace/library 同构**：两者结构相同（原子卡片），区别在于卡片状态/生命周期
-- **主题索引**：每个主题一个 Structure Note（STR 卡片），而非单一 INDEX 文件
+- **主题索引**：每个主题一个 Structure Note（STR 卡片），sqlite 负责查询加速
 - **精准上下文**：Agent 按需加载卡片摘要，避免上下文爆炸
 
 ## 快速开始
@@ -41,20 +41,15 @@ flowforge/                          # 本仓库（FlowForge 开发）
 
 # 初始化后的目标项目：
 .flowforge/                         # FlowForge 配置（只存配置）
-+-- config.yaml                     # 项目配置（含 wikiRoot 路径）
-
-.agents/skills/                     # SKILL 定义（标准 OpenCode 格式）
-+-- flowforge-design.md
-+-- flowforge-implement.md
-+-- flowforge-feedback.md
-+-- flowforge-archive.md
-+-- ...
++-- config.yaml                     # 项目注册表与静态配置
++-- cache/                          # 运行态缓存
+|   +-- flowforge.sqlite             # 当前项目 / 当前提案 / 索引数据
 
 <wiki-root>/                        # wiki 内容（路径由 config.yaml 指定）
 +-- 00-STR-HOME.md                  # 全局入口索引
 |
-+-- workspace/                      # 工作区
-|   +-- active/                     # 进行中的 proposal
+|   +-- 01-workspace/               # 工作区
+|   |   +-- 01-active/              # 进行中的 proposal
 |   |   +-- CR26061201-cli/         # 每个 proposal 一个目录
 |   |   |   +-- 00-STR-PROPOSAL.md  # 总索引
 |   |   |   +-- 01-STR-REQUIREMENTS.md  # 需求维度索引
@@ -66,9 +61,10 @@ flowforge/                          # 本仓库（FlowForge 开发）
 |   |   |       +-- TASK-2x9k3m00-i-7b2q6r5u_xxx.md
 |   |   |       +-- TASK-2x9k3m00-i-7b2q6r5u-a_xxx.md  # 子任务
 |   |   |       +-- LOG-2x9k3m00-8c3r7s6v_xxx.md
-|   +-- intake/                     # 待处理需求入口
+|   |   +-- 02-intake/              # 待处理需求入口
+|   |   +-- 03-completed/           # 已完成 proposal
 |
-+-- library/                        # 知识区（已沉淀的卡片）
+|   +-- 02-library/                 # 知识区（已沉淀的卡片）
 |   +-- 01-STR-CLI.md               # 主题索引
 |   +-- 02-STR-CLI-INIT.md          # 子索引
 |   +-- 03-STR-CARD-SYSTEM.md       # 主题索引
@@ -90,7 +86,7 @@ AGENTS.md                           # Agent entry rules
 |------|------|
 | [架构设计](docs/architecture.md) | 项目定位、核心设计决策 |
 | [CLI 架构设计](docs/cli-design.md) | 命令体系、init/upgrade/uninstall、task/card 命令 |
-| [知识卡片系统](docs/knowledge-system.md) | 卡片模型、文件名规范、INDEX 多维索引、上下文聚合 |
+| [知识卡片系统](docs/knowledge-system.md) | 卡片模型、文件名规范、sqlite 索引、上下文聚合 |
 | [v1 分析](docs/v1-analysis.md) | v1 版本问题诊断（历史参考） |
 
 ### 背景参考
@@ -117,6 +113,9 @@ AGENTS.md                           # Agent entry rules
 ```bash
 # 项目管理
 flowforge init                    # 初始化
+flowforge project create <id>     # 注册项目
+flowforge project use <id>        # 切换当前项目
+flowforge proposal create "..."   # 创建提案
 flowforge upgrade                 # 升级
 flowforge uninstall               # 卸载
 
@@ -134,9 +133,9 @@ flowforge card list --type task   # 列出卡片
 flowforge card related DEC...     # 查看关联卡片
 flowforge card dependents DES...  # 查看谁依赖它
 
-# 主题索引
-flowforge index list              # 列出所有主题索引
-flowforge index create --topic "CLI架构" --cards "..."
+# 索引
+flowforge index rebuild           # 重建 sqlite 索引
+flowforge index status            # 查看索引状态
 
 # 上下文
 flowforge context design --proposal CR...

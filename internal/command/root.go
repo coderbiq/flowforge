@@ -31,7 +31,12 @@ through a CLI-first interface.`,
 		"output format: text, json")
 
 	cmd.AddCommand(newVersionCmd())
-	// TODO: init, upgrade, card, task, context, daemon commands
+	cmd.AddCommand(newInitCmd())
+	cmd.AddCommand(newCardCmd())
+	cmd.AddCommand(newTaskCmd())
+	cmd.AddCommand(newProposalCmd())
+	cmd.AddCommand(newValidateCmd())
+	// TODO: upgrade, context, daemon commands
 
 	return cmd
 }

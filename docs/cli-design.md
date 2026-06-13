@@ -1,6 +1,6 @@
 # CLI 架构设计
 
-> 版本：v2.0.0-alpha | 最后更新：2026-06-12
+> 版本：v2.0.0-alpha | 最后更新：2026-06-13
 
 ## 1. 设计原则
 
@@ -21,7 +21,10 @@
 ```
 flowforge
 |
-+-- init [path]              # 在当前目录或指定目录初始化 FlowForge
++-- init [path]              # 在当前目录或指定目录安装 .flowforge
++-- project <action>         # 项目管理（注册/切换/删除）
++-- proposal <action>        # 提案管理（创建/切换/归档）
++-- index <action>           # 索引管理（重建/状态）
 +-- upgrade                  # 升级到最新版本
 +-- uninstall                # 从当前项目卸载 FlowForge
 |
@@ -40,7 +43,11 @@ flowforge
 
 | 分组 | 命令 | 说明 |
 |------|------|------|
-| **项目管理** | `init`, `upgrade`, `uninstall` | 项目生命周期 |
+| **安装** | `init` | 安装 `.flowforge` 基础配置 |
+| **项目管理** | `project <action>` | 项目注册与当前项目切换 |
+| **提案管理** | `proposal <action>` | 提案目录创建与当前提案切换 |
+| **索引管理** | `index <action>` | sqlite 索引与运行态指针重建 |
+| **生命周期** | `upgrade`, `uninstall` | CLI 升级与卸载 |
 | **任务管理** | `task <action>` | 任务快捷命令（创建/认领/完成/状态） |
 | **卡片管理** | `card <action>` | 所有卡片的通用 CRUD + 链接 + 搜索 |
 | **上下文** | `context <phase>` | 按阶段输出裁剪后的上下文 |
@@ -57,48 +64,29 @@ flowforge
 ### 3.1 执行流程
 
 ```
-flowforge init [path] [--yes] [--template <name>]
+flowforge init [path] [--yes]
     |
     v
 1. 参数解析
     +-- path: 目标项目路径（默认当前目录）
-    +-- --yes: 跳过交互，使用默认配置
-    +-- --template: 项目模板（default / minimal / full）
+    +-- --yes: 跳过确认
     |
     v
 2. 环境检查
-    +-- 目标目录是否为空或已有项目？
+    +-- 目标目录是否可写？
     +-- 是否已有 .flowforge/？（已有则提示已初始化，建议 upgrade）
     |
     v
-3. 交互式配置收集（--yes 跳过）
-    +-- 是否安装 SKILL 到 .agents/skills/？(Y/n)
-    +-- 是否需要写入 AGENTS.md 标记块？(Y/n)
+3. 文件生成
+    +-- 创建 .flowforge/
+    +-- 创建 .flowforge/config.yaml
+    +-- 创建 .flowforge/cache/
+    +-- 创建 sqlite 状态库（保存 currentProjectId 与索引数据）
     |
     v
-4. 文件生成（从 assets/ 复制到目标项目）
-    +-- 创建 .flowforge/ 目录结构
-    |   +-- config.yaml（项目配置）
-    |   +-- workspace/（工作区）
-    |   |   +-- proposals/（提案目录骨架）
-    |   |   +-- intake/（待处理需求）
-    |   +-- library/（知识区）
-    |   |   +-- requirements/（需求卡片）
-    |   |   +-- decisions/（决策卡片）
-    |   |   +-- designs/（设计卡片）
-    |   |   +-- tasks/（任务卡片）
-    |   |   +-- conventions/（约定卡片）
-    |   |   +-- findings/（发现卡片）
-    |   |   +-- modules/（模块卡片）
-    |   |   +-- INDEX.md（多维索引）
-    +-- 复制 assets/skills/ → .agents/skills/（SKILL 定义文件）
-    +-- 复制 assets/AGENTS.md → AGENTS.md（标记块方式，不覆盖已有内容）
-    +-- 更新 .gitignore（添加 .flowforge/cache/）
-    |
-    v
-5. 安装确认
+4. 安装确认
     +-- 输出初始化摘要
-    +-- 提示下一步操作
+    +-- 提示下一步：flowforge project create
 ```
 
 ### 3.2 生成的目录结构
@@ -106,45 +94,8 @@ flowforge init [path] [--yes] [--template <name>]
 ```
 target-project/
 +-- .flowforge/
-|   +-- config.yaml           # 项目配置（含 wikiRoot 路径）
+|   +-- config.yaml           # 项目注册表与静态配置
 |   +-- cache/                # 运行时缓存（gitignore）
-|
-+-- .agents/skills/           # SKILL 定义（标准 OpenCode 格式）
-|   +-- flowforge-design.md
-|   +-- flowforge-implement.md
-|   +-- flowforge-feedback.md
-|   +-- flowforge-archive.md
-|   +-- flowforge-docs.md
-|   +-- flowforge-progress.md
-|
-+-- <wiki-root>/              # 由 config.yaml 的 wikiRoot 指定
-|   +-- 00-STR-HOME.md        # 全局入口索引
-|   +-- workspace/            # 工作区
-|   |   +-- active/           # 进行中的 proposal
-|   |   |   +-- CR26061201-cli/
-|   |   |   |   +-- 00-STR-PROPOSAL.md      # 总索引
-|   |   |   |   +-- 01-STR-REQUIREMENTS.md  # 需求维度索引
-|   |   |   |   +-- 02-STR-DESIGN.md        # 设计维度索引
-|   |   |   |   +-- 03-STR-TASKS.md         # 任务维度索引
-|   |   |   |   +-- 90-cards/               # 内容卡集中存放
-|   |   |   |       +-- REQ-2x9k3m00-3x8m2n1q_xxx.md
-|   |   |   |       +-- DEC-2x9k3m00-4y9n3o2r_xxx.md
-|   |   |   |       +-- TASK-2x9k3m00-i-7b2q6r5u_xxx.md
-|   |   |   |       +-- TASK-2x9k3m00-i-7b2q6r5u-a_xxx.md  # 子任务
-|   |   |   |       +-- LOG-2x9k3m00-8c3r7s6v_xxx.md
-|   |   +-- intake/           # 待处理需求入口
-|   +-- library/              # 知识区（已沉淀的卡片）
-|   |   +-- 01-STR-CLI.md     # 主题索引
-|   |   +-- 02-STR-CLI-INIT.md # 子索引
-|   |   +-- 03-STR-CARD-SYSTEM.md # 主题索引
-|   |   +-- 10-requirements/  # REQ-*.md (status: active)
-|   |   +-- 20-decisions/     # DEC-*.md (status: accepted)
-|   |   +-- 30-designs/       # DES-*.md (status: active)
-|   |   +-- 40-tasks/         # TASK-*.md (status: done)
-|   |   +-- 50-logs/          # LOG-*.md (status: active)
-|   |   +-- 60-conventions/   # CONV-*.md (status: active)
-|   |   +-- 70-findings/      # FIND-*.md (status: active)
-|   |   +-- 80-modules/       # MOD-*.md (status: active)
 |
 +-- AGENTS.md                 # 追加 FlowForge 标记块
 ```
@@ -155,25 +106,20 @@ target-project/
 # .flowforge/config.yaml
 version: "2.0.0"
 
-project:
-  name: "my-project"
-  language: "zh-CN"
-
-wiki:
-  root: .wiki                   # wiki 内容根目录（workspace/library 在此下）
-
-cards:
-  defaultImportance: should     # must | should | may
-  autoExpire: true
-  expireAfterDays: 90
-
-proposals:
-  idPattern: "CR{YYMMDD}{NN}"  # CR26061201
-
-context:
-  maxTokens: 20000              # 上下文预算上限
-  summaryOnly: true             # 默认只输出摘要
+projects: []
 ```
+
+### 3.4 `flowforge project` 命令设计
+
+详见 [项目管理设计](./project-management.md)。
+
+### 3.5 `flowforge proposal` 命令设计
+
+详见 [提案管理设计](./proposal-management.md)。
+
+### 3.6 `flowforge index` 命令设计
+
+详见 [索引与缓存设计](./index-management.md)。
 
 ---
 
@@ -229,14 +175,14 @@ flowforge upgrade --project [path]
     v
 3. 备份
     +-- 备份 .flowforge/config.yaml
-    +-- 备份 <wiki-root>/library/ 元数据
+    +-- 备份 <wiki-root>/02-library/ 元数据
     +-- 备份 AGENTS.md 标记块
     |
     v
 4. 更新托管文件（从 CLI 内置的 assets/ 复制）
     +-- 更新 .agents/skills/（SKILL 定义）
     +-- 更新模板文件
-    +-- 保留用户定制内容（config.yaml、library 卡片）
+    +-- 保留用户定制内容（config.yaml、02-library 卡片）
     |
     v
 5. 验证
@@ -309,7 +255,7 @@ flowforge uninstall [--keep-cards]
     |
     v
 2. 可选保留
-    +-- --keep-cards: 保留 <wiki-root>/library/（知识沉淀不丢失）
+    +-- --keep-cards: 保留 <wiki-root>/02-library/（知识沉淀不丢失）
     |
     v
 3. 清理
@@ -389,7 +335,7 @@ cancelled
 $ flowforge task create --title "实现 init 命令" --type i --links DES-2x9k3m00-5z0o4p3s
 
 # 生成文件：
-# <wiki-root>/workspace/active/CR26061201-cli/TASK-2x9k3m00-i-7b2q6r5u_实现init命令.md
+# <wiki-root>/01-workspace/01-active/CR26061201-cli/TASK-2x9k3m00-i-7b2q6r5u_实现init命令.md
 
 # 查看就绪任务
 $ flowforge task ready
@@ -456,20 +402,20 @@ flowforge card
 $ flowforge card create --type requirement --title "支持 CLI 全局安装"
 
 # 生成文件：
-# <wiki-root>/workspace/active/CR26061201-cli/REQ-2x9k3m00-3x8m2n1q_支持CLI全局安装.md
+# <wiki-root>/01-workspace/01-active/CR26061201-cli/REQ-2x9k3m00-3x8m2n1q_支持CLI全局安装.md
 
 # 创建有链接的决策卡片
 $ flowforge card create --type decision --title "使用 Commander.js" \
     --links REQ-2x9k3m00-3x8m2n1q,CONV-001
 
 # 生成文件：
-# <wiki-root>/workspace/active/CR26061201-cli/DEC-2x9k3m00-4y9n3o2r_使用Commanderjs.md
+# <wiki-root>/01-workspace/01-active/CR26061201-cli/DEC-2x9k3m00-4y9n3o2r_使用Commanderjs.md
 
 # 创建任务卡片
 $ flowforge task create --title "实现 init 命令" --type i --links DES-2x9k3m00-5z0o4p3s
 
 # 生成文件：
-# <wiki-root>/workspace/active/CR26061201-cli/TASK-2x9k3m00-i-7b2q6r5u_实现init命令.md
+# <wiki-root>/01-workspace/01-active/CR26061201-cli/TASK-2x9k3m00-i-7b2q6r5u_实现init命令.md
 ```
 
 ### 7.3 基于文件名的筛选
@@ -479,11 +425,11 @@ $ flowforge task create --title "实现 init 命令" --type i --links DES-2x9k3m
 ```bash
 # 列出所有任务卡片
 $ flowforge card list --type task
-# 扫描 library/tasks/ 目录
+# 扫描 02-library/40-tasks/ 目录
 
 # 列出依赖某张卡片的所有卡片
 $ flowforge card dependents DES-2x9k3m00-5z0o4p3s
-# 通过 .flowforge/cache/deps.yaml 快速查找
+# 通过 .flowforge/cache/flowforge.sqlite 快速查找
 
 # 列出某类型 + 某状态
 $ flowforge card list --type task --status ready
@@ -614,7 +560,7 @@ flowforge/
 │   │   ├── card_naming.go         # 文件名生成与解析
 │   │   ├── context_aggregator.go  # 上下文聚合
 │   │   ├── graph.go               # 卡片链接图遍历
-│   │   └── index_manager.go       # INDEX.md 管理
+│   │   └── index_manager.go       # sqlite 索引管理
 │   ├── update/                    # 自更新引擎
 │   │   ├── checker.go             # 版本检查（HTTP manifest）
 │   │   ├── manifest.go            # Manifest 解析

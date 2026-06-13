@@ -1,6 +1,6 @@
 # 知识卡片系统设计
 
-> 版本：v2.0.0-alpha | 最后更新：2026-06-12
+> 版本：v2.0.0-alpha | 最后更新：2026-06-13
 
 ## 1. 设计原则
 
@@ -13,7 +13,7 @@
 | **关联性** | 通过链接组织知识 | 类型化链接（references/supersedes/extends） |
 | **渐进式** | 知识逐步积累 | 探索中发现即写入，不等 proposal 归档 |
 | **CLI 唯一入口** | Agent 不直接操作文件 | 所有卡片读写通过 `flowforge card/task` 命令 |
-| **workspace/library 同构** | 结构相同，状态不同 | 两者都是原子卡片 + INDEX，区别在于卡片状态（draft vs active） |
+| **workspace/library 同构** | 结构相同，状态不同 | 两者都是原子卡片 + sqlite 索引层，区别在于卡片状态（draft vs active） |
 | **主题索引** | 每个主题一个索引文件 | 通过 Structure Note（STR 卡片）组织同主题卡片，而非单一 INDEX 文件 |
 
 ---
@@ -25,11 +25,11 @@
 延续 V1 的 workspace 组织结构（`active/<proposal-id>/`），**唯一区别**是 V1 在 proposal 中放长文档，V2 放原子卡片。
 
 ```
-<wiki-root>/                          # 由 .flowforge/config.yaml 的 wikiRoot 指定
+<wiki-root>/                          # 由 .flowforge/config.yaml 的 wikiRoot 指定，默认 ff-wiki/
 +-- 00-STR-HOME.md                    # 全局入口索引（根目录）
 |
-+-- workspace/                        # 工作区
-|   +-- active/                       # 进行中的 proposal
++-- 01-workspace/                     # 工作区
+|   +-- 01-active/                    # 进行中的 proposal
 |   |   +-- CR26061201-cli/           # 每个 proposal 一个目录
 |   |   |   +-- 00-STR-PROPOSAL.md    # 总索引
 |   |   |   +-- 01-STR-REQUIREMENTS.md # 需求维度索引
@@ -45,10 +45,11 @@
 |   |   |       +-- FIND-2x9k3m00-9d4s8t7w_xxx.md
 |   |   +-- CR26061301-yyy/
 |   |       +-- ...
-|   +-- intake/                       # 待处理需求入口
-|       +-- REQ-2x8k5m3p-3x9n4o2q_xxx.md
+|   +-- 02-intake/                    # 待处理需求入口
+|   |   +-- REQ-2x8k5m3p-3x9n4o2q_xxx.md
+|   +-- 03-completed/                 # 已完成 proposal
 |
-+-- library/                          # 知识区：已沉淀的卡片
++-- 02-library/                       # 知识区：已沉淀的卡片
 |   +-- 01-STR-CLI.md                 # 主题索引
 |   +-- 02-STR-CLI-INIT.md            # 子索引（STR-01 超 15 张时拆分）
 |   +-- 03-STR-CLI-UPGRADE.md         # 子索引
@@ -67,17 +68,18 @@
 
 | 区域 | 组织方式 | 卡片状态 | 用途 |
 |------|----------|----------|------|
-| **workspace/active/** | 按 proposal 组织 | draft / in_progress / ready | 当前 proposal 的工作卡片 |
-| **workspace/intake/** | 扁平 | draft | 待处理的原始需求 |
-| **library/** | 按类型组织 | active / accepted / done | 跨 proposal 复用的沉淀知识 |
+| **01-workspace/01-active/** | 按 proposal 组织 | draft / in_progress / ready | 当前 proposal 的工作卡片 |
+| **01-workspace/02-intake/** | 扁平 | draft | 待处理的原始需求 |
+| **01-workspace/03-completed/** | 按 proposal 归档 | done | 已完成 proposal 的保留副本 |
+| **02-library/** | 按类型组织 | active / accepted / done | 跨 proposal 复用的沉淀知识 |
 
 ### 2.3 归档流程
 
 proposal 完成后，`flowforge archive` 执行：
 
-1. 将 workspace/active/\<proposal\>/ 中的卡片**复制**到 library/ 对应类型目录
+1. 将 01-workspace/01-active/\<proposal\>/ 中的卡片**复制**到 02-library/ 对应类型目录
 2. 更新卡片状态（draft → active）
-3. 将 proposal 目录移至 workspace/active/completed/（保留追溯）
+3. 将 proposal 目录移至 01-workspace/03-completed/（保留追溯）
 4. 更新相关 Structure Note
 
 **关键**：不是"提取知识"，而是**卡片本身的迁移和状态变更**。所有知识从一开始就是卡片形式存在。
@@ -184,14 +186,14 @@ domain: cli
 
 ## 目标
 
-实现 `flowforge init [path]` 命令，支持在目标目录初始化 FlowForge 项目结构。
+实现 `flowforge init [path]` 命令，支持在目标目录安装 `.flowforge` 基础配置。
 
 ## 验收标准
 
-1. 创建 .flowforge/ 目录及子目录骨架
+1. 创建 .flowforge/ 目录及 cache 骨架
 2. 生成默认 config.yaml
-3. 安装 SKILL 文件到 .agents/skills/
-4. 更新 AGENTS.md 标记块
+3. 写入项目注册表骨架
+4. 项目创建移交 `flowforge project create`
 
 ## 实施记录
 
@@ -279,10 +281,10 @@ function generateCardTimestamp() {
 
 #### 示例
 
-**workspace/active/\<proposal\>/** 中的卡片：
+**01-workspace/01-active/\<proposal\>/** 中的卡片：
 
 ```
-workspace/active/CR26061201-cli/
+01-workspace/01-active/CR26061201-cli/
 +-- REQ-2x9k3m00-3x8m2n1q_支持CLI全局安装.md
 +-- DEC-2x9k3m00-4y9n3o2r_使用Commanderjs.md
 +-- DES-2x9k3m00-5z0o4p3s_init命令参数设计.md
@@ -294,10 +296,10 @@ workspace/active/CR26061201-cli/
 +-- STR-PROPOSAL.md               # 该 proposal 的索引卡
 ```
 
-**library/** 中的卡片（按类型组织）：
+**02-library/** 中的卡片（按类型组织）：
 
 ```
-library/
+02-library/
 +-- requirements/
 |   +-- REQ-2x8k5m3p-3x9n4o2q_xxx.md
 +-- decisions/
@@ -336,7 +338,7 @@ $ flowforge task ready
 # 查看某卡片的依赖者（谁依赖它）
 $ flowforge card dependents DES-2x9k3m00-5z0o4p3s
 
-# 内部实现：扫描 frontmatter.links 构建 .flowforge/cache/deps.yaml
+# 内部实现：扫描 frontmatter.links 构建 .flowforge/cache/flowforge.sqlite 中的 link index
 ```
 
 ---
@@ -345,7 +347,7 @@ $ flowforge card dependents DES-2x9k3m00-5z0o4p3s
 
 ### 4.1 设计原则
 
-**不使用单一 INDEX.md 包含所有维度**。借鉴 Zettelkasten 的 Structure Note 模式，为每个主题创建一个独立的索引卡片（`STR` 类型），组织 7-15 张同主题卡片。
+**不使用单一 INDEX.md 包含所有维度**。借鉴 Zettelkasten 的 Structure Note 模式，为每个主题创建一个独立的索引卡片（`STR` 类型），组织 7-15 张同主题卡片。索引卡片负责导航，sqlite 负责查询加速。
 
 | 原则 | 说明 |
 |------|------|
@@ -405,7 +407,7 @@ cards:
 
 ### 4.4 Proposal 索引卡
 
-每个 proposal 在 workspace/active/\<proposal\>/ 中也有一张 STR-PROPOSAL.md，组织该 proposal 产生的所有卡片：
+每个 proposal 在 01-workspace/01-active/\<proposal\>/ 中也有一张 STR-PROPOSAL.md，组织该 proposal 产生的所有卡片：
 
 ```markdown
 ---
@@ -442,14 +444,11 @@ cards:
 ### 4.5 索引维护
 
 ```bash
-# 创建主题索引
-$ flowforge index create --topic "CLI架构" --cards "DEC-2x9k3m00-4y9n3o2r,DEC-2x9k3m00-5z0o4p3s,..."
+# 重建索引
+$ flowforge index rebuild
 
-# 更新主题索引（添加/移除卡片）
-$ flowforge index update STR-CLI --add DES-2x9k3m00-6a1p5q4t
-
-# 列出所有主题索引
-$ flowforge index list
+# 查看索引状态
+$ flowforge index status
 
 # 查看某个主题索引
 $ flowforge card read STR-CLI
@@ -706,7 +705,7 @@ Suggestion: Review and update or deprecate these cards.
 | **文件名简洁** | 文件名只包含 `{ID}_{slug}.md`，依赖关系通过 frontmatter 和缓存索引管理 |
 | **CLI 唯一入口** | Agent 通过 CLI 命令读写卡片，不直接操作文件 |
 | **workspace/library 同构** | 两者结构相同（原子卡片），区别在于卡片状态/生命周期 |
-| **主题索引** | 每个主题一个 Structure Note（STR 卡片），而非单一 INDEX 文件 |
+| **主题索引** | 每个主题一个 Structure Note（STR 卡片），sqlite 负责查询加速 |
 | **按需加载** | 初始只读卡片摘要，需要时才通过 CLI 读取卡片全文 |
 | **类型化链接** | 卡片间通过 typed links 关联，支持图遍历 |
 | **原子性** | 每张卡片一个焦点，宁可多拆也不合并 |

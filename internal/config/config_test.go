@@ -17,8 +17,12 @@ func TestDefaultConfig(t *testing.T) {
 		t.Fatalf("expected 1 default project, got %d", len(cfg.Projects))
 	}
 
-	if cfg.Projects[0].WikiRoot != ".wiki" {
-		t.Errorf("expected wiki root .wiki, got %s", cfg.Projects[0].WikiRoot)
+	if cfg.Projects[0].ID != "default" {
+		t.Errorf("expected project id default, got %s", cfg.Projects[0].ID)
+	}
+
+	if cfg.Projects[0].WikiRoot != "ff-wiki" {
+		t.Errorf("expected wiki root ff-wiki, got %s", cfg.Projects[0].WikiRoot)
 	}
 }
 
@@ -31,7 +35,8 @@ func TestLoadConfig(t *testing.T) {
 
 	configContent := `version: "2.0.0"
 projects:
-  - wikiRoot: "docs"
+  - id: "default"
+    wikiRoot: "docs"
     srcDirs:
       - "src"
       - "app"
@@ -47,6 +52,10 @@ projects:
 
 	if len(cfg.Projects) != 1 {
 		t.Fatalf("expected 1 project, got %d", len(cfg.Projects))
+	}
+
+	if cfg.Projects[0].ID != "default" {
+		t.Errorf("expected project id default, got %s", cfg.Projects[0].ID)
 	}
 
 	if cfg.Projects[0].WikiRoot != "docs" {
@@ -68,6 +77,14 @@ func TestLoadConfigMissing(t *testing.T) {
 
 	if cfg.Version != "2.0.0" {
 		t.Errorf("expected default version, got %s", cfg.Version)
+	}
+
+	if len(cfg.Projects) != 1 {
+		t.Fatalf("expected 1 default project, got %d", len(cfg.Projects))
+	}
+
+	if cfg.Projects[0].ID != "default" {
+		t.Errorf("expected default project id, got %s", cfg.Projects[0].ID)
 	}
 }
 
@@ -108,11 +125,11 @@ func TestFindProjectRootNotFound(t *testing.T) {
 
 func TestWikiRoot(t *testing.T) {
 	cfg := &Config{
-		Projects: []ProjectConfig{{WikiRoot: ".wiki"}},
+		Projects: []ProjectConfig{{ID: "default", WikiRoot: "ff-wiki"}},
 	}
 
 	wikiRoot := cfg.WikiRoot("/project")
-	expected := "/project/.wiki"
+	expected := "/project/ff-wiki"
 	if wikiRoot != expected {
 		t.Errorf("expected %s, got %s", expected, wikiRoot)
 	}
@@ -120,7 +137,7 @@ func TestWikiRoot(t *testing.T) {
 
 func TestWikiRootAbsolute(t *testing.T) {
 	cfg := &Config{
-		Projects: []ProjectConfig{{WikiRoot: "/absolute/path"}},
+		Projects: []ProjectConfig{{ID: "default", WikiRoot: "/absolute/path"}},
 	}
 
 	wikiRoot := cfg.WikiRoot("/project")

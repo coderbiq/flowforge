@@ -1,6 +1,6 @@
 # FlowForge 架构设计
 
-> 版本：v2.0.0-alpha | 最后更新：2026-06-12
+> 版本：v2.0.0-alpha | 最后更新：2026-06-13
 
 ## 1. 项目定位
 
@@ -79,7 +79,7 @@ flowforge uninstall              # 卸载
 | **按需加载** | 初始只加载卡片摘要（id + title + summary），完整内容通过 CLI 按需获取 |
 | **CLI 唯一入口** | Agent 通过 CLI 命令读写卡片，不直接操作文件 |
 | **workspace/library 同构** | 两者结构相同（原子卡片），区别在于卡片状态/生命周期 |
-| **主题索引** | 每个主题一个 Structure Note（STR 卡片），而非单一 INDEX 文件 |
+| **主题索引** | 每个主题一个 Structure Note（STR 卡片），sqlite 负责查询加速 |
 | **日志卡片化** | 实施过程中的每一步操作都记录为 LOG 卡片，而非散落在 notes.md 中 |
 
 #### 卡片类型
@@ -204,8 +204,8 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 |                                                     |
 |  00-STR-HOME.md       <- 全局入口索引（wiki-root 根目录） |
 |                                                     |
-|  workspace/                                         |
-|  +-- active/                                        |
+|  01-workspace/                                      |
+|  +-- 01-active/                                     |
 |  |   +-- CR26061201-cli/                            |
 |  |   |   +-- 00-STR-PROPOSAL.md    <- 总索引        |
 |  |   |   +-- 01-STR-REQUIREMENTS.md <- 需求索引     |
@@ -217,9 +217,10 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 |  |   |       +-- DES-*.md (draft)                   |
 |  |   |       +-- TASK-*.md (进行中)                 |
 |  |   |       +-- LOG-*.md (日志)                    |
-|  +-- intake/                                        |
+|  +-- 02-intake/                                     |
+|  +-- 03-completed/                                  |
 |                                                     |
-|  library/                                           |
+|  02-library/                                        |
 |  +-- 01-STR-CLI.md               <- 主题索引        |
 |  +-- 02-STR-CLI-INIT.md          <- 子索引          |
 |  +-- 03-STR-CARD-SYSTEM.md       <- 主题索引        |
@@ -239,7 +240,7 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 
 **关键分离**：
 - `.flowforge/` 只存配置，不存 wiki 内容
-- wiki 内容（workspace/library）路径由 `config.yaml` 中的 `wikiRoot` 指定
+- wiki 内容（01-workspace/02-library）路径由 `config.yaml` 中的 `wikiRoot` 指定
 - SKILL 部署到 `.agents/skills/`，符合 OpenCode 标准 skill 格式
 
 ### 3.2 模块划分（Go 包结构）
@@ -329,9 +330,9 @@ All proposal tasks completed
     v
 flowforge archive <proposal-id>
     |
-    +-- 扫描 workspace/active/<proposal>/ 中的所有卡片
+    +-- 扫描 01-workspace/01-active/<proposal>/ 中的所有卡片
     +-- 更新卡片状态：draft → active, in_progress → done
-    +-- 将卡片复制到 library/ 对应类型目录
+    +-- 将卡片复制到 02-library/ 对应类型目录
     +-- 检测与 library 中已有卡片的重复/冲突
     +-- 合并或创建新卡片
     +-- 更新相关 Structure Note（STR 卡片）

@@ -20,6 +20,7 @@ type Config struct {
 }
 
 type ProjectConfig struct {
+	ID       string   `yaml:"id" mapstructure:"id"`
 	WikiRoot string   `yaml:"wikiRoot" mapstructure:"wikiRoot"`
 	SrcDirs  []string `yaml:"srcDirs" mapstructure:"srcDirs"`
 }
@@ -32,12 +33,13 @@ var defaultConfig = Config{
 	Version: "2.0.0",
 	Projects: []ProjectConfig{
 		{
-			WikiRoot: ".wiki",
+			ID:       "default",
+			WikiRoot: "ff-wiki",
 			SrcDirs:  []string{},
 		},
 	},
 	Wiki: WikiConfig{
-		Root: ".wiki",
+		Root: "ff-wiki",
 	},
 }
 
@@ -102,7 +104,7 @@ func (c *Config) WikiRoot(projectRoot string) string {
 		return filepath.Join(projectRoot, c.Wiki.Root)
 	}
 
-	return filepath.Join(projectRoot, ".wiki")
+	return filepath.Join(projectRoot, "ff-wiki")
 }
 
 func (c *Config) primaryProject() ProjectConfig {

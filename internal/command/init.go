@@ -23,11 +23,12 @@ func newInitCmd() *cobra.Command {
 
 This creates:
   .flowforge/config.yaml    - Project configuration
-  .wiki/                    - Wiki root directory
-    ├── workspace/          - Active proposals
-    │   ├── active/         - Current proposals
-    │   └── intake/         - Pending requirements
-    └── library/            - Archived knowledge
+  ff-wiki/                  - Wiki root directory
+    ├── 01-workspace/       - Active proposals
+    │   ├── 01-active/       - Current proposals
+    │   ├── 02-intake/       - Pending requirements
+    │   └── 03-completed/    - Archived proposals
+    └── 02-library/         - Archived knowledge
         ├── 10-requirements/
         ├── 20-decisions/
         ├── 30-designs/
@@ -104,19 +105,20 @@ func createDirectoryStructure(targetDir string) error {
 	dirs := []string{
 		filepath.Join(targetDir, config.ConfigDirName),
 		filepath.Join(targetDir, config.ConfigDirName, "cache"),
-		filepath.Join(targetDir, ".wiki"),
-		filepath.Join(targetDir, ".wiki", "workspace"),
-		filepath.Join(targetDir, ".wiki", "workspace", "active"),
-		filepath.Join(targetDir, ".wiki", "workspace", "intake"),
-		filepath.Join(targetDir, ".wiki", "library"),
-		filepath.Join(targetDir, ".wiki", "library", "10-requirements"),
-		filepath.Join(targetDir, ".wiki", "library", "20-decisions"),
-		filepath.Join(targetDir, ".wiki", "library", "30-designs"),
-		filepath.Join(targetDir, ".wiki", "library", "40-tasks"),
-		filepath.Join(targetDir, ".wiki", "library", "50-logs"),
-		filepath.Join(targetDir, ".wiki", "library", "60-conventions"),
-		filepath.Join(targetDir, ".wiki", "library", "70-findings"),
-		filepath.Join(targetDir, ".wiki", "library", "80-modules"),
+		filepath.Join(targetDir, "ff-wiki"),
+		filepath.Join(targetDir, "ff-wiki", "01-workspace"),
+		filepath.Join(targetDir, "ff-wiki", "01-workspace", "01-active"),
+		filepath.Join(targetDir, "ff-wiki", "01-workspace", "02-intake"),
+		filepath.Join(targetDir, "ff-wiki", "01-workspace", "03-completed"),
+		filepath.Join(targetDir, "ff-wiki", "02-library"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "10-requirements"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "20-decisions"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "30-designs"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "40-tasks"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "50-logs"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "60-conventions"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "70-findings"),
+		filepath.Join(targetDir, "ff-wiki", "02-library", "80-modules"),
 	}
 
 	for _, dir := range dirs {
@@ -133,7 +135,8 @@ func createConfigFile(configPath string) error {
 version: "2.0.0"
 
 projects:
-  - wikiRoot: ".wiki"
+  - id: "default"
+    wikiRoot: "ff-wiki"
     srcDirs: []
 `
 
@@ -145,7 +148,7 @@ projects:
 }
 
 func createHomeIndex(targetDir string) error {
-	homeIndexPath := filepath.Join(targetDir, ".wiki", "00-STR-HOME.md")
+	homeIndexPath := filepath.Join(targetDir, "ff-wiki", "00-STR-HOME.md")
 
 	content := `---
 id: STR-HOME
@@ -161,9 +164,10 @@ Welcome to your FlowForge knowledge base.
 
 ## Structure
 
-- **workspace/active/** - Current proposals and their cards
-- **workspace/intake/** - Pending requirements awaiting triage
-- **library/** - Archived knowledge organized by type
+- **01-workspace/01-active/** - Current proposals and their cards
+- **01-workspace/02-intake/** - Pending requirements awaiting triage
+- **01-workspace/03-completed/** - Archived proposals
+- **02-library/** - Archived knowledge organized by type
 
 ## Getting Started
 

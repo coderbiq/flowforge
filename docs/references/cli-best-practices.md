@@ -137,17 +137,15 @@ npm run prepare
 ### 4.4 FlowForge init 设计
 
 ```bash
-flowforge init [path] [--yes] [--template <name>]
+flowforge init [path] [--yes]
 ```
 
 **执行流程**：
-1. 参数解析（项目名、选项）
-2. 目标目录检查（是否为空、是否已有 FlowForge）
-3. 交互式配置收集（或 --yes 跳过）
-4. 文件生成（.flowforge/ 目录结构）
-5. 安装 SKILL 文件
-6. 更新 AGENTS.md
-7. 输出初始化摘要
+1. 参数解析（目标目录、选项）
+2. 目标目录检查（是否已有 FlowForge）
+3. 文件生成（.flowforge/ 目录结构与 cache）
+4. 创建 sqlite 状态库
+5. 输出初始化摘要并提示 `flowforge project create`
 
 ---
 
@@ -313,7 +311,7 @@ FlowForge 的配置分层建议：
 
 | 配置项 | 位置 | 举例 |
 |--------|------|------|
-| 项目工作流定义 | `.flowforge/config.yaml` | `cards:`, `proposals:` |
+| 项目工作流定义 | `.flowforge/config.yaml` | `projects:`（`id` / `wikiRoot` / `srcDirs`） |
 | 用户偏好 | `~/.config/flowforge/config.json` | `editor: "cursor"` |
 | 缓存路径 | `~/.cache/flowforge/` | 临时文件、版本检查缓存 |
 | 项目内初始化标记 | `.flowforge/config.yaml` | `version: "2.0.0"` |
@@ -406,8 +404,8 @@ describe('flowforge init', () => {
     execSync(`flowforge init ${tmpDir} --yes`)
     
     expect(existsSync(`${tmpDir}/.flowforge/config.yaml`)).toBe(true)
-    expect(existsSync(`${tmpDir}/.flowforge/workspace`)).toBe(true)
-    expect(existsSync(`${tmpDir}/.flowforge/library`)).toBe(true)
+    expect(existsSync(`${tmpDir}/ff-wiki/01-workspace`)).toBe(true)
+    expect(existsSync(`${tmpDir}/ff-wiki/02-library`)).toBe(true)
   })
 })
 ```
