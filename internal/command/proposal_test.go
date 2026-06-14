@@ -125,6 +125,25 @@ func TestProposalLifecycleCommandsUseCurrentProposalPointer(t *testing.T) {
 	}
 }
 
+func TestProposalCreateOutputPassesValidateAll(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	createProposalForTest(t, tmpDir, "Valid empty proposal")
+
+	cmd := newValidateAllCmd()
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("validate all failed for newly created proposal: %v", err)
+	}
+}
+
 func TestProposalCurrentPointerIsolatedPerProject(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)

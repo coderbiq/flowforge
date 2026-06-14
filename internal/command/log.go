@@ -54,6 +54,11 @@ func newLogCreateCmd() *cobra.Command {
 			if resolvedProposalID == "" {
 				return fmt.Errorf("log requires proposal context; run flowforge proposal use <id> or pass --proposal")
 			}
+			for _, cardID := range forCards {
+				if _, err := store.ReadCard(cardID); err != nil {
+					return fmt.Errorf("reading context card %s: %w", cardID, err)
+				}
+			}
 
 			logCard := core.NewCard(core.CardTypeLog, title)
 			logCard.ID = core.GenerateCardID(core.CardTypeLog, proposalTimestamp(resolvedProposalID))

@@ -74,7 +74,14 @@ func newTaskCreateCmd() *cobra.Command {
 			task.Status = taskStatus
 			task.Body = renderTaskBody(body, task.ID)
 			task.Tags = tags
+			addProposalOwnershipLink(task, resolvedProposalID)
 			if err := addParsedLinks(task, links); err != nil {
+				return err
+			}
+			if len(task.Links) == 0 {
+				return fmt.Errorf("task requires at least one outbound link; pass --links or select a current proposal")
+			}
+			if err := ensureTaskLinksExist(store, task.Links); err != nil {
 				return err
 			}
 
@@ -319,8 +326,12 @@ func newTaskSubCmd() *cobra.Command {
 			task.Status = core.CardStatusReady
 			task.Source = parent.Source
 			task.Body = renderTaskBody(body, task.ID)
-			task.AddLink(parent.ID, "related")
+			task.AddLink(parent.ID, "decomposes")
+			addProposalOwnershipLink(task, parent.Source)
 			if err := addParsedLinks(task, links); err != nil {
+				return err
+			}
+			if err := ensureTaskLinksExist(store, task.Links); err != nil {
 				return err
 			}
 
@@ -348,8 +359,18 @@ func newTaskLinkAddCmd() *cobra.Command {
 		Short: "Add a link to a task",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+			target, relation := parseLinkArg(args[1])
+			if !core.IsValidRelation(relation) {
+				return fmt.Errorf("invalid relation: %s", relation)
+			}
+			if _, err := store.ReadCard(target); err != nil {
+				return fmt.Errorf("reading target card %s: %w", target, err)
+			}
 			return updateTask(args[0], func(task *core.Card) error {
-				target, relation := parseLinkArg(args[1])
 				task.AddLink(target, relation)
 				return nil
 			})
@@ -450,6 +471,15 @@ func addParsedLinks(task *core.Card, links []string) error {
 	}
 	for _, link := range parsedLinks {
 		task.AddLink(link.target, link.relation)
+	}
+	return nil
+}
+
+func ensureTaskLinksExist(store *core.CardStore, links []core.Link) error {
+	for _, link := range links {
+		if _, err := store.ReadCard(link.Target); err != nil {
+			return fmt.Errorf("reading target card %s: %w", link.Target, err)
+		}
 	}
 	return nil
 }

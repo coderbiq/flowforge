@@ -59,7 +59,7 @@ func newValidateCardCmd() *cobra.Command {
 				filePath = card.FilePath
 			}
 
-			result := core.ValidateCardFile(filePath)
+			result := core.ValidateCardFileInStore(filePath, store)
 
 			if result.HasErrors() {
 				fmt.Printf("✗ Validation failed for %s:\n", filepath.Base(filePath))
@@ -112,7 +112,7 @@ func newValidateAllCmd() *cobra.Command {
 
 				for _, card := range cards {
 					totalCards++
-					result := core.ValidateCardFile(card.FilePath)
+					result := core.ValidateCardFileInStore(card.FilePath, store)
 					if result.HasErrors() {
 						for _, e := range result.Errors {
 							errors = append(errors, fmt.Sprintf("%s: %s", card.FilePath, e.Error()))

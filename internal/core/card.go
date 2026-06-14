@@ -22,12 +22,13 @@ const (
 	CardTypeFinding     CardType = "finding"
 	CardTypeModule      CardType = "module"
 	CardTypeStructure   CardType = "structure"
+	CardTypeProposal    CardType = "proposal"
 )
 
 func (t CardType) Valid() bool {
 	switch t {
 	case CardTypeRequirement, CardTypeDecision, CardTypeDesign, CardTypeTask,
-		CardTypeLog, CardTypeConvention, CardTypeFinding, CardTypeModule, CardTypeStructure:
+		CardTypeLog, CardTypeConvention, CardTypeFinding, CardTypeModule, CardTypeStructure, CardTypeProposal:
 		return true
 	}
 	return false
@@ -53,6 +54,8 @@ func (t CardType) Prefix() string {
 		return "MOD"
 	case CardTypeStructure:
 		return "STR"
+	case CardTypeProposal:
+		return "ROOT"
 	}
 	return ""
 }
@@ -77,6 +80,8 @@ func CardTypeFromPrefix(prefix string) CardType {
 		return CardTypeModule
 	case "STR":
 		return CardTypeStructure
+	case "ROOT":
+		return CardTypeProposal
 	}
 	return ""
 }

@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -44,12 +45,20 @@ func newStructureAddCmd() *cobra.Command {
 				if card.Type != core.CardTypeStructure {
 					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
 				}
-				if _, err := store.ReadCard(cardID); err != nil {
+				indexedCard, err := store.ReadCard(cardID)
+				if err != nil {
+					return err
+				}
+				if err := validateStructureIndexedCard(card, indexedCard); err != nil {
 					return err
 				}
 				before := len(structureIndexedCardIDs(card))
 				card.AddLink(cardID, "indexes")
-				card.Body = refreshStructureEntriesBody(store, card)
+				refreshedBody, err := refreshStructureEntriesBody(store, card)
+				if err != nil {
+					return err
+				}
+				card.Body = refreshedBody
 				indexedCount = len(structureIndexedCardIDs(card))
 				changed = indexedCount > before
 				return nil
@@ -96,7 +105,11 @@ func newStructureRemoveCmd() *cobra.Command {
 					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
 				}
 				removed = card.RemoveLink(cardID, "indexes")
-				card.Body = refreshStructureEntriesBody(store, card)
+				refreshedBody, err := refreshStructureEntriesBody(store, card)
+				if err != nil {
+					return err
+				}
+				card.Body = refreshedBody
 				return nil
 			}); err != nil {
 				return err
@@ -181,7 +194,11 @@ func newStructureRefreshCmd() *cobra.Command {
 				if card.Type != core.CardTypeStructure {
 					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
 				}
-				card.Body = refreshStructureEntriesBody(store, card)
+				refreshedBody, err := refreshStructureEntriesBody(store, card)
+				if err != nil {
+					return err
+				}
+				card.Body = refreshedBody
 				indexedCount = len(structureIndexedCardIDs(card))
 				return nil
 			}); err != nil {
@@ -208,31 +225,60 @@ func structureIndexedCardIDs(card *core.Card) []string {
 	return ids
 }
 
-func refreshStructureEntriesBody(store *core.CardStore, card *core.Card) string {
-	entries := renderStructureEntries(store, card)
+func refreshStructureEntriesBody(store *core.CardStore, card *core.Card) (string, error) {
+	entries, err := renderStructureEntries(store, card)
+	if err != nil {
+		return "", err
+	}
 	body := strings.TrimSpace(card.Body)
 	if body == "" {
 		body = "# " + card.Title + "\n\n## Purpose\n\nStructure index."
 	}
-	return upsertMarkdownSection(body, "Entries", entries)
+	return upsertMarkdownSection(body, "Entries", entries), nil
 }
 
-func renderStructureEntries(store *core.CardStore, card *core.Card) string {
+func renderStructureEntries(store *core.CardStore, card *core.Card) (string, error) {
 	indexedIDs := structureIndexedCardIDs(card)
 	if len(indexedIDs) == 0 {
-		return "- None"
+		return "- None", nil
 	}
 
 	var lines []string
 	for _, cardID := range indexedIDs {
 		linkedCard, err := store.ReadCard(cardID)
 		if err != nil {
-			lines = append(lines, fmt.Sprintf("- [[%s]] - missing card", cardID))
-			continue
+			return "", fmt.Errorf("indexed card %s could not be read: %w", cardID, err)
 		}
-		lines = append(lines, fmt.Sprintf("- [[%s]] (%s, %s) - %s", linkedCard.ID, linkedCard.Type, linkedCard.Status, linkedCard.Title))
+		if err := validateStructureIndexedCard(card, linkedCard); err != nil {
+			return "", err
+		}
+		target, err := markdownLinkTarget(card, linkedCard)
+		if err != nil {
+			return "", err
+		}
+		lines = append(lines, fmt.Sprintf("- [%s](%s) (%s, %s) - %s", linkedCard.ID, target, linkedCard.Type, linkedCard.Status, linkedCard.Title))
 	}
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, "\n"), nil
+}
+
+func validateStructureIndexedCard(structureCard, indexedCard *core.Card) error {
+	if strings.HasPrefix(structureCard.ID, "STR-") && strings.Contains(structureCard.ID, "-REQ") {
+		if indexedCard.Type != core.CardTypeRequirement && indexedCard.Type != core.CardTypeStructure {
+			return fmt.Errorf("proposal requirement index %s can only index requirement or structure cards, got %s (%s)", structureCard.ID, indexedCard.Type, indexedCard.ID)
+		}
+	}
+	return nil
+}
+
+func markdownLinkTarget(fromCard, toCard *core.Card) (string, error) {
+	if fromCard.FilePath == "" || toCard.FilePath == "" {
+		return "", fmt.Errorf("cannot render markdown link without file paths")
+	}
+	rel, err := filepath.Rel(filepath.Dir(fromCard.FilePath), toCard.FilePath)
+	if err != nil {
+		return "", fmt.Errorf("computing relative link: %w", err)
+	}
+	return filepath.ToSlash(rel), nil
 }
 
 func upsertMarkdownSection(body string, section string, content string) string {

@@ -67,7 +67,7 @@ func TestCardCreateKeepsLibraryTypesGlobalWithoutExplicitProposal(t *testing.T) 
 	proposalID := createProposalForTest(t, tmpDir, "Default proposal")
 
 	cmd := newCardCreateCmd()
-	cmd.SetArgs([]string{"--type", "convention", "--title", "Use explicit errors"})
+	cmd.SetArgs([]string{"--type", "convention", "--title", "Use explicit errors", "--links", "ROOT-" + proposalID + ":references"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("card create failed: %v", err)
 	}
@@ -105,9 +105,15 @@ func TestCardCommandsUseCurrentProjectStore(t *testing.T) {
 	if err := useProjectForTest(t, "backend"); err != nil {
 		t.Fatalf("project use failed: %v", err)
 	}
+	backendStore := core.NewCardStore(filepath.Join(tmpDir, "ff-wiki-be"))
+	module := core.NewCard(core.CardTypeModule, "Backend module")
+	module.ID = "MOD-BE"
+	if _, err := backendStore.CreateCard(module, ""); err != nil {
+		t.Fatalf("creating backend module failed: %v", err)
+	}
 
 	createCmd := newCardCreateCmd()
-	createCmd.SetArgs([]string{"--type", "convention", "--title", "Backend only convention"})
+	createCmd.SetArgs([]string{"--type", "convention", "--title", "Backend only convention", "--links", "MOD-BE:references"})
 	if err := createCmd.Execute(); err != nil {
 		t.Fatalf("card create failed: %v", err)
 	}

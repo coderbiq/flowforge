@@ -3,6 +3,8 @@ package command
 import (
 	"fmt"
 	"strings"
+
+	"flowforge/internal/core"
 )
 
 type parsedLinkArg struct {
@@ -31,6 +33,9 @@ func parseLinkArgs(values []string) ([]parsedLinkArg, error) {
 			target, relation := parseLinkArg(raw)
 			if target == "" {
 				return nil, fmt.Errorf("invalid link %q: target is required", raw)
+			}
+			if !core.IsValidRelation(relation) {
+				return nil, fmt.Errorf("invalid link %q: relation %q is not supported", raw, relation)
 			}
 			parsed = append(parsed, parsedLinkArg{target: target, relation: relation})
 		}

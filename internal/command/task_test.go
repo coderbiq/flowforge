@@ -20,6 +20,14 @@ func TestTaskLifecycleCommands(t *testing.T) {
 		t.Fatalf("chdir failed: %v", err)
 	}
 	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Task lifecycle proposal")
+
+	store := testCardStore(t, tmpDir)
+	design := core.NewCard(core.CardTypeDesign, "Lifecycle design")
+	design.ID = "DES-abc123"
+	if _, err := store.CreateCard(design, proposalID); err != nil {
+		t.Fatalf("creating design card failed: %v", err)
+	}
 
 	createCmd := newTaskCreateCmd()
 	createCmd.SetArgs([]string{"--title", "Implement task command", "--type", "i", "--links", "DES-abc123:implements"})
@@ -27,7 +35,6 @@ func TestTaskLifecycleCommands(t *testing.T) {
 		t.Fatalf("task create failed: %v", err)
 	}
 
-	store := testCardStore(t, tmpDir)
 	tasks, err := store.ListCardsByType(core.CardTypeTask)
 	if err != nil {
 		t.Fatalf("listing tasks failed: %v", err)
@@ -127,7 +134,24 @@ func TestTaskCreateParsesCommaSeparatedLinks(t *testing.T) {
 		t.Fatalf("chdir failed: %v", err)
 	}
 	createProjectForTest(t, "default")
-	createProposalForTest(t, tmpDir, "Task links proposal")
+	proposalID := createProposalForTest(t, tmpDir, "Task links proposal")
+
+	store := testCardStore(t, tmpDir)
+	req := core.NewCard(core.CardTypeRequirement, "Required card")
+	req.ID = "REQ-abc"
+	if _, err := store.CreateCard(req, proposalID); err != nil {
+		t.Fatalf("creating requirement card failed: %v", err)
+	}
+	des := core.NewCard(core.CardTypeDesign, "Design card")
+	des.ID = "DES-def"
+	if _, err := store.CreateCard(des, proposalID); err != nil {
+		t.Fatalf("creating design card failed: %v", err)
+	}
+	conv := core.NewCard(core.CardTypeConvention, "Convention card")
+	conv.ID = "CONV-ghi"
+	if _, err := store.CreateCard(conv, ""); err != nil {
+		t.Fatalf("creating convention card failed: %v", err)
+	}
 
 	createCmd := newTaskCreateCmd()
 	createCmd.SetArgs([]string{
@@ -140,7 +164,6 @@ func TestTaskCreateParsesCommaSeparatedLinks(t *testing.T) {
 		t.Fatalf("task create failed: %v", err)
 	}
 
-	store := testCardStore(t, tmpDir)
 	tasks, err := store.ListCardsByType(core.CardTypeTask)
 	if err != nil {
 		t.Fatalf("listing tasks failed: %v", err)
@@ -156,6 +179,90 @@ func TestTaskCreateParsesCommaSeparatedLinks(t *testing.T) {
 		if !hasLinkRelation(tasks[0], want.Target, want.Relation) {
 			t.Fatalf("expected link %#v, got %#v", want, tasks[0].Links)
 		}
+	}
+}
+
+func TestTaskSubCreatesDecomposesParentLink(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Subtask proposal")
+
+	store := testCardStore(t, tmpDir)
+	parent := core.NewCard(core.CardTypeTask, "Parent task")
+	parent.ID = "TASK-" + proposalID + "-i-parent"
+	parent.Status = core.CardStatusReady
+	parent.Source = proposalID
+	parent.AddLink("ROOT-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(parent, proposalID); err != nil {
+		t.Fatalf("creating parent task failed: %v", err)
+	}
+
+	cmd := newTaskSubCmd()
+	cmd.SetArgs([]string{parent.ID, "--title", "Child task"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("task sub failed: %v", err)
+	}
+
+	child, err := store.ReadCard(parent.ID + "-a")
+	if err != nil {
+		t.Fatalf("reading child failed: %v", err)
+	}
+	if !hasLinkRelation(child, parent.ID, "decomposes") {
+		t.Fatalf("expected child decomposes parent link, got %#v", child.Links)
+	}
+	if !hasLinkRelation(child, "ROOT-"+proposalID, "belongs_to") {
+		t.Fatalf("expected child belongs_to root link, got %#v", child.Links)
+	}
+}
+
+func TestTaskLinkAddParsesRelationBeforeReadingTarget(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Task link proposal")
+
+	store := testCardStore(t, tmpDir)
+	task := core.NewCard(core.CardTypeTask, "Link target task")
+	task.ID = "TASK-" + proposalID + "-i-link"
+	task.Status = core.CardStatusReady
+	task.AddLink("ROOT-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(task, proposalID); err != nil {
+		t.Fatalf("creating task failed: %v", err)
+	}
+	req := core.NewCard(core.CardTypeRequirement, "Requirement target")
+	req.ID = "REQ-link-target"
+	req.AddLink("ROOT-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(req, proposalID); err != nil {
+		t.Fatalf("creating requirement failed: %v", err)
+	}
+
+	cmd := newTaskLinkAddCmd()
+	cmd.SetArgs([]string{task.ID, "REQ-link-target:requires"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("task link-add failed: %v", err)
+	}
+
+	reloaded, err := store.ReadCard(task.ID)
+	if err != nil {
+		t.Fatalf("reading task failed: %v", err)
+	}
+	if !hasLinkRelation(reloaded, "REQ-link-target", "requires") {
+		t.Fatalf("expected requires link, got %#v", reloaded.Links)
 	}
 }
 

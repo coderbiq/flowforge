@@ -60,6 +60,8 @@ func (s *CardStore) LibraryTypeDir(cardType CardType) string {
 		dirName = "80-modules"
 	case CardTypeStructure:
 		dirName = "structures"
+	case CardTypeProposal:
+		dirName = "structures"
 	default:
 		dirName = "misc"
 	}
@@ -103,12 +105,12 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	rootPath := s.ProposalRootCardPath(proposalID)
 	indexPath := s.ProposalRequirementIndexPath(proposalID)
 
-	rootCard := NewCard(CardTypeStructure, title)
+	rootCard := NewCard(CardTypeProposal, title)
 	rootCard.ID = "ROOT-" + proposalID
 	rootCard.Status = CardStatusActive
 	rootCard.Source = proposalID
-	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Entries\n\n- [[STR-%s-REQ]] - Requirement index\n\n## Summary\n\nProposal root card.\n", title, proposalID, proposalID)
-	rootCard.AddLink("STR-"+proposalID+"-REQ", "references")
+	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Entries\n\n- [STR-%s-REQ](STR-%s-REQ.md) (structure, active) - Requirement index\n\n## Summary\n\nProposal root card.\n", title, proposalID, proposalID, proposalID)
+	rootCard.AddLink("STR-"+proposalID+"-REQ", "indexes")
 	if err := rootCard.Save(rootPath); err != nil {
 		return "", "", fmt.Errorf("writing root card: %w", err)
 	}
@@ -117,6 +119,7 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	indexCard.ID = "STR-" + proposalID + "-REQ"
 	indexCard.Status = CardStatusActive
 	indexCard.Source = proposalID
+	indexCard.AddLink("ROOT-"+proposalID, "belongs_to")
 	indexCard.Body = fmt.Sprintf("# %s Requirements\n\n## Purpose\n\nTop-level requirement index for %s.\n\n## Entries\n\n- None\n\n## Open Questions\n\n- None\n", title, title)
 	if err := indexCard.Save(indexPath); err != nil {
 		return "", "", fmt.Errorf("writing requirement index card: %w", err)
@@ -179,19 +182,8 @@ func (s *CardStore) UpdateCard(card *Card) error {
 		card.FilePath = existingPath
 	}
 
-	oldPath := card.FilePath
-	newFilename := GenerateFilename(card.ID, card.Title)
-	newPath := filepath.Join(filepath.Dir(oldPath), newFilename)
-
-	if err := card.Save(newPath); err != nil {
+	if err := card.Save(card.FilePath); err != nil {
 		return err
-	}
-
-	if oldPath != newPath {
-		if err := os.Remove(oldPath); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("removing old file: %w", err)
-		}
-		card.FilePath = newPath
 	}
 
 	return nil

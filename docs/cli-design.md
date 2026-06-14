@@ -504,6 +504,7 @@ $ flowforge card search "分页 查询 条件" --scope library --type convention
 
 | 关系 | 含义 | 示例 |
 |------|------|------|
+| `belongs_to` | 归属 | proposal 内普通卡指向 ROOT |
 | `references` | 引用 | 需求引用决策 |
 | `extends` | 扩展 | 设计扩展决策 |
 | `refines` | 精炼 | 实现细化设计 |
@@ -514,6 +515,7 @@ $ flowforge card search "分页 查询 条件" --scope library --type convention
 | `related` | 相关 | 弱关联 |
 | `implements` | 实现 | 任务实现设计 |
 | `satisfies` | 满足 | 任务满足需求 |
+| `requires` | 需要 | 任务需要需求、决策或发现作为输入 |
 | `blocks` | 阻塞 | 任务阻塞另一任务 |
 | `indexes` | 索引 | STR 索引卡指向被索引卡片 |
 | `decomposes` | 拆解 | 索引卡或任务卡拆解出子卡片 |
@@ -528,6 +530,7 @@ $ flowforge card search "分页 查询 条件" --scope library --type convention
 - 任务卡只维护稳定的执行上下文链接：目标卡、依据卡、约束卡。
 - 执行过程中新增的 log / finding / blocked 等证据卡主动链接任务卡或相关卡。
 - 任务视图、proposal 时间线、证据链通过 sqlite 反向链接索引生成，不要求持续回写中心卡。
+- 内部卡片导航链接只能由 CLI 根据 frontmatter 关系生成，渲染为标准 Markdown 相对路径链接；Agent 不手写内部卡片链接，CLI 不生成 `[[wikilink]]`。
 
 ---
 
@@ -622,8 +625,8 @@ flowforge structure
 
 - 单张 STR 卡健康范围是 7-15 个直接条目。
 - 添加后超过 15 条 `indexes` 直接关系时，命令必须提示拆分子索引。
-- MVP 中 `structure add/remove` 只维护 `indexes` 关系，不修改任意正文段落，不承担 `card append-section` 的职责。
-- 对需求索引树，父索引卡只保留主题级入口，不直接收纳所有需求点。
+- MVP 中 `structure add/remove/refresh` 只维护 `indexes` 关系和正文 `## Entries` 导航段，不承担任意正文编辑职责。
+- 对需求索引树，父索引卡只允许索引 `requirement` 或子 `structure`，不收纳 task/log/finding/design。
 
 ---
 

@@ -1,6 +1,8 @@
 # 知识卡片系统设计
 
-> 版本：v2.0.0-alpha | 最后更新：2026-06-13
+> 版本：v2.0.0-alpha | 最后更新：2026-06-14
+>
+> 卡片架构不变量、ROOT/STR 边界、Markdown 链接规范见 [卡片架构不变量与修正方案](./card-architecture-invariants.md)。
 
 ## 1. 设计原则
 
@@ -149,6 +151,8 @@ FlowForge v2 需要一个 CLI 框架来管理 5-15 个子命令。
 | `module` | `MOD` | 模块知识 | 一个模块的定位和职责概述 | ~~一个模块的完整设计文档~~ |
 | `structure` | `STR` | 索引卡 | 组织 7-15 张同主题卡片 | ~~所有卡片的总索引~~ |
 | `proposal` | `ROOT` | 提案根卡 | 一个 proposal 的导航入口和状态摘要 | ~~完整 proposal 长文档~~ |
+
+`ROOT` 是 `type: proposal`，只由 `flowforge proposal create` 创建；`STR` 是 `type: structure`，只负责索引树。二者不能混用。
 
 **粒度判定标准**：卡片是否能够独立于其他卡片被理解？如果读完卡片还需要翻其他文档才能理解，说明粒度太粗，需要拆分。
 
@@ -467,6 +471,7 @@ $ flowforge card read STR-CLI
 
 | 关系 | 含义 | 方向 | 示例 |
 |------|------|------|------|
+| `belongs_to` | 归属 | A 属于 B | proposal 内普通卡指向 ROOT |
 | `references` | 引用 | A 参考了 B | 需求引用决策 |
 | `extends` | 扩展 | A 扩展了 B | 设计扩展决策 |
 | `refines` | 精炼 | A 细化了 B | 实现细化设计 |
@@ -477,6 +482,7 @@ $ flowforge card read STR-CLI
 | `related` | 相关 | A 与 B 相关 | 弱关联 |
 | `implements` | 实现 | 任务实现设计 | TASK -> DES |
 | `satisfies` | 满足 | 任务满足需求 | TASK -> REQ |
+| `requires` | 需要 | A 执行需要 B | TASK -> REQ/DEC/FIND |
 | `blocks` | 阻塞 | 任务阻塞另一任务 | TASK -> TASK |
 | `indexes` | 索引 | STR/root 指向索引入口 | ROOT -> STR |
 | `decomposes` | 拆解 | 索引或任务拆解子项 | STR -> STR / TASK -> TASK |
@@ -484,9 +490,11 @@ $ flowforge card read STR-CLI
 | `designs` | 设计 | 设计任务指向需求 | TASK -> REQ |
 | `constrains` | 约束 | 规范约束任务或设计 | TASK -> CONV |
 | `records` | 记录 | LOG 记录任务、反馈或归档动作 | LOG -> TASK |
-| `discovers` | 发现 | LOG 指向发现卡 | LOG -> FIND |
+| `discovers` | 发现 | FIND 或 LOG 记录探索发现 | FIND -> TASK / LOG -> FIND |
 
-链接方向遵循 Obsidian 式反链实践：
+内部卡片导航只能由 FlowForge CLI 根据 frontmatter 关系格式化并插入正文，渲染为标准 Markdown 链接，例如 `[REQ-xxx](90-cards/REQ-xxx_title.md)`。Agent 不手写内部卡片链接；手写 Markdown 链接只允许用于外部资料引用。FlowForge 不再把 `[[wikilink]]` 作为标准链接格式。frontmatter `links` 是事实关系来源，正文链接只是人类可读导航。
+
+链接方向遵循反向链接实践：
 
 - 新生成的 log / finding / feedback 卡主动链接它记录的任务或上下文卡。
 - 任务卡、root card、需求索引卡不持续回写所有证据卡，避免中心卡关系爆炸。

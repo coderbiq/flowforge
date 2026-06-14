@@ -100,6 +100,13 @@ Examples:
 			if err != nil {
 				return err
 			}
+			addProposalOwnershipLink(card, resolvedProposalID)
+			if len(card.Links) == 0 && len(parsedLinks) == 0 {
+				return fmt.Errorf("card requires at least one outbound link; pass --links or create it under a proposal")
+			}
+			if err := ensureLinkTargetsExist(store, parsedLinks); err != nil {
+				return err
+			}
 			for _, link := range parsedLinks {
 				card.AddLink(link.target, link.relation)
 			}
@@ -517,6 +524,9 @@ func newCardUpdateCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+				if err := ensureLinkTargetsExist(store, parsedAddLinks); err != nil {
+					return err
+				}
 				for _, link := range parsedAddLinks {
 					card.AddLink(link.target, link.relation)
 				}
@@ -722,6 +732,9 @@ func newCardLinkCmd() *cobra.Command {
 			}
 
 			if err := store.UpdateCardWithLock(fromID, func(card *core.Card) error {
+				if !core.IsValidRelation(relation) {
+					return fmt.Errorf("invalid relation: %s", relation)
+				}
 				if _, err := store.ReadCard(toID); err != nil {
 					return fmt.Errorf("reading target card %s: %w", toID, err)
 				}
@@ -738,6 +751,28 @@ func newCardLinkCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&relation, "relation", "related", "Link relation type")
 	return cmd
+}
+
+func ensureLinkTargetsExist(store *core.CardStore, links []parsedLinkArg) error {
+	for _, link := range links {
+		if _, err := store.ReadCard(link.target); err != nil {
+			return fmt.Errorf("reading target card %s: %w", link.target, err)
+		}
+	}
+	return nil
+}
+
+func addProposalOwnershipLink(card *core.Card, proposalID string) {
+	if card == nil || proposalID == "" || card.Type == core.CardTypeProposal {
+		return
+	}
+	rootID := "ROOT-" + proposalID
+	for _, link := range card.Links {
+		if link.Target == rootID && link.Relation == "belongs_to" {
+			return
+		}
+	}
+	card.AddLink(rootID, "belongs_to")
 }
 
 func newCardUnlinkCmd() *cobra.Command {

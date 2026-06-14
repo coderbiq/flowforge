@@ -10,12 +10,14 @@ Run `flowforge project current`, `flowforge proposal current`, `flowforge propos
 
 Follow `references/workflow-rules.md`. Use `structure add/remove`, atomic requirement cards, analysis tasks for uncertainty, `library suggest` / `card search --scope library` / `card read --summary/--section` for library discovery, then focused design cards.
 
-Use `references/card-templates.md` whenever creating or reviewing card bodies. Use `references/library-discovery.md` before reading or linking library cards. Record each real design turn with `log create --kind <kind>`.
+Use `references/card-templates.md` for card bodies and `references/library-discovery.md` before linking library cards. Record real design turns with `log create`.
 
 ## Hard Rules
 
 - CLI is the only read/write path for cards.
 - Never read wiki files or `02-library/` directly.
+- Never hand-write card files, frontmatter, wikilinks, or internal card links.
+- Hand-written Markdown links are only for external references.
 - Never load the whole proposal or library.
 - Never create title-only tasks.
 - Do not execute implementation work here.

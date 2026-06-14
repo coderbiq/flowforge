@@ -8,7 +8,8 @@ Use one primary mode per turn.
 2. Pick one mode: index, clarify, analyze, discover library, design, or split tasks.
 3. Write or update cards through CLI only.
 4. Record a log when the turn changes proposal state.
-5. Report changed cards, relations, gaps, and one next step.
+5. Run `flowforge validate all` after creating or changing proposal structure.
+6. Report changed cards, relations, validation result, gaps, and one next step.
 
 ## Mode Selection
 
@@ -20,6 +21,19 @@ Use one primary mode per turn.
 | discover library | design needs conventions, modules, decisions, or findings | `library suggest`, `card search`, `card read` |
 | design | a stable conclusion exists but no design card exists | `card create --type design` |
 | split tasks | requirement and design are stable enough for implementation | `task create --type i --status ready/not_ready` |
+
+## Link Invariants
+
+- Do not write wiki files or frontmatter manually.
+- Do not create internal card links in card bodies by hand.
+- Do not create `[[wikilink]]`.
+- FlowForge CLI is the only component that formats and inserts internal card navigation links.
+- Hand-written Markdown links are allowed only for external source references.
+- Every non-root card needs at least one outbound frontmatter link.
+- Proposal-scoped cards should belong to `ROOT-<proposal>`; the CLI adds this when creating cards in a proposal.
+- Requirement indexes may only `indexes` requirement cards or child structure cards.
+- Use `decomposes` for subtask -> parent task. Do not use `related` for parent/child, ownership, or indexing.
+- Use `records` for logs, `constrains` for convention cards, `requires` for required inputs, `implements` for design implementation, and `satisfies` for requirement satisfaction.
 
 ## Card Decisions
 

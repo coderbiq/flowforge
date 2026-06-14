@@ -43,6 +43,15 @@ func createTestDirs(t *testing.T, wikiRoot string) {
 	}
 }
 
+func cardHasLink(card *Card, target string, relation string) bool {
+	for _, link := range card.Links {
+		if link.Target == target && link.Relation == relation {
+			return true
+		}
+	}
+	return false
+}
+
 func TestNewCardStore(t *testing.T) {
 	store := NewCardStore("/test/wiki")
 	if store.wikiRoot != "/test/wiki" {
@@ -127,10 +136,13 @@ func TestCreateProposal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing root card failed: %v", err)
 	}
+	if !cardHasLink(rootCard, "STR-CR260612-REQ", "indexes") {
+		t.Fatalf("root card missing indexes link to requirement index: %#v", rootCard.Links)
+	}
 	for _, want := range []string{
 		"## Purpose",
 		"## Entries",
-		"[[STR-CR260612-REQ]] - Requirement index",
+		"[STR-CR260612-REQ](STR-CR260612-REQ.md) (structure, active) - Requirement index",
 	} {
 		if !strings.Contains(rootCard.Body, want) {
 			t.Fatalf("root body missing %q:\n%s", want, rootCard.Body)
@@ -147,6 +159,9 @@ func TestCreateProposal(t *testing.T) {
 	indexCard, err := ParseCardFile(indexPath)
 	if err != nil {
 		t.Fatalf("parsing index card failed: %v", err)
+	}
+	if !cardHasLink(indexCard, "ROOT-CR260612", "belongs_to") {
+		t.Fatalf("requirement index missing belongs_to link to root: %#v", indexCard.Links)
 	}
 	for _, want := range []string{
 		"## Purpose",
@@ -177,8 +192,8 @@ func TestReadCardFindsProposalRootAndIndexFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadCard root failed: %v", err)
 	}
-	if root.Type != CardTypeStructure {
-		t.Fatalf("expected root type structure, got %s", root.Type)
+	if root.Type != CardTypeProposal {
+		t.Fatalf("expected root type proposal, got %s", root.Type)
 	}
 
 	index, err := store.ReadCard("STR-CR260612-REQ")
@@ -261,7 +276,10 @@ func TestUpdateCard(t *testing.T) {
 
 	card := NewCard(CardTypeRequirement, "Original Title")
 	card.ID = "REQ-abc-789"
-	store.CreateCard(card, "CR260612")
+	filePath, err := store.CreateCard(card, "CR260612")
+	if err != nil {
+		t.Fatalf("failed to create card: %v", err)
+	}
 
 	loaded, _ := store.ReadCard("REQ-abc-789")
 	loaded.Title = "Updated Title"
@@ -273,6 +291,12 @@ func TestUpdateCard(t *testing.T) {
 	reloaded, _ := store.ReadCard("REQ-abc-789")
 	if reloaded.Title != "Updated Title" {
 		t.Errorf("expected updated title, got %s", reloaded.Title)
+	}
+	if reloaded.FilePath != filePath {
+		t.Fatalf("expected filePath to remain stable, got %s want %s", reloaded.FilePath, filePath)
+	}
+	if _, err := os.Stat(filePath); err != nil {
+		t.Fatalf("expected original file path to remain after update: %v", err)
 	}
 }
 

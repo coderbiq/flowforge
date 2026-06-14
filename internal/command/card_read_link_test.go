@@ -138,7 +138,7 @@ func TestCardCreateAndUpdateParseCommaSeparatedLinks(t *testing.T) {
 	}
 
 	updateCmd := newCardUpdateCmd()
-	updateCmd.SetArgs([]string{created.ID, "--add-link", "TASK-260613-i-01:implements,LOG-260613-01:records"})
+	updateCmd.SetArgs([]string{created.ID, "--add-link", "TASK-260613-01:implements,LOG-260613-01:records"})
 	if err := updateCmd.Execute(); err != nil {
 		t.Fatalf("card update failed: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestCardCreateAndUpdateParseCommaSeparatedLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading updated card failed: %v", err)
 	}
-	if !hasLinkRelation(updated, "TASK-260613-i-01", "implements") || !hasLinkRelation(updated, "LOG-260613-01", "records") {
+	if !hasLinkRelation(updated, "TASK-260613-01", "implements") || !hasLinkRelation(updated, "LOG-260613-01", "records") {
 		t.Fatalf("updated card links not parsed correctly: %#v", updated.Links)
 	}
 }
@@ -208,6 +208,13 @@ func prepareCardCommandFixture(t *testing.T) string {
 	task.AddLink("REQ-260613-01", "implements")
 	if _, err := store.CreateCard(task, "CR26061301"); err != nil {
 		t.Fatalf("creating task card failed: %v", err)
+	}
+
+	log := core.NewCard(core.CardTypeLog, "Fixture log")
+	log.ID = "LOG-260613-01"
+	log.Body = "# Summary\n\nFixture log."
+	if _, err := store.CreateCard(log, "CR26061301"); err != nil {
+		t.Fatalf("creating log card failed: %v", err)
 	}
 
 	return tmpDir

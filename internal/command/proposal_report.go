@@ -559,7 +559,7 @@ func deepReadSuggestions(cards []linkedCard) []string {
 func requirementMapCards(cards []*core.Card) []*core.Card {
 	var filtered []*core.Card
 	for _, card := range cards {
-		if card.Type == core.CardTypeRequirement || card.Type == core.CardTypeStructure || card.Type == core.CardTypeDesign {
+		if card.Type == core.CardTypeRequirement || card.Type == core.CardTypeStructure {
 			filtered = append(filtered, card)
 		}
 	}

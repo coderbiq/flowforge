@@ -274,7 +274,7 @@ func TestValidateCardFileFilenameMismatch(t *testing.T) {
 		Updated:    time.Now(),
 	}
 
-	wrongFilename := "REQ-abc-mis_wrong-name.md"
+	wrongFilename := "REQ-different_wrong-name.md"
 	filePath := filepath.Join(tmpDir, wrongFilename)
 
 	if err := card.Save(filePath); err != nil {
@@ -312,6 +312,182 @@ func TestValidateCardFileParseError(t *testing.T) {
 	}
 }
 
+func TestValidateCardFileInStoreRejectsMissingLinkTargets(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewCardStore(tmpDir)
+
+	if err := os.MkdirAll(store.ProposalCardsDir("CR260612"), 0755); err != nil {
+		t.Fatalf("creating proposal cards dir failed: %v", err)
+	}
+
+	card := &Card{
+		ID:         "DES-abc-link",
+		Title:      "Broken link card",
+		Type:       CardTypeDesign,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Links: []Link{
+			{Target: "REQ-MISSING", Relation: "references"},
+		},
+		Created: time.Now(),
+		Updated: time.Now(),
+	}
+
+	filePath := filepath.Join(store.ProposalCardsDir("CR260612"), GenerateFilename(card.ID, card.Title))
+	if err := card.Save(filePath); err != nil {
+		t.Fatalf("saving card failed: %v", err)
+	}
+
+	result := ValidateCardFileInStore(filePath, store)
+	if !result.HasErrors() {
+		t.Fatal("expected missing target validation error")
+	}
+}
+
+func TestValidateCardFileInStoreRejectsMissingMarkdownLinkTargets(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewCardStore(tmpDir)
+
+	if err := os.MkdirAll(store.ProposalCardsDir("CR260612"), 0755); err != nil {
+		t.Fatalf("creating proposal cards dir failed: %v", err)
+	}
+
+	card := &Card{
+		ID:         "STR-abc-req",
+		Title:      "Broken structure",
+		Type:       CardTypeStructure,
+		Status:     CardStatusActive,
+		Importance: ImportanceShould,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body:       "## Entries\n\n- [REQ-MISSING](REQ-MISSING.md) - missing",
+	}
+
+	filePath := filepath.Join(store.ProposalCardsDir("CR260612"), GenerateFilename(card.ID, card.Title))
+	if err := card.Save(filePath); err != nil {
+		t.Fatalf("saving card failed: %v", err)
+	}
+
+	result := ValidateCardFileInStore(filePath, store)
+	if !result.HasErrors() {
+		t.Fatal("expected missing markdown link validation error")
+	}
+}
+
+func TestValidateCardFileInStoreRejectsWikiLinks(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewCardStore(tmpDir)
+
+	if err := os.MkdirAll(store.ProposalCardsDir("CR260612"), 0755); err != nil {
+		t.Fatalf("creating proposal cards dir failed: %v", err)
+	}
+
+	card := &Card{
+		ID:         "STR-abc-wiki",
+		Title:      "Wiki structure",
+		Type:       CardTypeStructure,
+		Status:     CardStatusActive,
+		Importance: ImportanceShould,
+		Links:      []Link{{Target: "ROOT-CR260612", Relation: "belongs_to"}},
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body:       "## Entries\n\n- [[REQ-MISSING]] - missing",
+	}
+
+	root := NewCard(CardTypeProposal, "Root")
+	root.ID = "ROOT-CR260612"
+	root.Status = CardStatusActive
+	if err := os.MkdirAll(store.ProposalDir("CR260612"), 0755); err != nil {
+		t.Fatalf("creating proposal dir failed: %v", err)
+	}
+	if err := root.Save(store.ProposalRootCardPath("CR260612")); err != nil {
+		t.Fatalf("saving root failed: %v", err)
+	}
+
+	filePath := filepath.Join(store.ProposalCardsDir("CR260612"), GenerateFilename(card.ID, card.Title))
+	if err := card.Save(filePath); err != nil {
+		t.Fatalf("saving card failed: %v", err)
+	}
+
+	result := ValidateCardFileInStore(filePath, store)
+	if !result.HasErrors() {
+		t.Fatal("expected wikilink validation error")
+	}
+}
+
+func TestValidateCardFileInStoreRequiresFrontmatterOutboundLink(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewCardStore(tmpDir)
+
+	if err := os.MkdirAll(store.ProposalCardsDir("CR260612"), 0755); err != nil {
+		t.Fatalf("creating proposal cards dir failed: %v", err)
+	}
+
+	target := NewCard(CardTypeProposal, "Root")
+	target.ID = "ROOT-CR260612"
+	target.Status = CardStatusActive
+	if err := target.Save(store.ProposalRootCardPath("CR260612")); err != nil {
+		t.Fatalf("saving target failed: %v", err)
+	}
+
+	card := &Card{
+		ID:         "REQ-abc-orphan",
+		Title:      "Orphan with body link",
+		Type:       CardTypeRequirement,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body:       "[Root](../ROOT-CR260612.md)",
+	}
+	filePath := filepath.Join(store.ProposalCardsDir("CR260612"), GenerateFilename(card.ID, card.Title))
+	if err := card.Save(filePath); err != nil {
+		t.Fatalf("saving card failed: %v", err)
+	}
+
+	result := ValidateCardFileInStore(filePath, store)
+	if !result.HasErrors() {
+		t.Fatal("expected missing outbound frontmatter link validation error")
+	}
+}
+
+func TestValidateCardFileInStoreSkipsExternalAndAnchorMarkdownLinks(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewCardStore(tmpDir)
+
+	if err := os.MkdirAll(store.ProposalCardsDir("CR260612"), 0755); err != nil {
+		t.Fatalf("creating proposal cards dir failed: %v", err)
+	}
+
+	root := NewCard(CardTypeProposal, "Root")
+	root.ID = "ROOT-CR260612"
+	root.Status = CardStatusActive
+	if err := root.Save(store.ProposalRootCardPath("CR260612")); err != nil {
+		t.Fatalf("saving root failed: %v", err)
+	}
+
+	card := &Card{
+		ID:         "REQ-abc-external",
+		Title:      "External link card",
+		Type:       CardTypeRequirement,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Links:      []Link{{Target: "ROOT-CR260612", Relation: "belongs_to"}},
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body:       "[site](https://example.com)\n[mail](mailto:test@example.com)\n[anchor](#local)",
+	}
+	filePath := filepath.Join(store.ProposalCardsDir("CR260612"), GenerateFilename(card.ID, card.Title))
+	if err := card.Save(filePath); err != nil {
+		t.Fatalf("saving card failed: %v", err)
+	}
+
+	result := ValidateCardFileInStore(filePath, store)
+	if result.HasErrors() {
+		t.Fatalf("expected external/anchor links to be skipped, got: %s", result.String())
+	}
+}
+
 func TestValidationResultString(t *testing.T) {
 	result := &ValidationResult{}
 	if result.String() != "valid" {
@@ -337,7 +513,8 @@ func TestIsValidRelation(t *testing.T) {
 		"supersedes", "supports", "questions", "related",
 		"implements", "satisfies", "blocks", "produced",
 		"indexes", "decomposes", "analyzes", "designs",
-		"constrains", "records", "discovers",
+		"constrains", "records", "discovers", "belongs_to",
+		"requires",
 	}
 
 	for _, rel := range validRelations {

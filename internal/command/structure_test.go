@@ -20,6 +20,7 @@ func TestStructureCommandsAddListRemove(t *testing.T) {
 		t.Fatalf("chdir failed: %v", err)
 	}
 	createProjectForTest(t, "default")
+	createProposalForTest(t, tmpDir, "Requirement index proposal")
 
 	store := testCardStore(t, tmpDir)
 	structureCard := core.NewCard(core.CardTypeStructure, "Top-level structure")
@@ -55,7 +56,7 @@ func TestStructureCommandsAddListRemove(t *testing.T) {
 	if reloaded.Links[0].Target != "REQ-001" || reloaded.Links[0].Relation != "indexes" {
 		t.Fatalf("unexpected structure link: %#v", reloaded.Links[0])
 	}
-	if !strings.Contains(reloaded.Body, "## Entries") || !strings.Contains(reloaded.Body, "[[REQ-001]] (requirement, draft) - Indexed requirement") {
+	if !strings.Contains(reloaded.Body, "## Entries") || !strings.Contains(reloaded.Body, "[REQ-001](../../01-workspace/02-intake/REQ-001_indexed-requirement.md) (requirement, draft) - Indexed requirement") {
 		t.Fatalf("expected structure body to include readable entry, got:\n%s", reloaded.Body)
 	}
 
@@ -151,11 +152,38 @@ func TestStructureRefreshRebuildsReadableEntries(t *testing.T) {
 	for _, want := range []string{
 		"## Purpose\n\nNavigation.",
 		"## Entries",
-		"[[REQ-READABLE]] (requirement, draft) - Readable requirement",
+		"[REQ-READABLE](../../01-workspace/02-intake/REQ-READABLE_readable-requirement.md) (requirement, draft) - Readable requirement",
 	} {
 		if !strings.Contains(reloaded.Body, want) {
 			t.Fatalf("refreshed body missing %q:\n%s", want, reloaded.Body)
 		}
+	}
+}
+
+func TestStructureAddRejectsInvalidRequirementIndexTargetType(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Requirement index proposal")
+
+	store := testCardStore(t, tmpDir)
+	designCard := core.NewCard(core.CardTypeDesign, "Should not enter req index")
+	designCard.ID = "DES-260614-01"
+	if _, err := store.CreateCard(designCard, proposalID); err != nil {
+		t.Fatalf("creating design card failed: %v", err)
+	}
+
+	cmd := newStructureAddCmd()
+	cmd.SetArgs([]string{"STR-" + proposalID + "-REQ", "DES-260614-01"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected structure add to reject design under requirement index")
 	}
 }
 
