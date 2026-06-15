@@ -5,11 +5,12 @@ Use one primary mode per turn.
 ## Turn Loop
 
 1. Inspect project, proposal, and context.
-2. Pick one mode: index, clarify, analyze, discover library, design, or split tasks.
-3. Write or update cards through CLI only.
-4. Record a log when the turn changes proposal state.
-5. Run `flowforge validate all` after creating or changing proposal structure.
-6. Report changed cards, relations, validation result, gaps, and one next step.
+2. Review `proposal inspect` Health Issues.
+3. Pick one mode: index, clarify, analyze, discover library, design, split tasks, or refresh navigation.
+4. Write or update cards through CLI only.
+5. Record a log when the turn changes proposal state.
+6. Run `flowforge validate all` after creating or changing proposal structure.
+7. Report changed cards, relations, validation result, gaps, and one next step.
 
 ## Mode Selection
 
@@ -21,6 +22,7 @@ Use one primary mode per turn.
 | discover library | design needs conventions, modules, decisions, or findings | `library suggest`, `card search`, `card read` |
 | design | a stable conclusion exists but no design card exists | `card create --type design` |
 | split tasks | requirement and design are stable enough for implementation | `task create --type i --status ready/not_ready` |
+| refresh navigation | requirement/design relationships changed | `card refresh <REQ/DES id>` |
 
 ## Link Invariants
 
@@ -42,6 +44,7 @@ Use one primary mode per turn.
 - Reusable fact or risk: create finding.
 - Stable design conclusion: create design card.
 - Implementation work: create task only when requirement, design, constraints, acceptance, and out-of-scope are clear.
+- After adding analysis/design/task links for a requirement or implementation links for a design, run `card refresh <id>`.
 
 ## Ready Rules
 
@@ -52,6 +55,8 @@ Ready analysis tasks require goal, inputs, investigation plan, expected outputs,
 ## Library Rules
 
 Do not read library files. First use `library suggest --for <card-id>` or `card search <query> --scope library`; read only confirmed candidates with `card read --summary` or `--section`.
+
+Use `library import` only after source material has already been decomposed into a structured candidate. Use `library promote <card-id>` to copy a stable proposal card into library. Do not write library card files directly.
 
 ## Output Rules
 

@@ -138,7 +138,7 @@ projects: []
 
 第一版提供 `flowforge library suggest --for <card-id>`，用于从当前焦点卡推荐可能相关的 library 卡片。输出只包含候选摘要、匹配原因、建议关系和后续 `card read --summary` 命令，不展开卡片全文。
 
-MVP 使用本地卡片扫描和关键词打分，不依赖 embedding；后续可切换到 sqlite FTS / BM25，但 CLI 输出契约保持稳定。
+MVP 使用本地卡片扫描和关键词打分，不依赖 embedding；后续可切换到 sqlite FTS / BM25，但 CLI 输出契约保持稳定。知识导入的 MVP 不负责智能拆分长文，只接收已经结构化的候选卡片或从 proposal 卡片复制沉淀。
 
 ---
 
@@ -150,6 +150,8 @@ MVP 使用本地卡片扫描和关键词打分，不依赖 embedding；后续可
 flowforge library facets
 flowforge library classify --for <card-id>
 flowforge library suggest --for <card-id> [--facet key:value] [--types ...]
+flowforge library import --type <type> --title <title> --body <body> (--source-card <id> | --links <id:relation>)
+flowforge library promote <card-id> [--type <type>] [--title <title>]
 ```
 
 ### 4.2 Facet 机制
@@ -169,6 +171,14 @@ tags:
 `library suggest --facet` 基于显式 facet 组合过滤候选卡，再结合关键词、类型、状态、importance 排序。Agent 必须读取摘要或 section 确认后，才把稳定规范链接到任务或设计卡。
 
 完整知识导入和 promote 设计见 [Library 知识导入设计](./library-knowledge-ingestion-design.md)。
+
+### 4.3 导入与沉淀
+
+`library import` 用于把外部资料预处理后的候选卡安全写入 library。候选拆分由 SKILL/Agent 完成，CLI 负责校验类型、关系、外链和写入位置。
+
+`library promote` 用于把 proposal 内已经稳定的 finding/design/convention 等复制为 library 卡，保留原卡作为追溯证据，新 library 卡通过 `references -> <source-card>` 指回来源。
+
+两者都要求至少有一个 outbound frontmatter link，避免生成孤儿 library 卡。
 
 ## 5. `flowforge upgrade` 命令设计
 
@@ -421,7 +431,10 @@ flowforge card
 |       # 读取卡片内容；可只读摘要或指定段落，避免一次加载全文
 |
 +-- update <card-id> [--title] [--body] [--links] [--status] [--importance]
-|       # 更新卡片，标题变更时自动重命名文件
+|       # 更新卡片，文件名保持创建时稳定
+|
++-- refresh <card-id>
+|       # 刷新 CLI 生成的内部导航；当前支持 REQ/DES 的 FlowForge Navigation
 |
 +-- delete <card-id> [--force]
 |       # 删除卡片（仅 draft 状态可直接删除）
@@ -500,7 +513,18 @@ $ flowforge card search "分页 查询 条件" --scope library --type convention
 # 返回候选卡片摘要、status/domain/tags 命中原因，不直接输出全文
 ```
 
-### 8.5 链接类型
+### 8.5 生成导航
+
+`card refresh <card-id>` 是内部卡片导航的唯一正文写入入口之一。Agent 不手写内部卡片链接。
+
+当前支持：
+
+- `requirement`：刷新 `FlowForge Navigation`，列出关联 analysis task、design card、implementation task。
+- `design`：刷新 `FlowForge Navigation`，列出关联 implementation task。
+
+导航来源是 frontmatter 关系，正文仅是 CLI 渲染结果。
+
+### 8.6 链接类型
 
 | 关系 | 含义 | 示例 |
 |------|------|------|
@@ -555,6 +579,16 @@ mode:
 
 - `context proposal`：输出 proposal root、需求索引、焦点卡、反链证据和深读建议。
 - `context task --task <task-id>`：输出任务摘要、任务直接链接卡、指向任务的 log/finding/design/decision 反链证据，以及后续 `card read --summary` 深读命令。
+
+`proposal inspect` 输出 `Health Issues`，用于在重建 wiki 前发现全链路缺口：
+
+- requirement 未进入需求索引树。
+- requirement/design 缺少 CLI 生成的 `FlowForge Navigation`。
+- 子任务缺少 `decomposes -> parent`。
+- analysis task 缺少 `analyzes`。
+- implementation task 缺少设计、需求追溯或 convention/module 约束。
+
+Health Issues 只做行动提示，不替代 `validate all` 的硬校验。
 
 ### 9.2 输出格式
 

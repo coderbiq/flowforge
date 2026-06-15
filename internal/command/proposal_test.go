@@ -390,6 +390,95 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 	}
 }
 
+func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Health proposal")
+
+	store := testCardStore(t, tmpDir)
+	req := core.NewCard(core.CardTypeRequirement, "Unindexed requirement")
+	req.ID = "REQ-health"
+	req.AddLink("ROOT-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(req, proposalID); err != nil {
+		t.Fatalf("creating requirement failed: %v", err)
+	}
+
+	design := core.NewCard(core.CardTypeDesign, "Health design")
+	design.ID = "DES-health"
+	design.AddLink("ROOT-"+proposalID, "belongs_to")
+	design.AddLink(req.ID, "designs")
+	if _, err := store.CreateCard(design, proposalID); err != nil {
+		t.Fatalf("creating design failed: %v", err)
+	}
+
+	task := core.NewCard(core.CardTypeTask, "Implement health design")
+	task.ID = "TASK-" + proposalID + "-i-health"
+	task.Status = core.CardStatusReady
+	task.Body = strings.Join([]string{
+		"## Goal\n\nImplement health design.",
+		"## Deliverables\n\n- Code",
+		"## Acceptance\n\n- Tests pass",
+		"## Out of Scope\n\n- None",
+		"## Read Before Work\n\n- Design",
+	}, "\n\n")
+	task.AddLink("ROOT-"+proposalID, "belongs_to")
+	task.AddLink(design.ID, "implements")
+	if _, err := store.CreateCard(task, proposalID); err != nil {
+		t.Fatalf("creating task failed: %v", err)
+	}
+
+	inspectCmd := newProposalInspectCmd()
+	var inspectOut bytes.Buffer
+	inspectCmd.SetOut(&inspectOut)
+	inspectCmd.SetArgs([]string{proposalID})
+	if err := inspectCmd.Execute(); err != nil {
+		t.Fatalf("proposal inspect failed: %v", err)
+	}
+	inspectText := inspectOut.String()
+	for _, want := range []string{
+		"## Health Issues",
+		"REQ-health",
+		"requirement is not reachable from a requirement index",
+		"requirement navigation is stale or missing",
+		"DES-health",
+		"design navigation is stale or missing",
+		"TASK-" + proposalID + "-i-health",
+		"ready implementation task has no linked convention constraints",
+		"flowforge card refresh REQ-health",
+		"flowforge card refresh DES-health",
+	} {
+		if !strings.Contains(inspectText, want) {
+			t.Fatalf("proposal inspect health output missing %q:\n%s", want, inspectText)
+		}
+	}
+
+	contextCmd := newContextProposalCmd()
+	var contextOut bytes.Buffer
+	contextCmd.SetOut(&contextOut)
+	contextCmd.SetArgs([]string{"--proposal", proposalID, "--cards", req.ID})
+	if err := contextCmd.Execute(); err != nil {
+		t.Fatalf("context proposal failed: %v", err)
+	}
+	contextText := contextOut.String()
+	for _, want := range []string{
+		"## Health Issues",
+		"REQ-health",
+		"flowforge card refresh REQ-health",
+	} {
+		if !strings.Contains(contextText, want) {
+			t.Fatalf("context health output missing %q:\n%s", want, contextText)
+		}
+	}
+}
+
 func TestProposalArchiveAndDeleteCommands(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)

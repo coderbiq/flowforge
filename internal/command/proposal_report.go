@@ -29,11 +29,20 @@ type proposalBacklink struct {
 
 type proposalInspectReport struct {
 	snapshot *proposalSnapshot
+	health   []proposalHealthIssue
 }
 
 type proposalContextReport struct {
 	snapshot *proposalSnapshot
 	focus    *core.Card
+	health   []proposalHealthIssue
+}
+
+type proposalHealthIssue struct {
+	Severity string
+	CardID   string
+	Message  string
+	Command  string
 }
 
 func buildProposalInspectReport(store *core.CardStore, proposalID string) (*proposalInspectReport, error) {
@@ -41,7 +50,7 @@ func buildProposalInspectReport(store *core.CardStore, proposalID string) (*prop
 	if err != nil {
 		return nil, err
 	}
-	return &proposalInspectReport{snapshot: snapshot}, nil
+	return &proposalInspectReport{snapshot: snapshot, health: collectProposalHealthIssues(snapshot)}, nil
 }
 
 func buildProposalContextReport(store *core.CardStore, proposalID, cardID, taskID string) (*proposalContextReport, error) {
@@ -52,6 +61,7 @@ func buildProposalContextReport(store *core.CardStore, proposalID, cardID, taskI
 	return &proposalContextReport{
 		snapshot: snapshot,
 		focus:    focusCardFromFlags(snapshot, cardID, taskID),
+		health:   collectProposalHealthIssues(snapshot),
 	}, nil
 }
 
@@ -157,6 +167,10 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	fmt.Fprintf(w, "- DirectChildIndexes: %d\n", countChildIndexes(s.cards, s.proposalID))
 	fmt.Fprintf(w, "- OversizedIndexes: %s\n", joinOrNone(oversizedIndexes(s.cards)))
 	fmt.Fprintf(w, "- MissingIndexes: %s\n", joinOrNone(missingIndexes(s)))
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "## Health Issues")
+	renderProposalHealthIssues(w, report.health, 0)
 	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, "## Task Summary")
@@ -282,6 +296,10 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	if len(requirementMap) < len(allRequirementMap) {
 		fmt.Fprintf(w, "\n- Omitted: %d non-focused requirement map cards. Use `proposal inspect` or `structure list` for broader navigation.\n", len(allRequirementMap)-len(requirementMap))
 	}
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "## Health Issues")
+	renderProposalHealthIssues(w, report.health, 5)
 	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, "## Focus Card")
@@ -497,6 +515,12 @@ func proposalRecommendations(snapshot *proposalSnapshot, openQuestions []string,
 		return []string{"No snapshot available"}
 	}
 
+	health := collectProposalHealthIssues(snapshot)
+	if len(health) > 0 {
+		return []string{
+			fmt.Sprintf("Resolve health issue: %s %s", health[0].CardID, health[0].Message),
+		}
+	}
 	if len(openQuestions) > 0 {
 		return []string{
 			fmt.Sprintf("Continue design by resolving %s", openQuestions[0]),
@@ -516,6 +540,217 @@ func proposalRecommendations(snapshot *proposalSnapshot, openQuestions []string,
 		return []string{"Continue design by expanding the requirement index tree"}
 	}
 	return []string{"Continue design by creating the proposal working surface"}
+}
+
+func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIssue {
+	if snapshot == nil {
+		return nil
+	}
+
+	var issues []proposalHealthIssue
+	add := func(severity, cardID, message, command string) {
+		issues = append(issues, proposalHealthIssue{
+			Severity: severity,
+			CardID:   cardID,
+			Message:  message,
+			Command:  command,
+		})
+	}
+
+	rootID := "ROOT-" + snapshot.proposalID
+	reqIndexID := "STR-" + snapshot.proposalID + "-REQ"
+	if snapshot.rootCard == nil {
+		add("error", rootID, "missing proposal root card", "flowforge proposal create <title>")
+	} else if !hasLinkRelation(snapshot.rootCard, reqIndexID, "indexes") {
+		add("error", snapshot.rootCard.ID, "root does not index requirement index", "flowforge card link "+snapshot.rootCard.ID+" "+reqIndexID+" --relation indexes")
+	}
+	if snapshot.requirementIndex == nil {
+		add("error", reqIndexID, "missing requirement index", "flowforge proposal create <title>")
+	}
+
+	indexedRequirements := indexedRequirementSet(snapshot)
+	for _, card := range snapshot.cards {
+		switch card.Type {
+		case core.CardTypeRequirement:
+			if !indexedRequirements[card.ID] {
+				add("warn", card.ID, "requirement is not reachable from a requirement index", "flowforge structure add "+reqIndexID+" "+card.ID)
+			}
+			if requirementNeedsNavigation(snapshot, card) && !hasSection(card.Body, "FlowForge Navigation") {
+				add("warn", card.ID, "requirement navigation is stale or missing", "flowforge card refresh "+card.ID)
+			}
+		case core.CardTypeDesign:
+			if designNeedsNavigation(snapshot, card) && !hasSection(card.Body, "FlowForge Navigation") {
+				add("warn", card.ID, "design navigation is stale or missing", "flowforge card refresh "+card.ID)
+			}
+		case core.CardTypeTask:
+			issues = append(issues, taskHealthIssues(snapshot, card)...)
+		}
+	}
+
+	sort.SliceStable(issues, func(i, j int) bool {
+		if issues[i].Severity != issues[j].Severity {
+			return severityRank(issues[i].Severity) < severityRank(issues[j].Severity)
+		}
+		if issues[i].CardID != issues[j].CardID {
+			return issues[i].CardID < issues[j].CardID
+		}
+		return issues[i].Message < issues[j].Message
+	})
+	return issues
+}
+
+func renderProposalHealthIssues(w io.Writer, issues []proposalHealthIssue, limit int) {
+	if len(issues) == 0 {
+		fmt.Fprintln(w, "- None")
+		return
+	}
+	rendered := issues
+	if limit > 0 && len(rendered) > limit {
+		rendered = rendered[:limit]
+	}
+	fmt.Fprintln(w, "| Severity | Card | Issue | Suggested Command |")
+	fmt.Fprintln(w, "|----------|------|-------|-------------------|")
+	for _, issue := range rendered {
+		fmt.Fprintf(w, "| %s | %s | %s | `%s` |\n",
+			issue.Severity,
+			issue.CardID,
+			escapeTableCell(issue.Message),
+			escapeTableCell(issue.Command),
+		)
+	}
+	if limit > 0 && len(issues) > limit {
+		fmt.Fprintf(w, "\n- OmittedHealthIssues: %d\n", len(issues)-limit)
+	}
+}
+
+func severityRank(severity string) int {
+	switch severity {
+	case "error":
+		return 0
+	case "warn":
+		return 1
+	default:
+		return 2
+	}
+}
+
+func indexedRequirementSet(snapshot *proposalSnapshot) map[string]bool {
+	indexed := map[string]bool{}
+	for _, card := range snapshot.cards {
+		if card.Type != core.CardTypeStructure {
+			continue
+		}
+		for _, link := range card.Links {
+			if link.Relation != "indexes" {
+				continue
+			}
+			target := snapshot.cardByID[link.Target]
+			if target != nil && target.Type == core.CardTypeRequirement {
+				indexed[target.ID] = true
+			}
+		}
+	}
+	return indexed
+}
+
+func requirementNeedsNavigation(snapshot *proposalSnapshot, requirement *core.Card) bool {
+	for _, backlink := range snapshot.backlinks[requirement.ID] {
+		card := backlink.from
+		switch card.Type {
+		case core.CardTypeTask:
+			if backlink.relation == "analyzes" || backlink.relation == "requires" || backlink.relation == "satisfies" {
+				return true
+			}
+		case core.CardTypeDesign:
+			if backlink.relation == "designs" || backlink.relation == "satisfies" || backlink.relation == "requires" || backlink.relation == "references" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func designNeedsNavigation(snapshot *proposalSnapshot, design *core.Card) bool {
+	for _, backlink := range snapshot.backlinks[design.ID] {
+		card := backlink.from
+		if card.Type == core.CardTypeTask && !isAnalysisTask(card) && (backlink.relation == "implements" || backlink.relation == "requires" || backlink.relation == "references") {
+			return true
+		}
+	}
+	return false
+}
+
+func taskHealthIssues(snapshot *proposalSnapshot, task *core.Card) []proposalHealthIssue {
+	var issues []proposalHealthIssue
+	add := func(message, command string) {
+		issues = append(issues, proposalHealthIssue{
+			Severity: "warn",
+			CardID:   task.ID,
+			Message:  message,
+			Command:  command,
+		})
+	}
+
+	if core.IsSubTaskID(task.ID) {
+		parentID, err := core.GetParentTaskID(task.ID)
+		if err == nil && !hasLinkRelation(task, parentID, "decomposes") {
+			add("subtask does not link to parent with decomposes", "flowforge task link-add "+task.ID+" "+parentID+":decomposes")
+		}
+	}
+
+	if isAnalysisTask(task) {
+		if !hasAnyRelation(task, "analyzes") {
+			add("analysis task does not link to analyzed requirement or structure", "flowforge task link-add "+task.ID+" <REQ-or-STR>:analyzes")
+		}
+		return issues
+	}
+
+	if !hasAnyRelation(task, "implements") {
+		add("implementation task does not link to a design with implements", "flowforge task link-add "+task.ID+" <DES>:implements")
+	}
+	if !hasAnyRelation(task, "satisfies") && !linksToRequirementThroughDesign(snapshot, task) {
+		add("implementation task is not traceable to a requirement", "flowforge task link-add "+task.ID+" <REQ>:satisfies")
+	}
+	if task.Status == core.CardStatusReady && !hasAnyRelation(task, "constrains") {
+		add("ready implementation task has no linked convention constraints", "flowforge library suggest --for "+task.ID+" --types convention,module")
+	}
+	return issues
+}
+
+func linksToRequirementThroughDesign(snapshot *proposalSnapshot, task *core.Card) bool {
+	for _, link := range task.Links {
+		if link.Relation != "implements" {
+			continue
+		}
+		design := snapshot.cardByID[link.Target]
+		if design == nil {
+			continue
+		}
+		for _, designLink := range design.Links {
+			target := snapshot.cardByID[designLink.Target]
+			if target != nil && target.Type == core.CardTypeRequirement {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasAnyRelation(card *core.Card, relations ...string) bool {
+	relationSet := map[string]bool{}
+	for _, relation := range relations {
+		relationSet[relation] = true
+	}
+	for _, link := range card.Links {
+		if relationSet[link.Relation] {
+			return true
+		}
+	}
+	return false
+}
+
+func hasSection(body, section string) bool {
+	return strings.TrimSpace(extractSection(body, section)) != ""
 }
 
 func directLinkedCards(snapshot *proposalSnapshot, cardID string) []linkedCard {

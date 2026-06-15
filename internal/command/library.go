@@ -22,8 +22,228 @@ func newLibraryCmd() *cobra.Command {
 	cmd.AddCommand(newLibrarySuggestCmd())
 	cmd.AddCommand(newLibraryFacetsCmd())
 	cmd.AddCommand(newLibraryClassifyCmd())
+	cmd.AddCommand(newLibraryImportCmd())
+	cmd.AddCommand(newLibraryPromoteCmd())
 
 	return cmd
+}
+
+func newLibraryImportCmd() *cobra.Command {
+	var (
+		cardType     string
+		title        string
+		body         string
+		status       string
+		importance   string
+		domain       string
+		source       string
+		sourceCardID string
+		links        []string
+		tags         []string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "import",
+		Short: "Import a structured candidate into library",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(title) == "" {
+				return fmt.Errorf("--title is required")
+			}
+			ct := core.CardType(cardType)
+			if err := validateLibraryImportType(ct); err != nil {
+				return err
+			}
+			cardStatus := core.CardStatus(status)
+			if !cardStatus.Valid() {
+				return fmt.Errorf("invalid status: %s", status)
+			}
+			cardImportance := core.Importance(importance)
+			if !cardImportance.Valid() {
+				return fmt.Errorf("invalid importance: %s", importance)
+			}
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			card := core.NewCard(ct, title)
+			card.ID = core.GenerateCardID(ct, "")
+			card.Status = cardStatus
+			card.Importance = cardImportance
+			card.Body = body
+			card.Tags = tags
+			card.Domain = domain
+			card.Source = source
+
+			if sourceCardID != "" {
+				if _, err := store.ReadCard(sourceCardID); err != nil {
+					return fmt.Errorf("reading source card %s: %w", sourceCardID, err)
+				}
+				card.AddLink(sourceCardID, "references")
+				if card.Source == "" {
+					card.Source = sourceCardID
+				}
+			}
+
+			parsedLinks, err := parseLinkArgs(links)
+			if err != nil {
+				return err
+			}
+			if err := ensureLinkTargetsExist(store, parsedLinks); err != nil {
+				return err
+			}
+			for _, link := range parsedLinks {
+				card.AddLink(link.target, link.relation)
+			}
+
+			if len(card.Links) == 0 {
+				return fmt.Errorf("library import requires at least one outbound link; pass --source-card or --links")
+			}
+
+			filePath, err := store.CreateCard(card, "")
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Imported library card %s\n", card.ID)
+			fmt.Fprintf(cmd.OutOrStdout(), "  Type: %s\n", card.Type)
+			fmt.Fprintf(cmd.OutOrStdout(), "  File: %s\n", filePath)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&cardType, "type", "", "Library card type")
+	cmd.Flags().StringVar(&title, "title", "", "Card title")
+	cmd.Flags().StringVar(&body, "body", "", "Card body content")
+	cmd.Flags().StringVar(&status, "status", string(core.CardStatusActive), "Card status")
+	cmd.Flags().StringVar(&importance, "importance", string(core.ImportanceShould), "Card importance")
+	cmd.Flags().StringVar(&domain, "domain", "", "Card domain")
+	cmd.Flags().StringVar(&source, "source", "", "Source label")
+	cmd.Flags().StringVar(&sourceCardID, "source-card", "", "Source card ID to reference")
+	cmd.Flags().StringSliceVar(&links, "links", nil, "Links to cards (format: CARD_ID or CARD_ID:relation)")
+	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the card")
+
+	return cmd
+}
+
+func newLibraryPromoteCmd() *cobra.Command {
+	var (
+		cardType   string
+		title      string
+		status     string
+		importance string
+		domain     string
+		links      []string
+		tags       []string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "promote <card-id>",
+		Short: "Promote a proposal card copy into library",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			sourceCardID := args[0]
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+			sourceCard, err := store.ReadCard(sourceCardID)
+			if err != nil {
+				return err
+			}
+
+			ct := sourceCard.Type
+			if strings.TrimSpace(cardType) != "" {
+				ct = core.CardType(cardType)
+			}
+			if err := validateLibraryImportType(ct); err != nil {
+				return err
+			}
+
+			cardStatus := core.CardStatus(status)
+			if !cardStatus.Valid() {
+				return fmt.Errorf("invalid status: %s", status)
+			}
+			cardImportance := core.Importance(importance)
+			if !cardImportance.Valid() {
+				return fmt.Errorf("invalid importance: %s", importance)
+			}
+
+			cardTitle := title
+			if strings.TrimSpace(cardTitle) == "" {
+				cardTitle = sourceCard.Title
+			}
+			cardDomain := domain
+			if cardDomain == "" {
+				cardDomain = sourceCard.Domain
+			}
+			cardTags := tags
+			if len(cardTags) == 0 {
+				cardTags = append([]string{}, sourceCard.Tags...)
+			}
+
+			card := core.NewCard(ct, cardTitle)
+			card.ID = core.GenerateCardID(ct, "")
+			card.Status = cardStatus
+			card.Importance = cardImportance
+			card.Body = sourceCard.Body
+			card.Tags = cardTags
+			card.Domain = cardDomain
+			card.Source = sourceCard.ID
+			card.AddLink(sourceCard.ID, "references")
+
+			parsedLinks, err := parseLinkArgs(links)
+			if err != nil {
+				return err
+			}
+			if err := ensureLinkTargetsExist(store, parsedLinks); err != nil {
+				return err
+			}
+			for _, link := range parsedLinks {
+				card.AddLink(link.target, link.relation)
+			}
+
+			filePath, err := store.CreateCard(card, "")
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Promoted %s to library card %s\n", sourceCard.ID, card.ID)
+			fmt.Fprintf(cmd.OutOrStdout(), "  Type: %s\n", card.Type)
+			fmt.Fprintf(cmd.OutOrStdout(), "  File: %s\n", filePath)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&cardType, "type", "", "Override library card type")
+	cmd.Flags().StringVar(&title, "title", "", "Override card title")
+	cmd.Flags().StringVar(&status, "status", string(core.CardStatusActive), "Card status")
+	cmd.Flags().StringVar(&importance, "importance", string(core.ImportanceShould), "Card importance")
+	cmd.Flags().StringVar(&domain, "domain", "", "Override card domain")
+	cmd.Flags().StringSliceVar(&links, "links", nil, "Additional links to cards (format: CARD_ID or CARD_ID:relation)")
+	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Override tags for the card")
+
+	return cmd
+}
+
+func validateLibraryImportType(cardType core.CardType) error {
+	if !cardType.Valid() {
+		return fmt.Errorf("invalid library card type: %s", cardType)
+	}
+	switch cardType {
+	case core.CardTypeRequirement,
+		core.CardTypeDecision,
+		core.CardTypeDesign,
+		core.CardTypeConvention,
+		core.CardTypeFinding,
+		core.CardTypeModule:
+		return nil
+	default:
+		return fmt.Errorf("card type %s cannot be imported into library through this command", cardType)
+	}
 }
 
 func newLibrarySuggestCmd() *cobra.Command {

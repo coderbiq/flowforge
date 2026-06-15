@@ -24,6 +24,7 @@ func newCardCmd() *cobra.Command {
 	cmd.AddCommand(newCardReadCmd())
 	cmd.AddCommand(newCardListCmd())
 	cmd.AddCommand(newCardUpdateCmd())
+	cmd.AddCommand(newCardRefreshCmd())
 	cmd.AddCommand(newCardDeleteCmd())
 	cmd.AddCommand(newCardRelatedCmd())
 	cmd.AddCommand(newCardDependentsCmd())
@@ -31,6 +32,45 @@ func newCardCmd() *cobra.Command {
 	cmd.AddCommand(newCardUnlinkCmd())
 	cmd.AddCommand(newCardSearchCmd())
 
+	return cmd
+}
+
+func newCardRefreshCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "refresh <card-id>",
+		Short: "Refresh CLI-generated card navigation",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cardID := args[0]
+
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+
+			var refreshed bool
+			if err := store.UpdateCardWithLock(cardID, func(card *core.Card) error {
+				body, changed, err := refreshCardGeneratedNavigation(store, card)
+				if err != nil {
+					return err
+				}
+				if changed {
+					card.Body = body
+					refreshed = true
+				}
+				return nil
+			}); err != nil {
+				return err
+			}
+
+			if refreshed {
+				fmt.Fprintf(cmd.OutOrStdout(), "✓ Refreshed %s\n", cardID)
+			} else {
+				fmt.Fprintf(cmd.OutOrStdout(), "No generated navigation for %s\n", cardID)
+			}
+			return nil
+		},
+	}
 	return cmd
 }
 
@@ -760,6 +800,149 @@ func ensureLinkTargetsExist(store *core.CardStore, links []parsedLinkArg) error 
 		}
 	}
 	return nil
+}
+
+func refreshCardGeneratedNavigation(store *core.CardStore, card *core.Card) (string, bool, error) {
+	switch card.Type {
+	case core.CardTypeRequirement:
+		content, err := renderRequirementNavigation(store, card)
+		if err != nil {
+			return "", false, err
+		}
+		return upsertMarkdownSection(card.Body, "FlowForge Navigation", content), true, nil
+	case core.CardTypeDesign:
+		content, err := renderDesignNavigation(store, card)
+		if err != nil {
+			return "", false, err
+		}
+		return upsertMarkdownSection(card.Body, "FlowForge Navigation", content), true, nil
+	default:
+		return card.Body, false, nil
+	}
+}
+
+func renderRequirementNavigation(store *core.CardStore, requirement *core.Card) (string, error) {
+	cards, err := cardsInNavigationScope(store, requirement)
+	if err != nil {
+		return "", err
+	}
+
+	var analysisTasks []*core.Card
+	var designCards []*core.Card
+	var implementationTasks []*core.Card
+	designIDs := map[string]bool{}
+
+	for _, card := range cards {
+		switch card.Type {
+		case core.CardTypeTask:
+			if !linksToAny(card, []string{requirement.ID}, []string{"analyzes", "requires", "satisfies"}) {
+				continue
+			}
+			if isAnalysisTask(card) {
+				analysisTasks = append(analysisTasks, card)
+			} else {
+				implementationTasks = append(implementationTasks, card)
+			}
+		case core.CardTypeDesign:
+			if linksToAny(card, []string{requirement.ID}, []string{"designs", "satisfies", "requires", "references"}) {
+				designCards = append(designCards, card)
+				designIDs[card.ID] = true
+			}
+		}
+	}
+
+	for _, card := range cards {
+		if card.Type != core.CardTypeTask || isAnalysisTask(card) {
+			continue
+		}
+		if linksToAnyMap(card, designIDs, []string{"implements", "requires", "references"}) && !cardInList(implementationTasks, card.ID) {
+			implementationTasks = append(implementationTasks, card)
+		}
+	}
+
+	sortCardsForContext(analysisTasks)
+	sortCardsForContext(designCards)
+	sortCardsForContext(implementationTasks)
+
+	sections := []string{
+		"### Analysis Tasks\n\n" + renderNavigationList(requirement, analysisTasks),
+		"### Design Cards\n\n" + renderNavigationList(requirement, designCards),
+		"### Implementation Tasks\n\n" + renderNavigationList(requirement, implementationTasks),
+	}
+	return strings.Join(sections, "\n\n"), nil
+}
+
+func renderDesignNavigation(store *core.CardStore, design *core.Card) (string, error) {
+	cards, err := cardsInNavigationScope(store, design)
+	if err != nil {
+		return "", err
+	}
+
+	var implementationTasks []*core.Card
+	for _, card := range cards {
+		if card.Type == core.CardTypeTask && !isAnalysisTask(card) && linksToAny(card, []string{design.ID}, []string{"implements", "requires", "references"}) {
+			implementationTasks = append(implementationTasks, card)
+		}
+	}
+	sortCardsForContext(implementationTasks)
+	return "### Implementation Tasks\n\n" + renderNavigationList(design, implementationTasks), nil
+}
+
+func cardsInNavigationScope(store *core.CardStore, card *core.Card) ([]*core.Card, error) {
+	if card.Source != "" {
+		return store.ListCards(store.ProposalDir(card.Source))
+	}
+	cards, err := store.ListCards(store.ActiveDir())
+	if err != nil {
+		return nil, err
+	}
+	return cards, nil
+}
+
+func renderNavigationList(from *core.Card, cards []*core.Card) string {
+	if len(cards) == 0 {
+		return "- None"
+	}
+	lines := make([]string, 0, len(cards))
+	for _, card := range cards {
+		target, err := markdownLinkTarget(from, card)
+		if err != nil {
+			lines = append(lines, fmt.Sprintf("- %s (%s, %s) - %s", card.ID, card.Type, card.Status, card.Title))
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("- [%s](%s) (%s, %s) - %s", card.ID, target, card.Type, card.Status, card.Title))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func linksToAny(card *core.Card, targets []string, relations []string) bool {
+	targetSet := map[string]bool{}
+	for _, target := range targets {
+		targetSet[target] = true
+	}
+	return linksToAnyMap(card, targetSet, relations)
+}
+
+func linksToAnyMap(card *core.Card, targets map[string]bool, relations []string) bool {
+	relationSet := map[string]bool{}
+	for _, relation := range relations {
+		relationSet[relation] = true
+	}
+	for _, link := range card.Links {
+		if targets[link.Target] && relationSet[link.Relation] {
+			return true
+		}
+	}
+	return false
+}
+
+func cardInList(cards []*core.Card, cardID string) bool {
+	for _, card := range cards {
+		if card.ID == cardID {
+			return true
+		}
+	}
+	return false
 }
 
 func addProposalOwnershipLink(card *core.Card, proposalID string) {

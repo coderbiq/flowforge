@@ -212,6 +212,120 @@ func TestLibraryFacetsClassifyAndSuggestByFacet(t *testing.T) {
 	}
 }
 
+func TestLibraryImportCreatesValidatedLibraryCard(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Library import proposal")
+
+	store := testCardStore(t, tmpDir)
+	source := core.NewCard(core.CardTypeFinding, "Source finding")
+	source.ID = "FIND-import-source"
+	source.AddLink("ROOT-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(source, proposalID); err != nil {
+		t.Fatalf("creating source finding failed: %v", err)
+	}
+
+	cmd := newLibraryImportCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{
+		"--type", "convention",
+		"--title", "Imported service rule",
+		"--body", "## Rule\n\nValidate service filters before repository calls.",
+		"--source-card", source.ID,
+		"--tags", "layer:service,scenario:page-query",
+		"--domain", "service",
+	})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("library import failed: %v", err)
+	}
+	if !strings.Contains(out.String(), "✓ Imported library card CONV-") {
+		t.Fatalf("unexpected import output:\n%s", out.String())
+	}
+
+	cards, err := store.ListCards(store.LibraryTypeDir(core.CardTypeConvention))
+	if err != nil {
+		t.Fatalf("listing convention library failed: %v", err)
+	}
+	if len(cards) != 1 {
+		t.Fatalf("expected 1 imported convention, got %d", len(cards))
+	}
+	if !hasLinkRelation(cards[0], source.ID, "references") {
+		t.Fatalf("expected imported card to reference source card, got %#v", cards[0].Links)
+	}
+
+	validateCmd := newValidateAllCmd()
+	if err := validateCmd.Execute(); err != nil {
+		t.Fatalf("validate all failed after library import: %v", err)
+	}
+}
+
+func TestLibraryPromoteCopiesProposalCardToLibrary(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Library promote proposal")
+
+	store := testCardStore(t, tmpDir)
+	finding := core.NewCard(core.CardTypeFinding, "Promotable finding")
+	finding.ID = "FIND-promote-source"
+	finding.Body = "## Finding\n\nStable reusable behavior."
+	finding.Tags = []string{"behavior"}
+	finding.AddLink("ROOT-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(finding, proposalID); err != nil {
+		t.Fatalf("creating finding failed: %v", err)
+	}
+
+	cmd := newLibraryPromoteCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{finding.ID, "--type", "convention", "--title", "Promoted convention"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("library promote failed: %v", err)
+	}
+	if !strings.Contains(out.String(), "✓ Promoted FIND-promote-source to library card CONV-") {
+		t.Fatalf("unexpected promote output:\n%s", out.String())
+	}
+
+	cards, err := store.ListCards(store.LibraryTypeDir(core.CardTypeConvention))
+	if err != nil {
+		t.Fatalf("listing convention library failed: %v", err)
+	}
+	if len(cards) != 1 {
+		t.Fatalf("expected 1 promoted convention, got %d", len(cards))
+	}
+	promoted := cards[0]
+	if promoted.Title != "Promoted convention" {
+		t.Fatalf("expected overridden title, got %q", promoted.Title)
+	}
+	if promoted.Source != finding.ID {
+		t.Fatalf("expected source %s, got %q", finding.ID, promoted.Source)
+	}
+	if !hasLinkRelation(promoted, finding.ID, "references") {
+		t.Fatalf("expected promoted card to reference source card, got %#v", promoted.Links)
+	}
+
+	validateCmd := newValidateAllCmd()
+	if err := validateCmd.Execute(); err != nil {
+		t.Fatalf("validate all failed after library promote: %v", err)
+	}
+}
+
 func TestLibrarySuggestRequiresFocusCard(t *testing.T) {
 	cmd := newLibrarySuggestCmd()
 	cmd.SetArgs([]string{})
