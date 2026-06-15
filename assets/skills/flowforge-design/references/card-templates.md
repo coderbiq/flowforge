@@ -2,6 +2,8 @@
 
 Use these as the minimum body structure when creating or reviewing FlowForge cards.
 
+Do not put internal card links in these bodies by hand. Use frontmatter links through CLI commands, then run `flowforge card refresh <id>` when a requirement or design needs generated navigation. Hand-written Markdown links are only for external source references.
+
 ## Requirement
 
 ```markdown
@@ -110,3 +112,24 @@ Review rules:
 - One log = one event.
 - Use logs for process evidence, not as a replacement for requirement, design, or finding cards.
 - Logs should point at the relevant proposal, task, requirement, or design.
+
+## Library Candidate
+
+Use this structure before calling `flowforge library import`:
+
+```markdown
+# <candidate title>
+
+## Summary
+
+## Rule or Finding
+
+## Applies When
+
+## Source Evidence
+```
+
+Review rules:
+- Candidate must be atomic and reusable beyond the current proposal.
+- Candidate must have a confirmed type such as `convention`, `module`, `decision`, `design`, or `finding`.
+- Candidate must keep traceability with `--source-card` or explicit `--links`.
