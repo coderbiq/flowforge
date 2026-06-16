@@ -68,8 +68,39 @@ func (s *CardStore) LibraryTypeDir(cardType CardType) string {
 	return filepath.Join(s.LibraryDir(), dirName)
 }
 
+func (s *CardStore) ProposalCardDir() string {
+	return filepath.Join(s.wikiRoot, "03-proposal")
+}
+
 func (s *CardStore) ProposalDir(proposalID string) string {
+	dir := s.findProposalDirIn(proposalID, s.ActiveDir())
+	if dir == "" {
+		return filepath.Join(s.ActiveDir(), proposalID)
+	}
+	return dir
+}
+
+func (s *CardStore) FindProposalDir(proposalID string) string {
+	for _, baseDir := range []string{s.ActiveDir(), s.CompletedDir()} {
+		if dir := s.findProposalDirIn(proposalID, baseDir); dir != "" {
+			return dir
+		}
+	}
 	return filepath.Join(s.ActiveDir(), proposalID)
+}
+
+func (s *CardStore) findProposalDirIn(proposalID string, baseDir string) string {
+	dir := filepath.Join(baseDir, proposalID)
+	if info, err := os.Stat(dir); err == nil && info.IsDir() {
+		return dir
+	}
+	entries, _ := os.ReadDir(baseDir)
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), proposalID+"_") {
+			return filepath.Join(baseDir, entry.Name())
+		}
+	}
+	return ""
 }
 
 func (s *CardStore) ProposalCardsDir(proposalID string) string {
@@ -77,6 +108,13 @@ func (s *CardStore) ProposalCardsDir(proposalID string) string {
 }
 
 func (s *CardStore) ProposalRootCardPath(proposalID string) string {
+	// Proposal root card 现在放在 03-proposal/ 下
+	// 需要先找到 dir_name 来构造文件名
+	metaCard, err := s.findProposalMetaCard(proposalID)
+	if err == nil && metaCard.DirName != "" {
+		return filepath.Join(s.ProposalCardDir(), metaCard.DirName+".md")
+	}
+	// 向后兼容：workspace 下的旧位置
 	return filepath.Join(s.ProposalDir(proposalID), "ROOT-"+proposalID+".md")
 }
 
@@ -84,8 +122,33 @@ func (s *CardStore) ProposalRequirementIndexPath(proposalID string) string {
 	return filepath.Join(s.ProposalDir(proposalID), "STR-"+proposalID+"-REQ.md")
 }
 
+// findProposalMetaCard 在 03-proposal/ 或 workspace 下查找 proposal 卡片
+func (s *CardStore) findProposalMetaCard(proposalID string) (*Card, error) {
+	// 先在 03-proposal/ 下前缀匹配
+	entries, err := os.ReadDir(s.ProposalCardDir())
+	if err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+				continue
+			}
+			if strings.HasPrefix(entry.Name(), proposalID+"_") {
+				path := filepath.Join(s.ProposalCardDir(), entry.Name())
+				return ParseCardFile(path)
+			}
+		}
+	}
+	// 向后兼容：workspace 下的旧 ROOT-{id}.md
+	oldPath := filepath.Join(s.ProposalDir(proposalID), "ROOT-"+proposalID+".md")
+	if card, err := ParseCardFile(oldPath); err == nil {
+		return card, nil
+	}
+	return nil, fmt.Errorf("proposal meta card not found for %s", proposalID)
+}
+
 func (s *CardStore) CreateProposal(proposalID, title string) (string, string, error) {
-	proposalDir := s.ProposalDir(proposalID)
+	slug := ToSlug(title)
+	dirName := proposalID + "_" + slug
+	proposalDir := filepath.Join(s.ActiveDir(), dirName)
 
 	if _, err := os.Stat(proposalDir); err == nil {
 		return "", "", fmt.Errorf("proposal %s already exists", proposalID)
@@ -94,6 +157,7 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	dirs := []string{
 		proposalDir,
 		filepath.Join(proposalDir, "90-cards"),
+		s.ProposalCardDir(),
 	}
 
 	for _, dir := range dirs {
@@ -102,24 +166,27 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 		}
 	}
 
-	rootPath := s.ProposalRootCardPath(proposalID)
-	indexPath := s.ProposalRequirementIndexPath(proposalID)
-
 	rootCard := NewCard(CardTypeProposal, title)
-	rootCard.ID = "ROOT-" + proposalID
+	rootCard.ID = "PROP-" + proposalID
 	rootCard.Status = CardStatusActive
 	rootCard.Source = proposalID
+	rootCard.ProposalID = proposalID
+	rootCard.DirName = dirName
+	rootCard.Slug = slug
 	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Entries\n\n- [STR-%s-REQ](STR-%s-REQ.md) (structure, active) - Requirement index\n\n## Summary\n\nProposal root card.\n", title, proposalID, proposalID, proposalID)
 	rootCard.AddLink("STR-"+proposalID+"-REQ", "indexes")
+
+	rootPath := filepath.Join(s.ProposalCardDir(), dirName+".md")
 	if err := rootCard.Save(rootPath); err != nil {
-		return "", "", fmt.Errorf("writing root card: %w", err)
+		return "", "", fmt.Errorf("writing proposal card: %w", err)
 	}
 
+	indexPath := s.ProposalRequirementIndexPath(proposalID)
 	indexCard := NewCard(CardTypeStructure, title+" Requirements")
 	indexCard.ID = "STR-" + proposalID + "-REQ"
 	indexCard.Status = CardStatusActive
 	indexCard.Source = proposalID
-	indexCard.AddLink("ROOT-"+proposalID, "belongs_to")
+	indexCard.AddLink("PROP-"+proposalID, "belongs_to")
 	indexCard.Body = fmt.Sprintf("# %s Requirements\n\n## Purpose\n\nTop-level requirement index for %s.\n\n## Entries\n\n- None\n\n## Open Questions\n\n- None\n", title, title)
 	if err := indexCard.Save(indexPath); err != nil {
 		return "", "", fmt.Errorf("writing requirement index card: %w", err)
@@ -240,6 +307,7 @@ func (s *CardStore) FindCardPath(cardID string) (string, error) {
 		s.ActiveDir(),
 		s.IntakeDir(),
 		s.LibraryDir(),
+		s.ProposalCardDir(),
 	}
 
 	for _, dir := range searchDirs {
@@ -272,6 +340,14 @@ func (s *CardStore) findCardInDir(cardID string, dir string) (string, error) {
 		if id == cardID {
 			found = path
 			return filepath.SkipAll
+		}
+
+		if strings.HasPrefix(cardID, "PROP-") {
+			proposalID := strings.TrimPrefix(cardID, "PROP-")
+			if strings.HasPrefix(filename, proposalID+"_") || strings.HasPrefix(id, proposalID) || id == "ROOT-"+proposalID {
+				found = path
+				return filepath.SkipAll
+			}
 		}
 
 		return nil
