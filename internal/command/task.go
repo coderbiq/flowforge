@@ -85,6 +85,8 @@ func newTaskCreateCmd() *cobra.Command {
 				return err
 			}
 
+			upsertLinksSection(store, task)
+
 			filePath, err := store.CreateCard(task, resolvedProposalID)
 			if err != nil {
 				return err
@@ -335,6 +337,8 @@ func newTaskSubCmd() *cobra.Command {
 				return err
 			}
 
+			upsertLinksSection(store, task)
+
 			filePath, err := store.CreateCard(task, parent.Source)
 			if err != nil {
 				return err
@@ -420,9 +424,10 @@ func updateTask(taskID string, change func(*core.Card) error) error {
 			return fmt.Errorf("card %s is %s, not task", taskID, task.Type)
 		}
 		if err := change(task); err != nil {
-			return err
-		}
-		status = task.Status
+				return err
+			}
+			upsertLinksSection(store, task)
+			status = task.Status
 		return nil
 	}); err != nil {
 		return err

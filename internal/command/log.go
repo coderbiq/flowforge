@@ -71,6 +71,8 @@ func newLogCreateCmd() *cobra.Command {
 				logCard.AddLink(cardID, "records")
 			}
 
+			upsertLinksSection(store, logCard)
+
 			filePath, err := store.CreateCard(logCard, resolvedProposalID)
 			if err != nil {
 				return err

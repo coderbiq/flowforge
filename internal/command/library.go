@@ -98,6 +98,8 @@ func newLibraryImportCmd() *cobra.Command {
 				card.AddLink(link.target, link.relation)
 			}
 
+			upsertLinksSection(store, card)
+
 			if len(card.Links) == 0 {
 				return fmt.Errorf("library import requires at least one outbound link; pass --source-card or --links")
 			}
@@ -205,6 +207,8 @@ func newLibraryPromoteCmd() *cobra.Command {
 			for _, link := range parsedLinks {
 				card.AddLink(link.target, link.relation)
 			}
+
+			upsertLinksSection(store, card)
 
 			filePath, err := store.CreateCard(card, "")
 			if err != nil {

@@ -151,6 +151,8 @@ Examples:
 				card.AddLink(link.target, link.relation)
 			}
 
+			upsertLinksSection(store, card)
+
 			filePath, err := store.CreateCard(card, resolvedProposalID)
 			if err != nil {
 				return err
@@ -579,6 +581,8 @@ func newCardUpdateCmd() *cobra.Command {
 					card.RemoveLink(link.target, link.relation)
 				}
 
+				upsertLinksSection(store, card)
+
 				return nil
 			}); err != nil {
 				return err
@@ -779,6 +783,7 @@ func newCardLinkCmd() *cobra.Command {
 					return fmt.Errorf("reading target card %s: %w", toID, err)
 				}
 				card.AddLink(toID, relation)
+				upsertLinksSection(store, card)
 				return nil
 			}); err != nil {
 				return err
@@ -803,22 +808,26 @@ func ensureLinkTargetsExist(store *core.CardStore, links []parsedLinkArg) error 
 }
 
 func refreshCardGeneratedNavigation(store *core.CardStore, card *core.Card) (string, bool, error) {
+	body := card.Body
 	switch card.Type {
 	case core.CardTypeRequirement:
 		content, err := renderRequirementNavigation(store, card)
 		if err != nil {
 			return "", false, err
 		}
-		return upsertMarkdownSection(card.Body, "FlowForge Navigation", content), true, nil
+		body = upsertMarkdownSection(card.Body, "FlowForge Navigation", content)
 	case core.CardTypeDesign:
 		content, err := renderDesignNavigation(store, card)
 		if err != nil {
 			return "", false, err
 		}
-		return upsertMarkdownSection(card.Body, "FlowForge Navigation", content), true, nil
-	default:
-		return card.Body, false, nil
+		body = upsertMarkdownSection(card.Body, "FlowForge Navigation", content)
 	}
+
+	linksContent := renderLinksSection(store, card)
+	body = upsertMarkdownSection(body, "Links", linksContent)
+
+	return body, body != card.Body, nil
 }
 
 func renderRequirementNavigation(store *core.CardStore, requirement *core.Card) (string, error) {
@@ -978,6 +987,7 @@ func newCardUnlinkCmd() *cobra.Command {
 				if !card.RemoveLink(toID, relation) {
 					return fmt.Errorf("link not found: %s -> %s (%s)", fromID, toID, relation)
 				}
+				upsertLinksSection(store, card)
 				return nil
 			}); err != nil {
 				return err
@@ -1232,4 +1242,38 @@ func getOutputFormat() string {
 		format = "text"
 	}
 	return format
+}
+
+func renderLinksSection(store *core.CardStore, card *core.Card) string {
+	if card.Type == core.CardTypeStructure {
+		return ""
+	}
+	if len(card.Links) == 0 {
+		return ""
+	}
+
+	var lines []string
+	for _, link := range card.Links {
+		targetCard, err := store.ReadCard(link.Target)
+		if err != nil {
+			lines = append(lines, fmt.Sprintf("- `%s` (%s)", link.Target, link.Relation))
+			continue
+		}
+		targetPath, err := markdownLinkTarget(card, targetCard)
+		if err != nil {
+			lines = append(lines, fmt.Sprintf("- `%s` (%s)", link.Target, link.Relation))
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("- [%s](%s) [%s] (%s) - %s",
+			targetCard.ID, targetPath, targetCard.Type, link.Relation, targetCard.Title))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func upsertLinksSection(store *core.CardStore, card *core.Card) {
+	if card.Type == core.CardTypeStructure {
+		return
+	}
+	content := renderLinksSection(store, card)
+	card.Body = upsertMarkdownSection(card.Body, "Links", content)
 }
