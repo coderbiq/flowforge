@@ -62,6 +62,7 @@ func TestProjectCreateBootstrapsDerivedWikiRoot(t *testing.T) {
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "60-conventions"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "70-findings"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "80-modules"),
+		filepath.Join(tmpDir, "ff-wiki-frontend", "03-proposal"),
 	}
 	for _, dir := range expectedDirs {
 		info, err := os.Stat(dir)

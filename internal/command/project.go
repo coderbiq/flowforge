@@ -375,6 +375,7 @@ func createProjectWikiRoot(wikiRoot string, projectID string, srcDirs []string) 
 		filepath.Join(wikiRoot, "02-library", "60-conventions"),
 		filepath.Join(wikiRoot, "02-library", "70-findings"),
 		filepath.Join(wikiRoot, "02-library", "80-modules"),
+		filepath.Join(wikiRoot, "03-proposal"),
 	}
 
 	for _, dir := range dirs {
@@ -414,6 +415,7 @@ Project: %s
 - **01-workspace/02-intake/** - Pending requirements awaiting triage
 - **01-workspace/03-completed/** - Archived proposals
 - **02-library/** - Archived knowledge organized by type
+- **03-proposal/** - Proposal index cards
 
 ## Getting Started
 
