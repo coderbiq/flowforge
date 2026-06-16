@@ -388,19 +388,23 @@ func TestValidateCardFileInStoreRejectsWikiLinks(t *testing.T) {
 		Type:       CardTypeStructure,
 		Status:     CardStatusActive,
 		Importance: ImportanceShould,
-		Links:      []Link{{Target: "ROOT-CR260612", Relation: "belongs_to"}},
+		Links:      []Link{{Target: "PROP-CR260612", Relation: "belongs_to"}},
 		Created:    time.Now(),
 		Updated:    time.Now(),
 		Body:       "## Entries\n\n- [[REQ-MISSING]] - missing",
 	}
 
 	root := NewCard(CardTypeProposal, "Root")
-	root.ID = "ROOT-CR260612"
+	root.ID = "PROP-CR260612"
 	root.Status = CardStatusActive
-	if err := os.MkdirAll(store.ProposalDir("CR260612"), 0755); err != nil {
+	proposalDir := store.ProposalDir("CR260612")
+	if err := os.MkdirAll(proposalDir, 0755); err != nil {
 		t.Fatalf("creating proposal dir failed: %v", err)
 	}
-	if err := root.Save(store.ProposalRootCardPath("CR260612")); err != nil {
+	if err := os.MkdirAll(filepath.Join(proposalDir, "90-cards"), 0755); err != nil {
+		t.Fatalf("creating cards dir failed: %v", err)
+	}
+	if err := root.Save(filepath.Join(proposalDir, "ROOT-CR260612.md")); err != nil {
 		t.Fatalf("saving root failed: %v", err)
 	}
 
@@ -424,7 +428,7 @@ func TestValidateCardFileInStoreRequiresFrontmatterOutboundLink(t *testing.T) {
 	}
 
 	target := NewCard(CardTypeProposal, "Root")
-	target.ID = "ROOT-CR260612"
+	target.ID = "PROP-CR260612"
 	target.Status = CardStatusActive
 	if err := target.Save(store.ProposalRootCardPath("CR260612")); err != nil {
 		t.Fatalf("saving target failed: %v", err)
@@ -438,7 +442,7 @@ func TestValidateCardFileInStoreRequiresFrontmatterOutboundLink(t *testing.T) {
 		Importance: ImportanceShould,
 		Created:    time.Now(),
 		Updated:    time.Now(),
-		Body:       "[Root](../ROOT-CR260612.md)",
+		Body:       "[Root](../PROP-CR260612.md)",
 	}
 	filePath := filepath.Join(store.ProposalCardsDir("CR260612"), GenerateFilename(card.ID, card.Title))
 	if err := card.Save(filePath); err != nil {
@@ -460,7 +464,7 @@ func TestValidateCardFileInStoreSkipsExternalAndAnchorMarkdownLinks(t *testing.T
 	}
 
 	root := NewCard(CardTypeProposal, "Root")
-	root.ID = "ROOT-CR260612"
+	root.ID = "PROP-CR260612"
 	root.Status = CardStatusActive
 	if err := root.Save(store.ProposalRootCardPath("CR260612")); err != nil {
 		t.Fatalf("saving root failed: %v", err)
@@ -472,7 +476,7 @@ func TestValidateCardFileInStoreSkipsExternalAndAnchorMarkdownLinks(t *testing.T
 		Type:       CardTypeRequirement,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
-		Links:      []Link{{Target: "ROOT-CR260612", Relation: "belongs_to"}},
+		Links:      []Link{{Target: "PROP-CR260612", Relation: "belongs_to"}},
 		Created:    time.Now(),
 		Updated:    time.Now(),
 		Body:       "[site](https://example.com)\n[mail](mailto:test@example.com)\n[anchor](#local)",

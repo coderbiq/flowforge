@@ -125,7 +125,7 @@ func TestCreateProposal(t *testing.T) {
 		t.Errorf("cards directory not created: %v", err)
 	}
 
-	expectedRootPath := filepath.Join(proposalDir, "ROOT-CR260612.md")
+	expectedRootPath := filepath.Join(store.ProposalCardDir(), "CR260612_test-proposal.md")
 	if rootPath != expectedRootPath {
 		t.Fatalf("expected rootPath %s, got %s", expectedRootPath, rootPath)
 	}
@@ -160,7 +160,7 @@ func TestCreateProposal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing index card failed: %v", err)
 	}
-	if !cardHasLink(indexCard, "ROOT-CR260612", "belongs_to") {
+	if !cardHasLink(indexCard, "PROP-CR260612", "belongs_to") {
 		t.Fatalf("requirement index missing belongs_to link to root: %#v", indexCard.Links)
 	}
 	for _, want := range []string{
@@ -174,7 +174,7 @@ func TestCreateProposal(t *testing.T) {
 		}
 	}
 
-	_, _, err = store.CreateProposal("CR260612", "Duplicate")
+	_, _, err = store.CreateProposal("CR260612", "Test Proposal")
 	if err == nil {
 		t.Error("expected error for duplicate proposal")
 	}
@@ -188,7 +188,7 @@ func TestReadCardFindsProposalRootAndIndexFiles(t *testing.T) {
 		t.Fatalf("CreateProposal failed: %v", err)
 	}
 
-	root, err := store.ReadCard("ROOT-CR260612")
+	root, err := store.ReadCard("PROP-CR260612")
 	if err != nil {
 		t.Fatalf("ReadCard root failed: %v", err)
 	}
