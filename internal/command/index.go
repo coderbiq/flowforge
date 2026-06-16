@@ -45,7 +45,7 @@ func newIndexRebuildCmd() *cobra.Command {
 
 			cardStore := core.NewCardStore(wikiRoot)
 			cards := make([]*core.Card, 0, 128)
-			for _, dir := range []string{cardStore.ActiveDir(), cardStore.IntakeDir(), cardStore.CompletedDir(), cardStore.LibraryDir()} {
+			for _, dir := range []string{cardStore.ActiveDir(), cardStore.IntakeDir(), cardStore.CompletedDir(), cardStore.LibraryDir(), cardStore.ProposalCardDir()} {
 				dirCards, err := cardStore.ListCards(dir)
 				if err != nil {
 					return fmt.Errorf("scanning cards in %s: %w", dir, err)

@@ -263,7 +263,7 @@ func newProposalArchiveCmd() *cobra.Command {
 				return err
 			}
 
-			dst := filepath.Join(store.CompletedDir(), proposalID)
+			dst := filepath.Join(store.CompletedDir(), filepath.Base(src))
 			if _, err := os.Stat(dst); err == nil {
 				return fmt.Errorf("completed proposal %q already exists", proposalID)
 			} else if err != nil && !os.IsNotExist(err) {
@@ -389,18 +389,14 @@ func ensureProposalDir(path string, proposalID string) error {
 }
 
 func findProposalDirForDelete(store *core.CardStore, proposalID string) (string, error) {
-	candidates := []string{
-		store.ProposalDir(proposalID),
-		filepath.Join(store.CompletedDir(), proposalID),
+	dir := store.FindProposalDir(proposalID)
+	if dir == "" {
+		return "", fmt.Errorf("proposal %q does not exist in active or completed", proposalID)
 	}
-
-	for _, candidate := range candidates {
-		if err := ensureProposalDir(candidate, proposalID); err == nil {
-			return candidate, nil
-		}
+	if err := ensureProposalDir(dir, proposalID); err != nil {
+		return "", err
 	}
-
-	return "", fmt.Errorf("proposal %q does not exist in active or completed", proposalID)
+	return dir, nil
 }
 
 func nextProposalID(store *core.CardStore) (string, error) {
@@ -432,19 +428,23 @@ func nextProposalIDForPrefix(store *core.CardStore, prefix string) (string, erro
 	return fmt.Sprintf("%s%02d", prefix, maxSeq+1), nil
 }
 
-func proposalSequenceForPrefix(proposalID string, prefix string) (int, bool) {
-	if proposalID == prefix {
+func proposalSequenceForPrefix(dirName string, prefix string) (int, bool) {
+	if dirName == prefix {
 		return 0, true
 	}
-	if !strings.HasPrefix(proposalID, prefix) {
+	if !strings.HasPrefix(dirName, prefix) {
 		return 0, false
 	}
 
-	suffix := strings.TrimPrefix(proposalID, prefix)
-	if len(suffix) < 2 {
+	suffix := strings.TrimPrefix(dirName, prefix)
+	seqStr := suffix
+	if idx := strings.Index(suffix, "_"); idx > 0 {
+		seqStr = suffix[:idx]
+	}
+	if len(seqStr) < 2 {
 		return 0, false
 	}
-	seq, err := strconv.Atoi(suffix)
+	seq, err := strconv.Atoi(seqStr)
 	if err != nil || seq < 1 {
 		return 0, false
 	}

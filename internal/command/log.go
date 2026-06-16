@@ -65,7 +65,7 @@ func newLogCreateCmd() *cobra.Command {
 			logCard.Body = renderLogBody(kind, summary)
 			logCard.Tags = append([]string{kind}, tags...)
 			if len(forCards) == 0 {
-				logCard.AddLink("ROOT-"+resolvedProposalID, "records")
+				logCard.AddLink("PROP-"+resolvedProposalID, "records")
 			}
 			for _, cardID := range forCards {
 				logCard.AddLink(cardID, "records")

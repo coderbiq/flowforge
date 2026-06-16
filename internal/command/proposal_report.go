@@ -91,6 +91,8 @@ func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSn
 	if err != nil {
 		return nil, err
 	}
+	proposalCards, _ := collectProposalCards(store, store.ProposalCardDir())
+	cards = append(cards, proposalCards...)
 
 	snapshot := &proposalSnapshot{
 		projectID:   projectID,
@@ -103,7 +105,7 @@ func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSn
 
 	for _, card := range cards {
 		snapshot.cardByID[card.ID] = card
-		if card.ID == "ROOT-"+proposalID {
+		if card.ID == "PROP-"+proposalID || card.ID == "ROOT-"+proposalID {
 			snapshot.rootCard = card
 		}
 		if card.ID == "STR-"+proposalID+"-REQ" {
@@ -557,7 +559,7 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 		})
 	}
 
-	rootID := "ROOT-" + snapshot.proposalID
+	rootID := "PROP-" + snapshot.proposalID
 	reqIndexID := "STR-" + snapshot.proposalID + "-REQ"
 	if snapshot.rootCard == nil {
 		add("error", rootID, "missing proposal root card", "flowforge proposal create <title>")
@@ -810,7 +812,7 @@ func requirementMapCards(cards []*core.Card) []*core.Card {
 func contextRequirementMapCards(cards []*core.Card) []*core.Card {
 	var filtered []*core.Card
 	for _, card := range cards {
-		if strings.HasPrefix(card.ID, "ROOT-") {
+		if strings.HasPrefix(card.ID, "PROP-") || strings.HasPrefix(card.ID, "ROOT-") {
 			continue
 		}
 		if card.Type == core.CardTypeRequirement || card.Type == core.CardTypeStructure {
@@ -837,7 +839,7 @@ func requirementMapCardsForContext(snapshot *proposalSnapshot, focus *core.Card)
 		if card == nil || seen[card.ID] {
 			return
 		}
-		if strings.HasPrefix(card.ID, "ROOT-") {
+		if strings.HasPrefix(card.ID, "PROP-") || strings.HasPrefix(card.ID, "ROOT-") {
 			return
 		}
 		if card.Type != core.CardTypeRequirement && card.Type != core.CardTypeStructure {
@@ -867,7 +869,7 @@ func requirementNote(card *core.Card, snapshot *proposalSnapshot) string {
 		return ""
 	}
 	switch card.ID {
-	case "ROOT-" + snapshot.proposalID:
+	case "PROP-" + snapshot.proposalID, "ROOT-" + snapshot.proposalID:
 		return "root"
 	case "STR-" + snapshot.proposalID + "-REQ":
 		return "requirement-index"
@@ -888,7 +890,7 @@ func countTopLevelEntries(indexCard *core.Card) int {
 func countChildIndexes(cards []*core.Card, proposalID string) int {
 	count := 0
 	for _, card := range cards {
-		if card.Type == core.CardTypeStructure && card.ID != "ROOT-"+proposalID && card.ID != "STR-"+proposalID+"-REQ" {
+		if card.Type == core.CardTypeStructure && card.ID != "PROP-"+proposalID && card.ID != "ROOT-"+proposalID && card.ID != "STR-"+proposalID+"-REQ" {
 			count++
 		}
 	}
@@ -912,7 +914,7 @@ func oversizedIndexes(cards []*core.Card) []string {
 func missingIndexes(snapshot *proposalSnapshot) []string {
 	var missing []string
 	if snapshot.rootCard == nil {
-		missing = append(missing, "ROOT-"+snapshot.proposalID)
+		missing = append(missing, "PROP-"+snapshot.proposalID)
 	}
 	if snapshot.requirementIndex == nil {
 		missing = append(missing, "STR-"+snapshot.proposalID+"-REQ")

@@ -949,7 +949,7 @@ func addProposalOwnershipLink(card *core.Card, proposalID string) {
 	if card == nil || proposalID == "" || card.Type == core.CardTypeProposal {
 		return
 	}
-	rootID := "ROOT-" + proposalID
+	rootID := "PROP-" + proposalID
 	for _, link := range card.Links {
 		if link.Target == rootID && link.Relation == "belongs_to" {
 			return
