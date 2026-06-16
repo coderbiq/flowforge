@@ -42,7 +42,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newLogCmd())
 	cmd.AddCommand(newValidateCmd())
 	cmd.AddCommand(newStructureCmd())
-	// TODO: upgrade, context, daemon commands
+	cmd.AddCommand(newSkillCmd())
 
 	return cmd
 }
