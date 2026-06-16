@@ -55,7 +55,7 @@ func (t CardType) Prefix() string {
 	case CardTypeStructure:
 		return "STR"
 	case CardTypeProposal:
-		return "ROOT"
+		return "PROP"
 	}
 	return ""
 }
@@ -80,7 +80,7 @@ func CardTypeFromPrefix(prefix string) CardType {
 		return CardTypeModule
 	case "STR":
 		return CardTypeStructure
-	case "ROOT":
+	case "PROP":
 		return CardTypeProposal
 	}
 	return ""
@@ -135,19 +135,23 @@ type Link struct {
 }
 
 type Card struct {
-	ID         string     `yaml:"id" json:"id"`
-	Title      string     `yaml:"title" json:"title"`
-	Type       CardType   `yaml:"type" json:"type"`
-	Status     CardStatus `yaml:"status" json:"status"`
-	Importance Importance `yaml:"importance,omitempty" json:"importance,omitempty"`
-	Tags       []string   `yaml:"tags,omitempty" json:"tags,omitempty"`
-	Links      []Link     `yaml:"links,omitempty" json:"links,omitempty"`
-	Created    time.Time  `yaml:"created" json:"created"`
-	Updated    time.Time  `yaml:"updated" json:"updated"`
-	Source     string     `yaml:"source,omitempty" json:"source,omitempty"`
-	Domain     string     `yaml:"domain,omitempty" json:"domain,omitempty"`
-	Body       string     `yaml:"-" json:"body"`
-	FilePath   string     `yaml:"-" json:"filePath,omitempty"`
+	ID          string      `yaml:"id" json:"id"`
+	Title       string      `yaml:"title" json:"title"`
+	Type        CardType    `yaml:"type" json:"type"`
+	Status      CardStatus  `yaml:"status" json:"status"`
+	Importance  Importance  `yaml:"importance,omitempty" json:"importance,omitempty"`
+	Tags        []string    `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Links       []Link      `yaml:"links,omitempty" json:"links,omitempty"`
+	Created     time.Time   `yaml:"created" json:"created"`
+	Updated     time.Time   `yaml:"updated" json:"updated"`
+	Source      string      `yaml:"source,omitempty" json:"source,omitempty"`
+	Domain      string      `yaml:"domain,omitempty" json:"domain,omitempty"`
+	ProposalID  string      `yaml:"proposal_id,omitempty" json:"proposalId,omitempty"`
+	DirName     string      `yaml:"dir_name,omitempty" json:"dirName,omitempty"`
+	Slug        string      `yaml:"slug,omitempty" json:"slug,omitempty"`
+	Project     string      `yaml:"project,omitempty" json:"project,omitempty"`
+	Body        string      `yaml:"-" json:"body"`
+	FilePath    string      `yaml:"-" json:"filePath,omitempty"`
 }
 
 func NewCard(cardType CardType, title string) *Card {
@@ -217,6 +221,10 @@ func (c *Card) ToMarkdown() ([]byte, error) {
 		Updated    time.Time  `yaml:"updated"`
 		Source     string     `yaml:"source,omitempty"`
 		Domain     string     `yaml:"domain,omitempty"`
+		ProposalID string     `yaml:"proposal_id,omitempty"`
+		DirName    string     `yaml:"dir_name,omitempty"`
+		Slug       string     `yaml:"slug,omitempty"`
+		Project    string     `yaml:"project,omitempty"`
 	}{
 		ID:         c.ID,
 		Title:      c.Title,
@@ -229,6 +237,10 @@ func (c *Card) ToMarkdown() ([]byte, error) {
 		Updated:    c.Updated,
 		Source:     c.Source,
 		Domain:     c.Domain,
+		ProposalID: c.ProposalID,
+		DirName:    c.DirName,
+		Slug:       c.Slug,
+		Project:    c.Project,
 	}
 
 	yamlData, err := yaml.Marshal(frontmatter)
