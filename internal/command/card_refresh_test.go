@@ -9,7 +9,7 @@ import (
 	"flowforge/internal/core"
 )
 
-func TestCardRefreshGeneratesRequirementAndDesignNavigation(t *testing.T) {
+func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)
 
@@ -72,16 +72,11 @@ func TestCardRefreshGeneratesRequirementAndDesignNavigation(t *testing.T) {
 		t.Fatalf("reading refreshed requirement failed: %v", err)
 	}
 	for _, want := range []string{
-		"## FlowForge Navigation",
-		"### Analysis Tasks",
-		"[TASK-" + proposalID + "-a-nav]",
-		"### Design Cards",
-		"[DES-nav]",
-		"### Implementation Tasks",
-		"[TASK-" + proposalID + "-i-nav]",
+		"## Links",
+		"[PROP-" + proposalID + "]",
 	} {
 		if !strings.Contains(refreshedReq.Body, want) {
-			t.Fatalf("requirement navigation missing %q:\n%s", want, refreshedReq.Body)
+			t.Fatalf("requirement links missing %q:\n%s", want, refreshedReq.Body)
 		}
 	}
 
@@ -96,12 +91,12 @@ func TestCardRefreshGeneratesRequirementAndDesignNavigation(t *testing.T) {
 		t.Fatalf("reading refreshed design failed: %v", err)
 	}
 	for _, want := range []string{
-		"## FlowForge Navigation",
-		"### Implementation Tasks",
-		"[TASK-" + proposalID + "-i-nav]",
+		"## Links",
+		"[PROP-" + proposalID + "]",
+		"[REQ-nav]",
 	} {
 		if !strings.Contains(refreshedDesign.Body, want) {
-			t.Fatalf("design navigation missing %q:\n%s", want, refreshedDesign.Body)
+			t.Fatalf("design links missing %q:\n%s", want, refreshedDesign.Body)
 		}
 	}
 
