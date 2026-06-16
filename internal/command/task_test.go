@@ -200,7 +200,7 @@ func TestTaskSubCreatesDecomposesParentLink(t *testing.T) {
 	parent.ID = "TASK-" + proposalID + "-i-parent"
 	parent.Status = core.CardStatusReady
 	parent.Source = proposalID
-	parent.AddLink("ROOT-"+proposalID, "belongs_to")
+	parent.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(parent, proposalID); err != nil {
 		t.Fatalf("creating parent task failed: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestTaskSubCreatesDecomposesParentLink(t *testing.T) {
 	if !hasLinkRelation(child, parent.ID, "decomposes") {
 		t.Fatalf("expected child decomposes parent link, got %#v", child.Links)
 	}
-	if !hasLinkRelation(child, "ROOT-"+proposalID, "belongs_to") {
+	if !hasLinkRelation(child, "PROP-"+proposalID, "belongs_to") {
 		t.Fatalf("expected child belongs_to root link, got %#v", child.Links)
 	}
 }
@@ -240,13 +240,13 @@ func TestTaskLinkAddParsesRelationBeforeReadingTarget(t *testing.T) {
 	task := core.NewCard(core.CardTypeTask, "Link target task")
 	task.ID = "TASK-" + proposalID + "-i-link"
 	task.Status = core.CardStatusReady
-	task.AddLink("ROOT-"+proposalID, "belongs_to")
+	task.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(task, proposalID); err != nil {
 		t.Fatalf("creating task failed: %v", err)
 	}
 	req := core.NewCard(core.CardTypeRequirement, "Requirement target")
 	req.ID = "REQ-link-target"
-	req.AddLink("ROOT-"+proposalID, "belongs_to")
+	req.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(req, proposalID); err != nil {
 		t.Fatalf("creating requirement failed: %v", err)
 	}

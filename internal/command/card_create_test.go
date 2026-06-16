@@ -67,7 +67,7 @@ func TestCardCreateKeepsLibraryTypesGlobalWithoutExplicitProposal(t *testing.T) 
 	proposalID := createProposalForTest(t, tmpDir, "Default proposal")
 
 	cmd := newCardCreateCmd()
-	cmd.SetArgs([]string{"--type", "convention", "--title", "Use explicit errors", "--links", "ROOT-" + proposalID + ":references"})
+	cmd.SetArgs([]string{"--type", "convention", "--title", "Use explicit errors", "--links", "PROP-" + proposalID + ":references"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("card create failed: %v", err)
 	}

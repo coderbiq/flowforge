@@ -342,7 +342,7 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 	inspectText := inspectOut.String()
 	for _, want := range []string{
 		"## Proposal",
-		"RootCard: ROOT-CR260613",
+		"RootCard: PROP-CR260613",
 		"RequirementIndex: STR-CR260613-REQ",
 		"## Task Summary",
 		"## Open Questions",
@@ -406,14 +406,14 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 	store := testCardStore(t, tmpDir)
 	req := core.NewCard(core.CardTypeRequirement, "Unindexed requirement")
 	req.ID = "REQ-health"
-	req.AddLink("ROOT-"+proposalID, "belongs_to")
+	req.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(req, proposalID); err != nil {
 		t.Fatalf("creating requirement failed: %v", err)
 	}
 
 	design := core.NewCard(core.CardTypeDesign, "Health design")
 	design.ID = "DES-health"
-	design.AddLink("ROOT-"+proposalID, "belongs_to")
+	design.AddLink("PROP-"+proposalID, "belongs_to")
 	design.AddLink(req.ID, "designs")
 	if _, err := store.CreateCard(design, proposalID); err != nil {
 		t.Fatalf("creating design failed: %v", err)
@@ -429,7 +429,7 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 		"## Out of Scope\n\n- None",
 		"## Read Before Work\n\n- Design",
 	}, "\n\n")
-	task.AddLink("ROOT-"+proposalID, "belongs_to")
+	task.AddLink("PROP-"+proposalID, "belongs_to")
 	task.AddLink(design.ID, "implements")
 	if _, err := store.CreateCard(task, proposalID); err != nil {
 		t.Fatalf("creating task failed: %v", err)
@@ -494,7 +494,7 @@ func TestProposalArchiveAndDeleteCommands(t *testing.T) {
 
 	store := testCardStore(t, tmpDir)
 	activeDir := store.ProposalDir(proposalID)
-	completedDir := filepath.Join(store.CompletedDir(), proposalID)
+	completedDir := filepath.Join(store.CompletedDir(), filepath.Base(activeDir))
 
 	archiveCmd := newProposalArchiveCmd()
 	if err := archiveCmd.Execute(); err == nil {

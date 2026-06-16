@@ -84,6 +84,17 @@ func TestStructureCommandsAddListRemove(t *testing.T) {
 		t.Fatalf("unexpected list output:\n%s", listOut.String())
 	}
 
+	backupStructure := core.NewCard(core.CardTypeStructure, "Backup structure")
+	backupStructure.ID = "STR-BACKUP"
+	if _, err := store.CreateCard(backupStructure, ""); err != nil {
+		t.Fatalf("creating backup structure card failed: %v", err)
+	}
+	backupAddCmd := newStructureAddCmd()
+	backupAddCmd.SetArgs([]string{"STR-BACKUP", "REQ-001"})
+	if err := backupAddCmd.Execute(); err != nil {
+		t.Fatalf("backup structure add failed: %v", err)
+	}
+
 	removeCmd := newStructureRemoveCmd()
 	var removeOut bytes.Buffer
 	removeCmd.SetOut(&removeOut)
@@ -104,6 +115,18 @@ func TestStructureCommandsAddListRemove(t *testing.T) {
 	}
 	if !strings.Contains(reloaded.Body, "## Entries\n\n- None") {
 		t.Fatalf("expected structure body to show empty entries after remove, got:\n%s", reloaded.Body)
+	}
+
+	guardCmd := newStructureRemoveCmd()
+	var guardOut bytes.Buffer
+	guardCmd.SetOut(&guardOut)
+	guardCmd.SetArgs([]string{"STR-BACKUP", "REQ-001"})
+	guardErr := guardCmd.Execute()
+	if guardErr == nil {
+		t.Fatalf("expected orphan guard to reject remove, but it succeeded:\n%s", guardOut.String())
+	}
+	if !strings.Contains(guardErr.Error(), "would leave the card without any structure index") {
+		t.Fatalf("expected orphan guard error, got: %v", guardErr)
 	}
 }
 

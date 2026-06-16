@@ -25,7 +25,7 @@ func TestCardRefreshGeneratesRequirementAndDesignNavigation(t *testing.T) {
 	store := testCardStore(t, tmpDir)
 	req := core.NewCard(core.CardTypeRequirement, "Navigation requirement")
 	req.ID = "REQ-nav"
-	req.AddLink("ROOT-"+proposalID, "belongs_to")
+	req.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(req, proposalID); err != nil {
 		t.Fatalf("creating requirement failed: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestCardRefreshGeneratesRequirementAndDesignNavigation(t *testing.T) {
 	analysis := core.NewCard(core.CardTypeTask, "Analyze requirement")
 	analysis.ID = "TASK-" + proposalID + "-a-nav"
 	analysis.Status = core.CardStatusReady
-	analysis.AddLink("ROOT-"+proposalID, "belongs_to")
+	analysis.AddLink("PROP-"+proposalID, "belongs_to")
 	analysis.AddLink(req.ID, "analyzes")
 	if _, err := store.CreateCard(analysis, proposalID); err != nil {
 		t.Fatalf("creating analysis task failed: %v", err)
@@ -41,7 +41,7 @@ func TestCardRefreshGeneratesRequirementAndDesignNavigation(t *testing.T) {
 
 	design := core.NewCard(core.CardTypeDesign, "Navigation design")
 	design.ID = "DES-nav"
-	design.AddLink("ROOT-"+proposalID, "belongs_to")
+	design.AddLink("PROP-"+proposalID, "belongs_to")
 	design.AddLink(req.ID, "designs")
 	if _, err := store.CreateCard(design, proposalID); err != nil {
 		t.Fatalf("creating design failed: %v", err)
@@ -50,7 +50,7 @@ func TestCardRefreshGeneratesRequirementAndDesignNavigation(t *testing.T) {
 	task := core.NewCard(core.CardTypeTask, "Implement navigation")
 	task.ID = "TASK-" + proposalID + "-i-nav"
 	task.Status = core.CardStatusReady
-	task.AddLink("ROOT-"+proposalID, "belongs_to")
+	task.AddLink("PROP-"+proposalID, "belongs_to")
 	task.AddLink(design.ID, "implements")
 	if _, err := store.CreateCard(task, proposalID); err != nil {
 		t.Fatalf("creating implementation task failed: %v", err)

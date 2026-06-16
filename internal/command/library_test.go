@@ -228,7 +228,7 @@ func TestLibraryImportCreatesValidatedLibraryCard(t *testing.T) {
 	store := testCardStore(t, tmpDir)
 	source := core.NewCard(core.CardTypeFinding, "Source finding")
 	source.ID = "FIND-import-source"
-	source.AddLink("ROOT-"+proposalID, "belongs_to")
+	source.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(source, proposalID); err != nil {
 		t.Fatalf("creating source finding failed: %v", err)
 	}
@@ -286,7 +286,7 @@ func TestLibraryPromoteCopiesProposalCardToLibrary(t *testing.T) {
 	finding.ID = "FIND-promote-source"
 	finding.Body = "## Finding\n\nStable reusable behavior."
 	finding.Tags = []string{"behavior"}
-	finding.AddLink("ROOT-"+proposalID, "belongs_to")
+	finding.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(finding, proposalID); err != nil {
 		t.Fatalf("creating finding failed: %v", err)
 	}
