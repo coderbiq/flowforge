@@ -21,6 +21,7 @@ Use `references/card-templates.md` for card bodies and `references/library-disco
 - Never load the whole proposal or library.
 - Never create title-only tasks.
 - Do not execute implementation work here.
+- Always use single quotes for `--body` content containing mermaid, code blocks, or shell-special characters (`$`, `` ` ``, `!`, `{}`). Double-quoted `--body "..."` will be corrupted by shell expansion.
 
 ## Output
 
