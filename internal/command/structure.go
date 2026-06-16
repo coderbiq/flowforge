@@ -99,21 +99,26 @@ func newStructureRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			var removed bool
-			if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
-				if card.Type != core.CardTypeStructure {
-					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
-				}
-				removed = card.RemoveLink(cardID, "indexes")
-				refreshedBody, err := refreshStructureEntriesBody(store, card)
-				if err != nil {
-					return err
-				}
-				card.Body = refreshedBody
-				return nil
-			}); err != nil {
+		var removed bool
+		if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
+			if card.Type != core.CardTypeStructure {
+				return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
+			}
+
+			if err := guardOrphanCardOnStructureRemove(store, cardID, structureID); err != nil {
 				return err
 			}
+
+			removed = card.RemoveLink(cardID, "indexes")
+			refreshedBody, err := refreshStructureEntriesBody(store, card)
+			if err != nil {
+				return err
+			}
+			card.Body = refreshedBody
+			return nil
+		}); err != nil {
+			return err
+		}
 
 			if !removed {
 				fmt.Fprintf(cmd.OutOrStdout(), "No change: %s does not index %s\n", structureID, cardID)
@@ -319,4 +324,39 @@ func upsertMarkdownSection(body string, section string, content string) string {
 	}
 
 	return trimmed + "\n\n" + replacement + "\n"
+}
+
+func guardOrphanCardOnStructureRemove(store *core.CardStore, cardID, structureID string) error {
+	dependents, err := store.GetDependents(cardID)
+	if err != nil {
+		return fmt.Errorf("checking card dependents: %w", err)
+	}
+
+	hasOtherStructureIndex := false
+	for _, dep := range dependents {
+		if dep.ID == structureID {
+			continue
+		}
+		if dep.Type != core.CardTypeStructure {
+			continue
+		}
+		for _, link := range dep.Links {
+			if link.Target == cardID && link.Relation == "indexes" {
+				hasOtherStructureIndex = true
+				break
+			}
+		}
+		if hasOtherStructureIndex {
+			break
+		}
+	}
+
+	if !hasOtherStructureIndex {
+		return fmt.Errorf(
+			"removing %s from %s would leave the card without any structure index; use `card delete %s --force` to remove it permanently, or add it to another structure first",
+			cardID, structureID, cardID,
+		)
+	}
+
+	return nil
 }
