@@ -287,19 +287,22 @@ func currentCardStore() (*core.CardStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer closeStateStore(store)
 
 	project, _, err := resolveCurrentProject(cfg, store)
 	if err != nil {
+		closeStateStore(store)
 		return nil, err
 	}
 
 	wikiRoot, err := cfg.WikiRootForProject(projectRoot, project.ID)
 	if err != nil {
+		closeStateStore(store)
 		return nil, err
 	}
 
-	return core.NewCardStore(wikiRoot), nil
+	syncSvc := state.NewCardSyncService(store.DB())
+	cardStore := core.NewCardStoreWithSync(wikiRoot, syncSvc)
+	return cardStore, nil
 }
 
 func resolveDefaultProposalID(explicitProposalID string, cardType core.CardType) (string, error) {

@@ -134,6 +134,18 @@ type Link struct {
 	Relation string `yaml:"relation" json:"relation"`
 }
 
+type CardSearchResult struct {
+	Card        *Card
+	MatchReason string
+}
+
+type LibrarySuggestion struct {
+	Card              *Card
+	Score             int
+	MatchReason       string
+	SuggestedRelation string
+}
+
 type Card struct {
 	ID          string      `yaml:"id" json:"id"`
 	Title       string      `yaml:"title" json:"title"`

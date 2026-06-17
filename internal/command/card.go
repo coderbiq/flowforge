@@ -34,51 +34,100 @@ func newCardCmd() *cobra.Command {
 
 	return cmd
 }
-
 func newCardRefreshCmd() *cobra.Command {
+	var proposalID string
+
 	cmd := &cobra.Command{
-		Use:   "refresh <card-id>",
+		Use:   "refresh [card-id]",
 		Short: "Rebuild auto-generated card body content",
 		Long: `Rebuild CLI-managed sections in the card body from frontmatter links.
 
   Structure cards: ## Entries - indexed card list
-  All other cards: ## Links - readable link list
+  All other cards:  ## Links - outgoing and incoming, grouped by relation
 
 Use this to repair historical cards after upgrading flowforge or when
-auto-generated sections are out of sync with frontmatter links.`,
-		Args:  cobra.ExactArgs(1),
+auto-generated sections are out of sync with frontmatter links.
+
+Examples:
+  flowforge card refresh DES-xxx
+  flowforge card refresh --proposal CR26061601`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cardID := args[0]
+			if proposalID == "" && len(args) == 0 {
+				return fmt.Errorf("specify a card-id or --proposal")
+			}
 
 			store, err := currentCardStore()
 			if err != nil {
 				return err
 			}
 
-			var refreshed bool
-			if err := store.UpdateCardWithLock(cardID, func(card *core.Card) error {
-				body, changed, err := refreshCardGeneratedNavigation(store, card)
-				if err != nil {
-					return err
+			var cardIDs []string
+			if proposalID != "" {
+				cards, listErr := store.ListCards(store.ProposalCardsDir(proposalID))
+				if listErr != nil {
+					return fmt.Errorf("listing proposal cards: %w", listErr)
 				}
-				if changed {
-					card.Body = body
-					refreshed = true
+				proposalCards, _ := store.ListCards(store.ProposalCardDir())
+				for _, card := range proposalCards {
+					if card.Source == proposalID || strings.HasPrefix(card.ID, "PROP-") {
+						cards = append(cards, card)
+					}
 				}
-				return nil
-			}); err != nil {
-				return err
+				cards = append(cards,
+					mustReadCard(store, "STR-"+proposalID+"-REQ"),
+				)
+				for _, card := range cards {
+					if card != nil {
+						cardIDs = append(cardIDs, card.ID)
+					}
+				}
+			} else {
+				cardIDs = []string{args[0]}
 			}
 
-			if refreshed {
-				fmt.Fprintf(cmd.OutOrStdout(), "✓ Refreshed %s\n", cardID)
-			} else {
-				fmt.Fprintf(cmd.OutOrStdout(), "No rebuild needed for %s\n", cardID)
+			out := cmd.OutOrStdout()
+			var refreshed, skipped int
+			for _, cardID := range cardIDs {
+				var changed bool
+				if err := store.UpdateCardWithLock(cardID, func(card *core.Card) error {
+					body, c, err := refreshCardGeneratedNavigation(store, card)
+					if err != nil {
+						return err
+					}
+					if c {
+						card.Body = body
+						changed = true
+					}
+					return nil
+				}); err != nil {
+					fmt.Fprintf(out, "✗ %s: %v\n", cardID, err)
+					skipped++
+					continue
+				}
+				if changed {
+					fmt.Fprintf(out, "✓ %s\n", cardID)
+					refreshed++
+				} else {
+					skipped++
+				}
 			}
+
+			fmt.Fprintf(out, "\nRefreshed: %d, Skipped: %d\n", refreshed, skipped)
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&proposalID, "proposal", "", "Refresh all cards in a proposal")
 	return cmd
+}
+
+func mustReadCard(store *core.CardStore, cardID string) *core.Card {
+	card, err := store.ReadCard(cardID)
+	if err != nil {
+		return nil
+	}
+	return card
 }
 
 func newCardCreateCmd() *cobra.Command {
@@ -823,12 +872,108 @@ func refreshCardGeneratedNavigation(store *core.CardStore, card *core.Card) (str
 			return "", false, err
 		}
 		body = upsertMarkdownSection(card.Body, "Entries", entries)
-	} else {
-		linksContent := renderLinksSection(store, card)
-		body = upsertMarkdownSection(card.Body, "Links", linksContent)
+		return body, body != card.Body, nil
 	}
 
+	linksContent := renderUnifiedLinksSection(store, card)
+	body = upsertMarkdownSection(card.Body, "Links", linksContent)
+
 	return body, body != card.Body, nil
+}
+
+func renderUnifiedLinksSection(store *core.CardStore, card *core.Card) string {
+	var parts []string
+
+	outgoing := renderOutgoingLinks(store, card)
+	if outgoing != "" {
+		parts = append(parts, "### Outgoing\n\n"+outgoing)
+	}
+
+	incoming := renderIncomingLinks(store, card)
+	if incoming != "" {
+		parts = append(parts, "### Incoming\n\n"+incoming)
+	}
+
+	if len(parts) == 0 {
+		return "- None"
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+func renderOutgoingLinks(store *core.CardStore, card *core.Card) string {
+	if len(card.Links) == 0 {
+		return ""
+	}
+
+	grouped := map[string][]string{}
+	for _, link := range card.Links {
+		targetCard, err := store.ReadCard(link.Target)
+		line := ""
+		if err != nil {
+			line = fmt.Sprintf("- `%s` [%s]", link.Target, link.Relation)
+		} else {
+			targetPath, _ := markdownLinkTarget(card, targetCard)
+			line = fmt.Sprintf("- [%s](%s) [%s] - %s", targetCard.ID, targetPath, targetCard.Type, targetCard.Title)
+		}
+		grouped[link.Relation] = append(grouped[link.Relation], line)
+	}
+
+	return renderGroupedLinks(grouped)
+}
+
+func renderIncomingLinks(store *core.CardStore, card *core.Card) string {
+	dependents, err := store.GetDependents(card.ID)
+	if err != nil || len(dependents) == 0 {
+		return ""
+	}
+
+	grouped := map[string][]string{}
+	for _, dep := range dependents {
+		if dep.Type == core.CardTypeProposal || dep.Type == core.CardTypeStructure {
+			continue
+		}
+		relation := ""
+		for _, link := range dep.Links {
+			if link.Target == card.ID {
+				relation = link.Relation
+				break
+			}
+		}
+		targetPath, err := markdownLinkTarget(card, dep)
+		line := ""
+		if err != nil {
+			line = fmt.Sprintf("- `%s` [%s]", dep.ID, dep.Type)
+		} else {
+			line = fmt.Sprintf("- [%s](%s) [%s] - %s", dep.ID, targetPath, dep.Type, dep.Title)
+		}
+		grouped[relation] = append(grouped[relation], line)
+	}
+
+	return renderGroupedLinks(grouped)
+}
+
+func renderGroupedLinks(grouped map[string][]string) string {
+	if len(grouped) == 0 {
+		return ""
+	}
+
+	keys := make([]string, 0, len(grouped))
+	for k := range grouped {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var parts []string
+	for _, relation := range keys {
+		lines := grouped[relation]
+		if len(lines) == 1 {
+			parts = append(parts, lines[0])
+		} else {
+			parts = append(parts, "#### "+relation)
+			parts = append(parts, lines...)
+		}
+	}
+	return strings.Join(parts, "\n")
 }
 
 func linksToAny(card *core.Card, targets []string, relations []string) bool {
@@ -911,12 +1056,13 @@ func newCardUnlinkCmd() *cobra.Command {
 
 func newCardSearchCmd() *cobra.Command {
 	var (
-		scope  string
-		types  string
-		status string
-		domain string
-		tag    string
-		limit  int
+		scope      string
+		proposalID string
+		types      string
+		status     string
+		domain     string
+		tag        string
+		limit      int
 	)
 
 	cmd := &cobra.Command{
@@ -934,7 +1080,7 @@ func newCardSearchCmd() *cobra.Command {
 				return err
 			}
 
-			cards, err := searchCards(store, query, scope, types, status, domain, tag, limit)
+			cards, err := searchCards(store, query, scope, proposalID, types, status, domain, tag, limit)
 			if err != nil {
 				return err
 			}
@@ -961,7 +1107,8 @@ func newCardSearchCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&scope, "scope", "all", "Search scope (library/workspace/all)")
+	cmd.Flags().StringVar(&scope, "scope", "all", "Search scope (library/workspace/proposal/all)")
+	cmd.Flags().StringVar(&proposalID, "proposal", "", "Proposal ID (required when scope=proposal)")
 	cmd.Flags().StringVar(&types, "type", "", "Comma-separated card types to include")
 	cmd.Flags().StringVar(&types, "types", "", "Comma-separated card types to include")
 	cmd.Flags().StringVar(&status, "status", "", "Filter by status")
@@ -977,9 +1124,13 @@ type cardSearchResult struct {
 	MatchReason string
 }
 
-func searchCards(store *core.CardStore, query, scope, types, status, domain, tag string, limit int) ([]cardSearchResult, error) {
+func searchCards(store *core.CardStore, query, scope, proposalID, types, status, domain, tag string, limit int) ([]cardSearchResult, error) {
 	if limit <= 0 {
 		limit = 10
+	}
+
+	if scope == "proposal" && proposalID == "" {
+		return nil, fmt.Errorf("--proposal is required when scope=proposal")
 	}
 
 	typeFilter := map[core.CardType]bool{}
@@ -996,7 +1147,7 @@ func searchCards(store *core.CardStore, query, scope, types, status, domain, tag
 
 	tagFilter := splitNonEmptyCSV(tag)
 
-	dirs, err := searchScopes(store, scope)
+	dirs, err := searchScopes(store, scope, proposalID)
 	if err != nil {
 		return nil, err
 	}
@@ -1046,7 +1197,7 @@ func searchCards(store *core.CardStore, query, scope, types, status, domain, tag
 	return results, nil
 }
 
-func searchScopes(store *core.CardStore, scope string) ([]string, error) {
+func searchScopes(store *core.CardStore, scope, proposalID string) ([]string, error) {
 	switch strings.ToLower(strings.TrimSpace(scope)) {
 	case "", "all":
 		return []string{store.ActiveDir(), store.IntakeDir(), store.LibraryDir()}, nil
@@ -1054,6 +1205,8 @@ func searchScopes(store *core.CardStore, scope string) ([]string, error) {
 		return []string{store.ActiveDir(), store.IntakeDir()}, nil
 	case "library":
 		return []string{store.LibraryDir()}, nil
+	case "proposal":
+		return []string{store.ProposalCardsDir(proposalID), store.ProposalCardDir()}, nil
 	default:
 		return nil, fmt.Errorf("invalid scope: %s", scope)
 	}
@@ -1151,36 +1304,10 @@ func getOutputFormat() string {
 	return format
 }
 
-func renderLinksSection(store *core.CardStore, card *core.Card) string {
-	if card.Type == core.CardTypeStructure {
-		return ""
-	}
-	if len(card.Links) == 0 {
-		return ""
-	}
-
-	var lines []string
-	for _, link := range card.Links {
-		targetCard, err := store.ReadCard(link.Target)
-		if err != nil {
-			lines = append(lines, fmt.Sprintf("- `%s` (%s)", link.Target, link.Relation))
-			continue
-		}
-		targetPath, err := markdownLinkTarget(card, targetCard)
-		if err != nil {
-			lines = append(lines, fmt.Sprintf("- `%s` (%s)", link.Target, link.Relation))
-			continue
-		}
-		lines = append(lines, fmt.Sprintf("- [%s](%s) [%s] (%s) - %s",
-			targetCard.ID, targetPath, targetCard.Type, link.Relation, targetCard.Title))
-	}
-	return strings.Join(lines, "\n")
-}
-
 func upsertLinksSection(store *core.CardStore, card *core.Card) {
 	if card.Type == core.CardTypeStructure {
 		return
 	}
-	content := renderLinksSection(store, card)
+	content := renderUnifiedLinksSection(store, card)
 	card.Body = upsertMarkdownSection(card.Body, "Links", content)
 }

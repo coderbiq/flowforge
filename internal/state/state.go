@@ -63,20 +63,57 @@ CREATE TABLE IF NOT EXISTS card_index (
 	source TEXT NOT NULL,
 	domain TEXT NOT NULL,
 	file_path TEXT NOT NULL,
-	updated_at TEXT NOT NULL
+	updated_at TEXT NOT NULL,
+	created_at TEXT NOT NULL DEFAULT '',
+	body TEXT NOT NULL DEFAULT '',
+	summary TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS card_link (
 	from_id TEXT NOT NULL,
 	to_id TEXT NOT NULL,
 	relation TEXT NOT NULL
-);`
+);
+
+CREATE TABLE IF NOT EXISTS card_tag (
+	card_id TEXT NOT NULL,
+	tag TEXT NOT NULL,
+	PRIMARY KEY (card_id, tag)
+);
+
+CREATE TABLE IF NOT EXISTS card_term (
+	card_id TEXT NOT NULL,
+	term TEXT NOT NULL,
+	source TEXT NOT NULL,
+	PRIMARY KEY (card_id, term, source)
+);
+CREATE INDEX IF NOT EXISTS idx_card_term_term ON card_term(term);
+
+CREATE INDEX IF NOT EXISTS idx_card_link_from ON card_link(from_id);
+CREATE INDEX IF NOT EXISTS idx_card_link_to ON card_link(to_id);
+CREATE INDEX IF NOT EXISTS idx_card_tag_card_id ON card_tag(card_id);
+CREATE INDEX IF NOT EXISTS idx_card_index_file_path ON card_index(file_path);`
 
 	if _, err := s.db.Exec(query); err != nil {
 		return fmt.Errorf("ensuring runtime_state schema: %w", err)
 	}
 
+	// Schema migration: add columns that may be missing from older databases
+	s.ensureColumn("card_index", "created_at", "TEXT NOT NULL DEFAULT ''")
+	s.ensureColumn("card_index", "body", "TEXT NOT NULL DEFAULT ''")
+	s.ensureColumn("card_index", "summary", "TEXT NOT NULL DEFAULT ''")
+
 	return nil
+}
+
+func (s *Store) ensureColumn(table, column, columnDef string) {
+	if s == nil || s.db == nil {
+		return
+	}
+	// SQLite does not support DROP COLUMN in older versions, and ALTER TABLE ADD COLUMN IF NOT EXISTS is not standard.
+	// We attempt the ALTER and ignore "duplicate column" errors.
+	query := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s;", table, column, columnDef)
+	_, _ = s.db.Exec(query)
 }
 
 func (s *Store) Close() error {
@@ -90,6 +127,13 @@ func (s *Store) Close() error {
 
 	s.db = nil
 	return nil
+}
+
+func (s *Store) DB() *sql.DB {
+	if s == nil {
+		return nil
+	}
+	return s.db
 }
 
 func (s *Store) SetCurrentProjectID(id string) error {

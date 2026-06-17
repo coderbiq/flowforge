@@ -435,6 +435,33 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 		t.Fatalf("creating task failed: %v", err)
 	}
 
+	// P6: orphan design without requirement link should trigger health warning
+	orphanDesign := core.NewCard(core.CardTypeDesign, "Orphan design")
+	orphanDesign.ID = "DES-orphan"
+	orphanDesign.AddLink("PROP-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(orphanDesign, proposalID); err != nil {
+		t.Fatalf("creating orphan design failed: %v", err)
+	}
+
+	// P1: finding card should appear in context
+	finding := core.NewCard(core.CardTypeFinding, "Important restriction")
+	finding.ID = "FIND-health"
+	finding.Body = "transType determines clearance ruleset."
+	finding.AddLink("PROP-"+proposalID, "belongs_to")
+	finding.AddLink(design.ID, "references")
+	if _, err := store.CreateCard(finding, proposalID); err != nil {
+		t.Fatalf("creating finding failed: %v", err)
+	}
+
+	// P2: create a card linked to the design to test extended context
+	refCard := core.NewCard(core.CardTypeRequirement, "Referenced requirement")
+	refCard.ID = "REQ-ref"
+	refCard.AddLink("PROP-"+proposalID, "belongs_to")
+	refCard.AddLink(finding.ID, "references")
+	if _, err := store.CreateCard(refCard, proposalID); err != nil {
+		t.Fatalf("creating ref requirement failed: %v", err)
+	}
+
 	inspectCmd := newProposalInspectCmd()
 	var inspectOut bytes.Buffer
 	inspectCmd.SetOut(&inspectOut)
@@ -450,6 +477,8 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 		"requirement navigation is stale or missing",
 		"DES-health",
 		"design navigation is stale or missing",
+		"DES-orphan",
+		"design card does not link to a requirement",
 		"TASK-" + proposalID + "-i-health",
 		"ready implementation task has no linked convention constraints",
 		"flowforge card refresh REQ-health",
@@ -469,9 +498,12 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 	}
 	contextText := contextOut.String()
 	for _, want := range []string{
-		"## Health Issues",
+		"## Health Summary",
+		"## Proposal Findings",
+		"FIND-health",
+		"transType determines",
+		"## Extended Context",
 		"REQ-health",
-		"flowforge card refresh REQ-health",
 	} {
 		if !strings.Contains(contextText, want) {
 			t.Fatalf("context health output missing %q:\n%s", want, contextText)

@@ -11,12 +11,31 @@ import (
 	"time"
 )
 
+type CardSyncService interface {
+	ReadCard(id string) (*Card, error)
+	FindCardPath(id string) (string, error)
+	ListCards(dir string) ([]*Card, error)
+	ListCardsByType(cardType CardType) ([]*Card, error)
+	GetDependents(cardID string) ([]*Card, error)
+	SyncCard(card *Card) error
+	DeleteCard(cardID string) error
+}
+
 type CardStore struct {
-	wikiRoot string
+	wikiRoot    string
+	syncService CardSyncService
 }
 
 func NewCardStore(wikiRoot string) *CardStore {
 	return &CardStore{wikiRoot: wikiRoot}
+}
+
+func NewCardStoreWithSync(wikiRoot string, syncService CardSyncService) *CardStore {
+	return &CardStore{wikiRoot: wikiRoot, syncService: syncService}
+}
+
+func (s *CardStore) hasSync() bool {
+	return s.syncService != nil
 }
 
 func (s *CardStore) WorkspaceDir() string {
@@ -214,14 +233,27 @@ func (s *CardStore) CreateCard(card *Card, proposalID string) (string, error) {
 	filename := GenerateFilename(card.ID, card.Title)
 	filePath := filepath.Join(targetDir, filename)
 
-	existingCards, _ := s.ListCards(targetDir)
-	for i, existing := range existingCards {
-		if existing.FilePath == filePath {
-			filename = GenerateFilename(card.ID, card.Title)
-			filename = strings.TrimSuffix(filename, ".md")
-			filename = fmt.Sprintf("%s-%d.md", filename, i+2)
-			filePath = filepath.Join(targetDir, filename)
-			break
+	if s.hasSync() {
+		existingCards, _ := s.syncService.ListCards(targetDir)
+		for i, existing := range existingCards {
+			if existing.FilePath == filePath {
+				filename = GenerateFilename(card.ID, card.Title)
+				filename = strings.TrimSuffix(filename, ".md")
+				filename = fmt.Sprintf("%s-%d.md", filename, i+2)
+				filePath = filepath.Join(targetDir, filename)
+				break
+			}
+		}
+	} else {
+		existingCards, _ := s.ListCards(targetDir)
+		for i, existing := range existingCards {
+			if existing.FilePath == filePath {
+				filename = GenerateFilename(card.ID, card.Title)
+				filename = strings.TrimSuffix(filename, ".md")
+				filename = fmt.Sprintf("%s-%d.md", filename, i+2)
+				filePath = filepath.Join(targetDir, filename)
+				break
+			}
 		}
 	}
 
@@ -229,10 +261,24 @@ func (s *CardStore) CreateCard(card *Card, proposalID string) (string, error) {
 		return "", err
 	}
 
+	if s.hasSync() {
+		card.FilePath = filePath
+		if err := s.syncService.SyncCard(card); err != nil {
+			return filePath, fmt.Errorf("syncing card: %w", err)
+		}
+	}
+
 	return filePath, nil
 }
 
 func (s *CardStore) ReadCard(cardID string) (*Card, error) {
+	if s.hasSync() {
+		card, err := s.syncService.ReadCard(cardID)
+		if err == nil {
+			return card, nil
+		}
+	}
+
 	filePath, err := s.FindCardPath(cardID)
 	if err != nil {
 		return nil, err
@@ -251,6 +297,12 @@ func (s *CardStore) UpdateCard(card *Card) error {
 
 	if err := card.Save(card.FilePath); err != nil {
 		return err
+	}
+
+	if s.hasSync() {
+		if err := s.syncService.SyncCard(card); err != nil {
+			return fmt.Errorf("syncing card: %w", err)
+		}
 	}
 
 	return nil
@@ -299,10 +351,23 @@ func (s *CardStore) DeleteCard(cardID string) error {
 		return fmt.Errorf("deleting card: %w", err)
 	}
 
+	if s.hasSync() {
+		if err := s.syncService.DeleteCard(cardID); err != nil {
+			return fmt.Errorf("syncing card deletion: %w", err)
+		}
+	}
+
 	return nil
 }
 
 func (s *CardStore) FindCardPath(cardID string) (string, error) {
+	if s.hasSync() {
+		path, err := s.syncService.FindCardPath(cardID)
+		if err == nil {
+			return path, nil
+		}
+	}
+
 	searchDirs := []string{
 		s.ActiveDir(),
 		s.IntakeDir(),
@@ -363,6 +428,17 @@ func (s *CardStore) findCardInDir(cardID string, dir string) (string, error) {
 }
 
 func (s *CardStore) ListCards(dir string) ([]*Card, error) {
+	if s.hasSync() {
+		cards, err := s.syncService.ListCards(dir)
+		if err == nil && len(cards) > 0 {
+			return cards, nil
+		}
+	}
+
+	return s.ListCardsFromFiles(dir)
+}
+
+func (s *CardStore) ListCardsFromFiles(dir string) ([]*Card, error) {
 	var cards []*Card
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -392,6 +468,13 @@ func (s *CardStore) ListCards(dir string) ([]*Card, error) {
 }
 
 func (s *CardStore) ListCardsByType(cardType CardType) ([]*Card, error) {
+	if s.hasSync() {
+		cards, err := s.syncService.ListCardsByType(cardType)
+		if err == nil && len(cards) > 0 {
+			return cards, nil
+		}
+	}
+
 	var allCards []*Card
 
 	libraryCards, _ := s.ListCards(s.LibraryTypeDir(cardType))
@@ -438,9 +521,16 @@ func (s *CardStore) ListCardsByStatus(cardType CardType, status CardStatus) ([]*
 }
 
 func (s *CardStore) GetDependents(cardID string) ([]*Card, error) {
+	if s.hasSync() {
+		cards, err := s.syncService.GetDependents(cardID)
+		if err == nil && len(cards) > 0 {
+			return cards, nil
+		}
+	}
+
 	var dependents []*Card
 
-	allDirs := []string{s.ActiveDir(), s.LibraryDir(), s.IntakeDir(), s.CompletedDir()}
+	allDirs := []string{s.ActiveDir(), s.LibraryDir(), s.IntakeDir(), s.CompletedDir(), s.ProposalCardDir()}
 
 	for _, dir := range allDirs {
 		cards, _ := s.ListCards(dir)

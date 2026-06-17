@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"flowforge/internal/core"
+	"flowforge/internal/state"
 )
 
 func newIndexCmd() *cobra.Command {
@@ -43,17 +44,14 @@ func newIndexRebuildCmd() *cobra.Command {
 				return err
 			}
 
+			syncSvc := state.NewCardSyncService(store.DB())
 			cardStore := core.NewCardStore(wikiRoot)
-			cards := make([]*core.Card, 0, 128)
-			for _, dir := range []string{cardStore.ActiveDir(), cardStore.IntakeDir(), cardStore.CompletedDir(), cardStore.LibraryDir(), cardStore.ProposalCardDir()} {
-				dirCards, err := cardStore.ListCards(dir)
-				if err != nil {
-					return fmt.Errorf("scanning cards in %s: %w", dir, err)
-				}
-				cards = append(cards, dirCards...)
+			dirs := []string{
+				cardStore.ActiveDir(), cardStore.IntakeDir(), cardStore.CompletedDir(),
+				cardStore.LibraryDir(), cardStore.ProposalCardDir(),
 			}
 
-			indexedCards, indexedLinks, err := store.RebuildDerivedIndex(cards)
+			indexedCards, indexedLinks, err := syncSvc.RebuildAll(cardStore.ListCardsFromFiles, dirs)
 			if err != nil {
 				return err
 			}
@@ -85,12 +83,12 @@ func newIndexStatusCmd() *cobra.Command {
 				return err
 			}
 
-			wikiRoot, err := cfg.WikiRootForProject(projectRoot, project.ID)
-			if err != nil {
-				return err
-			}
+			wikiRoot, _ := cfg.WikiRootForProject(projectRoot, project.ID)
+			_ = wikiRoot
 
-			status, err := store.DerivedIndexStatus()
+			syncSvc := state.NewCardSyncService(store.DB())
+
+			status, err := syncSvc.DerivedIndexStatus()
 			if err != nil {
 				return err
 			}
@@ -98,7 +96,6 @@ func newIndexStatusCmd() *cobra.Command {
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "Project: %s\n", project.ID)
 			fmt.Fprintf(out, "Source: %s\n", source)
-			fmt.Fprintf(out, "WikiRoot: %s\n", wikiRoot)
 			fmt.Fprintf(out, "card_index: %d\n", status.CardCount)
 			fmt.Fprintf(out, "card_link: %d\n", status.LinkCount)
 			return nil
@@ -122,7 +119,9 @@ func newIndexBacklinksCmd() *cobra.Command {
 			}
 			defer closeStateStore(store)
 
-			status, err := store.DerivedIndexStatus()
+			syncSvc := state.NewCardSyncService(store.DB())
+
+			status, err := syncSvc.DerivedIndexStatus()
 			if err != nil {
 				return err
 			}
@@ -130,7 +129,7 @@ func newIndexBacklinksCmd() *cobra.Command {
 				return fmt.Errorf("derived index is empty; run `flowforge index rebuild` first")
 			}
 
-			backlinks, err := store.Backlinks(cardID)
+			backlinks, err := syncSvc.Backlinks(cardID)
 			if err != nil {
 				return err
 			}

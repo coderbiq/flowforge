@@ -271,8 +271,11 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	}
 
 	stableContext := directLinkedCards(s, focus.ID)
+	extendedContext := extendedLinkedCards(s, stableContext)
 	backlinks := s.backlinks[focus.ID]
 	deepReads := deepReadSuggestions(stableContext)
+	findings := collectProposalFindings(s.cards)
+	healthSummary := summarizeHealth(report.health)
 
 	fmt.Fprintln(w, "## Context")
 	fmt.Fprintf(w, "- Proposal: %s\n", s.proposalID)
@@ -285,6 +288,10 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	fmt.Fprintf(w, "- RootCard: %s\n", cardIDOrMissing(s.rootCard))
 	fmt.Fprintf(w, "- Summary: %s\n", summaryText(s.rootCard))
 	fmt.Fprintf(w, "- CurrentState: %s\n", proposalCurrentState(s))
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "## Health Summary")
+	fmt.Fprintf(w, "- %s\n", healthSummary)
 	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, "## Requirement Map")
@@ -300,8 +307,14 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	}
 	fmt.Fprintln(w)
 
-	fmt.Fprintln(w, "## Health Issues")
-	renderProposalHealthIssues(w, report.health, 5)
+	fmt.Fprintln(w, "## Proposal Findings")
+	if len(findings) == 0 {
+		fmt.Fprintln(w, "- None")
+	} else {
+		for _, item := range findings {
+			fmt.Fprintf(w, "- %s: %s\n", item.ID, item.Summary)
+		}
+	}
 	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, "## Focus Card")
@@ -319,6 +332,16 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	} else {
 		for _, item := range stableContext {
 			fmt.Fprintf(w, "- %s [%s] %s (%s)\n", item.ID, item.Type, item.Title, item.Relation)
+		}
+	}
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "## Extended Context")
+	if len(extendedContext) == 0 {
+		fmt.Fprintln(w, "- None")
+	} else {
+		for _, item := range extendedContext {
+			fmt.Fprintf(w, "- %s [%s] %s ← via %s\n", item.ID, item.Type, item.Title, item.Via)
 		}
 	}
 	fmt.Fprintln(w)
@@ -370,6 +393,12 @@ type linkedCard struct {
 	Type     core.CardType
 	Title    string
 	Relation string
+	Via      string
+}
+
+type findingItem struct {
+	ID      string
+	Summary string
 }
 
 func summarizeTasks(cards []*core.Card) taskSummaryCounts {
@@ -581,6 +610,9 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 				add("warn", card.ID, "requirement navigation is stale or missing", "flowforge card refresh "+card.ID)
 			}
 		case core.CardTypeDesign:
+			if !hasAnyRelation(card, "implements", "designs", "satisfies") {
+				add("warn", card.ID, "design card does not link to a requirement (implements/designs/satisfies)", "flowforge card link "+card.ID+" <REQ>:implements")
+			}
 			if designNeedsNavigation(snapshot, card) && !hasSection(card.Body, "FlowForge Navigation") {
 				add("warn", card.ID, "design navigation is stale or missing", "flowforge card refresh "+card.ID)
 			}
@@ -776,6 +808,83 @@ func directLinkedCards(snapshot *proposalSnapshot, cardID string) []linkedCard {
 		}
 	}
 	return items
+}
+
+func extendedLinkedCards(snapshot *proposalSnapshot, stable []linkedCard) []linkedCard {
+	if snapshot == nil || len(stable) == 0 {
+		return nil
+	}
+	seen := map[string]bool{}
+	var items []linkedCard
+	for _, sc := range stable {
+		for _, scID := range []string{sc.ID} {
+			card := snapshot.cardByID[scID]
+			if card == nil {
+				continue
+			}
+			for _, link := range card.Links {
+				if link.Target == "" || seen[link.Target] {
+					continue
+				}
+				target, ok := snapshot.cardByID[link.Target]
+				if !ok {
+					continue
+				}
+				if target.Type != core.CardTypeDesign && target.Type != core.CardTypeFinding &&
+					target.Type != core.CardTypeDecision && target.Type != core.CardTypeRequirement {
+					continue
+				}
+				seen[link.Target] = true
+				items = append(items, linkedCard{
+					ID:       target.ID,
+					Type:     target.Type,
+					Title:    target.Title,
+					Relation: link.Relation,
+					Via:      sc.ID,
+				})
+			}
+		}
+	}
+	return items
+}
+
+func collectProposalFindings(cards []*core.Card) []findingItem {
+	var items []findingItem
+	for _, card := range cards {
+		if card.Type != core.CardTypeFinding {
+			continue
+		}
+		items = append(items, findingItem{
+			ID:      card.ID,
+			Summary: summaryText(card),
+		})
+	}
+	return items
+}
+
+func summarizeHealth(issues []proposalHealthIssue) string {
+	if len(issues) == 0 {
+		return "No issues detected."
+	}
+	errCount, warnCount := 0, 0
+	for _, i := range issues {
+		if i.Severity == "error" {
+			errCount++
+		} else {
+			warnCount++
+		}
+	}
+	if errCount == 0 && warnCount == 0 {
+		return "No issues detected."
+	}
+	parts := make([]string, 0, 2)
+	if errCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d errors", errCount))
+	}
+	if warnCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d warnings", warnCount))
+	}
+	return strings.Join(parts, ", ") + ". Use `flowforge proposal inspect` for details."
 }
 
 func deepReadSuggestions(cards []linkedCard) []string {

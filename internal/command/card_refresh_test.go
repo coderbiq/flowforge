@@ -63,7 +63,7 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 	if err := reqRefresh.Execute(); err != nil {
 		t.Fatalf("requirement refresh failed: %v", err)
 	}
-	if !strings.Contains(reqOut.String(), "✓ Refreshed REQ-nav") {
+	if !strings.Contains(reqOut.String(), "✓ REQ-nav") {
 		t.Fatalf("unexpected requirement refresh output:\n%s", reqOut.String())
 	}
 
@@ -73,10 +73,14 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 	}
 	for _, want := range []string{
 		"## Links",
+		"### Outgoing",
 		"[PROP-" + proposalID + "]",
+		"### Incoming",
+		"[TASK-" + proposalID + "-a-nav]",
+		"[DES-nav]",
 	} {
 		if !strings.Contains(refreshedReq.Body, want) {
-			t.Fatalf("requirement links missing %q:\n%s", want, refreshedReq.Body)
+			t.Fatalf("requirement body missing %q:\n%s", want, refreshedReq.Body)
 		}
 	}
 
@@ -92,8 +96,11 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 	}
 	for _, want := range []string{
 		"## Links",
+		"### Outgoing",
 		"[PROP-" + proposalID + "]",
 		"[REQ-nav]",
+		"### Incoming",
+		"[TASK-" + proposalID + "-i-nav]",
 	} {
 		if !strings.Contains(refreshedDesign.Body, want) {
 			t.Fatalf("design links missing %q:\n%s", want, refreshedDesign.Body)

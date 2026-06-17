@@ -176,3 +176,66 @@ func runCardSearchCommand(t *testing.T, args ...string) string {
 	}
 	return out.String()
 }
+
+func TestCardSearchProposalScope(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Search proposal")
+
+	store := testCardStore(t, tmpDir)
+	req := core.NewCard(core.CardTypeRequirement, "Searchable requirement")
+	req.ID = "REQ-search-" + proposalID[len(proposalID)-2:]
+	req.AddLink("PROP-"+proposalID, "belongs_to")
+	req.Body = "UniqueProposalKeyword for scoped search test."
+	if _, err := store.CreateCard(req, proposalID); err != nil {
+		t.Fatalf("creating proposal card failed: %v", err)
+	}
+
+	libraryCard := core.NewCard(core.CardTypeDesign, "Library card with keyword")
+	libraryCard.ID = "DES-lib-search"
+	libraryCard.Body = "UniqueProposalKeyword also in library."
+	if _, err := store.CreateCard(libraryCard, ""); err != nil {
+		t.Fatalf("creating library card failed: %v", err)
+	}
+
+	out := runCardSearchCommand(t, "UniqueProposalKeyword", "--scope", "proposal", "--proposal", proposalID, "--limit", "5")
+	if !strings.Contains(out, req.ID) {
+		t.Fatalf("proposal scope search should find proposal card:\n%s", out)
+	}
+	if strings.Contains(out, libraryCard.ID) {
+		t.Fatalf("proposal scope search should NOT find library card:\n%s", out)
+	}
+
+	outAll := runCardSearchCommand(t, "UniqueProposalKeyword", "--scope", "all", "--limit", "5")
+	if !strings.Contains(outAll, req.ID) || !strings.Contains(outAll, libraryCard.ID) {
+		t.Fatalf("all scope search should find both cards:\n%s", outAll)
+	}
+}
+
+func TestCardSearchProposalScopeRequiresProposalFlag(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+
+	cmd := newCardSearchCmd()
+	cmd.SetArgs([]string{"keyword", "--scope", "proposal"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "--proposal is required") {
+		t.Fatalf("expected --proposal required error, got: %v", err)
+	}
+}

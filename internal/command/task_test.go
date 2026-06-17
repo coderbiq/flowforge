@@ -2,11 +2,13 @@ package command
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"flowforge/internal/config"
 	"flowforge/internal/core"
+	"flowforge/internal/state"
 )
 
 func TestTaskLifecycleCommands(t *testing.T) {
@@ -433,7 +435,12 @@ func testCardStore(t *testing.T, projectRoot string) *core.CardStore {
 	if err != nil {
 		t.Fatalf("loading config failed: %v", err)
 	}
-	return core.NewCardStore(cfg.WikiRoot(projectRoot))
+	stateStore, err := state.Open(filepath.Join(projectRoot, ".flowforge", "cache", "flowforge.sqlite"))
+	if err != nil {
+		t.Fatalf("opening state store: %v", err)
+	}
+	syncSvc := state.NewCardSyncService(stateStore.DB())
+	return core.NewCardStoreWithSync(cfg.WikiRoot(projectRoot), syncSvc)
 }
 
 func createProjectForTest(t *testing.T, projectID string) {
