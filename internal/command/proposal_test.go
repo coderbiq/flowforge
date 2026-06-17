@@ -472,6 +472,10 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 	inspectText := inspectOut.String()
 	for _, want := range []string{
 		"## Health Issues",
+		"PROP-" + proposalID,
+		"proposal card has no meaningful summary",
+		"STR-" + proposalID + "-REQ",
+		"structure card has no meaningful purpose description",
 		"REQ-health",
 		"requirement is not reachable from a requirement index",
 		"requirement navigation is stale or missing",
@@ -664,4 +668,133 @@ func runProposalListForTest(t *testing.T) string {
 		t.Fatalf("proposal list failed: %v", err)
 	}
 	return out.String()
+}
+
+func TestReadyTaskWithEmptyBodyIsError(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Empty task proposal")
+
+	store := testCardStore(t, tmpDir)
+	task := core.NewCard(core.CardTypeTask, "Implement empty check")
+	task.ID = "TASK-" + proposalID + "-i-empty"
+	task.Status = core.CardStatusReady
+	task.Body = "## Links\n\n### Outgoing\n\n- [PROP-" + proposalID + "](../../../03-proposal/" + proposalID + "_empty-task-proposal.md) [proposal] - Empty task proposal"
+	task.AddLink("PROP-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(task, proposalID); err != nil {
+		t.Fatalf("creating empty ready task failed: %v", err)
+	}
+
+	inspectCmd := newProposalInspectCmd()
+	var inspectOut bytes.Buffer
+	inspectCmd.SetOut(&inspectOut)
+	inspectCmd.SetArgs([]string{proposalID})
+	if err := inspectCmd.Execute(); err != nil {
+		t.Fatalf("proposal inspect failed: %v", err)
+	}
+	inspectText := inspectOut.String()
+	for _, want := range []string{
+		"TASK-" + proposalID + "-i-empty",
+		"ready task has no body content",
+		"error",
+	} {
+		if !strings.Contains(inspectText, want) {
+			t.Fatalf("inspect should flag empty ready task as error, missing %q:\n%s", want, inspectText)
+		}
+	}
+}
+
+func TestReadyTaskWithBodyIsNotFlagged(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Full task proposal")
+
+	store := testCardStore(t, tmpDir)
+	task := core.NewCard(core.CardTypeTask, "Implement full task")
+	task.ID = "TASK-" + proposalID + "-i-full"
+	task.Status = core.CardStatusReady
+	task.Body = "## Goal\n\nImplement the feature.\n\n## Deliverables\n\n- Code\n\n## Acceptance\n\n- Tests pass\n\n## Links\n\n### Outgoing\n\n- [PROP-" + proposalID + "](../../../03-proposal/" + proposalID + "_full-task-proposal.md) [proposal]"
+	task.AddLink("PROP-"+proposalID, "belongs_to")
+	if _, err := store.CreateCard(task, proposalID); err != nil {
+		t.Fatalf("creating full ready task failed: %v", err)
+	}
+
+	inspectCmd := newProposalInspectCmd()
+	var inspectOut bytes.Buffer
+	inspectCmd.SetOut(&inspectOut)
+	inspectCmd.SetArgs([]string{proposalID})
+	if err := inspectCmd.Execute(); err != nil {
+		t.Fatalf("proposal inspect failed: %v", err)
+	}
+	inspectText := inspectOut.String()
+	if strings.Contains(inspectText, "ready task has no body content") {
+		t.Fatalf("inspect should NOT flag task with body content:\n%s", inspectText)
+	}
+}
+
+func TestProposalAndStructureCardsWithMeaningfulContentAreNotFlagged(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Meaningful proposal")
+
+	store := testCardStore(t, tmpDir)
+
+	rootCard, err := store.ReadCard("PROP-" + proposalID)
+	if err != nil {
+		t.Fatalf("reading root card failed: %v", err)
+	}
+	rootCard.Body = "# Meaningful proposal\n\n## Purpose\n\nStable entry.\n\n## Summary\n\nThis proposal implements user authentication with JWT tokens, role-based access control, and session management."
+	if err := store.UpdateCard(rootCard); err != nil {
+		t.Fatalf("updating root card failed: %v", err)
+	}
+
+	strCard, err := store.ReadCard("STR-" + proposalID + "-REQ")
+	if err != nil {
+		t.Fatalf("reading STR card failed: %v", err)
+	}
+	strCard.Body = "# Meaningful proposal Requirements\n\n## Purpose\n\nThis index organizes requirements for the authentication module.\n\n## Entries\n\n- None\n\n## Open Questions\n\n- None"
+	if err := store.UpdateCard(strCard); err != nil {
+		t.Fatalf("updating STR card failed: %v", err)
+	}
+
+	inspectCmd := newProposalInspectCmd()
+	var inspectOut bytes.Buffer
+	inspectCmd.SetOut(&inspectOut)
+	inspectCmd.SetArgs([]string{proposalID})
+	if err := inspectCmd.Execute(); err != nil {
+		t.Fatalf("proposal inspect failed: %v", err)
+	}
+	inspectText := inspectOut.String()
+	for _, want := range []string{
+		"proposal card has no meaningful summary",
+		"structure card has no meaningful purpose description",
+	} {
+		if strings.Contains(inspectText, want) {
+			t.Fatalf("inspect should NOT flag card with meaningful content for %q:\n%s", want, inspectText)
+		}
+	}
 }
