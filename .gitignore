@@ -25,6 +25,9 @@ bin/
 *.out
 vendor/
 
+# Embedded assets (copied at build time for //go:embed)
+internal/command/assets/
+
 # Misc
 .DS_Store
 .env
@@ -44,3 +47,9 @@ Thumbs.db
 # Signing keys (never commit)
 *.pem
 *.key
+
+*.backup.*
+.workbuddy
+.agents
+.opencode
+competitor-reports

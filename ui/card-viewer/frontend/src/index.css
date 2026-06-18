@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@import "highlight.js/styles/atom-one-dark.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── Custom scrollbar (uses shadcn tokens) ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ── Selection ── */
+::selection {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--foreground);
+}
+
+/* ── Override highlight.js theme background inside pre blocks ── */
+pre code {
+  background: transparent !important;
+  padding: 0 !important;
+}

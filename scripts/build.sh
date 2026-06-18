@@ -14,9 +14,9 @@ LDFLAGS+=" -X flowforge/internal/version.injected=${VERSION}"
 build_native() {
     echo "Building for current platform..."
     mkdir -p bin
+    rm -rf internal/command/assets
+    cp -R assets internal/command/assets
     go build -ldflags="$LDFLAGS" -trimpath -o bin/flowforge ./cmd/flowforge
-    rm -rf bin/assets
-    cp -R assets bin/assets
     echo "→ bin/flowforge ($(du -h bin/flowforge | cut -f1))"
 }
 
@@ -60,16 +60,17 @@ build_all() {
         rm -rf "$package_dir"
         mkdir -p "$package_dir"
 
+        rm -rf internal/command/assets
+        cp -R assets internal/command/assets
+
         GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 \
             go build -ldflags="$LDFLAGS" -trimpath \
             -o "${package_dir}/${bin_name}" ./cmd/flowforge
 
-        cp -R assets "${package_dir}/assets"
-
         if [ "$goos" = "windows" ]; then
-            (cd "$package_dir" && zip -r "${out}/${archive_name}" "${bin_name}" assets >/dev/null)
+            (cd "$package_dir" && zip -r "${out}/${archive_name}" "${bin_name}" >/dev/null)
         else
-            tar czf "${out}/${archive_name}" -C "$package_dir" "${bin_name}" assets
+            tar czf "${out}/${archive_name}" -C "$package_dir" "${bin_name}"
         fi
 
         if command -v sha256sum >/dev/null 2>&1; then

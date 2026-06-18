@@ -3,16 +3,18 @@ package command
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 )
 
 func deployManagedAssets(targetDir string) error {
-	assetsDir, err := locateAssetsDir()
+	assetsDir, cleanup, err := locateAssetsDir()
 	if err != nil {
 		return err
 	}
+	defer cleanup()
 
 	if err := copyDir(filepath.Join(assetsDir, "skills"), filepath.Join(targetDir, ".agents", "skills"), true); err != nil {
 		return fmt.Errorf("deploying skills: %w", err)
@@ -39,7 +41,18 @@ func deployManagedAssets(targetDir string) error {
 	return nil
 }
 
-func locateAssetsDir() (string, error) {
+// locateAssetsDir returns the path to the assets directory and a cleanup function.
+// It first tries to extract assets from the embedded filesystem (for standalone binaries).
+// If that fails, it falls back to filesystem-based lookup (for development).
+func locateAssetsDir() (string, func(), error) {
+	noop := func() {}
+
+	// Try embedded assets first (standalone binary)
+	if dir, err := extractEmbeddedAssets(); err == nil {
+		return dir, func() { os.RemoveAll(dir) }, nil
+	}
+
+	// Fallback: filesystem-based lookup (development)
 	var candidates []string
 
 	if executable, err := os.Executable(); err == nil {
@@ -61,11 +74,56 @@ func locateAssetsDir() (string, error) {
 
 	for _, candidate := range candidates {
 		if isAssetsDir(candidate) {
-			return candidate, nil
+			return candidate, noop, nil
 		}
 	}
 
-	return "", fmt.Errorf("flowforge assets not found; expected assets next to the executable or in the source checkout")
+	return "", noop, fmt.Errorf("flowforge assets not found; expected assets next to the executable or in the source checkout")
+}
+
+// extractEmbeddedAssets extracts the embedded assets filesystem to a temporary directory.
+func extractEmbeddedAssets() (string, error) {
+	tmpDir, err := os.MkdirTemp("", "flowforge-assets-")
+	if err != nil {
+		return "", fmt.Errorf("creating temp dir for embedded assets: %w", err)
+	}
+
+	if err := fs.WalkDir(embeddedAssets, "assets", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel("assets", path)
+		if err != nil {
+			return err
+		}
+
+		targetPath := filepath.Join(tmpDir, rel)
+
+		if d.IsDir() {
+			return os.MkdirAll(targetPath, 0755)
+		}
+
+		data, err := fs.ReadFile(embeddedAssets, path)
+		if err != nil {
+			return fmt.Errorf("reading embedded file %s: %w", path, err)
+		}
+
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+			return fmt.Errorf("creating directory for %s: %w", targetPath, err)
+		}
+
+		if err := os.WriteFile(targetPath, data, 0644); err != nil {
+			return fmt.Errorf("writing %s: %w", targetPath, err)
+		}
+
+		return nil
+	}); err != nil {
+		os.RemoveAll(tmpDir)
+		return "", fmt.Errorf("extracting embedded assets: %w", err)
+	}
+
+	return tmpDir, nil
 }
 
 func isAssetsDir(path string) bool {
