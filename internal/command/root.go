@@ -69,6 +69,9 @@ func initConfig(cmd *cobra.Command) error {
 	if err := viper.BindPFlags(cmd.Flags()); err != nil {
 		return err
 	}
+	if err := viper.BindPFlags(cmd.PersistentFlags()); err != nil {
+		return err
+	}
 
 	_ = viper.ReadInConfig()
 

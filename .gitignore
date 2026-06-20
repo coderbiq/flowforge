@@ -8,7 +8,7 @@ coverage/
 
 # FlowForge runtime state
 .flowforge/
-ff-wiki/
+ff-wiki*/
 
 # Production
 dist/

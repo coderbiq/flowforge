@@ -72,11 +72,16 @@ func newStructureAddCmd() *cobra.Command {
 				return nil
 			}
 
-			fmt.Fprintf(out, "✓ Added %s to %s\n", cardID, structureID)
-			fmt.Fprintf(out, "  relation: indexes\n")
+			warning := ""
 			if indexedCount > 15 {
-				fmt.Fprintf(out, "  warning: %s now has %d direct indexed cards; consider splitting the structure\n", structureID, indexedCount)
+				warning = fmt.Sprintf("%s now has %d direct indexed cards; consider splitting the structure", structureID, indexedCount)
 			}
+			printResult(cmd, out, CommandResult{
+				Structure: structureID,
+				Card:      cardID,
+				Relation:  "indexes",
+				Warning:   warning,
+			})
 
 			return nil
 		},

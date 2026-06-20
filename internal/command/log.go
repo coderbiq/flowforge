@@ -79,12 +79,11 @@ func newLogCreateCmd() *cobra.Command {
 			}
 
 			out := cmd.OutOrStdout()
-			fmt.Fprintf(out, "✓ Created log %s\n", logCard.ID)
-			fmt.Fprintf(out, "  Kind: %s\n", kind)
-			fmt.Fprintf(out, "  Proposal: %s\n", resolvedProposalID)
-			if len(forCards) > 0 {
-				fmt.Fprintf(out, "  Records: %s\n", strings.Join(forCards, ", "))
-			}
+			printResult(cmd, out, CommandResult{
+				ID:    logCard.ID,
+				Type:  "log",
+				Title: title,
+			})
 			return nil
 		},
 	}

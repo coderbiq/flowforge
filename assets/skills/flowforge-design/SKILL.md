@@ -22,7 +22,7 @@ Follow `references/workflow-rules.md` for the 7-mode turn loop. Use `references/
 - Never create title-only tasks.
 - Do not execute implementation work here.
 - Run `flowforge validate all` after creating or changing proposal structure.
-- Use single quotes for `--body` containing mermaid, code blocks, or shell-special characters (`$`, `` ` ``, `!`, `{}`). Double-quoted `--body "..."` will be corrupted by shell expansion.
+- Use `--body -` with heredoc (`<<'EOF' ... EOF`) for multi-line body content. Single-quoted heredoc delimiter prevents all shell expansion.
 
 ## Output
 

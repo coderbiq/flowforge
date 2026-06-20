@@ -20,7 +20,7 @@ Follow `references/workflow-rules.md` for execution and completion steps.
 - Never edit card files, frontmatter, or wikilinks manually.
 - Only make changes within the ready task's defined scope.
 - Run tests and `flowforge validate all` when card state changed.
-- Use single quotes for `--body` containing mermaid, code blocks, or shell-special characters (`$`, `` ` ``, `!`, `{}`).
+- Use `--body -` with heredoc (`<<'EOF' ... EOF`) for multi-line body content. Single-quoted heredoc delimiter prevents all shell expansion.
 
 ## Output
 

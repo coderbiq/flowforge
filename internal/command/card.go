@@ -31,6 +31,7 @@ func newCardCmd() *cobra.Command {
 	cmd.AddCommand(newCardLinkCmd())
 	cmd.AddCommand(newCardUnlinkCmd())
 	cmd.AddCommand(newCardSearchCmd())
+	cmd.AddCommand(newCardCreateBatchCmd())
 
 	return cmd
 }
@@ -135,6 +136,7 @@ func newCardCreateCmd() *cobra.Command {
 		cardType   string
 		title      string
 		body       string
+		status     string
 		proposalID string
 		links      []string
 		tags       []string
@@ -151,6 +153,11 @@ Examples:
   flowforge card create --type requirement --title "User login feature"
   flowforge card create --type decision --title "Use PostgreSQL" --proposal CR24010101
   flowforge card create --type task --title "Implement API" --links "DEC-abc123"
+  flowforge card create --type structure --title "CLI Architecture" --status active
+  flowforge card create --type design --title "Init command" --status draft --body - <<'EOF'
+## Goal
+Design the init command.
+EOF
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cardType == "" {
@@ -165,6 +172,11 @@ Examples:
 				return fmt.Errorf("invalid card type: %s", cardType)
 			}
 
+			body, err := readBody(body)
+			if err != nil {
+				return err
+			}
+
 			store, err := currentCardStore()
 			if err != nil {
 				return err
@@ -173,6 +185,12 @@ Examples:
 			card := core.NewCard(ct, title)
 			card.Body = body
 			card.Tags = tags
+			if status != "" {
+				card.Status = core.CardStatus(status)
+				if !card.Status.Valid() {
+					return fmt.Errorf("invalid status: %s", status)
+				}
+			}
 
 			resolvedProposalID, err := resolveDefaultProposalID(proposalID, ct)
 			if err != nil {
@@ -214,9 +232,12 @@ Examples:
 				return err
 			}
 
-			fmt.Printf("✓ Created card %s\n", card.ID)
-			fmt.Printf("  Type: %s\n", card.Type)
-			fmt.Printf("  Title: %s\n", card.Title)
+			out := cmd.OutOrStdout()
+			printResult(cmd, out, CommandResult{
+				ID:    card.ID,
+				Type:  string(card.Type),
+				Title: card.Title,
+			})
 
 			return nil
 		},
@@ -224,7 +245,8 @@ Examples:
 
 	cmd.Flags().StringVar(&cardType, "type", "", "Card type (requirement/decision/design/task/log/convention/finding/module/structure)")
 	cmd.Flags().StringVar(&title, "title", "", "Card title")
-	cmd.Flags().StringVar(&body, "body", "", "Card body content")
+	cmd.Flags().StringVar(&body, "body", "", "Card body content; use '-' to read from stdin")
+	cmd.Flags().StringVar(&status, "status", string(core.CardStatusDraft), "Card status (draft/active/accepted/deprecated/superseded)")
 	cmd.Flags().StringVar(&proposalID, "proposal", "", "Proposal ID to associate with")
 	cmd.Flags().StringSliceVar(&links, "links", nil, "Links to other cards (format: CARD_ID or CARD_ID:relation)")
 	cmd.Flags().StringSliceVar(&tags, "tags", nil, "Tags for the card")
@@ -319,7 +341,7 @@ func printCardFrontmatterSummary(out io.Writer, card *core.Card) {
 		fmt.Fprintf(out, "Tags: %s\n", strings.Join(card.Tags, ", "))
 	}
 	if card.Source != "" {
-		fmt.Fprintf(out, "Proposal: %s\n", card.Source)
+		fmt.Fprintf(out, "Source: %s\n", card.Source)
 	}
 	if card.Domain != "" {
 		fmt.Fprintf(out, "Domain: %s\n", card.Domain)
@@ -586,6 +608,7 @@ func newCardUpdateCmd() *cobra.Command {
 		status      string
 		importance  string
 		body        string
+		sectionName string
 		addLinks    []string
 		removeLinks []string
 	)
@@ -596,6 +619,11 @@ func newCardUpdateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cardID := args[0]
+
+			body, err := readBody(body)
+			if err != nil {
+				return err
+			}
 
 			store, err := currentCardStore()
 			if err != nil {
@@ -613,7 +641,11 @@ func newCardUpdateCmd() *cobra.Command {
 					card.Importance = core.Importance(importance)
 				}
 				if body != "" {
-					card.Body = body
+					if sectionName != "" {
+						card.Body = upsertMarkdownSection(card.Body, sectionName, body)
+					} else {
+						card.Body = body
+					}
 				}
 
 				parsedAddLinks, err := parseLinkArgs(addLinks)
@@ -642,7 +674,11 @@ func newCardUpdateCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("✓ Updated card %s\n", cardID)
+			out := cmd.OutOrStdout()
+			printResult(cmd, out, CommandResult{
+				ID:      cardID,
+				Updated: true,
+			})
 			return nil
 		},
 	}
@@ -650,7 +686,8 @@ func newCardUpdateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&title, "title", "", "New title")
 	cmd.Flags().StringVar(&status, "status", "", "New status (draft/active/accepted/deprecated/superseded)")
 	cmd.Flags().StringVar(&importance, "importance", "", "New importance (must/should/may)")
-	cmd.Flags().StringVar(&body, "body", "", "New body content")
+	cmd.Flags().StringVar(&body, "body", "", "New body content; use '-' to read from stdin")
+	cmd.Flags().StringVar(&sectionName, "section", "", "Replace only this markdown section (requires --body)")
 	cmd.Flags().StringSliceVar(&addLinks, "add-link", nil, "Add link (format: CARD_ID or CARD_ID:relation)")
 	cmd.Flags().StringSliceVar(&removeLinks, "remove-link", nil, "Remove link (format: CARD_ID or CARD_ID:relation)")
 
@@ -694,7 +731,11 @@ func newCardDeleteCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("✓ Deleted card %s\n", cardID)
+			out := cmd.OutOrStdout()
+			printResult(cmd, out, CommandResult{
+				ID:      cardID,
+				Updated: true,
+			})
 			return nil
 		},
 	}
@@ -1300,6 +1341,17 @@ func getOutputFormat() string {
 		format = "text"
 	}
 	return format
+}
+
+func readBody(body string) (string, error) {
+	if body == "-" {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return "", fmt.Errorf("reading body from stdin: %w", err)
+		}
+		return string(data), nil
+	}
+	return body, nil
 }
 
 func upsertLinksSection(store *core.CardStore, card *core.Card) {

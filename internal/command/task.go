@@ -92,8 +92,12 @@ func newTaskCreateCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Printf("✓ Created task %s\n", task.ID)
-			fmt.Printf("  Status: %s\n", task.Status)
+			out := cmd.OutOrStdout()
+			printResult(cmd, out, CommandResult{
+				ID:    task.ID,
+				Type:  "task",
+				Title: title,
+			})
 			return nil
 		},
 	}

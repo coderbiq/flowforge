@@ -31,26 +31,61 @@ Use one mode per activation.
 
 1. Create the plan card:
    ```
-   flowforge library import --type finding --title "Curation Plan: <source>" --status active --tags "curation-plan" --body "<plan>" --source-card <source-card>
+   flowforge library import --type finding --title "Curation Plan: <source>" --status active --tags "curation-plan" --body - --source-card <source-card> <<'EOF'
+   ## 来源
+   ...
+   ## 计划条目
+   ### 批次 1（条目 1-8）
+   - [ ] CONV / title / STR-NAME / create
+   ...
+   EOF
    ```
    The body must list all items in batches of 5-10 with `- [ ]` checkboxes.
 
-2. Execute one batch (5-10 items). For each item:
-   - `create`: `flowforge library import --type <type> --title "<title>" --status draft --body "<body>" --source-card <plan-card-id> --links <plan-card-id>`
-   - `merge`: `flowforge card read <target> --summary`, then `flowforge card update <target>` with appended content
+2. Generate a batch YAML manifest for the current batch, then execute:
+   ```
+   flowforge card create --batch batch.yaml -o json
+   ```
+   Manifest format:
+   ```yaml
+   cards:
+     - ref: "str1"
+       type: structure
+       title: "Index Card Title"
+       status: active
+       body: |
+         STR index card body.
+       links:
+         - "FIND-xxx:references"
+     - type: convention
+       title: "Convention Title"
+       status: draft
+       body: |
+         Atomic card body here.
+       links:
+         - "FIND-xxx:references"
+         - "@str1:indexes"
+   ```
+   - `ref` creates a batch-local name for cross-references.
+   - `@ref:indexes` links to a batch-local STR and automatically performs `structure add`.
+   - Cards are pre-validated; all pass or none are written.
+   - Use `-o json` to capture created card IDs.
+
+3. After batch creation, update the plan card's progress section:
+   ```
+   flowforge card update <plan-card-id> --section "批次 1" --body - <<'EOF'
+   - [x] CONV-xxx / title / STR-xxx / create
+   ...
+   EOF
+   ```
+
+4. Merge/skip items:
+   - `merge`: `flowforge card read <target> --summary`, then `flowforge card update <target> --section "<section>" --body -` with heredoc
    - `skip`: record reason only
 
-3. Create STR index cards: `flowforge card create --type structure --title "<title>" --status active`
+5. When all batches done: `flowforge index rebuild`
 
-4. Add cards to STR indexes: `flowforge structure add <str-id> <card-id>`
-
-5. Link related cards: `flowforge card link <from> <to> --relation references`
-
-6. Update plan card: mark completed items as `- [x]` and update progress count.
-
-7. Report: `Batch N/M complete. Processed: X/Y. Say "continue" to process next batch.`
-
-8. When all batches done: `flowforge index rebuild`
+6. Report: `Batch N/M complete. Processed: X/Y. Say "continue" to process next batch.`
 
 ## Mode B Only: Wrap Up
 

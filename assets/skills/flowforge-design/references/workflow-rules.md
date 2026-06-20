@@ -20,9 +20,13 @@ Use one primary mode per turn.
 | clarify | requirement lacks acceptance, scope, or open questions | `card read/update`, `log create` |
 | analyze | uncertainty blocks design or task split | `task create --type a --status ready/not_ready`, `task ready --type a` |
 | discover library | design needs conventions, modules, decisions, or findings | `library suggest`, `card search`, `card read` |
-| design | a stable conclusion exists but no design card exists | `card create --type design` |
+| design | a stable conclusion exists but no design card exists | `card create --type design --status draft` |
 | split tasks | requirement and design are stable enough for implementation | `task create --type i --status ready/not_ready` |
 | refresh navigation | requirement/design relationships changed | `card refresh <REQ/DES id>` |
+
+## Batch Card Creation
+
+When creating multiple cards at once (e.g., seeding a proposal with requirements, designs, and tasks), generate a YAML manifest and use `card create --batch <file>`. Use `ref` for cross-references within the same batch. Use `-o json` to capture created card IDs.
 
 ## Link Invariants
 

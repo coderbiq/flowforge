@@ -63,6 +63,11 @@ func newLibraryImportCmd() *cobra.Command {
 				return fmt.Errorf("invalid importance: %s", importance)
 			}
 
+			body, err := readBody(body)
+			if err != nil {
+				return err
+			}
+
 			store, err := currentCardStore()
 			if err != nil {
 				return err
@@ -109,15 +114,19 @@ func newLibraryImportCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintf(cmd.OutOrStdout(), "✓ Imported library card %s\n", card.ID)
-			fmt.Fprintf(cmd.OutOrStdout(), "  Type: %s\n", card.Type)
+			out := cmd.OutOrStdout()
+			printResult(cmd, out, CommandResult{
+				ID:    card.ID,
+				Type:  string(card.Type),
+				Title: card.Title,
+			})
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&cardType, "type", "", "Library card type")
 	cmd.Flags().StringVar(&title, "title", "", "Card title")
-	cmd.Flags().StringVar(&body, "body", "", "Card body content")
+	cmd.Flags().StringVar(&body, "body", "", "Card body content; use '-' to read from stdin")
 	cmd.Flags().StringVar(&status, "status", string(core.CardStatusActive), "Card status")
 	cmd.Flags().StringVar(&importance, "importance", string(core.ImportanceShould), "Card importance")
 	cmd.Flags().StringVar(&domain, "domain", "", "Card domain")
