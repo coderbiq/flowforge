@@ -78,8 +78,6 @@ func runInit(targetDir string, yes bool, template string) error {
 	}
 
 	fmt.Println("✓ FlowForge initialized successfully")
-	fmt.Printf("  Config: %s\n", configPath)
-	fmt.Printf("  Skills: %s\n", filepath.Join(targetDir, ".agents", "skills"))
 	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Register a project: flowforge project create <id>")

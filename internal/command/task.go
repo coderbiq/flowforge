@@ -87,14 +87,13 @@ func newTaskCreateCmd() *cobra.Command {
 
 			upsertLinksSection(store, task)
 
-			filePath, err := store.CreateCard(task, resolvedProposalID)
+			_, err = store.CreateCard(task, resolvedProposalID)
 			if err != nil {
 				return err
 			}
 
 			fmt.Printf("✓ Created task %s\n", task.ID)
 			fmt.Printf("  Status: %s\n", task.Status)
-			fmt.Printf("  File: %s\n", filePath)
 			return nil
 		},
 	}
@@ -339,14 +338,13 @@ func newTaskSubCmd() *cobra.Command {
 
 			upsertLinksSection(store, task)
 
-			filePath, err := store.CreateCard(task, parent.Source)
+			_, err = store.CreateCard(task, parent.Source)
 			if err != nil {
 				return err
 			}
 
 			fmt.Printf("✓ Created sub-task %s\n", task.ID)
 			fmt.Printf("  Parent: %s\n", parent.ID)
-			fmt.Printf("  File: %s\n", filePath)
 			return nil
 		},
 	}
@@ -610,7 +608,6 @@ func printTaskDetail(task *core.Card) {
 			fmt.Printf("  - %s (%s)\n", link.Target, link.Relation)
 		}
 	}
-	fmt.Printf("File: %s\n", task.FilePath)
 	if task.Body != "" {
 		fmt.Println("\n--- Body ---")
 		fmt.Println(task.Body)

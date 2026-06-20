@@ -209,7 +209,7 @@ Examples:
 
 			upsertLinksSection(store, card)
 
-			filePath, err := store.CreateCard(card, resolvedProposalID)
+			_, err = store.CreateCard(card, resolvedProposalID)
 			if err != nil {
 				return err
 			}
@@ -217,7 +217,6 @@ Examples:
 			fmt.Printf("✓ Created card %s\n", card.ID)
 			fmt.Printf("  Type: %s\n", card.Type)
 			fmt.Printf("  Title: %s\n", card.Title)
-			fmt.Printf("  File: %s\n", filePath)
 
 			return nil
 		},
@@ -293,7 +292,6 @@ func newCardReadCmd() *cobra.Command {
 				}
 				fmt.Fprintf(out, "Created: %s\n", card.Created.Format("2006-01-02 15:04:05"))
 				fmt.Fprintf(out, "Updated: %s\n", card.Updated.Format("2006-01-02 15:04:05"))
-				fmt.Fprintf(out, "File: %s\n", card.FilePath)
 				if card.Body != "" {
 					fmt.Fprintln(out, "\n--- Body ---")
 					fmt.Fprintln(out, card.Body)

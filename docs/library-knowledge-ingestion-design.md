@@ -21,6 +21,21 @@ The library also has to expose how knowledge is organized so an Agent can classi
 - Stable constraints are linked from task/design cards; process evidence links back from log/finding cards.
 - Library cards must remain human-readable, not frontmatter-only records.
 
+### CLI/SKILL 职责边界（核心设计原则）
+
+CLI 和 SKILL 有严格的职责边界：
+
+| 层 | 职责 | 不负责 |
+|----|------|--------|
+| **CLI** | 卡片 CRUD、链接管理、索引重建、查询检索、校验 | 内容理解、语义拆分、知识重组、分类判断 |
+| **SKILL** | 理解长文内容、拆分为原子知识、组织卡片结构、判定知识类型、写入卡片 | 直接操作文件、自行构建索引 |
+
+**关键推论**：
+
+- 长文外部资料导入和 proposal 归档对 CLI 来说使用**同一套卡片管理命令**（`card create`、`card link`、`structure add`、`index rebuild`）。区别只在 SKILL 层面：前者需要先拆解长文，后者需要从 proposal 卡片网络筛选晋升。
+- CLI 不提供 `library import scan/plan/apply` 这类"智能导入"命令——这些是 SKILL 的职责。CLI 只提供卡片粒度的原子操作，SKILL 组合这些原子操作完成导入/归档流程。
+- 任何需要"理解内容"的步骤都属于 SKILL，不属于 CLI。
+
 ## Library Card Roles
 
 | Type | Role | Example |
@@ -119,70 +134,104 @@ Facet matches must be exact. The Agent still validates each candidate with `card
 
 ## External Knowledge Import
 
-External import is for existing SKILLs, engineering guides, or legacy docs.
+External import is for existing SKILLs, engineering guides, legacy docs, or any long-form reference material.
 
-Target workflow:
+### Workflow
 
 ```text
-scan source
-  -> extract candidate knowledge units
-  -> propose facets
-  -> propose cards and structure indexes
-  -> review plan
-  -> apply as draft/active library cards
-  -> rebuild indexes
+SKILL reads source material
+  -> SKILL analyzes content, identifies knowledge units
+  -> SKILL proposes card types, titles, summaries, tags, facets
+  -> SKILL proposes structure (STR) cards for organization
+  -> SKILL outputs a reviewable plan (not yet written to library)
+  -> User reviews and approves
+  -> SKILL uses CLI to create cards, links, and STR entries
+  -> CLI rebuilds indexes
 ```
 
-Future command shape:
+### SKILL 使用的 CLI 命令
+
+SKILL 通过组合 CLI 原子操作完成导入，不依赖任何"智能导入"命令：
 
 ```bash
-flowforge library import scan <path>
-flowforge library import plan <scan-id>
-flowforge library import apply <plan-id>
+# 创建卡片（status: draft）
+flowforge card create --type convention --title "..." --status draft --tags "..."
+flowforge card create --type module --title "..." --status draft
+flowforge card create --type finding --title "..." --status draft
+
+# 建立链接
+flowforge card link <from-id> <to-id> --relation references
+flowforge card link <from-id> <to-id> --relation derived-from
+
+# 创建或更新 STR 索引
+flowforge structure add --index STR-xxx --card <card-id>
+
+# 重建 sqlite 索引
+flowforge index rebuild
 ```
 
-The plan should contain:
+### 导入计划的输出格式
 
-- proposed facet vocabulary
-- proposed cards with type, title, summary, tags, importance, and source evidence
-- proposed structure cards
-- duplicate or merge candidates
-- warnings for oversized or vague cards
+SKILL 应先生成审查计划，不直接写入卡片。计划应包含：
 
-Imports should not directly flood active library. The first implementation can create `status: draft` cards and require explicit promotion to `active` or `accepted`.
+- 来源文档路径和摘要
+- 拟议的知识类型（convention / module / decision / finding / principle / pattern / fact / example）
+- 拟议的卡片标题、摘要、tags、facets
+- 拟议的 STR 索引结构
+- 重复或合并候选（指向已有 library 卡片）
+- 过大或模糊卡片的警告
+
+导入默认创建 `status: draft` 卡片，需显式提升为 `active` 或 `accepted`。
 
 ## Proposal Knowledge Promotion
 
 Proposal work generates logs, findings, decisions, and design cards. Not all of them are reusable.
 
-Target workflow:
+### Workflow
 
 ```text
-proposal log/finding/design
-  -> reusable candidate
-  -> promotion plan
-  -> duplicate/merge check
-  -> create or update library card
-  -> link source evidence
+SKILL scans proposal cards
+  -> SKILL identifies reusable candidates (findings, decisions, designs)
+  -> SKILL proposes promotion plan (create / merge / supersede / skip)
+  -> SKILL checks duplicates against existing library
+  -> User reviews
+  -> SKILL uses CLI to create/update library cards
+  -> CLI rebuilds indexes
 ```
 
-Future command shape:
+### SKILL 使用的 CLI 命令
+
+与外部资料导入使用同一套 CLI 原子操作：
 
 ```bash
-flowforge library promote --from FIND-...
-flowforge library promote --from LOG-...
-flowforge library promote --proposal CR...
-flowforge library promote apply <plan-id>
+# 创建 library 卡片
+flowforge card create --type convention --title "..." --status active
+
+# 合并：更新已有卡片
+flowforge card read CONV-xxx          # 先读现有内容
+flowforge card update CONV-xxx        # 追加新内容
+
+# 废弃旧知识
+flowforge card update OLD-CONV-xxx --status superseded
+
+# 链接来源证据
+flowforge card link CONV-new <id> FIND-xxx --relation derived-from
+
+# 更新 STR 索引
+flowforge structure add --index STR-xxx --card CONV-new
+
+# 重建索引
+flowforge index rebuild
 ```
 
-Promotion actions:
+### Promotion actions
 
-| Action | Meaning |
-|--------|---------|
-| `create` | Create a new library card |
-| `merge` | Add a section or evidence link to an existing card |
-| `supersede` | Mark old knowledge as superseded and link replacement |
-| `skip` | Keep proposal-local only |
+| Action | Meaning | CLI 操作 |
+|--------|---------|----------|
+| `create` | Create a new library card | `card create` |
+| `merge` | Add a section or evidence link to an existing card | `card update` + `card link` |
+| `supersede` | Mark old knowledge as superseded and link replacement | `card update --status superseded` + `card link` |
+| `skip` | Keep proposal-local only | 无操作
 
 ## Link Ownership
 
@@ -210,18 +259,31 @@ Tasks should not accumulate every process evidence link. Evidence cards link to 
 
 ## MVP Scope
 
-Implemented first:
+### Implemented first
 
 - `library facets`
 - `library classify --for`
 - `library suggest --facet`
 
-Deferred:
+### Deferred
 
-- bulk import scan/plan/apply
-- promotion plan/apply
+- bulk import/promotion SKILL（已合并为 `flowforge-curate`，见 [知识策展 SKILL 设计](./ingest-skill-design.md)）
 - sqlite FTS/BM25-backed ranking
 - embedding/vector retrieval
+
+### CLI 命令清单（导入/归档使用的原子操作）
+
+导入和归档 SKILL 依赖以下 CLI 命令，不新增"智能导入"命令：
+
+| 命令 | 用途 |
+|------|------|
+| `card create --type <type> --status <status>` | 创建 library 卡片 |
+| `card read <id> --summary/--section` | 读取已有卡片判断重复/合并 |
+| `card update <id> --status <status>` | 更新卡片状态 |
+| `card link <from> <to> --relation <rel>` | 建立类型化链接 |
+| `structure add --index <str-id> --card <card-id>` | 将卡片加入 STR 索引 |
+| `index rebuild` | 重建 sqlite 索引 |
+| `card search <query> --scope library` | 搜索已有卡片，检查重复 |
 
 ## Validation Scenario
 

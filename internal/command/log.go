@@ -73,7 +73,7 @@ func newLogCreateCmd() *cobra.Command {
 
 			upsertLinksSection(store, logCard)
 
-			filePath, err := store.CreateCard(logCard, resolvedProposalID)
+			_, err = store.CreateCard(logCard, resolvedProposalID)
 			if err != nil {
 				return err
 			}
@@ -85,7 +85,6 @@ func newLogCreateCmd() *cobra.Command {
 			if len(forCards) > 0 {
 				fmt.Fprintf(out, "  Records: %s\n", strings.Join(forCards, ", "))
 			}
-			fmt.Fprintf(out, "  File: %s\n", filePath)
 			return nil
 		},
 	}

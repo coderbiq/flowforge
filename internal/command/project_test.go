@@ -227,7 +227,6 @@ func TestProjectListCurrentAndUseCommands(t *testing.T) {
 		"Projects:",
 		"  frontend",
 		"* backend",
-		"wikiRoot: ff-wiki-be",
 	} {
 		if !strings.Contains(listText, want) {
 			t.Fatalf("project list output missing %q:\n%s", want, listText)
@@ -262,7 +261,6 @@ func TestProjectCurrentUsesSingleProjectFallback(t *testing.T) {
 	for _, want := range []string{
 		"Project: frontend",
 		"Source: single-project",
-		"WikiRoot: ff-wiki-fe",
 	} {
 		if !strings.Contains(currentOut.String(), want) {
 			t.Fatalf("project current output missing %q:\n%s", want, currentOut.String())

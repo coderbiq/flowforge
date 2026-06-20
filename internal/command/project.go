@@ -78,7 +78,6 @@ func newProjectCreateCmd() *cobra.Command {
 
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "✓ Project created: %s\n", projectID)
-			fmt.Fprintf(out, "  wikiRoot: %s\n", project.WikiRoot)
 			if len(project.SrcDirs) > 0 {
 				fmt.Fprintf(out, "  srcDirs: %v\n", project.SrcDirs)
 			}
@@ -125,12 +124,11 @@ func newProjectListCmd() *cobra.Command {
 					marker = "*"
 				}
 
-				wikiRoot, err := cfg.WikiRootForProject(projectRoot, project.ID)
+				_, err := cfg.WikiRootForProject(projectRoot, project.ID)
 				if err != nil {
 					return err
 				}
 				fmt.Fprintf(out, "%s %s\n", marker, project.ID)
-				fmt.Fprintf(out, "    wikiRoot: %s\n", wikiRoot)
 				if len(project.SrcDirs) > 0 {
 					fmt.Fprintf(out, "    srcDirs: %v\n", project.SrcDirs)
 				}
@@ -160,7 +158,7 @@ func newProjectCurrentCmd() *cobra.Command {
 				return err
 			}
 
-			wikiRoot, err := cfg.WikiRootForProject(projectRoot, project.ID)
+			_, err = cfg.WikiRootForProject(projectRoot, project.ID)
 			if err != nil {
 				return err
 			}
@@ -168,7 +166,6 @@ func newProjectCurrentCmd() *cobra.Command {
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "Project: %s\n", project.ID)
 			fmt.Fprintf(out, "Source: %s\n", source)
-			fmt.Fprintf(out, "WikiRoot: %s\n", wikiRoot)
 			if len(project.SrcDirs) > 0 {
 				fmt.Fprintf(out, "SrcDirs: %v\n", project.SrcDirs)
 			}

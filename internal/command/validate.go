@@ -46,30 +46,33 @@ func newValidateCardCmd() *cobra.Command {
 			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
 
 			var filePath string
+			var cardID string
 			if strings.HasSuffix(target, ".md") {
 				filePath = target
 				if !filepath.IsAbs(filePath) {
 					filePath = filepath.Join(projectRoot, filePath)
 				}
+				cardID = filepath.Base(filePath)
 			} else {
 				card, err := store.ReadCard(target)
 				if err != nil {
 					return fmt.Errorf("card not found: %w", err)
 				}
 				filePath = card.FilePath
+				cardID = card.ID
 			}
 
 			result := core.ValidateCardFileInStore(filePath, store)
 
 			if result.HasErrors() {
-				fmt.Printf("✗ Validation failed for %s:\n", filepath.Base(filePath))
+				fmt.Printf("✗ Validation failed for card %s:\n", cardID)
 				for _, e := range result.Errors {
 					fmt.Printf("  - %s\n", e.Error())
 				}
 				os.Exit(1)
 			}
 
-			fmt.Printf("✓ Card %s is valid\n", filepath.Base(filePath))
+			fmt.Printf("✓ Card %s is valid\n", cardID)
 			return nil
 		},
 	}

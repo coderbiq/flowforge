@@ -104,14 +104,13 @@ func newLibraryImportCmd() *cobra.Command {
 				return fmt.Errorf("library import requires at least one outbound link; pass --source-card or --links")
 			}
 
-			filePath, err := store.CreateCard(card, "")
+			_, err = store.CreateCard(card, "")
 			if err != nil {
 				return err
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Imported library card %s\n", card.ID)
 			fmt.Fprintf(cmd.OutOrStdout(), "  Type: %s\n", card.Type)
-			fmt.Fprintf(cmd.OutOrStdout(), "  File: %s\n", filePath)
 			return nil
 		},
 	}
@@ -210,14 +209,13 @@ func newLibraryPromoteCmd() *cobra.Command {
 
 			upsertLinksSection(store, card)
 
-			filePath, err := store.CreateCard(card, "")
+			_, err = store.CreateCard(card, "")
 			if err != nil {
 				return err
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Promoted %s to library card %s\n", sourceCard.ID, card.ID)
 			fmt.Fprintf(cmd.OutOrStdout(), "  Type: %s\n", card.Type)
-			fmt.Fprintf(cmd.OutOrStdout(), "  File: %s\n", filePath)
 			return nil
 		},
 	}
@@ -243,7 +241,8 @@ func validateLibraryImportType(cardType core.CardType) error {
 		core.CardTypeDesign,
 		core.CardTypeConvention,
 		core.CardTypeFinding,
-		core.CardTypeModule:
+		core.CardTypeModule,
+		core.CardTypeStructure:
 		return nil
 	default:
 		return fmt.Errorf("card type %s cannot be imported into library through this command", cardType)

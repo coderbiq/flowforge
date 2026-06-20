@@ -283,8 +283,6 @@ func newProposalArchiveCmd() *cobra.Command {
 
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "✓ Archived proposal %s\n", proposalID)
-			fmt.Fprintf(out, "  From: %s\n", src)
-			fmt.Fprintf(out, "  To: %s\n", dst)
 			return nil
 		},
 	}
