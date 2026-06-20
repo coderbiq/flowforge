@@ -1,9 +1,27 @@
+---
+name: flowforge-implement
+description: Use ONLY when the user asks to execute a ready FlowForge implementation task, or provides a task id and wants code changes for that task. Do NOT use for design, analysis, feedback, archive, or general card lookup.
+---
+
 # flowforge-implement
 
-Use when the user asks to execute a ready FlowForge implementation task, or provides a task id and wants code changes for that task. Do not use for design, analysis, feedback, archive, or general card lookup. Follow `references/workflow-rules.md`; only act on ready implementation tasks.
+## Start
 
-Card files are managed only through FlowForge CLI. Never edit wiki files, frontmatter, or links by hand.
+Resolve the task with `flowforge task ready --type i` or an explicit task id. Run `flowforge context task --task <id>`. Confirm linked requirement, design, and constraints are present.
+
+## Workflow
+
+Follow `references/workflow-rules.md` for execution and completion steps.
 
 ## Hard Rules
 
-- Always use single quotes for `--body` content containing mermaid, code blocks, or shell-special characters (`$`, `` ` ``, `!`, `{}`). Double-quoted `--body "..."` will be corrupted by shell expansion.
+- Stop immediately if the task is `not_ready`, `blocked`, `design`, or `analysis`.
+- CLI is the only read/write path for cards.
+- Never edit card files, frontmatter, or wikilinks manually.
+- Only make changes within the ready task's defined scope.
+- Run tests and `flowforge validate all` when card state changed.
+- Use single quotes for `--body` containing mermaid, code blocks, or shell-special characters (`$`, `` ` ``, `!`, `{}`).
+
+## Output
+
+Report changed files, tests run, validation result, gaps or blockers, and one next step.
