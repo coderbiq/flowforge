@@ -247,8 +247,12 @@ func TestLibraryImportCreatesValidatedLibraryCard(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("library import failed: %v", err)
 	}
-	if !strings.Contains(out.String(), "✓ Imported library card CONV-") {
+	// printResult now formats output as: "✓ <Type> <ID>\n  Title: <Title>"
+	if !strings.Contains(out.String(), "✓ convention CONV-") {
 		t.Fatalf("unexpected import output:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "Title: Imported service rule") {
+		t.Fatalf("import output missing title:\n%s", out.String())
 	}
 
 	cards, err := store.ListCards(store.LibraryTypeDir(core.CardTypeConvention))
