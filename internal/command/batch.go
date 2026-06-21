@@ -100,83 +100,126 @@ The indexes relation automatically performs structure add.`,
 				return err
 			}
 
-			resolvedRefs := map[string]string{}
-			var createdCards []batchCreatedCard
-			var errors []batchError
+		// Phase 1 — create all cards first, resolve refs only for
+		// non-batch internal links.  Skip link pre-validation here so
+		// that @ref targets that point to other batch cards can be
+		// checked after all cards exist.
+		rawRefs := map[string]string{}          // ref -> ID (populated as each card is created)
+		pendingCards := map[int]*batchCard{} // manifest index -> card (for Phase 2 link attachment)
+		var createdCards []batchCreatedCard
+		var errors []batchError
 
-			for i, card := range manifest.Cards {
-				ct := core.CardType(card.Type)
-				newCard := core.NewCard(ct, card.Title)
-				if card.Status != "" {
-					cs := core.CardStatus(card.Status)
-					if !cs.Valid() {
-						errors = append(errors, batchError{Index: i, Error: fmt.Sprintf("invalid status: %s", card.Status)})
-						continue
-					}
-					newCard.Status = cs
-				}
-				newCard.Body = card.Body
-				newCard.Tags = card.Tags
-				newCard.Domain = card.Domain
-
-				resolvedProposalID, err := resolveDefaultProposalID(manifest.Proposal, ct)
-				if err != nil {
-					errors = append(errors, batchError{Index: i, Error: err.Error()})
+		for i, card := range manifest.Cards {
+			ct := core.CardType(card.Type)
+			newCard := core.NewCard(ct, card.Title)
+			if card.Status != "" {
+				cs := core.CardStatus(card.Status)
+				if !cs.Valid() {
+					errors = append(errors, batchError{Index: i, Error: fmt.Sprintf("invalid status: %s", card.Status)})
 					continue
 				}
-				proposalTs := proposalTimestamp(resolvedProposalID)
-				newCard.ID = core.GenerateCardID(ct, proposalTs)
-
-				addProposalOwnershipLink(newCard, resolvedProposalID)
-
-				for _, link := range card.Links {
-					resolvedLink := resolveRef(link, resolvedRefs)
-					parts := strings.SplitN(resolvedLink, ":", 2)
-					target := parts[0]
-					relation := "references"
-					if len(parts) == 2 {
-						relation = parts[1]
-					}
-					if _, err := store.ReadCard(target); err != nil {
-						errors = append(errors, batchError{Index: i, Error: fmt.Sprintf("link target %s not found: %v", target, err)})
-						continue
-					}
-					newCard.AddLink(target, relation)
-				}
-
-				if len(errors) > 0 {
-					continue
-				}
-
-				if len(newCard.Links) == 0 && resolvedProposalID == "" {
-					errors = append(errors, batchError{Index: i, Error: "card requires at least one outbound link; add --links or set proposal"})
-					continue
-				}
-
-				upsertLinksSection(store, newCard)
-
-				_, err = store.CreateCard(newCard, resolvedProposalID)
-				if err != nil {
-					errors = append(errors, batchError{Index: i, Error: err.Error()})
-					continue
-				}
-
-				if card.Ref != "" {
-					resolvedRefs[card.Ref] = newCard.ID
-				}
-
-				for _, link := range newCard.Links {
-					if link.Relation == "indexes" {
-						doStructureAdd(store, link.Target, newCard.ID)
-					}
-				}
-
-				createdCards = append(createdCards, batchCreatedCard{
-					ID:    newCard.ID,
-					Type:  string(newCard.Type),
-					Title: newCard.Title,
-				})
+				newCard.Status = cs
 			}
+			newCard.Body = card.Body
+			newCard.Tags = card.Tags
+			newCard.Domain = card.Domain
+
+			resolvedProposalID, err := resolveDefaultProposalID(manifest.Proposal, ct)
+			if err != nil {
+				errors = append(errors, batchError{Index: i, Error: err.Error()})
+				continue
+			}
+			proposalTs := proposalTimestamp(resolvedProposalID)
+			newCard.ID = core.GenerateCardID(ct, proposalTs)
+
+			addProposalOwnershipLink(newCard, resolvedProposalID)
+
+			// Phase 2 — validate and resolve links AFTER all cards exist
+			// (deferred; see Phase 2 below)
+			pendingCards[i] = &manifest.Cards[i]
+
+			upsertLinksSection(store, newCard)
+
+			_, err = store.CreateCard(newCard, resolvedProposalID)
+			if err != nil {
+				errors = append(errors, batchError{Index: i, Error: err.Error()})
+				delete(pendingCards, i)
+				continue
+			}
+
+			if card.Ref != "" {
+				rawRefs[card.Ref] = newCard.ID
+			}
+
+			createdCards = append(createdCards, batchCreatedCard{
+				ID:    newCard.ID,
+				Type:  string(newCard.Type),
+				Title: newCard.Title,
+			})
+		}
+
+		// Phase 2 — resolve @ref links, validate targets, add links, do structure add
+		linkErrors := map[int][]string{}
+		for idx, mcard := range pendingCards {
+			id := createdCards[idx].ID // safe: idx only in map if card was created
+
+			card, err := store.ReadCard(id)
+			if err != nil {
+				linkErrors[idx] = append(linkErrors[idx], fmt.Sprintf("cannot read card %s: %v", id, err))
+				continue
+			}
+
+			for _, link := range mcard.Links {
+				resolvedLink := resolveRef(link, rawRefs)
+				parts := strings.SplitN(resolvedLink, ":", 2)
+				target := parts[0]
+				relation := "references"
+				if len(parts) == 2 {
+					relation = parts[1]
+				}
+
+				// After Phase 1 all non-@ref targets should already exist.
+				// @ref targets that still contain '@' mean the ref was not resolved.
+				if strings.HasPrefix(target, "@") {
+					linkErrors[idx] = append(linkErrors[idx], fmt.Sprintf("unresolved @ref %q", link))
+					continue
+				}
+
+				if _, terr := store.ReadCard(target); terr != nil {
+					linkErrors[idx] = append(linkErrors[idx], fmt.Sprintf("link target %s not found: %v", target, terr))
+					continue
+				}
+				card.AddLink(target, relation)
+			}
+
+			if len(card.Links) == 0 && manifest.Proposal == "" {
+				linkErrors[idx] = append(linkErrors[idx], "card requires at least one outbound link; add --links or set proposal")
+			}
+
+			upsertLinksSection(store, card)
+
+			if err := store.UpdateCardWithLock(id, func(uc *core.Card) error {
+				uc.Links = card.Links
+				return nil
+			}); err != nil {
+				linkErrors[idx] = append(linkErrors[idx], fmt.Sprintf("updating links: %v", err))
+			}
+
+			for _, link := range card.Links {
+				if link.Relation == "indexes" {
+					doStructureAdd(store, link.Target, id)
+				}
+			}
+		}
+
+		// Merge Phase 2 link errors into main errors list
+		for i := 0; i < len(manifest.Cards); i++ {
+			if errs, ok := linkErrors[i]; ok {
+				for _, e := range errs {
+					errors = append(errors, batchError{Index: i, Error: e})
+				}
+			}
+		}
 
 			out := cmd.OutOrStdout()
 			result := batchResult{

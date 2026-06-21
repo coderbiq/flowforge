@@ -360,6 +360,53 @@ func (s *CardStore) DeleteCard(cardID string) error {
 	return nil
 }
 
+// ForceDeleteCard removes a card regardless of its draft/active status
+// and cleans up all backlinks from other cards that point to it.
+func (s *CardStore) ForceDeleteCard(cardID string) error {
+	card, err := s.ReadCard(cardID)
+	if err != nil {
+		return err
+	}
+
+	// Remove backlinks from all cards that reference the deleted card.
+	dependents, err := s.GetDependents(cardID)
+	if err != nil {
+		return fmt.Errorf("finding dependents of %s: %w", cardID, err)
+	}
+	for _, dep := range dependents {
+		found := dep.RemoveLink(cardID, "")
+		if !found {
+			// Try removing with common relations.
+			for _, rel := range []string{"references", "requires", "implements", "satisfies", "records", "indexes", "belongs_to", "related"} {
+				if dep.RemoveLink(cardID, rel) {
+					found = true
+					break
+				}
+			}
+		}
+		if found {
+			if err := s.UpdateCardWithLock(dep.ID, func(uc *Card) error {
+				uc.Links = dep.Links
+				return nil
+			}); err != nil {
+				return fmt.Errorf("removing backlink from %s: %w", dep.ID, err)
+			}
+		}
+	}
+
+	if err := os.Remove(card.FilePath); err != nil {
+		return fmt.Errorf("deleting card: %w", err)
+	}
+
+	if s.hasSync() {
+		if err := s.syncService.DeleteCard(cardID); err != nil {
+			return fmt.Errorf("syncing card deletion: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func (s *CardStore) FindCardPath(cardID string) (string, error) {
 	if s.hasSync() {
 		path, err := s.syncService.FindCardPath(cardID)

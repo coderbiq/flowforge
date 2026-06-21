@@ -725,10 +725,15 @@ func newCardDeleteCmd() *cobra.Command {
 					fmt.Println("Aborted.")
 					return nil
 				}
-			}
 
-			if err := store.DeleteCard(cardID); err != nil {
-				return err
+				if err := store.DeleteCard(cardID); err != nil {
+					return err
+				}
+			
+			} else {
+				if err := store.ForceDeleteCard(cardID); err != nil {
+					return err
+				}
 			}
 
 			out := cmd.OutOrStdout()
