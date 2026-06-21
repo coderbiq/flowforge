@@ -1,15 +1,22 @@
+---
+name: flowforge-feedback
+description: Use ONLY when the user is reviewing test results, code reviews, or task execution output and reports a bug, finding, gap, unexpected behavior, or design issue. Also use when the user explicitly says "反馈", "feedback", "报告问题", or "handoff feedback". Do NOT use for simple card lookups, proposal design, task execution, or bulk knowledge import.
+---
+
 # flowforge-feedback
 
 ## Start
 
-Use when the user is reviewing test results, code reviews, or task execution
-output and reports a bug, finding, gap, unexpected behavior, or design issue.
-Also use when the user explicitly says "反馈", "feedback", "报告问题", or
-"handoff feedback".
+Run `flowforge context task --task <id>` (if triggered by a task execution) or
+`flowforge context proposal --proposal <id>` to gather current context. If no
+task or proposal is active, ask the user which task or proposal the discovery
+belongs to.
 
 Do **not** use for:
 - Simple card lookup or navigation (use `flowforge card read` / `search`).
-- Creating or editing proposal requirements or designs (use `flowforge-design`).
+- Designing or decomposing requirements (use `flowforge-design`). Feedback may
+  create draft requirement cards as tracking items, but detailed design happens
+  in flowforge-design.
 - Executing an existing ready task (use `flowforge-implement`).
 - Bulk importing knowledge from external documents (use `flowforge-curate`).
 
@@ -18,16 +25,6 @@ Do **not** use for:
 Follow `references/workflow-rules.md` for the 5-step turn loop
 (receive → classify → route → record → verify).  Use
 `references/classification-rules.md` for the 5-type decision tree.
-
-Key commands:
-
-| Command | Purpose |
-|---|---|
-| `flowforge log create --kind feedback --for <card-id>` | Record each discovery |
-| `flowforge card create --type task/finding/requirement` | Create output cards |
-| `flowforge library import` / `library promote` | Route knowledge to library |
-| `flowforge structure add` | Index new requirements in STR |
-| `flowforge validate all` | Verify card state before closing turn |
 
 ## Hard Rules
 
@@ -43,10 +40,4 @@ Key commands:
 
 ## Output
 
-Report:
-
-- Cards created or updated (type, ID, title, status).
-- Relations added (which card links to which, relation type).
-- Unresolved gaps (open questions, missing requirements, pending library
-  candidates).
-- One next step (the most important card or task to address next).
+Report cards created/updated, relations added, unresolved gaps, and one next step.

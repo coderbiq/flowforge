@@ -31,7 +31,7 @@ flowforge
 |
 +-- task <action>            # 任务管理（快捷命令组）
 +-- card <action>            # 卡片管理（通用 CRUD）
-+-- context <mode>           # 上下文输出（当前支持 proposal/task）
++-- context <mode>           # 上下文输出（proposal / task）
 |
 +-- upgrade                  # 规划：升级到最新版本
 +-- uninstall                # 规划：从当前项目卸载 FlowForge
@@ -56,7 +56,7 @@ flowforge
 | **生命周期** | `upgrade`, `uninstall` | 规划能力：CLI 升级与卸载 |
 | **任务管理** | `task <action>` | 任务快捷命令（创建/认领/完成/状态） |
 | **卡片管理** | `card <action>` | 所有卡片的通用 CRUD + 链接 + 搜索 |
-| **上下文** | `context <mode>` | 当前支持 proposal/task；反馈、归档上下文后续扩展 |
+| **上下文** | `context <mode>` | 支持 proposal/task 两种模式；feedback/archive 由对应 SKILL 自行组装上下文 |
 | **校验** | `validate <target>` | 规划能力：结构校验 |
 | **配置** | `config <action>` | 规划能力：配置读写 |
 
@@ -570,10 +570,9 @@ flowforge context <mode> [--proposal <id>] [--task <id>] [--cards <ids>]
 mode:
   proposal     # 输出 proposal 根卡、需求索引树入口、活跃任务摘要
   task         # 输出单个任务的目标/依据/约束卡，以及反链证据摘要
-  feedback     # 后续：输出问题相关卡、反链日志、待跟踪任务
-  archive      # 后续：输出 proposal 归档候选、library 对比与合成线索
-  search       # 后续：基于查询条件输出候选卡片摘要
 ```
+
+> 注：原本规划的 `feedback`、`archive`、`search` 模式已取消。feedback SKILL 和 curate SKILL 通过 `context proposal`/`context task` + `card read`/`card search` 即可获取所需上下文，无需专用 context 模式。
 
 当前 MVP 已实现：
 

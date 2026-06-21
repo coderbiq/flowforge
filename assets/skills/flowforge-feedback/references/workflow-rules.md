@@ -5,6 +5,16 @@ discovery to routing it to the correct output (task card, log card, or library
 card).  Every step references the classification rules in
 `classification-rules.md` — do not duplicate classification logic here.
 
+## Quick Reference
+
+| Command | Purpose |
+|---|---|
+| `flowforge log create --kind feedback --for <card-id>` | Record each discovery |
+| `flowforge card create --type task/finding/requirement` | Create output cards |
+| `flowforge library import` / `library promote` | Route knowledge to library |
+| `flowforge structure add` | Index new requirements in STR |
+| `flowforge validate all` | Verify card state before closing turn |
+
 ## Turn Loop
 
 Use one primary mode per turn.  Do not mix discovery, classification, and
