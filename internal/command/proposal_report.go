@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	"flowforge/internal/config"
 	"flowforge/internal/core"
 )
 
@@ -74,17 +73,16 @@ func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSn
 		return nil, fmt.Errorf("checking proposal dir: %w", err)
 	}
 
-	projectRoot, err := config.FindProjectRoot(".")
+	svc, err := currentConfigService()
 	if err != nil {
 		return nil, err
 	}
-	cfg, err := config.Load(projectRoot)
-	if err != nil {
-		return nil, err
-	}
+	defer svc.Close()
+
 	projectID := "default"
-	if len(cfg.Projects) > 0 && cfg.Projects[0].ID != "" {
-		projectID = cfg.Projects[0].ID
+	projects := svc.Projects()
+	if len(projects) > 0 && projects[0].ID != "" {
+		projectID = projects[0].ID
 	}
 
 	cards, err := collectProposalCards(store, proposalDir)

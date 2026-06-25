@@ -43,6 +43,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newValidateCmd())
 	cmd.AddCommand(newStructureCmd())
 	cmd.AddCommand(newSkillCmd())
+	cmd.AddCommand(newConfigCmd())
 
 	return cmd
 }

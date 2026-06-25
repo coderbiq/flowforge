@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-
-	"flowforge/internal/config"
 )
 
 func newSkillCmd() *cobra.Command {
@@ -31,10 +29,12 @@ This is useful after upgrading the flowforge binary to pick up SKILL improvement
 Only skills and templates are updated; project config, wiki content, and runtime state are not modified.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			projectRoot, err := config.FindProjectRoot(".")
+			svc, err := currentConfigService()
 			if err != nil {
 				return fmt.Errorf("finding project root: %w (run flowforge init first)", err)
 			}
+			defer svc.Close()
+			projectRoot := svc.ProjectRoot()
 
 			assetsDir, cleanup, err := locateAssetsDir()
 			if err != nil {

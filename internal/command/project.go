@@ -207,28 +207,15 @@ func newProjectUseCmd() *cobra.Command {
 }
 
 func openProjectContext() (string, *config.Config, *state.Store, error) {
-	projectRoot, err := config.FindProjectRoot(".")
+	svc, err := currentConfigService()
 	if err != nil {
 		return "", nil, nil, err
 	}
+	return svc.ProjectRoot(), svc.FileStore().Config(), svc.StateStore().DB(), nil
+}
 
-	cfg, err := config.Load(projectRoot)
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	store, err := state.Open(runtimeStatePath(projectRoot, cfg))
-	if err != nil {
-		return "", nil, nil, err
-	}
-	if err := store.EnsureSchema(); err != nil {
-		if closeErr := store.Close(); closeErr != nil {
-			return "", nil, nil, fmt.Errorf("ensuring runtime state schema: %w (closing store: %v)", err, closeErr)
-		}
-		return "", nil, nil, fmt.Errorf("ensuring runtime state schema: %w", err)
-	}
-
-	return projectRoot, cfg, store, nil
+func currentConfigService() (*config.ConfigService, error) {
+	return config.New(".")
 }
 
 func closeStateStore(store *state.Store) {
@@ -238,14 +225,6 @@ func closeStateStore(store *state.Store) {
 	if err := store.Close(); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: closing runtime state store: %v\n", err)
 	}
-}
-
-func runtimeStatePath(projectRoot string, cfg *config.Config) string {
-	if cfg == nil {
-		defaultConfig := config.DefaultConfig()
-		cfg = &defaultConfig
-	}
-	return filepath.Join(cfg.CacheDir(projectRoot), "flowforge.sqlite")
 }
 
 func resolveCurrentProject(cfg *config.Config, store *state.Store) (config.ProjectConfig, string, error) {
@@ -280,24 +259,24 @@ func resolveCurrentProject(cfg *config.Config, store *state.Store) (config.Proje
 }
 
 func currentCardStore() (*core.CardStore, error) {
-	projectRoot, cfg, store, err := openProjectContext()
+	svc, err := currentConfigService()
 	if err != nil {
 		return nil, err
 	}
 
-	project, _, err := resolveCurrentProject(cfg, store)
+	project, _, err := resolveCurrentProject(svc.FileStore().Config(), svc.StateStore().DB())
 	if err != nil {
-		closeStateStore(store)
+		svc.Close()
 		return nil, err
 	}
 
-	wikiRoot, err := cfg.WikiRootForProject(projectRoot, project.ID)
+	wikiRoot, err := svc.WikiRoot(project.ID)
 	if err != nil {
-		closeStateStore(store)
+		svc.Close()
 		return nil, err
 	}
 
-	syncSvc := state.NewCardSyncService(store.DB())
+	syncSvc := state.NewCardSyncService(svc.StateStore().DB().DB())
 	cardStore := core.NewCardStoreWithSync(wikiRoot, syncSvc)
 	return cardStore, nil
 }
@@ -307,18 +286,18 @@ func resolveDefaultProposalID(explicitProposalID string, cardType core.CardType)
 		return explicitProposalID, nil
 	}
 
-	_, cfg, store, err := openProjectContext()
+	svc, err := currentConfigService()
 	if err != nil {
 		return "", err
 	}
-	defer closeStateStore(store)
+	defer svc.Close()
 
-	project, _, err := resolveCurrentProject(cfg, store)
+	project, _, err := resolveCurrentProject(svc.FileStore().Config(), svc.StateStore().DB())
 	if err != nil {
 		return "", err
 	}
 
-	proposalID, ok, err := store.CurrentProposalID(project.ID)
+	proposalID, ok, err := svc.CurrentProposalID(project.ID)
 	if err != nil {
 		return "", err
 	}

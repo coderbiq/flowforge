@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"flowforge/internal/config"
 	"flowforge/internal/core"
 )
 
@@ -33,24 +32,20 @@ func newValidateCardCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			target := args[0]
 
-			projectRoot, err := config.FindProjectRoot(".")
+			svc, err := currentConfigService()
 			if err != nil {
 				return err
 			}
+			defer svc.Close()
 
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
+			store := core.NewCardStore(svc.FileStore().Config().WikiRoot(svc.ProjectRoot()))
 
 			var filePath string
 			var cardID string
 			if strings.HasSuffix(target, ".md") {
 				filePath = target
 				if !filepath.IsAbs(filePath) {
-					filePath = filepath.Join(projectRoot, filePath)
+					filePath = filepath.Join(svc.ProjectRoot(), filePath)
 				}
 				cardID = filepath.Base(filePath)
 			} else {
@@ -85,17 +80,13 @@ func newValidateAllCmd() *cobra.Command {
 		Use:   "all",
 		Short: "Validate all cards in the project",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			projectRoot, err := config.FindProjectRoot(".")
+			svc, err := currentConfigService()
 			if err != nil {
 				return err
 			}
+			defer svc.Close()
 
-			cfg, err := config.Load(projectRoot)
-			if err != nil {
-				return err
-			}
-
-			store := core.NewCardStore(cfg.WikiRoot(projectRoot))
+			store := core.NewCardStore(svc.FileStore().Config().WikiRoot(svc.ProjectRoot()))
 
 			dirs := []string{
 				store.ActiveDir(),
