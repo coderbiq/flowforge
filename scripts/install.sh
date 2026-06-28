@@ -6,7 +6,7 @@ set -eu
 
 APP_NAME="flowforge"
 APP_VERSION="latest"
-INSTALL_PREFIX="$HOME/.flowforge"
+INSTALL_PREFIX="/usr/local"
 RELEASES_BASE="https://github.com/coderbiq/flowforge/releases"
 
 # ── 参数解析 ─────────────────────────────────────────
@@ -148,6 +148,36 @@ download_and_verify() {
     RETVAL_ARCHIVE="$archive"
 }
 
+# ── PATH 配置 ──────────────────────────────────────
+
+configure_path() {
+    local bin_dir="$1"
+    local shell_name
+    shell_name="$(basename "${SHELL:-unknown}")"
+
+    local profile_file=""
+    case "$shell_name" in
+        zsh)  profile_file="$HOME/.zshrc" ;;
+        bash) profile_file="$HOME/.bash_profile"
+              [ -f "$HOME/.bashrc" ] && profile_file="$HOME/.bashrc" ;;
+        fish) profile_file="$HOME/.config/fish/config.fish" ;;
+        *)    profile_file="" ;;
+    esac
+
+    local export_line="export PATH=\"$bin_dir:\$PATH\""
+    [ "$shell_name" = "fish" ] && export_line="set -gx PATH $bin_dir \$PATH"
+
+    if [ -n "$profile_file" ] && ! grep -Fq "$bin_dir" "$profile_file" 2>/dev/null; then
+        mkdir -p "$(dirname "$profile_file")"
+        echo "$export_line" >> "$profile_file"
+        info "Added $bin_dir to $profile_file"
+        info "Run 'source $profile_file' or open a new terminal to use flowforge"
+    elif [ -z "$profile_file" ]; then
+        warn "Unknown shell. Add this to your shell profile:"
+        warn "  export PATH=\"$bin_dir:\$PATH\""
+    fi
+}
+
 # ── 主流程 ───────────────────────────────────────────
 
 main() {
@@ -171,7 +201,21 @@ main() {
     local archive="$RETVAL_ARCHIVE"
 
     local bin_dir="$INSTALL_PREFIX/bin"
-    mkdir -p "$bin_dir"
+
+    # 检测目标目录是否可写，不可写就 fallback 到 ~/.flowforge/bin 并自动配置 PATH
+    local need_path_config=false
+    if [ ! -d "$INSTALL_PREFIX" ] && ! mkdir -p "$INSTALL_PREFIX" 2>/dev/null; then
+        need_path_config=true
+    elif [ ! -w "$INSTALL_PREFIX" ]; then
+        need_path_config=true
+    fi
+
+    if [ "$need_path_config" = true ]; then
+        INSTALL_PREFIX="$HOME/.flowforge"
+        bin_dir="$INSTALL_PREFIX/bin"
+    fi
+
+    mkdir -p "$bin_dir" || error "Failed to create $bin_dir"
 
     tar xzf "$archive" -C "$tmpdir"
     mv "$tmpdir/${APP_NAME}" "$bin_dir/"
@@ -185,26 +229,14 @@ main() {
 
     info "${APP_NAME} ${version} installed to $bin_dir/${APP_NAME}"
 
-    if command -v "$bin_dir/${APP_NAME}" >/dev/null 2>&1 || PATH="$PATH:$bin_dir" "$bin_dir/${APP_NAME}" --version >/dev/null 2>&1; then
-        info "Verification: OK"
+    # 如果装到了非系统 PATH 目录，自动追加到 shell profile
+    if [ "$need_path_config" = true ]; then
+        configure_path "$bin_dir"
     fi
 
-    # PATH 配置提示
-    if ! echo "$PATH" | tr ':' '\n' | grep -Fxq "$bin_dir"; then
-        echo ""
-        warn "══════════════════════════════════════════════"
-        warn "  $bin_dir is not in your PATH."
-        warn ""
-        warn "  Add this to your shell profile:"
-        echo ""
-        case "$(basename "${SHELL:-unknown}")" in
-            zsh)  echo '  echo '\''export PATH="$HOME/.flowforge/bin:$PATH"'\'' >> ~/.zshrc && source ~/.zshrc' ;;
-            bash) echo '  echo '\''export PATH="$HOME/.flowforge/bin:$PATH"'\'' >> ~/.bash_profile && source ~/.bash_profile' ;;
-            fish) echo '  echo '\''set -gx PATH $HOME/.flowforge/bin $PATH'\'' >> ~/.config/fish/config.fish' ;;
-            *)    echo '  export PATH="$HOME/.flowforge/bin:$PATH"' ;;
-        esac
-        warn "══════════════════════════════════════════════"
-        echo ""
+    # 验证
+    if command -v "$bin_dir/${APP_NAME}" >/dev/null 2>&1 || PATH="$PATH:$bin_dir" "$bin_dir/${APP_NAME}" --version >/dev/null 2>&1; then
+        info "Verification: OK"
     fi
 
     echo ""
