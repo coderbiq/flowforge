@@ -5,7 +5,7 @@
 set -eu
 
 VERSION="${1:?Usage: release.sh <version>}"
-DIST_DIR="dist/${VERSION}"
+DIST_DIR="dist"
 RELEASES_BASE_URL="https://github.com/coderbiq/flowforge/releases/download/${VERSION}"
 
 if [ ! -d "$DIST_DIR" ]; then

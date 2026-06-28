@@ -12,18 +12,53 @@
 - **主题索引**：每个主题一个 Structure Note（STR 卡片），sqlite 负责查询加速
 - **精准上下文**：Agent 按需加载卡片摘要，避免上下文爆炸
 
+## 快速安装
+
+```bash
+# Linux / macOS
+curl -fsSL https://github.com/coderbiq/flowforge/releases/latest/download/install.sh | bash
+
+# Windows (PowerShell)
+irm https://github.com/coderbiq/flowforge/releases/latest/download/install.ps1 | iex
+
+# 指定版本
+curl -fsSL .../install.sh | bash -s -- --version v0.1.0
+
+# 自定义安装目录
+curl -fsSL .../install.sh | bash -s -- --prefix /usr/local
+```
+
+安装后确保 `~/.flowforge/bin` 在 PATH 中：
+```bash
+export PATH="$HOME/.flowforge/bin:$PATH"
+```
+
+## 更新与卸载
+
+```bash
+# 升级到最新版本
+flowforge upgrade
+
+# 预览可用的更新
+flowforge upgrade --dry-run
+
+# 卸载
+flowforge uninstall
+flowforge uninstall --yes              # 跳过确认
+flowforge uninstall --keep-config      # 仅删除二进制，保留配置
+flowforge uninstall --project <path>   # 同时清理目标项目的托管文件
+```
+
+版本检查会在每次执行 CLI 时异步触发（1 小时间隔），有新版本时自动提示。
+
 ## 快速开始
 
 ```bash
-# 安装 CLI
-curl -fsSL https://get.flowforge.dev | sh
-
 # 在项目中初始化
 cd your-project
 flowforge init
-flowforge project create default --wiki-root ff-wiki --src-dir .
+flowforge project create myproject --wiki-root ff-wiki --src-dir .
 
-# 开始使用
 # Agent 将根据用户意图自动激活对应的 flowforge-* SKILL
 ```
 
