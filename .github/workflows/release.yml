@@ -42,10 +42,14 @@ jobs:
         env:
           FLOWFORGE_SIGNING_KEY: ${{ secrets.FLOWFORGE_SIGNING_KEY }}
 
-      - name: Upload manifest and signatures
+      - name: Upload manifest, install scripts and signatures
         run: |
           VERSION="${{ github.ref_name }}"
           DIST_DIR="dist"
+
+          gh release upload "$VERSION" scripts/install.sh --clobber
+          gh release upload "$VERSION" scripts/install.ps1 --clobber
+
           for file in "$DIST_DIR"/manifest.json "$DIST_DIR"/*.sig; do
             [ -f "$file" ] || continue
             gh release upload "$VERSION" "$file" --clobber
