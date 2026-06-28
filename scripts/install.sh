@@ -6,7 +6,7 @@ set -eu
 
 APP_NAME="flowforge"
 APP_VERSION="latest"
-INSTALL_PREFIX="/usr/local"
+INSTALL_PREFIX=""
 RELEASES_BASE="https://github.com/coderbiq/flowforge/releases"
 
 # ── 参数解析 ─────────────────────────────────────────
@@ -148,6 +148,28 @@ download_and_verify() {
     RETVAL_ARCHIVE="$archive"
 }
 
+# ── 选择安装目录 ─────────────────────────────────────
+
+# 按优先级尝试已在 PATH 中的可写目录
+find_install_prefix() {
+    # 用户通过 --prefix 指定了目录，直接使用
+    if [ "$INSTALL_PREFIX" != "" ]; then
+        return
+    fi
+
+    # 候选目录：已在 PATH 中、常见、用户可写
+    for dir in /usr/local /opt/homebrew "$HOME/.local"; do
+        local bin_dir="$dir/bin"
+        if mkdir -p "$bin_dir" 2>/dev/null && [ -w "$bin_dir" ]; then
+            INSTALL_PREFIX="$dir"
+            return
+        fi
+    done
+
+    # 都不行就用用户目录
+    INSTALL_PREFIX="$HOME/.flowforge"
+}
+
 # ── PATH 配置 ──────────────────────────────────────
 
 configure_path() {
@@ -200,15 +222,18 @@ main() {
     local tmpdir="$RETVAL_TMPDIR"
     local archive="$RETVAL_ARCHIVE"
 
-    local bin_dir="$INSTALL_PREFIX/bin"
+    find_install_prefix
 
-    # 尝试创建 bin 目录，失败则 fallback 到用户目录
+    local bin_dir="$INSTALL_PREFIX/bin"
     local need_path_config=false
-    if ! mkdir -p "$bin_dir" 2>/dev/null || [ ! -w "$bin_dir" ]; then
-        need_path_config=true
-        INSTALL_PREFIX="$HOME/.flowforge"
-        bin_dir="$INSTALL_PREFIX/bin"
-    fi
+
+    # 检查是否需要 PATH 配置（装到了非系统 PATH 目录）
+    case "$bin_dir" in
+        /usr/local/bin|/opt/homebrew/bin|"$HOME/.local/bin") ;;
+        *) need_path_config=true ;;
+    esac
+
+    mkdir -p "$bin_dir" || error "Failed to create $bin_dir"
 
     mkdir -p "$bin_dir" || error "Failed to create $bin_dir"
 
