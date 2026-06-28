@@ -202,15 +202,10 @@ main() {
 
     local bin_dir="$INSTALL_PREFIX/bin"
 
-    # 检测目标目录是否可写，不可写就 fallback 到 ~/.flowforge/bin 并自动配置 PATH
+    # 尝试创建 bin 目录，失败则 fallback 到用户目录
     local need_path_config=false
-    if [ ! -d "$INSTALL_PREFIX" ] && ! mkdir -p "$INSTALL_PREFIX" 2>/dev/null; then
+    if ! mkdir -p "$bin_dir" 2>/dev/null || [ ! -w "$bin_dir" ]; then
         need_path_config=true
-    elif [ ! -w "$INSTALL_PREFIX" ]; then
-        need_path_config=true
-    fi
-
-    if [ "$need_path_config" = true ]; then
         INSTALL_PREFIX="$HOME/.flowforge"
         bin_dir="$INSTALL_PREFIX/bin"
     fi
