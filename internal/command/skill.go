@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+
+	"flowforge/internal/core"
 )
 
 func newSkillCmd() *cobra.Command {
@@ -23,10 +25,10 @@ func newSkillUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Update deployed skills to the latest version",
-		Long: `Redeploy FlowForge skills from the current binary to an already-initialized project.
+		Long: `Redeploy FlowForge skills, templates, and AGENTS.md directives from the current binary to an already-initialized project.
 
 This is useful after upgrading the flowforge binary to pick up SKILL improvements.
-Only skills and templates are updated; project config, wiki content, and runtime state are not modified.`,
+Only managed assets are updated; project config, wiki content, and runtime state are not modified.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			svc, err := currentConfigService()
@@ -60,10 +62,24 @@ Only skills and templates are updated; project config, wiki content, and runtime
 				}
 			}
 
+			agentsSrc := filepath.Join(assetsDir, "AGENTS.md")
+			if _, err := os.Stat(agentsSrc); err == nil {
+				content, err := os.ReadFile(agentsSrc)
+				if err != nil {
+					return fmt.Errorf("reading AGENTS.md asset: %w", err)
+				}
+				content = core.StripBlockMarkers(content)
+				targetPath := filepath.Join(projectRoot, "AGENTS.md")
+				if err := core.ApplyAgentsBlock(targetPath, content); err != nil {
+					return fmt.Errorf("updating AGENTS.md: %w", err)
+				}
+			}
+
 			out := cmd.OutOrStdout()
-			fmt.Fprintln(out, "✓ Skills updated")
+			fmt.Fprintln(out, "✓ Assets updated")
 			fmt.Fprintf(out, "  Skills: %s\n", skillsDst)
 			fmt.Fprintf(out, "  Templates: %s\n", templatesDst)
+			fmt.Fprintf(out, "  AGENTS.md: %s\n", filepath.Join(projectRoot, "AGENTS.md"))
 			return nil
 		},
 	}
