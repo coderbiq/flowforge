@@ -1,18 +1,18 @@
 <!-- FLOWFORGE:START -->
-## FlowForge CLI
+## FlowForge
 
+CLI is the only write path for cards. Never hand-write card files or frontmatter.
+
+### CLI
 - `--body -` heredoc `<<'EOF' ... EOF` for multi-line content
-- `--section "<name>" --body -` for section updates
+- `card batch - <<'EOF' ... EOF` for multi-card creation
 - `-o json` for machine-readable output
 
-## Skill Routing
-
-| Scenario | Skill |
-|----------|-------|
-| bug / design flaw / feedback | `flowforge-feedback` |
-| import docs / archive proposal | `flowforge-curate` |
-| analyze / design / decompose | `flowforge-design` |
-| execute implementation task | `flowforge-implement` |
-
-Feedback categories: bug / finding / knowledge / missing-requirement / design-flaw
+### Skills
+| When | Skill |
+|------|-------|
+| Design / decompose proposal | `flowforge-design` |
+| Execute implementation task | `flowforge-implement` |
+| Report bug / finding / gap | `flowforge-feedback` |
+| Import docs / archive proposal | `flowforge-curate` |
 <!-- FLOWFORGE:END -->
