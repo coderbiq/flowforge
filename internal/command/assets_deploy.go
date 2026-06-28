@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"flowforge/internal/core"
 )
 
 func deployManagedAssets(targetDir string) error {
@@ -26,13 +28,14 @@ func deployManagedAssets(targetDir string) error {
 
 	agentRules := filepath.Join(assetsDir, "AGENTS.md")
 	if _, err := os.Stat(agentRules); err == nil {
+		content, err := os.ReadFile(agentRules)
+		if err != nil {
+			return fmt.Errorf("reading AGENTS.md asset: %w", err)
+		}
+		content = core.StripBlockMarkers(content)
 		targetPath := filepath.Join(targetDir, "AGENTS.md")
-		if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-			if err := copyFile(agentRules, targetPath, false); err != nil {
-				return fmt.Errorf("deploying AGENTS.md: %w", err)
-			}
-		} else if err != nil {
-			return fmt.Errorf("checking target AGENTS.md: %w", err)
+		if err := core.ApplyAgentsBlock(targetPath, content); err != nil {
+			return fmt.Errorf("applying AGENTS.md: %w", err)
 		}
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("checking asset AGENTS.md: %w", err)

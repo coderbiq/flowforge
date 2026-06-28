@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"flowforge/internal/config"
@@ -83,7 +84,7 @@ func TestRunInitCreatesInstallOnly(t *testing.T) {
 	}
 }
 
-func TestRunInitPreservesExistingAgentRules(t *testing.T) {
+func TestRunInitAppendsFlowForgeBlockToExistingAgentRules(t *testing.T) {
 	tmpDir := t.TempDir()
 	agentPath := filepath.Join(tmpDir, "AGENTS.md")
 	original := []byte("# Existing Rules\n")
@@ -99,7 +100,12 @@ func TestRunInitPreservesExistingAgentRules(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading AGENTS.md failed: %v", err)
 	}
-	if string(content) != string(original) {
-		t.Fatalf("expected existing AGENTS.md to be preserved, got:\n%s", string(content))
+
+	if !strings.HasPrefix(string(content), string(original)) {
+		t.Fatalf("expected existing rules to be preserved at start, got:\n%s", string(content))
+	}
+
+	if !strings.Contains(string(content), "<!-- FLOWFORGE:START -->") {
+		t.Fatalf("expected FlowForge block to be appended, got:\n%s", string(content))
 	}
 }

@@ -2,12 +2,10 @@ package command
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"flowforge/internal/config"
-	"flowforge/internal/core"
 	"flowforge/internal/update"
 	"flowforge/internal/version"
 )
@@ -25,7 +23,10 @@ then atomically replaces the current installation.
 If a newer version is available, the binary is downloaded,
 verified with Ed25519 signature and SHA256 checksum, and
 installed atomatically. On failure, the previous version
-is automatically restored.`,
+is automatically restored.
+
+After the CLI binary is upgraded, managed project assets are
+also updated (equivalent to running flowforge assets update).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRun {
 				manifest, err := update.DryRunUpgrade(version.Version)
@@ -66,14 +67,35 @@ is automatically restored.`,
 			fmt.Fprintf(cmd.OutOrStdout(), "Upgraded from %s to %s\n",
 				result.OldVersion, result.NewVersion)
 
-			projectRoot, err := config.FindProjectRoot(".")
-			if err != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Skipping project upgrade: %v\n", err)
+			projectRoot, pErr := config.FindProjectRoot(".")
+			if pErr != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Skipping project assets update: %v\n", pErr)
 				return nil
 			}
 
-			if err := upgradeProjectArtifacts(cmd, projectRoot, result.OldVersion); err != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Project upgrade: %v\n", err)
+			report, aErr := applyAssetUpdates(projectRoot)
+			if aErr != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Project assets update: %v\n", aErr)
+				return nil
+			}
+
+			if report == nil {
+				fmt.Fprintln(cmd.OutOrStdout(), "Project assets are up to date.")
+				return nil
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "Project assets updated: %s\n", report.Summary())
+			if report.BlockUpdated {
+				fmt.Fprintln(cmd.OutOrStdout(), "  AGENTS.md: block updated")
+			}
+			for _, f := range report.Added {
+				fmt.Fprintf(cmd.OutOrStdout(), "  + %s\n", f.Target)
+			}
+			for _, f := range report.Updated {
+				fmt.Fprintf(cmd.OutOrStdout(), "  ~ %s\n", f.Target)
+			}
+			for _, f := range report.Conflict {
+				fmt.Fprintf(cmd.ErrOrStderr(), "  ! conflict: %s (manual merge needed)\n", f.Target)
 			}
 
 			return nil
@@ -86,50 +108,4 @@ is automatically restored.`,
 		"show available upgrade without installing")
 
 	return cmd
-}
-
-func upgradeProjectArtifacts(cmd *cobra.Command, projectRoot, oldVersion string) error {
-	oldManifest, err := core.LoadProjectManifest(projectRoot)
-	if err != nil {
-		return fmt.Errorf("loading manifest: %w", err)
-	}
-
-	newManifest, err := core.GenerateManifest(embeddedAssets, version.Version)
-	if err != nil {
-		return fmt.Errorf("generating manifest: %w", err)
-	}
-
-	diff := core.CompareManifests(oldManifest, newManifest)
-	if !diff.HasChanges() {
-		fmt.Fprintln(cmd.OutOrStdout(), "Project artifacts are up to date.")
-		return nil
-	}
-
-	backupDir := filepath.Join(projectRoot, ".flowforge", "backup", oldVersion)
-	report := core.ApplyUpgrade(diff, newManifest, projectRoot, embeddedAssets, backupDir)
-
-	fmt.Fprintln(cmd.OutOrStdout(), "Project upgrade:", diff.Summary())
-
-	if report.BlockUpdated {
-		fmt.Fprintln(cmd.OutOrStdout(), "  AGENTS.md: block updated")
-	}
-	for _, f := range report.Added {
-		fmt.Fprintf(cmd.OutOrStdout(), "  + %s\n", f.Target)
-	}
-	for _, f := range report.Updated {
-		fmt.Fprintf(cmd.OutOrStdout(), "  ~ %s\n", f.Target)
-	}
-	for _, f := range report.Conflict {
-		fmt.Fprintf(cmd.ErrOrStderr(), "  ! conflict: %s (manual merge needed)\n", f.Target)
-	}
-
-	if report.Error != nil {
-		return report.Error
-	}
-
-	if err := newManifest.Save(projectRoot); err != nil {
-		return fmt.Errorf("saving updated manifest: %w", err)
-	}
-
-	return nil
 }
