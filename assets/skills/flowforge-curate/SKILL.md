@@ -26,7 +26,7 @@ Follow `references/workflow-rules.md` for mode-specific extraction, clustering, 
 - Never hand-write card files, frontmatter, or wikilinks.
 - Always read the plan card first on each activation to resume state.
 - Use `--body -` with heredoc (`<<'EOF' ... EOF`) for multi-line body content. Single-quoted heredoc delimiter prevents all shell expansion.
-- For batch card creation, generate a YAML manifest and use `card create --batch <file>` instead of per-card CLI calls.
+- For batch card creation, generate a YAML manifest and use `card batch - -o json <<'EOF' ... EOF` instead of per-card CLI calls.
 - Use `card update --section "<name>" --body -` with heredoc to update the plan card's batch progress.
 - Use `-o json` to capture created card IDs for scripting.
 

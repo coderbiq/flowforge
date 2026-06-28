@@ -3,6 +3,7 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -46,9 +47,17 @@ type batchError struct {
 
 func newCardCreateBatchCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "batch <file>",
+		Use:   "batch <file|-",
 		Short: "Create multiple cards from a YAML manifest",
-		Long: `Create multiple cards from a YAML manifest file.
+		Long: `Create multiple cards from a YAML manifest file or stdin.
+
+Use '-' as the file argument to read the manifest from stdin (heredoc):
+
+  flowforge card batch - <<'EOF'
+  cards:
+    - type: structure
+      title: "Index Card"
+  EOF
 
 Manifest format:
   proposal: "CR26062001"        # optional, auto-resolves if omitted
@@ -77,9 +86,19 @@ The indexes relation automatically performs structure add.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			batchFile := args[0]
 
-			data, err := os.ReadFile(batchFile)
-			if err != nil {
-				return fmt.Errorf("reading batch file: %w", err)
+			var data []byte
+			if batchFile == "-" {
+				var err error
+				data, err = io.ReadAll(cmd.InOrStdin())
+				if err != nil {
+					return fmt.Errorf("reading batch manifest from stdin: %w", err)
+				}
+			} else {
+				var err error
+				data, err = os.ReadFile(batchFile)
+				if err != nil {
+					return fmt.Errorf("reading batch file: %w", err)
+				}
 			}
 
 			var manifest batchManifest

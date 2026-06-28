@@ -11,6 +11,80 @@ import (
 	"flowforge/internal/core"
 )
 
+func TestCardBatchStdin(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Batch stdin proposal")
+
+	yaml := fmt.Sprintf(`proposal: %s
+cards:
+  - ref: "stdin-req"
+    type: requirement
+    title: "Stdin Batch Requirement"
+    status: draft
+    body: |
+      # Stdin Batch Requirement
+      A requirement created via stdin.
+    tags: [batch, stdin]
+    domain: flowforge
+  - type: design
+    title: "Stdin Batch Design"
+    status: draft
+    body: |
+      # Stdin Batch Design
+      A design created via stdin.
+    tags: [batch, stdin]
+    domain: flowforge
+    links:
+      - "@stdin-req:references"
+`, proposalID)
+
+	cmd := newCardCreateBatchCmd()
+	stdin := strings.NewReader(yaml)
+	cmd.SetIn(stdin)
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"-"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("card batch - (stdin) failed: %v", err)
+	}
+
+	result := out.String()
+	if !strings.Contains(result, "✓ Created 2 card(s)") {
+		t.Fatalf("expected 2 cards created, got:\n%s", result)
+	}
+
+	store := testCardStore(t, tmpDir)
+	cards, err := store.ListCards(store.ProposalCardsDir(proposalID))
+	if err != nil {
+		t.Fatalf("listing proposal cards: %v", err)
+	}
+
+	var reqFound, desFound bool
+	for _, c := range cards {
+		if c.Type == core.CardTypeRequirement && c.Title == "Stdin Batch Requirement" {
+			reqFound = true
+		}
+		if c.Type == core.CardTypeDesign && c.Title == "Stdin Batch Design" {
+			desFound = true
+		}
+	}
+	if !reqFound {
+		t.Fatalf("requirement card not found from stdin batch")
+	}
+	if !desFound {
+		t.Fatalf("design card not found from stdin batch")
+	}
+}
+
 func TestCardBatchForwardRefResolution(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)

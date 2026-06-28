@@ -13,6 +13,25 @@ const (
 	agentsBlockEnd   = "<!-- FLOWFORGE:END -->"
 )
 
+func StripBlockMarkers(content []byte) []byte {
+	startIdx := bytes.Index(content, []byte(agentsBlockStart))
+	endIdx := bytes.Index(content, []byte(agentsBlockEnd))
+
+	if startIdx == -1 || endIdx == -1 || endIdx <= startIdx {
+		return content
+	}
+
+	start := startIdx + len(agentsBlockStart)
+	if start < len(content) && content[start] == '\n' {
+		start++
+	}
+	end := endIdx
+	if end > 0 && content[end-1] == '\n' {
+		end--
+	}
+	return content[start:end]
+}
+
 func ApplyAgentsBlock(targetPath string, newContent []byte) error {
 	_, err := os.Stat(targetPath)
 	if os.IsNotExist(err) {

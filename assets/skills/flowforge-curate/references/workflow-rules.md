@@ -42,30 +42,28 @@ Use one mode per activation.
    ```
    The body must list all items in batches of 5-10 with `- [ ]` checkboxes.
 
-2. Generate a batch YAML manifest for the current batch, then execute:
-   ```
-   flowforge card create --batch batch.yaml -o json
-   ```
-   Manifest format:
-   ```yaml
-   cards:
-     - ref: "str1"
-       type: structure
-       title: "Index Card Title"
-       status: active
-       body: |
-         STR index card body.
-       links:
-         - "FIND-xxx:references"
-     - type: convention
-       title: "Convention Title"
-       status: draft
-       body: |
-         Atomic card body here.
-       links:
-         - "FIND-xxx:references"
-         - "@str1:indexes"
-   ```
+2. Generate a batch YAML manifest for the current batch, then execute via heredoc:
+    ```
+    flowforge card batch - -o json <<'EOF'
+    cards:
+      - ref: "str1"
+        type: structure
+        title: "Index Card Title"
+        status: active
+        body: |
+          STR index card body.
+        links:
+          - "FIND-xxx:references"
+      - type: convention
+        title: "Convention Title"
+        status: draft
+        body: |
+          Atomic card body here.
+        links:
+          - "FIND-xxx:references"
+          - "@str1:indexes"
+    EOF
+    ```
    - `ref` creates a batch-local name for cross-references.
    - `@ref:indexes` links to a batch-local STR and automatically performs `structure add`.
    - Cards are pre-validated; all pass or none are written.

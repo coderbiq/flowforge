@@ -110,6 +110,8 @@ func applyAgentsBlockEntry(entry FileEntry, assetsFS fs.FS, backupDir string) er
 		return fmt.Errorf("reading asset %s: %w", entry.Source, err)
 	}
 
+	content = StripBlockMarkers(content)
+
 	if backupDir != "" {
 		if _, statErr := os.Stat(entry.Target); statErr == nil {
 			if err := backupFile(entry.Target, backupDir); err != nil {

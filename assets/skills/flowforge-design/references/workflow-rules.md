@@ -26,7 +26,7 @@ Use one primary mode per turn.
 
 ## Batch Card Creation
 
-When creating multiple cards at once (e.g., seeding a proposal with requirements, designs, and tasks), generate a YAML manifest and use `card create --batch <file>`. Use `ref` for cross-references within the same batch. Use `-o json` to capture created card IDs.
+When creating multiple cards at once (e.g., seeding a proposal with requirements, designs, and tasks), generate a YAML manifest and use `card batch - -o json <<'EOF' ... EOF`. Use `ref` for cross-references within the same batch. Use `-o json` to capture created card IDs.
 
 ## Link Invariants
 
