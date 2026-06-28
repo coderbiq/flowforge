@@ -146,11 +146,16 @@ func newTaskListCmd() *cobra.Command {
 
 func newTaskReadyCmd() *cobra.Command {
 	var taskType string
+	var mark string
 
 	cmd := &cobra.Command{
 		Use:   "ready",
-		Short: "List ready task cards",
+		Short: "List ready task cards or mark a not_ready task as ready",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if mark != "" {
+				return markTaskReady(mark)
+			}
+
 			if taskType != "" {
 				if err := validateTaskTypeFlag(taskType); err != nil {
 					return err
@@ -187,8 +192,18 @@ func newTaskReadyCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&taskType, "type", "", "Filter by task type: a/i/t/d/f/r/c")
+	cmd.Flags().StringVar(&mark, "mark", "", "Mark a not_ready task as ready")
 
 	return cmd
+}
+
+func markTaskReady(taskID string) error {
+	return updateTaskStatus(taskID, core.CardStatusReady, func(task *core.Card) error {
+		if task.Status != core.CardStatusNotReady {
+			return fmt.Errorf("task %s must be not_ready before mark-ready (current: %s)", task.ID, task.Status)
+		}
+		return nil
+	})
 }
 
 func newTaskClaimCmd() *cobra.Command {

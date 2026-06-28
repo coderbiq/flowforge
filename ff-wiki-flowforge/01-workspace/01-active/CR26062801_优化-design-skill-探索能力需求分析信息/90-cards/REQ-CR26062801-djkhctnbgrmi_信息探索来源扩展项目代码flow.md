@@ -46,6 +46,10 @@ Design skill 的信息探索来源应不仅限于当前项目代码和 FlowForge
 ### Incoming
 
 - [TASK-CR26062801-a-djkhn6w5spyt](TASK-CR26062801-a-djkhn6w5spyt_分析外部知识库的查询接口可信度与优先级策略.md) [task] - 分析外部知识库的查询接口、可信度与优先级策略
+#### satisfies
+- [DES-CR26062801-djkmcrk47ecc](DES-CR26062801-djkmcrk47ecc_外部知识库配置knowledge-sources-配置段与混合查询机制.md) [design] - 外部知识库配置：knowledge_sources 配置段与混合查询机制
+- [TASK-CR26062801-i-djkmdw1gfm4q](TASK-CR26062801-i-djkmdw1gfm4q_更新-library-discoverymd三层探索模型-ab-策略-嵌入格式.md) [task] - 更新 library-discovery.md：三层探索模型 + A/B 策略 + 嵌入格式
+- [TASK-CR26062801-i-djkmdw2rqu35](TASK-CR26062801-i-djkmdw2rqu35_cli-source-子命令外部知识源管理.md) [task] - CLI source 子命令：外部知识源管理
 
 ## Open Questions
 - 外部知识库的"查询"机制：Agent 直接读取文件系统？还是通过 CLI 提供统一查询接口？

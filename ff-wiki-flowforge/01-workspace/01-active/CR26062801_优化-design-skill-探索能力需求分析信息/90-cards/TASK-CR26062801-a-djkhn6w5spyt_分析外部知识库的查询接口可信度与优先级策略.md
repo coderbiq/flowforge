@@ -2,21 +2,20 @@
 id: TASK-CR26062801-a-djkhn6w5spyt
 title: 分析外部知识库的查询接口、可信度与优先级策略
 type: task
-status: not_ready
+status: done
 importance: should
 links:
-- target: PROP-CR26062801
-  relation: belongs_to
-- target: REQ-CR26062801-djkhctnbgrmi
-  relation: analyzes
-- target: REQ-CR26062801-djkhmnhtynhk
-  relation: analyzes
-- target: DES-djdotwt01934
-  relation: references
-created: 2026-06-28 07:02:15.693587+00:00
-updated: 2026-06-28 15:02:23.270172+08:00
+    - target: DES-djdotwt01934
+      relation: references
+    - target: PROP-CR26062801
+      relation: belongs_to
+    - target: REQ-CR26062801-djkhctnbgrmi
+      relation: analyzes
+    - target: REQ-CR26062801-djkhmnhtynhk
+      relation: analyzes
+created: 2026-06-28T07:02:15.693587Z
+updated: 2026-06-28T18:59:44.718225952+08:00
 source: CR26062801
-slug: 分析外部知识库的查询接口可信度与优先级策略
 ---
 
 # 分析外部知识库的查询接口、可信度与优先级策略
@@ -54,4 +53,12 @@ slug: 分析外部知识库的查询接口可信度与优先级策略
 - [REQ-CR26062801-djkhmnhtynhk](REQ-CR26062801-djkhmnhtynhk_外部知识库配置机制配置文件指定与发现.md) [requirement] - 外部知识库配置机制：配置文件指定与发现
 - [PROP-CR26062801](../../../../03-proposal/CR26062801_优化-design-skill-探索能力需求分析信息.md) [proposal] - 优化 design skill 探索能力：需求分析、信息探索来源与外部知识集成
 - [DES-djdotwt01934](../../../../02-library/30-designs/DES-djdotwt01934_design-skill-主流程.md) [design] - Design SKILL 主流程
+
+### Incoming
+
+- [DES-CR26062801-djkmcrk47ecc](DES-CR26062801-djkmcrk47ecc_外部知识库配置knowledge-sources-配置段与混合查询机制.md) [design] - 外部知识库配置：knowledge_sources 配置段与混合查询机制
+
+## Summary
+
+分析完成：确定 knowledge_sources 配置段、混合查询机制（DES-CR26062801-djkmcrk47ecc）
 

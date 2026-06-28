@@ -16,7 +16,7 @@ Use one primary mode per turn.
 
 | Mode | Use When | Main Commands |
 |------|----------|---------------|
-| index | new demand is not in STR, or STR has too many entries | `structure add/remove/list` |
+| index | new demand not in STR, or STR has too many entries. First analyze the demand: identify core goal, scope boundary, implicit assumptions, and risks; then decompose into themes and write STR entries | `structure add/remove/list` |
 | clarify | requirement lacks acceptance, scope, or open questions | `card read/update`, `log create` |
 | analyze | uncertainty blocks design or task split | `task create --type a --status ready/not_ready`, `task ready --type a` |
 | discover library | design needs conventions, modules, decisions, or findings | `library suggest`, `card search`, `card read` |
@@ -50,6 +50,15 @@ When creating multiple cards at once (e.g., seeding a proposal with requirements
 - Implementation work: create task only when requirement, design, constraints, acceptance, and out-of-scope are clear.
 - After adding analysis/design/task links for a requirement or implementation links for a design, run `card refresh <id>`.
 
+## Card and Task Co-evolution
+
+Analysis tasks manage complex analysis processes. Cards and tasks evolve concurrently (not sequentially):
+
+- Creating an analysis task for a requirement does not block the requirement card from being updated.
+- Write partial analysis findings to the requirement/design card immediately via `card update`, even while the analysis task remains in progress.
+- The analysis task tracks remaining sub-questions; its `Done When` field governs completion.
+- A card transitions from `draft` to `stable` when: all linked analysis tasks are `done` AND all Open Questions in the card body are resolved.
+
 ## Ready Rules
 
 Ready implementation tasks require linked requirement, linked design, acceptance, deliverables, out-of-scope, and confirmed library/context constraints. Otherwise create them with `--status not_ready` or keep analysis tasks open.
@@ -61,6 +70,28 @@ Ready analysis tasks require goal, inputs, investigation plan, expected outputs,
 Do not read library files. First use `library suggest --for <card-id>` or `card search <query> --scope library`; read only confirmed candidates with `card read --summary` or `--section`.
 
 Use `library import` only after source material has already been decomposed into a structured candidate. Use `library promote <card-id>` to copy a stable proposal card into library. Do not write library card files directly.
+
+## Exploration Depth Criteria
+
+Design work must explore three sources in priority order before forming design conclusions:
+
+1. **FlowForge Library** (highest priority): `library suggest`, `card search --scope library` — curated project conventions, decisions, findings.
+2. **External Knowledge Sources** (medium priority): configured `knowledge_sources` in `.flowforge/config.yaml` — agent reads files from configured paths using file tools.
+3. **Project Source Code** (informational only): read to understand current state; source code is fact, not normative constraint.
+
+### When exploration is sufficient
+
+Hard rules (must satisfy):
+- No open question on a requirement card blocks the current design decision.
+- All analysis task specified input sources have been checked.
+
+Heuristic guidance (should satisfy):
+- Library, external sources, and source code have all been checked; all returned no actionable new result.
+- Two consecutive exploration rounds yielded no new information and no new search terms.
+
+### Recording exploration
+
+Record what was searched, what matched, and what was missed in a log card (`log create --kind progress`). Logs serve as audit trail, not as replacement for requirement/design/finding cards.
 
 ## Output Rules
 

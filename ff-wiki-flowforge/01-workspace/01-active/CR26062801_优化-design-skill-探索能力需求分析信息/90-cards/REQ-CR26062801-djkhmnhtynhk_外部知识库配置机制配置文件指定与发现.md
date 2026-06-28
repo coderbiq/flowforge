@@ -5,12 +5,11 @@ type: requirement
 status: draft
 importance: should
 links:
-- target: PROP-CR26062801
-  relation: belongs_to
-created: 2026-06-28 07:01:33.468317+00:00
-updated: 2026-06-28 07:01:33.468321+00:00
+    - target: PROP-CR26062801
+      relation: belongs_to
+created: 2026-06-28T07:01:33.468317Z
+updated: 2026-06-28T07:01:33.468321Z
 source: CR26062801
-slug: 外部知识库配置机制配置文件指定与发现
 ---
 
 # 外部知识库配置机制：配置文件指定与发现
@@ -42,6 +41,9 @@ slug: 外部知识库配置机制配置文件指定与发现
 ### Incoming
 
 - [TASK-CR26062801-a-djkhn6w5spyt](TASK-CR26062801-a-djkhn6w5spyt_分析外部知识库的查询接口可信度与优先级策略.md) [task] - 分析外部知识库的查询接口、可信度与优先级策略
+#### satisfies
+- [DES-CR26062801-djkmcrk47ecc](DES-CR26062801-djkmcrk47ecc_外部知识库配置knowledge-sources-配置段与混合查询机制.md) [design] - 外部知识库配置：knowledge_sources 配置段与混合查询机制
+- [TASK-CR26062801-i-djkmdw1z53bz](TASK-CR26062801-i-djkmdw1z53bz_config-扩展config-结构体新增-knowledge-sources-字段.md) [task] - Config 扩展：Config 结构体新增 KnowledgeSources 字段
 
 ## Open Questions
 - 配置格式设计：单个路径还是多个？是否需要标注知识库类型和优先级？

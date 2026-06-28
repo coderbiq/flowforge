@@ -2,19 +2,18 @@
 id: TASK-CR26062801-a-djkhn6vpft3o
 title: 分析探索深度判据与探索结论承载机制
 type: task
-status: not_ready
+status: done
 importance: should
 links:
-- target: PROP-CR26062801
-  relation: belongs_to
-- target: REQ-CR26062801-djkhctmvwq80
-  relation: analyzes
-- target: CONV-djdov2ndj2vm
-  relation: references
-created: 2026-06-28 07:02:15.666110+00:00
-updated: 2026-06-28 15:02:23.240804+08:00
+    - target: CONV-djdov2ndj2vm
+      relation: references
+    - target: PROP-CR26062801
+      relation: belongs_to
+    - target: REQ-CR26062801-djkhctmvwq80
+      relation: analyzes
+created: 2026-06-28T07:02:15.66611Z
+updated: 2026-06-28T18:59:44.692251194+08:00
 source: CR26062801
-slug: 分析探索深度判据与探索结论承载机制
 ---
 
 # 分析探索深度判据与探索结论承载机制
@@ -47,4 +46,12 @@ slug: 分析探索深度判据与探索结论承载机制
 - [REQ-CR26062801-djkhctmvwq80](REQ-CR26062801-djkhctmvwq80_设计思维逻辑探索分析决策的推理链路.md) [requirement] - 设计思维逻辑：探索→分析→决策的推理链路
 - [PROP-CR26062801](../../../../03-proposal/CR26062801_优化-design-skill-探索能力需求分析信息.md) [proposal] - 优化 design skill 探索能力：需求分析、信息探索来源与外部知识集成
 - [CONV-djdov2ndj2vm](../../../../02-library/60-conventions/CONV-djdov2ndj2vm_分析任务驱动不确定点.md) [convention] - 分析任务驱动不确定点
+
+### Incoming
+
+- [DES-CR26062801-djkmcrjk40gc](DES-CR26062801-djkmcrjk40gc_探索深度判据三层优先级-硬规则与启发式.md) [design] - 探索深度判据：三层优先级 + 硬规则与启发式
+
+## Summary
+
+分析完成：确定三层探索优先级、硬规则+启发式判据（DES-CR26062801-djkmcrjk40gc）
 

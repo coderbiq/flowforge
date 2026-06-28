@@ -2,17 +2,16 @@
 id: TASK-CR26062801-a-djkhn6wn82tp
 title: 分析外部长文档嵌入卡片的格式与阈值规范
 type: task
-status: not_ready
+status: done
 importance: should
 links:
-- target: PROP-CR26062801
-  relation: belongs_to
-- target: REQ-CR26062801-djkhctnr9d27
-  relation: analyzes
-created: 2026-06-28 07:02:15.722857+00:00
-updated: 2026-06-28 15:02:23.182800+08:00
+    - target: PROP-CR26062801
+      relation: belongs_to
+    - target: REQ-CR26062801-djkhctnr9d27
+      relation: analyzes
+created: 2026-06-28T07:02:15.722857Z
+updated: 2026-06-28T18:59:44.744747639+08:00
 source: CR26062801
-slug: 分析外部长文档嵌入卡片的格式与阈值规范
 ---
 
 # 分析外部长文档嵌入卡片的格式与阈值规范
@@ -46,4 +45,12 @@ slug: 分析外部长文档嵌入卡片的格式与阈值规范
 
 - [REQ-CR26062801-djkhctnr9d27](REQ-CR26062801-djkhctnr9d27_外部知识长文集成摄入知识库-vs.md) [requirement] - 外部知识长文集成：摄入知识库 vs 嵌入卡片
 - [PROP-CR26062801](../../../../03-proposal/CR26062801_优化-design-skill-探索能力需求分析信息.md) [proposal] - 优化 design skill 探索能力：需求分析、信息探索来源与外部知识集成
+
+### Incoming
+
+- [DES-CR26062801-djkmcrkloprv](DES-CR26062801-djkmcrkloprv_外部长文档集成策略-ab-选择与嵌入格式规范.md) [design] - 外部长文档集成：策略 A/B 选择与嵌入格式规范
+
+## Summary
+
+分析完成：确定复用价值判据、策略 B 嵌入格式（DES-CR26062801-djkmcrkloprv）
 

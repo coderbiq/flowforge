@@ -53,6 +53,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newSkillCmd())
 	cmd.AddCommand(newAssetsCmd())
 	cmd.AddCommand(newConfigCmd())
+	cmd.AddCommand(newSourceCmd())
 	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newUninstallCmd())
 

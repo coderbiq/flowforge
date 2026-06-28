@@ -2,19 +2,18 @@
 id: TASK-CR26062801-a-djkhn6v3gg2k
 title: 分析需求分析阶段的模式定位与卡片演进机制
 type: task
-status: not_ready
+status: done
 importance: should
 links:
-- target: PROP-CR26062801
-  relation: belongs_to
-- target: REQ-CR26062801-djkhctmg6kke
-  relation: analyzes
-- target: CONV-djdov2ndj2vm
-  relation: references
-created: 2026-06-28 07:02:15.629186+00:00
-updated: 2026-06-28 15:02:23.212763+08:00
+    - target: CONV-djdov2ndj2vm
+      relation: references
+    - target: PROP-CR26062801
+      relation: belongs_to
+    - target: REQ-CR26062801-djkhctmg6kke
+      relation: analyzes
+created: 2026-06-28T07:02:15.629186Z
+updated: 2026-06-28T18:59:44.66487188+08:00
 source: CR26062801
-slug: 分析需求分析阶段的模式定位与卡片演进机制
 ---
 
 # 分析需求分析阶段的模式定位与卡片演进机制
@@ -49,4 +48,12 @@ slug: 分析需求分析阶段的模式定位与卡片演进机制
 - [REQ-CR26062801-djkhctmg6kke](REQ-CR26062801-djkhctmg6kke_需求分析方法从模糊输入到结构化需求.md) [requirement] - 需求分析方法：从模糊输入到结构化需求
 - [PROP-CR26062801](../../../../03-proposal/CR26062801_优化-design-skill-探索能力需求分析信息.md) [proposal] - 优化 design skill 探索能力：需求分析、信息探索来源与外部知识集成
 - [CONV-djdov2ndj2vm](../../../../02-library/60-conventions/CONV-djdov2ndj2vm_分析任务驱动不确定点.md) [convention] - 分析任务驱动不确定点
+
+### Incoming
+
+- [DES-CR26062801-djkmcrj23oo9](DES-CR26062801-djkmcrj23oo9_需求分析阶段扩展-index-模式-卡片任务协同演进.md) [design] - 需求分析阶段：扩展 index 模式 + 卡片任务协同演进
+
+## Summary
+
+分析完成：确定扩展 index 模式承载需求分析，卡片与任务可协同演进（DES-CR26062801-djkmcrj23oo9）
 

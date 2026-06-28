@@ -47,6 +47,9 @@ domain: skill-design
 ### Incoming
 
 - [TASK-CR26062801-a-djkhn6wn82tp](TASK-CR26062801-a-djkhn6wn82tp_分析外部长文档嵌入卡片的格式与阈值规范.md) [task] - 分析外部长文档嵌入卡片的格式与阈值规范
+#### satisfies
+- [DES-CR26062801-djkmcrkloprv](DES-CR26062801-djkmcrkloprv_外部长文档集成策略-ab-选择与嵌入格式规范.md) [design] - 外部长文档集成：策略 A/B 选择与嵌入格式规范
+- [TASK-CR26062801-i-djkmdw1gfm4q](TASK-CR26062801-i-djkmdw1gfm4q_更新-library-discoverymd三层探索模型-ab-策略-嵌入格式.md) [task] - 更新 library-discovery.md：三层探索模型 + A/B 策略 + 嵌入格式
 
 ## Open Questions
 - 策略 A 是否需要新增 library 卡类型（如 "external-reference"）？

@@ -15,10 +15,11 @@ const (
 )
 
 type Config struct {
-	Version      string          `yaml:"version" mapstructure:"version"`
-	VersionCheck bool            `yaml:"version_check" mapstructure:"version_check"`
-	Projects     []ProjectConfig `yaml:"projects" mapstructure:"projects"`
-	Wiki         WikiConfig      `yaml:"wiki" mapstructure:"wiki"`
+	Version          string                  `yaml:"version" mapstructure:"version"`
+	VersionCheck     bool                    `yaml:"version_check" mapstructure:"version_check"`
+	Projects         []ProjectConfig         `yaml:"projects" mapstructure:"projects"`
+	Wiki             WikiConfig              `yaml:"wiki" mapstructure:"wiki"`
+	KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources" mapstructure:"knowledge_sources"`
 }
 
 type ProjectConfig struct {
@@ -29,6 +30,15 @@ type ProjectConfig struct {
 
 type WikiConfig struct {
 	Root string `yaml:"root" mapstructure:"root"`
+}
+
+type KnowledgeSourceConfig struct {
+	Name        string `yaml:"name" mapstructure:"name"`
+	Path        string `yaml:"path" mapstructure:"path"`
+	Type        string `yaml:"type" mapstructure:"type"`
+	Category    string `yaml:"category" mapstructure:"category"`
+	Trust       string `yaml:"trust" mapstructure:"trust"`
+	Description string `yaml:"description" mapstructure:"description"`
 }
 
 var defaultConfig = Config{
@@ -53,15 +63,17 @@ func (c *Config) Save(projectRoot string) error {
 	}
 
 	type fileConfig struct {
-		Version      string          `yaml:"version"`
-		VersionCheck bool            `yaml:"version_check"`
-		Projects     []ProjectConfig `yaml:"projects"`
+		Version          string                  `yaml:"version"`
+		VersionCheck     bool                    `yaml:"version_check"`
+		Projects         []ProjectConfig         `yaml:"projects"`
+		KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty"`
 	}
 
 	payload := fileConfig{
-		Version:      c.Version,
-		VersionCheck: c.VersionCheck,
-		Projects:     c.Projects,
+		Version:          c.Version,
+		VersionCheck:     c.VersionCheck,
+		Projects:         c.Projects,
+		KnowledgeSources: c.KnowledgeSources,
 	}
 
 	data, err := yaml.Marshal(payload)
@@ -107,6 +119,7 @@ func Load(projectRoot string) (*Config, error) {
 	v.SetDefault("version_check", defaultConfig.VersionCheck)
 	v.SetDefault("projects", defaultConfig.Projects)
 	v.SetDefault("wiki.root", defaultConfig.Wiki.Root)
+	v.SetDefault("knowledge_sources", []KnowledgeSourceConfig{})
 
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
