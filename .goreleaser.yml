@@ -15,8 +15,6 @@ builds:
     ldflags:
       - -s -w
       - -X flowforge/internal/version.injected={{.Version}}
-      - -X flowforge/internal/version.injectedCommit={{.Commit}}
-      - -X flowforge/internal/version.injectedDate={{.Date}}
     goos:
       - linux
       - darwin
@@ -35,20 +33,6 @@ archives:
       - goos: windows
         formats: ['zip']
     name_template: "flowforge-{{ .Os }}-{{ .Arch }}"
-    files:
-      - assets/**
-
-checksum:
-  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
-  algorithm: sha256
-
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
 
 release:
   github:

@@ -31,19 +31,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sign artifacts
-        env:
-          FLOWFORGE_SIGNING_KEY_FILE: /tmp/flowforge-signing-key.pem
+      - name: Sign artifacts (optional)
         run: |
-          echo "${{ secrets.FLOWFORGE_SIGNING_KEY }}" > /tmp/flowforge-signing-key.pem
-          chmod 600 /tmp/flowforge-signing-key.pem
-          bash scripts/release.sh "${{ github.ref_name }}"
+          if [ -n "$FLOWFORGE_SIGNING_KEY" ]; then
+            echo "$FLOWFORGE_SIGNING_KEY" > /tmp/flowforge-signing-key.pem
+            chmod 600 /tmp/flowforge-signing-key.pem
+            export FLOWFORGE_SIGNING_KEY_FILE=/tmp/flowforge-signing-key.pem
+          fi
+          bash scripts/release.sh "${{ github.ref_name }}" || true
+        env:
+          FLOWFORGE_SIGNING_KEY: ${{ secrets.FLOWFORGE_SIGNING_KEY }}
 
       - name: Upload manifest and signatures
         run: |
           VERSION="${{ github.ref_name }}"
           DIST_DIR="dist/${VERSION}"
-
           for file in "$DIST_DIR"/manifest.json "$DIST_DIR"/*.sig; do
             [ -f "$file" ] || continue
             gh release upload "$VERSION" "$file" --clobber
