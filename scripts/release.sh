@@ -51,12 +51,19 @@ generate_manifest() {
         [ -f "$archive" ] || continue
         local filename
         filename=$(basename "$archive")
+
+        # 只保留每个平台的主格式（非 Windows 用 tar.gz，Windows 用 zip）
+        case "$filename" in
+            *windows*) ;;
+            *.zip) continue ;;  # 跳过非 Windows 的 zip
+        esac
+
         local platform
         platform=$(echo "$filename" | sed 's/flowforge-//;s/\.\(tar\.gz\|zip\)$//')
         local sha256
-        sha256=$(cat "${archive}.sha256" | awk '{print $1}')
+        sha256=$(sha256sum "$archive" | awk '{print $1}')
         local size
-        size=$(stat -f%z "$archive" 2>/dev/null || stat -c%s "$archive")
+        size=$(stat -c%s "$archive" 2>/dev/null || stat -f%z "$archive" 2>/dev/null)
 
         if [ "$first" = true ]; then first=false; else printf ',\n' >> "${DIST_DIR}/manifest.json"; fi
 
