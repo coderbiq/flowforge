@@ -5,13 +5,14 @@ type: log
 status: draft
 importance: should
 tags:
-    - progress
+- progress
 links:
-    - target: TASK-CR26062102-i-dji5la2j9llm
-      relation: records
-created: 2026-06-25T21:50:55.144996997+08:00
-updated: 2026-06-25T21:50:55.145007245+08:00
+- target: TASK-CR26062102-i-dji5la2j9llm
+  relation: records
+created: 2026-06-25 21:50:55.144996+08:00
+updated: 2026-06-25 21:50:55.145007+08:00
 source: CR26062102
+slug: implement-upgrade-命令-自更新下载验证原子替换
 ---
 
 ## Kind

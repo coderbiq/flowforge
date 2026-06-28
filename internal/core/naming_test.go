@@ -129,6 +129,9 @@ func TestToSlug(t *testing.T) {
 		{"under_score_text", "under-score-text"},
 		{"中文标题", "中文标题"},
 		{"Mixed 中文 and English", "mixed-中文-and-english"},
+		{"Title\u115Fwith\u3164invisible\u1160chars", "titlewithinvisiblechars"},
+		{"\u200Bzero\u200Cwidth", "zerowidth"},
+		{"\uFEFFbom\u00A0nbs\u0301combining", "bomnbscombining"},
 		{"", ""},
 		{"   ", ""},
 	}
@@ -148,6 +151,16 @@ func TestToSlugMaxLength(t *testing.T) {
 	if len(result) > 50 {
 		t.Errorf("expected slug length <= 50, got %d", len(result))
 	}
+
+	multiByteInput := strings.Repeat("中", 60)
+	multiResult := ToSlug(multiByteInput)
+	runes := []rune(multiResult)
+	if len(runes) > 50 {
+		t.Errorf("expected rune count <= 50, got %d", len(runes))
+	}
+	if len(multiResult) == 0 {
+		t.Error("expected non-empty result for multi-byte input")
+	}
 }
 
 func TestGenerateFilename(t *testing.T) {
@@ -160,6 +173,7 @@ func TestGenerateFilename(t *testing.T) {
 		{"DEC-456", "Use PostgreSQL", "DEC-456_use-postgresql.md"},
 		{"TASK-789", "Implement API", "TASK-789_implement-api.md"},
 		{"STR-001", "CLI Architecture", "STR-001_cli-architecture.md"},
+		{"REQ-999", "Title\u3164with\u115Finvisible", "REQ-999_titlewithinvisible.md"},
 	}
 
 	for _, tt := range tests {

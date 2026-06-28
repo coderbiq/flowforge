@@ -98,7 +98,7 @@ func ToSlug(s string) string {
 	runes := []rune(s)
 
 	for i, r := range runes {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+		if (unicode.IsLetter(r) || unicode.IsDigit(r)) && isVisible(r) {
 			hasLowerNext := i+1 < len(runes) && unicode.IsLower(runes[i+1])
 			if unicode.IsUpper(r) && result.Len() > 0 && !prevDash && unicode.IsLower(prevR) && hasLowerNext {
 				result.WriteRune('-')
@@ -120,15 +120,34 @@ func ToSlug(s string) string {
 	slug := result.String()
 	slug = strings.Trim(slug, "-")
 
-	if len(slug) > 50 {
-		slug = slug[:50]
-		lastDash := strings.LastIndex(slug, "-")
-		if lastDash > 30 {
-			slug = slug[:lastDash]
+	runes = []rune(slug)
+	if len(runes) > 50 {
+		runes = runes[:50]
+		lastDash := -1
+		for i := len(runes) - 1; i >= 0; i-- {
+			if runes[i] == '-' {
+				lastDash = i
+				break
+			}
 		}
+		if lastDash > 30 {
+			runes = runes[:lastDash]
+		}
+		slug = string(runes)
 	}
 
 	return slug
+}
+
+func isVisible(r rune) bool {
+	if unicode.Is(unicode.Cf, r) {
+		return false
+	}
+	switch r {
+	case '\u115F', '\u1160', '\u3164':
+		return false
+	}
+	return true
 }
 
 func ParseFilename(filename string) (id string, slug string, err error) {

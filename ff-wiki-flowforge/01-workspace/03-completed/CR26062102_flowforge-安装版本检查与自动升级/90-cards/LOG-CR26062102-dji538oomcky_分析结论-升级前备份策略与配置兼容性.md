@@ -5,15 +5,16 @@ type: log
 status: draft
 importance: should
 tags:
-    - finding
+- finding
 links:
-    - target: TASK-CR26062102-a-dji4fhypemnu
-      relation: records
-    - target: REQ-CR26062102-djeu2wuool60
-      relation: records
-created: 2026-06-25T20:46:39.079530238+08:00
-updated: 2026-06-25T20:46:39.079532776+08:00
+- target: TASK-CR26062102-a-dji4fhypemnu
+  relation: records
+- target: REQ-CR26062102-djeu2wuool60
+  relation: records
+created: 2026-06-25 20:46:39.079530+08:00
+updated: 2026-06-25 20:46:39.079532+08:00
 source: CR26062102
+slug: 分析结论-升级前备份策略与配置兼容性
 ---
 
 ## Kind

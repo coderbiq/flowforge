@@ -5,23 +5,24 @@ type: log
 status: draft
 importance: should
 tags:
-    - progress
+- progress
 links:
-    - target: REQ-CR26062102-djeu2wt6uknc
-      relation: records
-    - target: REQ-CR26062102-djeu2wt7dgfk
-      relation: records
-    - target: REQ-CR26062102-djeu2wtrqe8g
-      relation: records
-    - target: REQ-CR26062102-djeu2wuool60
-      relation: records
-    - target: REQ-CR26062102-djeu2wuos60w
-      relation: records
-    - target: REQ-CR26062102-djeu2wuow388
-      relation: records
-created: 2026-06-25T20:13:10.288411109+08:00
-updated: 2026-06-25T20:13:10.288415588+08:00
+- target: REQ-CR26062102-djeu2wt6uknc
+  relation: records
+- target: REQ-CR26062102-djeu2wt7dgfk
+  relation: records
+- target: REQ-CR26062102-djeu2wtrqe8g
+  relation: records
+- target: REQ-CR26062102-djeu2wuool60
+  relation: records
+- target: REQ-CR26062102-djeu2wuos60w
+  relation: records
+- target: REQ-CR26062102-djeu2wuow388
+  relation: records
+created: 2026-06-25 20:13:10.288411+08:00
+updated: 2026-06-25 20:13:10.288415+08:00
 source: CR26062102_flowforge-安装版本检查与自动升级
+slug: design-turn-需求卡内容填充与重复卡片清理
 ---
 
 ## Kind
