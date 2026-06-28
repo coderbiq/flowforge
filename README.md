@@ -16,10 +16,10 @@
 
 ```bash
 # Linux / macOS
-curl -fsSL https://github.com/coderbiq/flowforge/releases/latest/download/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/coderbiq/flowforge/main/scripts/install.sh | bash
 
 # Windows (PowerShell)
-irm https://github.com/coderbiq/flowforge/releases/latest/download/install.ps1 | iex
+irm https://raw.githubusercontent.com/coderbiq/flowforge/main/scripts/install.ps1 | iex
 
 # 指定版本
 curl -fsSL .../install.sh | bash -s -- --version v0.1.0

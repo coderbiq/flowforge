@@ -39,5 +39,5 @@ release:
   github:
     owner: coderbiq
     name: flowforge
-  prerelease: auto
+  prerelease: false
   draft: false
