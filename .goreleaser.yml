@@ -34,7 +34,7 @@ archives:
     format_overrides:
       - goos: windows
         formats: ['zip']
-    name_template: "flowforge-{{ .Arch }}-{{ .Os }}-{{ .Version }}"
+    name_template: "flowforge-{{ .Os }}-{{ .Arch }}"
     files:
       - assets/**
 

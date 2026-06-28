@@ -44,32 +44,26 @@ get_architecture() {
     _cputype="$(uname -m)"
 
     case "$_ostype" in
-        Linux)
-            if ldd /bin/sh 2>/dev/null | grep -qi musl; then
-                _ostype="unknown-linux-musl"
-            else
-                _ostype="unknown-linux-gnu"
-            fi
-            ;;
-        Darwin)  _ostype="apple-darwin" ;;
+        Linux)  _ostype="linux" ;;
+        Darwin) _ostype="darwin" ;;
         *) error "unsupported OS: $_ostype" ;;
     esac
 
     case "$_cputype" in
-        x86_64|amd64)   _cputype="x86_64" ;;
-        aarch64|arm64)  _cputype="aarch64" ;;
+        x86_64|amd64)   _cputype="amd64" ;;
+        aarch64|arm64)  _cputype="arm64" ;;
         *) error "unsupported CPU: $_cputype" ;;
     esac
 
     # Rosetta 2 检测
-    if [ "$_ostype" = "apple-darwin" ] && [ "$_cputype" = "x86_64" ]; then
+    if [ "$_ostype" = "darwin" ] && [ "$_cputype" = "amd64" ]; then
         if [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = "1" ]; then
-            _cputype="aarch64"
+            _cputype="arm64"
             info "Detected Rosetta 2, downloading arm64 build"
         fi
     fi
 
-    RETVAL="${_cputype}-${_ostype}"
+    RETVAL="${_ostype}-${_cputype}"
 }
 
 # ── manifest 解析 ────────────────────────────────────

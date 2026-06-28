@@ -18,9 +18,9 @@ $BinDir = "$Prefix\bin"
 
 $Arch = if ([Environment]::Is64BitOperatingSystem) {
     if ((Get-CimInstance Win32_Processor).Architecture -eq 9) {
-        "aarch64-pc-windows-msvc"
+        "windows-arm64"
     } else {
-        "x86_64-pc-windows-msvc"
+        "windows-amd64"
     }
 } else {
     throw "32-bit Windows is not supported"
