@@ -92,7 +92,13 @@ CREATE INDEX IF NOT EXISTS idx_card_term_term ON card_term(term);
 CREATE INDEX IF NOT EXISTS idx_card_link_from ON card_link(from_id);
 CREATE INDEX IF NOT EXISTS idx_card_link_to ON card_link(to_id);
 CREATE INDEX IF NOT EXISTS idx_card_tag_card_id ON card_tag(card_id);
-CREATE INDEX IF NOT EXISTS idx_card_index_file_path ON card_index(file_path);`
+CREATE INDEX IF NOT EXISTS idx_card_index_file_path ON card_index(file_path);
+
+CREATE TABLE IF NOT EXISTS version_check (
+	id INTEGER PRIMARY KEY,
+	check_time TEXT NOT NULL,
+	checked_version TEXT NOT NULL
+);`
 
 	if _, err := s.db.Exec(query); err != nil {
 		return fmt.Errorf("ensuring runtime_state schema: %w", err)
@@ -223,6 +229,48 @@ func (s *Store) value(key string) (string, bool, error) {
 	}
 
 	return value, true, nil
+}
+
+func (s *Store) GetVersionCheck() (checkTime time.Time, checkedVersion string, err error) {
+	if s == nil || s.db == nil {
+		return time.Time{}, "", fmt.Errorf("store is not open")
+	}
+
+	var t string
+	err = s.db.QueryRow("SELECT check_time, checked_version FROM version_check WHERE id = 1").Scan(&t, &checkedVersion)
+	if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, "", nil
+	}
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("reading version_check: %w", err)
+	}
+
+	checkTime, err = time.Parse(time.RFC3339Nano, t)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("parsing check_time: %w", err)
+	}
+
+	return checkTime, checkedVersion, nil
+}
+
+func (s *Store) SetVersionCheck(version string) error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("store is not open")
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	_, err := s.db.Exec(
+		`INSERT INTO version_check(id, check_time, checked_version)
+		 VALUES (1, ?, ?)
+		 ON CONFLICT(id) DO UPDATE SET
+			check_time = excluded.check_time,
+			checked_version = excluded.checked_version`,
+		now, version,
+	)
+	if err != nil {
+		return fmt.Errorf("setting version_check: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) deleteValue(key string) error {

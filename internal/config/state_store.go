@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"flowforge/internal/state"
 )
@@ -48,6 +49,14 @@ func (s *runtimeStateStore) ClearCurrentProposalID(projectID string) error {
 
 func (s *runtimeStateStore) DB() *state.Store {
 	return s.store
+}
+
+func (s *runtimeStateStore) GetVersionCheck() (time.Time, string, error) {
+	return s.store.GetVersionCheck()
+}
+
+func (s *runtimeStateStore) SetVersionCheck(version string) error {
+	return s.store.SetVersionCheck(version)
 }
 
 func (s *runtimeStateStore) Close() error {

@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign artifacts
+        env:
+          FLOWFORGE_SIGNING_KEY_FILE: /tmp/flowforge-signing-key.pem
+        run: |
+          echo "${{ secrets.FLOWFORGE_SIGNING_KEY }}" > /tmp/flowforge-signing-key.pem
+          chmod 600 /tmp/flowforge-signing-key.pem
+          bash scripts/release.sh "${{ github.ref_name }}"
+
+      - name: Upload manifest and signatures
+        run: |
+          VERSION="${{ github.ref_name }}"
+          DIST_DIR="dist/${VERSION}"
+
+          for file in "$DIST_DIR"/manifest.json "$DIST_DIR"/*.sig; do
+            [ -f "$file" ] || continue
+            gh release upload "$VERSION" "$file" --clobber
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}

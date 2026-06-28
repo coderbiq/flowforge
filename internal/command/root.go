@@ -3,13 +3,19 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"flowforge/internal/state"
+	"flowforge/internal/update"
+	"flowforge/internal/version"
 )
 
 var cfgFile string
+var noVersionCheck bool
 
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -29,6 +35,8 @@ through a CLI-first interface.`,
 		"config file (default: $HOME/.flowforge/config.yaml)")
 	cmd.PersistentFlags().StringP("output", "o", "text",
 		"output format: text, json")
+	cmd.PersistentFlags().BoolVar(&noVersionCheck, "no-version-check", false,
+		"skip automatic version check")
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newInitCmd())
@@ -44,6 +52,8 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newStructureCmd())
 	cmd.AddCommand(newSkillCmd())
 	cmd.AddCommand(newConfigCmd())
+	cmd.AddCommand(newUpgradeCmd())
+	cmd.AddCommand(newUninstallCmd())
 
 	return cmd
 }
@@ -75,6 +85,35 @@ func initConfig(cmd *cobra.Command) error {
 	}
 
 	_ = viper.ReadInConfig()
+
+	if noVersionCheck || cmd.Name() == "version" {
+		return nil
+	}
+
+	if !viper.GetBool("version_check") && viper.IsSet("version_check") {
+		return nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+
+	dbPath := filepath.Join(home, ".flowforge", "cache", "flowforge.sqlite")
+	store, err := state.Open(dbPath)
+	if err != nil {
+		return nil
+	}
+
+	if err := store.EnsureSchema(); err != nil {
+		store.Close()
+		return nil
+	}
+
+	checker := update.NewVersionChecker(version.Version, store)
+	checker.CheckAsync(func(msg string) {
+		fmt.Fprintf(cmd.ErrOrStderr(), "\n%s\n", msg)
+	})
 
 	return nil
 }

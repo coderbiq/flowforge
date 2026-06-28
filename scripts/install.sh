@@ -1,12 +1,23 @@
 #!/bin/sh
 # FlowForge CLI — 一键安装脚本 (macOS / Linux)
-# Usage: curl -fsSL https://get.flowforge.dev | sh
-# 或指定版本: curl -fsSL https://get.flowforge.dev | sh -s v0.1.0
+# Usage: curl -fsSL https://github.com/coderbiq/flowforge/releases/latest/download/install.sh | bash
+# Options: --version <ver> --prefix <dir>
 set -eu
 
 APP_NAME="flowforge"
-APP_VERSION="${1:-latest}"
-CDN_BASE="${FLOWFORGE_CDN:-https://cdn.flowforge.dev}"
+APP_VERSION="latest"
+INSTALL_PREFIX="$HOME/.flowforge"
+RELEASES_BASE="https://github.com/coderbiq/flowforge/releases"
+
+# ── 参数解析 ─────────────────────────────────────────
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --version) APP_VERSION="$2"; shift 2 ;;
+        --prefix)  INSTALL_PREFIX="$2"; shift 2 ;;
+        *)         APP_VERSION="$1"; shift ;;
+    esac
+done
 
 # ── 工具函数 ─────────────────────────────────────────
 
@@ -41,7 +52,6 @@ get_architecture() {
             fi
             ;;
         Darwin)  _ostype="apple-darwin" ;;
-        MINGW*|MSYS*|CYGWIN*) _ostype="pc-windows-msvc" ;;
         *) error "unsupported OS: $_ostype" ;;
     esac
 
@@ -62,63 +72,118 @@ get_architecture() {
     RETVAL="${_cputype}-${_ostype}"
 }
 
+# ── manifest 解析 ────────────────────────────────────
+
+manifest_url() {
+    if [ "$1" = "latest" ]; then
+        echo "${RELEASES_BASE}/latest/download/manifest.json"
+    else
+        echo "${RELEASES_BASE}/download/$1/manifest.json"
+    fi
+}
+
+# ── manifest 解析 ────────────────────────────────────
+
+get_artifact_info() {
+    local manifest_url="$1"
+    local platform="$2"
+    local manifest_json
+    manifest_json="$(curl -sfL "$manifest_url")" || return 1
+
+    local platform_entry
+    platform_entry="$(echo "$manifest_json" | grep -A5 "\"platform\": *\"$platform\"")" || {
+        return 1
+    }
+
+    local url sha256
+    url="$(echo "$platform_entry" | sed -n 's/.*"url": *"\([^"]*\)".*/\1/p')"
+    sha256="$(echo "$platform_entry" | sed -n 's/.*"sha256": *"\([^"]*\)".*/\1/p')"
+
+    if [ -z "$url" ] || [ -z "$sha256" ]; then
+        return 1
+    fi
+
+    RETVAL_URL="$url"
+    RETVAL_SHA256="$sha256"
+}
+
+# ── 下载与校验 ───────────────────────────────────────
+
+download_and_verify() {
+    local version="$1"
+    local arch="$2"
+    local url sha256
+
+    local murl
+    murl="$(manifest_url "$version")"
+    if get_artifact_info "$murl" "$arch"; then
+        url="$RETVAL_URL"
+        sha256="$RETVAL_SHA256"
+    else
+        error "Failed to find artifact for ${arch} version ${version}"
+    fi
+
+    local tmpdir
+    tmpdir="$(mktemp -d)" || error "Failed to create temp directory"
+    local archive="${tmpdir}/${APP_NAME}.tar.gz"
+
+    info "Downloading ${APP_NAME} ${version}..."
+    curl -sSfL "$url" -o "$archive" || {
+        rm -rf "$tmpdir"
+        error "Download failed"
+    }
+
+    info "Verifying checksum..."
+    local actual_checksum
+    if command -v sha256sum >/dev/null 2>&1; then
+        actual_checksum="$(sha256sum "$archive" | awk '{print $1}')"
+    elif command -v shasum >/dev/null 2>&1; then
+        actual_checksum="$(shasum -a 256 "$archive" | awk '{print $1}')"
+    else
+        rm -rf "$tmpdir"
+        error "No sha256sum or shasum found"
+    fi
+
+    if [ "$actual_checksum" != "$sha256" ]; then
+        rm -rf "$tmpdir"
+        error "Checksum mismatch: expected ${sha256}, got ${actual_checksum}"
+    fi
+    info "Checksum verified"
+
+    RETVAL_TMPDIR="$tmpdir"
+    RETVAL_ARCHIVE="$archive"
+}
+
 # ── 主流程 ───────────────────────────────────────────
 
 main() {
     get_architecture
     local arch="$RETVAL"
-
     info "Detected: $arch"
 
-    # 版本解析
     local version
     if [ "$APP_VERSION" = "latest" ]; then
-        version=$(curl -sfL "${CDN_BASE}/release-latest.txt") || {
+        local murl
+        murl="$(manifest_url latest)"
+        version="$(curl -sfL "$murl" 2>/dev/null | sed -n 's/.*"version": *"\([^"]*\)".*/\1/p')" || {
             error "Failed to fetch latest version"
         }
     else
         version="$APP_VERSION"
     fi
 
-    # 下载 URL
-    local url="${CDN_BASE}/release/${version}/${APP_NAME}-${arch}.tar.gz"
-    local tmpdir
-    tmpdir="$(mktemp -d)" || error "Failed to create temp directory"
-    local archive="${tmpdir}/${APP_NAME}.tar.gz"
+    download_and_verify "$version" "$arch"
+    local tmpdir="$RETVAL_TMPDIR"
+    local archive="$RETVAL_ARCHIVE"
 
-    # 下载
-    info "Downloading ${APP_NAME} ${version}..."
-    curl -sSfL "$url" -o "$archive" || error "Download failed"
-
-    # SHA256 校验
-    info "Verifying checksum..."
-    local expected_checksum
-    expected_checksum="$(curl -sfL "${url}.sha256" 2>/dev/null | awk '{print $1}')" || true
-    if [ -n "$expected_checksum" ]; then
-        local actual_checksum
-        if command -v sha256sum >/dev/null 2>&1; then
-            actual_checksum="$(sha256sum "$archive" | awk '{print $1}')"
-        elif command -v shasum >/dev/null 2>&1; then
-            actual_checksum="$(shasum -a 256 "$archive" | awk '{print $1}')"
-        fi
-        if [ "$actual_checksum" != "$expected_checksum" ]; then
-            error "Checksum mismatch"
-        fi
-        info "Checksum verified"
-    else
-        warn "Skipping checksum verification"
-    fi
-
-    # 安装
-    local install_dir="${FLOWFORGE_INSTALL:-$HOME/.flowforge}"
-    local bin_dir="$install_dir/bin"
+    local bin_dir="$INSTALL_PREFIX/bin"
     mkdir -p "$bin_dir"
 
     tar xzf "$archive" -C "$tmpdir"
     mv "$tmpdir/${APP_NAME}" "$bin_dir/"
     if [ -d "$tmpdir/assets" ]; then
-        rm -rf "$install_dir/assets"
-        mv "$tmpdir/assets" "$install_dir/assets"
+        rm -rf "$INSTALL_PREFIX/assets"
+        mv "$tmpdir/assets" "$INSTALL_PREFIX/assets"
     fi
     chmod +x "$bin_dir/${APP_NAME}"
 
@@ -126,27 +191,15 @@ main() {
 
     info "${APP_NAME} ${version} installed to $bin_dir/${APP_NAME}"
 
-    # PATH 配置
-    case "$(basename "${SHELL:-unknown}")" in
-        zsh)
-            echo "export PATH=\"\$PATH:$bin_dir\"" >> "$HOME/.zshrc"
-            info "Added to PATH in ~/.zshrc"
-            ;;
-        bash)
-            echo "export PATH=\"\$PATH:$bin_dir\"" >> "$HOME/.bash_profile"
-            info "Added to PATH in ~/.bash_profile"
-            ;;
-        fish)
-            echo "set -gx PATH \$PATH $bin_dir" >> "$HOME/.config/fish/config.fish"
-            info "Added to PATH in ~/.config/fish/config.fish"
-            ;;
-        *)
-            warn "Please add $bin_dir to your PATH manually"
-            ;;
-    esac
+    if command -v "$bin_dir/${APP_NAME}" >/dev/null 2>&1 || PATH="$PATH:$bin_dir" "$bin_dir/${APP_NAME}" --version >/dev/null 2>&1; then
+        info "Verification: OK"
+    else
+        warn "Please add $bin_dir to your PATH:"
+        warn "  export PATH=\"\$PATH:$bin_dir\""
+    fi
 
     echo ""
-    info "Run 'flowforge --help' to get started"
+    info "Run 'flowforge init' to get started in a project"
 }
 
 main "$@"

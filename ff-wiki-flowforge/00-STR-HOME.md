@@ -23,8 +23,3 @@ Project: flowforge
 1. Create a proposal: `flowforge proposal create "My Feature"`
 2. Add cards to the proposal: `flowforge card create --type requirement --title "..."`
 3. Track progress: `flowforge card list --status in_progress`
-
-## Source Directories
-
-- internal
-- cmd

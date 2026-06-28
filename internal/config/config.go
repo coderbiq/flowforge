@@ -15,9 +15,10 @@ const (
 )
 
 type Config struct {
-	Version  string          `yaml:"version" mapstructure:"version"`
-	Projects []ProjectConfig `yaml:"projects" mapstructure:"projects"`
-	Wiki     WikiConfig      `yaml:"wiki" mapstructure:"wiki"`
+	Version      string          `yaml:"version" mapstructure:"version"`
+	VersionCheck bool            `yaml:"version_check" mapstructure:"version_check"`
+	Projects     []ProjectConfig `yaml:"projects" mapstructure:"projects"`
+	Wiki         WikiConfig      `yaml:"wiki" mapstructure:"wiki"`
 }
 
 type ProjectConfig struct {
@@ -31,7 +32,8 @@ type WikiConfig struct {
 }
 
 var defaultConfig = Config{
-	Version: "2.0.0",
+	Version:      "2.0.0",
+	VersionCheck: true,
 	Wiki: WikiConfig{
 		Root: "ff-wiki",
 	},
@@ -51,13 +53,15 @@ func (c *Config) Save(projectRoot string) error {
 	}
 
 	type fileConfig struct {
-		Version  string          `yaml:"version"`
-		Projects []ProjectConfig `yaml:"projects"`
+		Version      string          `yaml:"version"`
+		VersionCheck bool            `yaml:"version_check"`
+		Projects     []ProjectConfig `yaml:"projects"`
 	}
 
 	payload := fileConfig{
-		Version:  c.Version,
-		Projects: c.Projects,
+		Version:      c.Version,
+		VersionCheck: c.VersionCheck,
+		Projects:     c.Projects,
 	}
 
 	data, err := yaml.Marshal(payload)
@@ -100,6 +104,7 @@ func Load(projectRoot string) (*Config, error) {
 	v.SetConfigName("config")
 
 	v.SetDefault("version", defaultConfig.Version)
+	v.SetDefault("version_check", defaultConfig.VersionCheck)
 	v.SetDefault("projects", defaultConfig.Projects)
 	v.SetDefault("wiki.root", defaultConfig.Wiki.Root)
 

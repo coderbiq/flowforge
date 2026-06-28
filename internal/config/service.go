@@ -43,6 +43,8 @@ func (s *ConfigService) Get(key string) (string, error) {
 		return s.getProjectConfig(key)
 	case strings.HasPrefix(key, "runtime."):
 		return s.getRuntimeState(key)
+	case key == "version_check":
+		return fmt.Sprintf("%t", s.fileStore.Config().VersionCheck), nil
 	default:
 		return "", fmt.Errorf("unknown config key: %s", key)
 	}
@@ -59,6 +61,10 @@ func (s *ConfigService) Set(key, value string) error {
 		if err := s.setRuntimeState(key, value); err != nil {
 			return err
 		}
+	case key == "version_check":
+		if err := s.setVersionCheck(value); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown config key: %s", key)
 	}
@@ -67,6 +73,7 @@ func (s *ConfigService) Set(key, value string) error {
 
 func (s *ConfigService) List() (map[string]string, error) {
 	result := make(map[string]string)
+	result["version_check"] = fmt.Sprintf("%t", s.fileStore.Config().VersionCheck)
 	for _, p := range s.fileStore.Config().Projects {
 		result[fmt.Sprintf("project.%s.wikiRoot", p.ID)] = p.WikiRoot
 		result[fmt.Sprintf("project.%s.srcDirs", p.ID)] = fmt.Sprintf("%v", p.SrcDirs)
@@ -168,6 +175,20 @@ func (s *ConfigService) setProjectConfig(key, value string) error {
 		}
 	}
 	return fmt.Errorf("project %q not found", projectID)
+}
+
+func (s *ConfigService) setVersionCheck(value string) error {
+	enabled := true
+	switch value {
+	case "false", "0", "no":
+		enabled = false
+	case "true", "1", "yes":
+		enabled = true
+	default:
+		return fmt.Errorf("version_check must be true or false, got: %s", value)
+	}
+	s.fileStore.Config().VersionCheck = enabled
+	return s.fileStore.Save()
 }
 
 func (s *ConfigService) getRuntimeState(key string) (string, error) {

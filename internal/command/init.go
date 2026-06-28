@@ -8,7 +8,9 @@ import (
 	"github.com/spf13/cobra"
 
 	"flowforge/internal/config"
+	"flowforge/internal/core"
 	"flowforge/internal/state"
+	"flowforge/internal/version"
 )
 
 func newInitCmd() *cobra.Command {
@@ -77,6 +79,14 @@ func runInit(targetDir string, yes bool, template string) error {
 		return fmt.Errorf("deploying managed assets: %w", err)
 	}
 
+	if err := writeProjectManifest(targetDir); err != nil {
+		return fmt.Errorf("writing project manifest: %w", err)
+	}
+
+	if err := writeVersionFile(targetDir); err != nil {
+		return fmt.Errorf("writing version file: %w", err)
+	}
+
 	fmt.Println("✓ FlowForge initialized successfully")
 	fmt.Println()
 	fmt.Println("Next steps:")
@@ -127,4 +137,25 @@ func createRuntimeState(targetDir string) error {
 	}
 
 	return nil
+}
+
+func writeProjectManifest(targetDir string) error {
+	manifest, err := core.GenerateManifest(embeddedAssets, version.Version)
+	if err != nil {
+		return fmt.Errorf("generating manifest: %w", err)
+	}
+
+	if err := manifest.Save(targetDir); err != nil {
+		return fmt.Errorf("saving manifest: %w", err)
+	}
+
+	return nil
+}
+
+func writeVersionFile(targetDir string) error {
+	versionPath := filepath.Join(targetDir, ".flowforge", ".version")
+	if err := os.MkdirAll(filepath.Dir(versionPath), 0755); err != nil {
+		return fmt.Errorf("creating version directory: %w", err)
+	}
+	return os.WriteFile(versionPath, []byte(version.Version+"\n"), 0644)
 }
