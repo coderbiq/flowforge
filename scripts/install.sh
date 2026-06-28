@@ -187,9 +187,24 @@ main() {
 
     if command -v "$bin_dir/${APP_NAME}" >/dev/null 2>&1 || PATH="$PATH:$bin_dir" "$bin_dir/${APP_NAME}" --version >/dev/null 2>&1; then
         info "Verification: OK"
-    else
-        warn "Please add $bin_dir to your PATH:"
-        warn "  export PATH=\"\$PATH:$bin_dir\""
+    fi
+
+    # PATH 配置提示
+    if ! echo "$PATH" | tr ':' '\n' | grep -Fxq "$bin_dir"; then
+        echo ""
+        warn "══════════════════════════════════════════════"
+        warn "  $bin_dir is not in your PATH."
+        warn ""
+        warn "  Add this to your shell profile:"
+        echo ""
+        case "$(basename "${SHELL:-unknown}")" in
+            zsh)  echo '  echo '\''export PATH="$HOME/.flowforge/bin:$PATH"'\'' >> ~/.zshrc && source ~/.zshrc' ;;
+            bash) echo '  echo '\''export PATH="$HOME/.flowforge/bin:$PATH"'\'' >> ~/.bash_profile && source ~/.bash_profile' ;;
+            fish) echo '  echo '\''set -gx PATH $HOME/.flowforge/bin $PATH'\'' >> ~/.config/fish/config.fish' ;;
+            *)    echo '  export PATH="$HOME/.flowforge/bin:$PATH"' ;;
+        esac
+        warn "══════════════════════════════════════════════"
+        echo ""
     fi
 
     echo ""
