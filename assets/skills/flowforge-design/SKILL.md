@@ -23,6 +23,11 @@ Follow `references/workflow-rules.md` for the 7-mode turn loop. Use `references/
 - Do not execute implementation work here.
 - Run `flowforge validate all` after creating or changing proposal structure.
 - Use `--body -` with heredoc (`<<'EOF' ... EOF`) for multi-line body content. Single-quoted heredoc delimiter prevents all shell expansion.
+- Never create > 10 REQ cards in a single index pass without creating at least 1 DESIGN card.
+- Never create a REQ card with < 5 lines of effective business content; merge into parent instead.
+- After index mode, the next recommended step must be design or clarify mode; never recommend another index pass.
+- STR cards must contain `## Synthesis` section; propose `card update` when synthesis is missing.
+- Run `flowforge proposal inspect <id>` and address all health issues before proposing implementation readiness.
 
 ## Output
 

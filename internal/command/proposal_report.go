@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -38,10 +39,10 @@ type proposalContextReport struct {
 }
 
 type proposalHealthIssue struct {
-	Severity string
-	CardID   string
-	Message  string
-	Command  string
+	Severity string `json:"severity"`
+	CardID   string `json:"cardId"`
+	Message  string `json:"message"`
+	Command  string `json:"command"`
 }
 
 func buildProposalInspectReport(store *core.CardStore, proposalID string) (*proposalInspectReport, error) {
@@ -608,12 +609,21 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 			if structurePurposeIsPlaceholder(card) {
 				add("warn", card.ID, "structure card has no meaningful purpose description", "flowforge card update "+card.ID+" --body \"## Purpose\\n\\n<describe this index theme>\"")
 			}
+			if !structureHasSynthesis(card) {
+				add("warn", card.ID, "structure card has no synthesis (## Synthesis section is missing or placeholder)", "flowforge card update "+card.ID+" --body \"## Synthesis\\n\\n<explain how indexed cards collaborate>\"")
+			}
 		case core.CardTypeRequirement:
 			if !indexedRequirements[card.ID] {
 				add("warn", card.ID, "requirement is not reachable from a requirement index", "flowforge structure add "+reqIndexID+" "+card.ID)
 			}
 			if requirementNeedsNavigation(snapshot, card) && !hasSection(card.Body, "FlowForge Navigation") {
 				add("warn", card.ID, "requirement navigation is stale or missing", "flowforge card refresh "+card.ID)
+			}
+			if requirementIsTooThin(card) {
+				add("warn", card.ID, "requirement has very low content density; consider merging into parent", "flowforge card read "+card.ID)
+			}
+			if !requirementHasCrossLinks(snapshot, card) {
+				add("warn", card.ID, "requirement has no functional links to other requirements (only index/belongs_to); add requires/refines links", "flowforge card link "+card.ID+" <REQ>:requires")
 			}
 		case core.CardTypeDesign:
 			if !hasAnyRelation(card, "implements", "designs", "satisfies") {
@@ -625,6 +635,12 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 		case core.CardTypeTask:
 			issues = append(issues, taskHealthIssues(snapshot, card)...)
 		}
+	}
+
+	activeReqCount := countActiveRequirements(snapshot)
+	designCount := countDesignCards(snapshot)
+	if activeReqCount >= 3 && designCount == 0 {
+		add("error", "PROP-"+snapshot.proposalID, fmt.Sprintf("design gap: %d active requirements but 0 design cards", activeReqCount), "flowforge card create --type design --status draft")
 	}
 
 	sort.SliceStable(issues, func(i, j int) bool {
@@ -661,6 +677,38 @@ func renderProposalHealthIssues(w io.Writer, issues []proposalHealthIssue, limit
 	if limit > 0 && len(issues) > limit {
 		fmt.Fprintf(w, "\n- OmittedHealthIssues: %d\n", len(issues)-limit)
 	}
+}
+
+type proposalInspectJSON struct {
+	ProposalID   string                `json:"proposalId"`
+	Title        string                `json:"title"`
+	Project      string                `json:"project"`
+	HealthIssues []proposalHealthIssue `json:"healthIssues"`
+	CardCounts   map[string]int        `json:"cardCounts"`
+}
+
+func renderProposalInspectReportJSON(w io.Writer, report *proposalInspectReport) error {
+	if report == nil || report.snapshot == nil {
+		return fmt.Errorf("missing proposal inspect data")
+	}
+
+	s := report.snapshot
+	counts := map[string]int{}
+	for _, card := range s.cards {
+		counts[string(card.Type)]++
+	}
+
+	jsonReport := proposalInspectJSON{
+		ProposalID:   s.proposalID,
+		Title:        proposalDisplayTitle(s),
+		Project:      s.projectID,
+		HealthIssues: report.health,
+		CardCounts:   counts,
+	}
+
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(jsonReport)
 }
 
 func severityRank(severity string) int {
@@ -847,6 +895,56 @@ func structurePurposeIsPlaceholder(card *core.Card) bool {
 		return true
 	}
 	return false
+}
+
+func structureHasSynthesis(card *core.Card) bool {
+	section := strings.TrimSpace(extractSection(card.Body, "Synthesis"))
+	if section == "" || section == "None" || section == "TBD" || section == "Structure index." {
+		return false
+	}
+	return len(strings.Split(section, "\n")) >= 2
+}
+
+func requirementIsTooThin(card *core.Card) bool {
+	return core.EffectiveContentLines(card.Body) < 5
+}
+
+func requirementHasCrossLinks(snapshot *proposalSnapshot, card *core.Card) bool {
+	crossRelations := map[string]bool{"requires": true, "refines": true, "extends": true, "supports": true, "blocks": true}
+	for _, link := range card.Links {
+		if crossRelations[link.Relation] {
+			target := snapshot.cardByID[link.Target]
+			if target != nil && target.Type == core.CardTypeRequirement {
+				return true
+			}
+		}
+	}
+	for _, bl := range snapshot.backlinks[card.ID] {
+		if crossRelations[bl.relation] && bl.from.Type == core.CardTypeRequirement {
+			return true
+		}
+	}
+	return false
+}
+
+func countActiveRequirements(snapshot *proposalSnapshot) int {
+	count := 0
+	for _, card := range snapshot.cards {
+		if card.Type == core.CardTypeRequirement && card.Status == core.CardStatusActive {
+			count++
+		}
+	}
+	return count
+}
+
+func countDesignCards(snapshot *proposalSnapshot) int {
+	count := 0
+	for _, card := range snapshot.cards {
+		if card.Type == core.CardTypeDesign {
+			count++
+		}
+	}
+	return count
 }
 
 func directLinkedCards(snapshot *proposalSnapshot, cardID string) []linkedCard {

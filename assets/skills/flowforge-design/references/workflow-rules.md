@@ -24,6 +24,17 @@ Use one primary mode per turn.
 | split tasks | requirement and design are stable enough for implementation | `task create --type i --status ready/not_ready` |
 | refresh navigation | requirement/design relationships changed | `card refresh <REQ/DES id>` |
 
+## Mode Gating Rules
+
+The following rules are mandatory and block further work:
+
+| Condition | Required Action | Rationale |
+|-----------|----------------|-----------|
+| Proposal has >= 3 active REQ cards but 0 DESIGN cards | Enter **design** mode next turn. Create at least 1 DESIGN card synthesizing design intent, architecture decisions, and key constraints. | Prevents requirement fragmentation without synthesis (design_gap). |
+| An STR card has only `## Purpose` + `## Entries` (no `## Synthesis` / `## Key Decisions`) | Enter **refresh navigation** mode. Write synthesis content into the STR card via `card update`. | STR cards must be synthesis, not just directories. |
+| A REQ card has < 5 lines of effective content (excluding frontmatter, section headings, auto-generated nav) | Do not create this card independently. Merge into parent or related card. | Prevents high structural overhead (template burden). |
+| After index mode creates new REQ cards, the next turn must be design or clarify (not another index pass) | Report as a required next step; index mode may not repeat without design. | Prevents "index -> done" syndrome (progressive refinement skipped). |
+
 ## Batch Card Creation
 
 When creating multiple cards at once (e.g., seeding a proposal with requirements, designs, and tasks), generate a YAML manifest and use `card batch - -o json <<'EOF' ... EOF`. Use `ref` for cross-references within the same batch. Use `-o json` to capture created card IDs.
@@ -64,6 +75,14 @@ Analysis tasks manage complex analysis processes. Cards and tasks evolve concurr
 Ready implementation tasks require linked requirement, linked design, acceptance, deliverables, out-of-scope, and confirmed library/context constraints. Otherwise create them with `--status not_ready` or keep analysis tasks open.
 
 Ready analysis tasks require goal, inputs, investigation plan, expected outputs, and done-when.
+
+## Design Completion Rules
+
+A design card is complete when all linked analysis tasks are `done` AND all open questions in the design card body are resolved.
+
+A proposal is ready for implementation when:
+- Every active REQ card is linked to at least one DESIGN card via `designs` or `satisfies`.
+- Every STR card has non-placeholder `## Synthesis` content.
 
 ## Library Rules
 

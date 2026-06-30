@@ -39,9 +39,10 @@ func newStructureAddCmd() *cobra.Command {
 				return err
 			}
 
-			var indexedCount int
-			var changed bool
-			if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
+		var indexedCount int
+		var structureBody string
+		var changed bool
+		if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
 				if card.Type != core.CardTypeStructure {
 					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
 				}
@@ -60,6 +61,7 @@ func newStructureAddCmd() *cobra.Command {
 				}
 				card.Body = refreshedBody
 				indexedCount = len(structureIndexedCardIDs(card))
+				structureBody = card.Body
 				changed = indexedCount > before
 				return nil
 			}); err != nil {
@@ -75,6 +77,14 @@ func newStructureAddCmd() *cobra.Command {
 			warning := ""
 			if indexedCount > 15 {
 				warning = fmt.Sprintf("%s now has %d direct indexed cards; consider splitting the structure", structureID, indexedCount)
+			}
+			if indexedCount >= 5 && !structureHasSynthesisBody(structureBody) {
+				synthesisReminder := fmt.Sprintf("%s has %d entries but no ## Synthesis section; run 'flowforge card update %s --body -' to add synthesis", structureID, indexedCount, structureID)
+				if warning != "" {
+					warning += "; " + synthesisReminder
+				} else {
+					warning = synthesisReminder
+				}
 			}
 			printResult(cmd, out, CommandResult{
 				Structure: structureID,
@@ -364,4 +374,24 @@ func guardOrphanCardOnStructureRemove(store *core.CardStore, cardID, structureID
 	}
 
 	return nil
+}
+
+func structureHasSynthesisBody(body string) bool {
+	trimmed := strings.TrimSpace(body)
+	if !strings.Contains(trimmed, "## Synthesis") {
+		return false
+	}
+	idx := strings.Index(trimmed, "## Synthesis")
+	after := trimmed[idx+len("## Synthesis"):]
+	nextHeading := strings.Index(after, "\n## ")
+	var synthesisContent string
+	if nextHeading >= 0 {
+		synthesisContent = strings.TrimSpace(after[:nextHeading])
+	} else {
+		synthesisContent = strings.TrimSpace(after)
+	}
+	if synthesisContent == "" || synthesisContent == "None" || synthesisContent == "TBD" || synthesisContent == "Structure index." {
+		return false
+	}
+	return true
 }

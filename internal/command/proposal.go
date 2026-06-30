@@ -222,6 +222,7 @@ func newProposalListCmd() *cobra.Command {
 }
 
 func newProposalInspectCmd() *cobra.Command {
+	var outputFormat string
 	cmd := &cobra.Command{
 		Use:   "inspect <proposal-id>",
 		Short: "Inspect a proposal summary",
@@ -237,9 +238,13 @@ func newProposalInspectCmd() *cobra.Command {
 				return err
 			}
 
+			if outputFormat == "json" {
+				return renderProposalInspectReportJSON(cmd.OutOrStdout(), report)
+			}
 			return renderProposalInspectReport(cmd.OutOrStdout(), report)
 		},
 	}
+	cmd.Flags().StringVarP(&outputFormat, "output", "o", "text", "Output format: text, json")
 
 	return cmd
 }
