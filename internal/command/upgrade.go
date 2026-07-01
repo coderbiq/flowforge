@@ -2,6 +2,8 @@ package command
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 
 	"github.com/spf13/cobra"
 
@@ -43,6 +45,11 @@ also updated (equivalent to running flowforge assets update).`,
 				return nil
 			}
 
+			execPath, execErr := os.Executable()
+			if execErr != nil {
+				execPath = ""
+			}
+
 			fmt.Fprintf(cmd.OutOrStdout(), "Current version: %s\n", version.Version)
 
 			var result *update.UpgradeResult
@@ -73,29 +80,18 @@ also updated (equivalent to running flowforge assets update).`,
 				return nil
 			}
 
-			report, aErr := applyAssetUpdates(projectRoot)
-			if aErr != nil {
+			if execPath == "" {
+				fmt.Fprintln(cmd.ErrOrStderr(), "Skipping project assets update: cannot locate executable")
+				return nil
+			}
+
+			assetCmd := exec.Command(execPath, "assets", "update")
+			assetCmd.Dir = projectRoot
+			assetCmd.Stdout = cmd.OutOrStdout()
+			assetCmd.Stderr = cmd.ErrOrStderr()
+			assetCmd.Stdin = cmd.InOrStdin()
+			if aErr := assetCmd.Run(); aErr != nil {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Project assets update: %v\n", aErr)
-				return nil
-			}
-
-			if report == nil {
-				fmt.Fprintln(cmd.OutOrStdout(), "Project assets are up to date.")
-				return nil
-			}
-
-			fmt.Fprintf(cmd.OutOrStdout(), "Project assets updated: %s\n", report.Summary())
-			if report.BlockUpdated {
-				fmt.Fprintln(cmd.OutOrStdout(), "  AGENTS.md: block updated")
-			}
-			for _, f := range report.Added {
-				fmt.Fprintf(cmd.OutOrStdout(), "  + %s\n", f.Target)
-			}
-			for _, f := range report.Updated {
-				fmt.Fprintf(cmd.OutOrStdout(), "  ~ %s\n", f.Target)
-			}
-			for _, f := range report.Conflict {
-				fmt.Fprintf(cmd.ErrOrStderr(), "  ! conflict: %s (manual merge needed)\n", f.Target)
 			}
 
 			return nil
