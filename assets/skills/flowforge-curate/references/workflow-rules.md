@@ -31,38 +31,13 @@ Use one mode per activation.
 
 1. Create the plan card:
    ```
-   flowforge library import --type finding --title "Curation Plan: <source>" --status active --tags "curation-plan" --body - --source-card <source-card> <<'EOF'
-   ## 来源
-   ...
-   ## 计划条目
-   ### 批次 1（条目 1-8）
-   - [ ] CONV / title / STR-NAME / create
-   ...
-   EOF
+   flowforge library import --type finding --title "Curation Plan: <source>" --status active --tags "curation-plan" --body "## 来源\n...\n## 计划条目\n### 批次 1（条目 1-8）\n- [ ] CONV / title / STR-NAME / create\n..." --source-card <source-card>
    ```
    The body must list all items in batches of 5-10 with `- [ ]` checkboxes.
 
-2. Generate a batch YAML manifest for the current batch, then execute via heredoc:
+2. Generate a batch YAML manifest for the current batch, then execute via inline:
     ```
-    flowforge card batch - -o json <<'EOF'
-    cards:
-      - ref: "str1"
-        type: structure
-        title: "Index Card Title"
-        status: active
-        body: |
-          STR index card body.
-        links:
-          - "FIND-xxx:references"
-      - type: convention
-        title: "Convention Title"
-        status: draft
-        body: |
-          Atomic card body here.
-        links:
-          - "FIND-xxx:references"
-          - "@str1:indexes"
-    EOF
+    flowforge card batch --manifest "cards:\n  - ref: \"str1\"\n    type: structure\n    title: \"Index Card Title\"\n    status: active\n    body: |\n      STR index card body.\n    links:\n      - \"FIND-xxx:references\"\n  - type: convention\n    title: \"Convention Title\"\n    status: draft\n    body: |\n      Atomic card body here.\n    links:\n      - \"FIND-xxx:references\"\n      - \"@str1:indexes\""
     ```
    - `ref` creates a batch-local name for cross-references.
    - `@ref:indexes` links to a batch-local STR and automatically performs `structure add`.
@@ -71,14 +46,11 @@ Use one mode per activation.
 
 3. After batch creation, update the plan card's progress section:
    ```
-   flowforge card update <plan-card-id> --section "批次 1" --body - <<'EOF'
-   - [x] CONV-xxx / title / STR-xxx / create
-   ...
-   EOF
+   flowforge card update <plan-card-id> --section "批次 1" --body "- [x] CONV-xxx / title / STR-xxx / create\n..."
    ```
 
 4. Merge/skip items:
-   - `merge`: `flowforge card read <target> --summary`, then `flowforge card update <target> --section "<section>" --body -` with heredoc
+   - `merge`: `flowforge card read <target> --summary`, then `flowforge card update <target> --section "<section>" --body "..."` with inline body
    - `skip`: record reason only
 
 5. When all batches done: `flowforge index rebuild`

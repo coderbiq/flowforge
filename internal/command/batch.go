@@ -46,18 +46,21 @@ type batchError struct {
 }
 
 func newCardCreateBatchCmd() *cobra.Command {
+	var manifestInline string
+
 	cmd := &cobra.Command{
-		Use:   "batch <file|-",
+		Use:   "batch [<file|-]",
 		Short: "Create multiple cards from a YAML manifest",
-		Long: `Create multiple cards from a YAML manifest file or stdin.
+		Long: `Create multiple cards from a YAML manifest file, stdin, or inline.
 
-Use '-' as the file argument to read the manifest from stdin (heredoc):
+With file or stdin:
 
-  flowforge card batch - <<'EOF'
-  cards:
-    - type: structure
-      title: "Index Card"
-  EOF
+  flowforge card batch manifest.yaml
+  flowforge card batch -
+
+With --manifest for inline YAML (use \n for newlines):
+
+  flowforge card batch --manifest "cards:\n  - type: structure\n    title: Index Card"
 
 Manifest format:
   proposal: "CR26062001"        # optional, auto-resolves if omitted
@@ -66,39 +69,41 @@ Manifest format:
       type: structure
       title: "Architecture Index"
       status: active
-      body: |
-        Multi-line body content.
+      body: Multi-line body with \n for newlines
       links:
         - "FIND-xxx:references"
 
     - type: convention
       title: "Naming Rules"
       status: draft
-      body: |
-        Rules content.
+      body: Rules content with \n newlines
       links:
         - "FIND-xxx:references"
         - "@str-core:indexes"     # cross-ref + auto structure add
 
 Use @ref in links to reference another card in the same batch.
 The indexes relation automatically performs structure add.`,
-		Args: cobra.ExactArgs(1),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			batchFile := args[0]
-
 			var data []byte
-			if batchFile == "-" {
+
+			if manifestInline != "" {
+				unescaped := unescapeBody(manifestInline)
+				data = []byte(unescaped)
+			} else if len(args) == 1 && args[0] == "-" {
 				var err error
 				data, err = io.ReadAll(cmd.InOrStdin())
 				if err != nil {
 					return fmt.Errorf("reading batch manifest from stdin: %w", err)
 				}
-			} else {
+			} else if len(args) == 1 {
 				var err error
-				data, err = os.ReadFile(batchFile)
+				data, err = os.ReadFile(args[0])
 				if err != nil {
 					return fmt.Errorf("reading batch file: %w", err)
 				}
+			} else {
+				return fmt.Errorf("requires either --manifest or a file/stdin argument")
 			}
 
 			var manifest batchManifest
@@ -270,6 +275,8 @@ The indexes relation automatically performs structure add.`,
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&manifestInline, "manifest", "", "Inline YAML manifest (use \\n for newlines, no shell redirect needed)")
 
 	return cmd
 }

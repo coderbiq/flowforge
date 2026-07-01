@@ -20,7 +20,7 @@ Follow `references/workflow-rules.md` for execution and completion steps.
 - Never edit card files, frontmatter, or wikilinks manually.
 - Only make changes within the ready task's defined scope.
 - Run tests and `flowforge validate all` when card state changed.
-- Use `--body -` with heredoc (`<<'EOF' ... EOF`) for multi-line body content. Single-quoted heredoc delimiter prevents all shell expansion.
+- For multi-line body content: use inline `--body` with `\n` for newlines. Example: `--body "## Goal\n\ncontent"`. Never use shell heredoc or redirects with flowforge CLI — redirects trigger agent permission prompts.
 
 ## Output
 

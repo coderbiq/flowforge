@@ -4,8 +4,9 @@
 CLI is the only write path for cards. Never hand-write card files or frontmatter.
 
 ### CLI
-- `--body -` heredoc `<<'EOF' ... EOF` for multi-line content
-- `card batch - <<'EOF' ... EOF` for multi-card creation
+- `--body "content\\nwith\\nnewlines"` for multi-line content (\\n for newlines, no shell redirects)
+- `card batch --manifest "cards:\\n  - type: ..."` for multi-card creation (inline YAML with \\n)
+- Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts
 - `-o json` for machine-readable output
 
 ### Skills

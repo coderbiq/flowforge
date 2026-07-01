@@ -154,10 +154,7 @@ Examples:
   flowforge card create --type decision --title "Use PostgreSQL" --proposal CR24010101
   flowforge card create --type task --title "Implement API" --links "DEC-abc123"
   flowforge card create --type structure --title "CLI Architecture" --status active
-  flowforge card create --type design --title "Init command" --status draft --body - <<'EOF'
-## Goal
-Design the init command.
-EOF
+  flowforge card create --type design --title "Init command" --status draft --body "## Goal\n\nDesign the init command."
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cardType == "" {
@@ -1356,7 +1353,34 @@ func readBody(body string) (string, error) {
 		}
 		return string(data), nil
 	}
-	return body, nil
+	return unescapeBody(body), nil
+}
+
+func unescapeBody(s string) string {
+	if !strings.ContainsAny(s, "\\") {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+1 < len(s) {
+			switch s[i+1] {
+			case 'n':
+				b.WriteByte('\n')
+			case 't':
+				b.WriteByte('\t')
+			case '\\':
+				b.WriteByte('\\')
+			default:
+				b.WriteByte(s[i])
+				i--
+			}
+			i++
+			continue
+		}
+		b.WriteByte(s[i])
+	}
+	return b.String()
 }
 
 func upsertLinksSection(store *core.CardStore, card *core.Card) {

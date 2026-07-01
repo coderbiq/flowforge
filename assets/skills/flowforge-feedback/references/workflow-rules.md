@@ -68,28 +68,7 @@ flowforge card create \
   --type task \
   --title "<concise bug title>" \
   --status not_ready \
-  --body - <<'EOF'
-# <bug title>
-
-## Goal
-What the fix must achieve.
-
-## Inputs
-- Link to the source discovery or failed task.
-
-## Deliverables
-- Changed file(s) or configuration.
-- Updated test that verifies the fix.
-
-## Acceptance
-- The reproducing check passes after the change.
-
-## Out of Scope
-- Adjacent improvements not related to the root cause.
-
-## Read Before Work
-- <source card ID>
-EOF
+  --body "# <bug title>\n\n## Goal\nWhat the fix must achieve.\n\n## Inputs\n- Link to the source discovery or failed task.\n\n## Deliverables\n- Changed file(s) or configuration.\n- Updated test that verifies the fix.\n\n## Acceptance\n- The reproducing check passes after the change.\n\n## Out of Scope\n- Adjacent improvements not related to the root cause.\n\n## Read Before Work\n- <source card ID>" \
   --links "<source-card-id>:records"
 ```
 
@@ -103,24 +82,7 @@ flowforge card create \
   --type finding \
   --title "<finding title>" \
   --status draft \
-  --body - <<'EOF'
-# <finding title>
-
-## Summary
-One-paragraph description of what was observed.
-
-## Source
-<where the finding came from: task, test, review>
-
-## Evidence
-- Concrete data points, log snippets, or test output.
-
-## Impact
-Why this matters and what it might affect.
-
-## Open Questions
-What is still unknown.
-EOF
+  --body "# <finding title>\n\n## Summary\nOne-paragraph description of what was observed.\n\n## Source\n<where the finding came from: task, test, review>\n\n## Evidence\n- Concrete data points, log snippets, or test output.\n\n## Impact\nWhy this matters and what it might affect.\n\n## Open Questions\nWhat is still unknown." \
   --links "<source-card-id>:records"
 ```
 
@@ -131,15 +93,7 @@ EOF
 flowforge library import \
   --type convention \
   --title "<knowledge title>" \
-  --body - <<'EOF'
-## Summary
-
-## Rule or Finding
-
-## Applies When
-
-## Source Evidence
-EOF
+  --body "## Summary\n\n## Rule or Finding\n\n## Applies When\n\n## Source Evidence" \
   --source-card "<source-card-id>"
 
 # Option B — promote an existing stable proposal card to library
@@ -157,25 +111,7 @@ flowforge card create \
   --type requirement \
   --title "<requirement title>" \
   --status draft \
-  --body - <<'EOF'
-# <requirement title>
-
-## Summary
-What is missing and why it matters.
-
-## Source
-<discovery context>
-
-## Acceptance
-- Testable condition 1
-- Testable condition 2
-
-## Scope
-What is in scope and what is out of scope.
-
-## Open Questions
-None (or list open questions)
-EOF
+  --body "# <requirement title>\n\n## Summary\nWhat is missing and why it matters.\n\n## Source\n<discovery context>\n\n## Acceptance\n- Testable condition 1\n- Testable condition 2\n\n## Scope\nWhat is in scope and what is out of scope.\n\n## Open Questions\nNone (or list open questions)" \
   --links "<source-card-id>:records"
 ```
 
@@ -192,25 +128,7 @@ flowforge card create \
   --type requirement \
   --title "<design flaw: short title>" \
   --status draft \
-  --body - <<'EOF'
-# <design flaw title>
-
-## Summary
-What is wrong with the current design and why.
-
-## Source
-<affected design card ID>
-
-## Acceptance
-- The updated design must resolve the structural risk.
-- No new regression is introduced.
-
-## Scope
-What aspects of the design are affected.
-
-## Open Questions
-None (or list open questions)
-EOF
+  --body "# <design flaw title>\n\n## Summary\nWhat is wrong with the current design and why.\n\n## Source\n<affected design card ID>\n\n## Acceptance\n- The updated design must resolve the structural risk.\n- No new regression is introduced.\n\n## Scope\nWhat aspects of the design are affected.\n\n## Open Questions\nNone (or list open questions)" \
   --links "<affected-design-card-id>:references"
 ```
 

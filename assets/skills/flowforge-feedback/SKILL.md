@@ -34,8 +34,7 @@ Follow `references/workflow-rules.md` for the 5-step turn loop
 - Bug / missing-requirement / design-flaw must immediately produce a tracking
   card (task or requirement); do not record a log only.
 - Knowledge findings must be routed to `library import` or `library promote`.
-- Use `--body -` with heredoc (`<<'EOF' ... EOF`) for multi-line body content.
-  Single-quoted heredoc delimiter prevents all shell expansion.
+- For multi-line body content: use inline `--body` with `\n` for newlines. Example: `--body "## Goal\n\ncontent"`. Never use shell heredoc or redirects with flowforge CLI — redirects trigger agent permission prompts.
 - Run `flowforge validate all` after creating or changing card structure.
 
 ## Output
