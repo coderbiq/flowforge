@@ -1,13 +1,18 @@
 package update
 
 import (
+	"archive/tar"
+	"archive/zip"
 	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/minio/selfupdate"
@@ -88,7 +93,19 @@ func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) 
 		return nil, fmt.Errorf("checksum verification: %w", err)
 	}
 
+	if artifact.Size > 0 && int64(len(bin)) != artifact.Size {
+		return nil, fmt.Errorf("size mismatch: expected %d bytes, got %d", artifact.Size, len(bin))
+	}
+
+	bin, err = extractBinary(bin, platform)
+	if err != nil {
+		return nil, fmt.Errorf("extracting binary from artifact: %w", err)
+	}
+
 	if err := selfupdate.Apply(bytes.NewReader(bin), selfupdate.Options{}); err != nil {
+		if rerr := selfupdate.RollbackError(err); rerr != nil {
+			return nil, fmt.Errorf("applying update failed and rollback also failed (binary may be corrupted: %v); recovery: %w", rerr, err)
+		}
 		return nil, fmt.Errorf("applying update: %w", err)
 	}
 
@@ -147,4 +164,62 @@ func sha256Sum(data []byte) string {
 	h := sha256.New()
 	h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func extractBinary(data []byte, platform string) ([]byte, error) {
+	binName := "flowforge"
+	if strings.Contains(platform, "windows") {
+		binName = "flowforge.exe"
+	}
+
+	if len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b {
+		return extractFromTarGz(data, binName)
+	}
+
+	if len(data) >= 4 && data[0] == 0x50 && data[1] == 0x4b {
+		return extractFromZip(data, binName)
+	}
+
+	return data, nil
+}
+
+func extractFromTarGz(data []byte, binName string) ([]byte, error) {
+	gz, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("opening gzip: %w", err)
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("reading tar: %w", err)
+		}
+		if hdr.Typeflag == tar.TypeReg && (hdr.Name == binName || filepath.Base(hdr.Name) == binName) {
+			return io.ReadAll(tr)
+		}
+	}
+	return nil, fmt.Errorf("binary %s not found in tar.gz archive", binName)
+}
+
+func extractFromZip(data []byte, binName string) ([]byte, error) {
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, fmt.Errorf("opening zip: %w", err)
+	}
+	for _, f := range zr.File {
+		if f.Name == binName || filepath.Base(f.Name) == binName {
+			rc, err := f.Open()
+			if err != nil {
+				return nil, fmt.Errorf("opening zip entry: %w", err)
+			}
+			defer rc.Close()
+			return io.ReadAll(rc)
+		}
+	}
+	return nil, fmt.Errorf("binary %s not found in zip archive", binName)
 }

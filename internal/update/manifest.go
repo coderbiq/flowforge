@@ -11,7 +11,7 @@ type ManifestArtifact struct {
 	Platform     string `json:"platform"`
 	URL          string `json:"url"`
 	SHA256       string `json:"sha256"`
-	Size         int64  `json:"size"`
+	Size         int64  `json:"size_bytes"`
 	SignatureURL string `json:"signature_url,omitempty"`
 }
 
