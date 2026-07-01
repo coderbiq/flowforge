@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"flowforge/internal/config"
 	"flowforge/internal/state"
 	"flowforge/internal/update"
 	"flowforge/internal/version"
@@ -89,7 +88,7 @@ func initConfig(cmd *cobra.Command) error {
 
 	_ = viper.ReadInConfig()
 
-	if noVersionCheck || cmd.Name() == "version" || isHelpRequested() {
+	if noVersionCheck || cmd.Name() == "version" {
 		return nil
 	}
 
@@ -97,7 +96,12 @@ func initConfig(cmd *cobra.Command) error {
 		return nil
 	}
 
-	dbPath := resolveVersionCheckDBPath()
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil
+	}
+
+	dbPath := filepath.Join(home, ".flowforge", "cache", "flowforge.sqlite")
 	store, err := state.Open(dbPath)
 	if err != nil {
 		return nil
@@ -114,26 +118,4 @@ func initConfig(cmd *cobra.Command) error {
 	})
 
 	return nil
-}
-
-func isHelpRequested() bool {
-	for _, arg := range os.Args[1:] {
-		if arg == "--help" || arg == "-h" {
-			return true
-		}
-	}
-	return false
-}
-
-func resolveVersionCheckDBPath() string {
-	if root, err := config.FindProjectRoot("."); err == nil {
-		return filepath.Join(root, ".flowforge", "cache", "flowforge.sqlite")
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return filepath.Join(".", ".flowforge", "cache", "flowforge.sqlite")
-	}
-
-	return filepath.Join(home, ".flowforge", "cache", "flowforge.sqlite")
 }
