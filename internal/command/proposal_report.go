@@ -1146,7 +1146,43 @@ func requirementNote(card *core.Card, snapshot *proposalSnapshot) string {
 	if card.Type == core.CardTypeStructure {
 		return "structure"
 	}
+	downstream := countDownstreamCards(card, snapshot)
+	if downstream != "" {
+		return downstream
+	}
 	return "requirement"
+}
+
+func countDownstreamCards(card *core.Card, snapshot *proposalSnapshot) string {
+	downstreamTypes := map[core.CardType]bool{
+		core.CardTypeFinding:  true,
+		core.CardTypeDesign:   true,
+		core.CardTypeDecision: true,
+		core.CardTypeTask:     true,
+	}
+	counts := map[core.CardType]int{}
+	for _, bl := range snapshot.backlinks[card.ID] {
+		if downstreamTypes[bl.from.Type] {
+			counts[bl.from.Type]++
+		}
+	}
+	if len(counts) == 0 {
+		return ""
+	}
+	ordered := []core.CardType{core.CardTypeFinding, core.CardTypeDesign, core.CardTypeDecision, core.CardTypeTask}
+	shortCodes := map[core.CardType]string{
+		core.CardTypeFinding:  "F",
+		core.CardTypeDesign:   "D",
+		core.CardTypeDecision: "C",
+		core.CardTypeTask:     "T",
+	}
+	parts := make([]string, 0, len(ordered))
+	for _, t := range ordered {
+		if n := counts[t]; n > 0 {
+			parts = append(parts, fmt.Sprintf("%s%d", shortCodes[t], n))
+		}
+	}
+	return strings.Join(parts, "/")
 }
 
 func countTopLevelEntries(indexCard *core.Card) int {

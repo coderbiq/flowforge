@@ -184,6 +184,7 @@ The indexes relation automatically performs structure add.`,
 
 		// Phase 2 — resolve @ref links, validate targets, add links, do structure add
 		linkErrors := map[int][]string{}
+		var allLinkTargets []string
 		for idx, mcard := range pendingCards {
 			id := createdCards[idx].ID // safe: idx only in map if card was created
 
@@ -214,6 +215,7 @@ The indexes relation automatically performs structure add.`,
 					continue
 				}
 				card.AddLink(target, relation)
+				allLinkTargets = append(allLinkTargets, target)
 			}
 
 			if len(card.Links) == 0 && manifest.Proposal == "" {
@@ -244,6 +246,8 @@ The indexes relation automatically performs structure add.`,
 				}
 			}
 		}
+
+		refreshTargetCardsNavigation(store, allLinkTargets)
 
 			out := cmd.OutOrStdout()
 			result := batchResult{

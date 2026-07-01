@@ -229,6 +229,12 @@ Examples:
 				return err
 			}
 
+			targetIDs := make([]string, len(parsedLinks))
+			for i, link := range parsedLinks {
+				targetIDs[i] = link.target
+			}
+			refreshTargetCardsNavigation(store, targetIDs)
+
 			out := cmd.OutOrStdout()
 			printResult(cmd, out, CommandResult{
 				ID:    card.ID,
@@ -886,6 +892,8 @@ func newCardLinkCmd() *cobra.Command {
 				return err
 			}
 
+			refreshTargetCardsNavigation(store, []string{toID})
+
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Linked %s -> %s (%s)\n", fromID, toID, relation)
 			return nil
 		},
@@ -920,6 +928,29 @@ func refreshCardGeneratedNavigation(store *core.CardStore, card *core.Card) (str
 	body = upsertMarkdownSection(card.Body, "Links", linksContent)
 
 	return body, body != card.Body, nil
+}
+
+func refreshTargetCardsNavigation(store *core.CardStore, targetIDs []string) {
+	seen := map[string]bool{}
+	for _, id := range targetIDs {
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		if _, err := store.ReadCard(id); err != nil {
+			continue
+		}
+		_ = store.UpdateCardWithLock(id, func(card *core.Card) error {
+			newBody, changed, err := refreshCardGeneratedNavigation(store, card)
+			if err != nil {
+				return nil
+			}
+			if changed {
+				card.Body = newBody
+			}
+			return nil
+		})
+	}
 }
 
 func renderUnifiedLinksSection(store *core.CardStore, card *core.Card) string {
