@@ -38,17 +38,10 @@ build_all() {
 
         local ext=""
         local archive_ext=".tar.gz"
-        local cpu="$goarch"
-        case "$goarch" in
-            amd64) cpu="x86_64" ;;
-            arm64) cpu="aarch64" ;;
-        esac
-        local platform="${cpu}-"
+        local platform="${goos}-${goarch}"
 
         case "$goos" in
-            linux)   platform+="unknown-linux-gnu" ;;
-            darwin)  platform+="apple-darwin" ;;
-            windows) platform+="pc-windows-msvc"; ext=".exe"; archive_ext=".zip" ;;
+            windows) ext=".exe"; archive_ext=".zip" ;;
         esac
 
         local bin_name="flowforge${ext}"
