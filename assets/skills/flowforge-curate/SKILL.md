@@ -25,9 +25,9 @@ Follow `references/workflow-rules.md` for mode-specific extraction, clustering, 
 - Never read wiki files directly (except source files for Mode A).
 - Never hand-write card files, frontmatter, or wikilinks.
 - Always read the plan card first on each activation to resume state.
-- For multi-line body content: use inline `--body` with `\n` for newlines. Example: `--body "## Goal\n\ncontent"`. Never use shell heredoc or redirects with flowforge CLI — redirects trigger agent permission prompts.
-- For batch card creation, generate a YAML manifest string and use `card batch --manifest "cards:\n  - type: task\n    title: ..."` with `\n` for newlines instead of per-card CLI calls.
-- Use `card update --section "<name>" --body "content\n"` with `\n` to update the plan card's batch progress.
+- For multi-line body content: use inline `--body` with `\n` for newlines. Example: `--body '## Goal\n\ncontent'`. Never use shell heredoc or redirects with flowforge CLI — redirects trigger agent permission prompts.
+- For batch card creation, generate a YAML manifest string and use `card batch --manifest 'cards:\n  - type: task\n    title: ...'` with `\n` for newlines instead of per-card CLI calls.
+- Use `card update --section '<name>' --body 'content\n'` with `\n` to update the plan card's batch progress.
 - Use `-o json` to capture created card IDs for scripting.
 
 ## Output

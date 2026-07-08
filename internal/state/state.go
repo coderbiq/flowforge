@@ -27,10 +27,13 @@ func Open(dbPath string) (*Store, error) {
 		return nil, fmt.Errorf("creating database directory: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", dbPath)
+	dsn := dbPath + "?_busy_timeout=5000&_journal_mode=WAL"
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("opening sqlite database: %w", err)
 	}
+
+	db.SetMaxOpenConns(1)
 
 	if err := db.Ping(); err != nil {
 		if closeErr := db.Close(); closeErr != nil {

@@ -22,7 +22,7 @@ Follow `references/workflow-rules.md` for the 7-mode turn loop. Use `references/
 - Never create title-only tasks.
 - Do not execute implementation work here.
 - Run `flowforge validate all` after creating or changing proposal structure.
-- For multi-line body content: use inline `--body` with `\n` for newlines. Example: `--body "## Goal\n\ncontent"`. Never use shell heredoc or redirects with flowforge CLI — redirects trigger agent permission prompts.
+- For multi-line body content: use inline `--body` with `\n` for newlines. Example: `--body '## Goal\n\ncontent'`. Never use shell heredoc or redirects with flowforge CLI — redirects trigger agent permission prompts.
 - Never create > 10 REQ cards in a single index pass without creating at least 1 DESIGN card.
 - Never create a REQ card with < 5 lines of effective business content; merge into parent instead.
 - After index mode, the next recommended step must be design or clarify mode; never recommend another index pass.
