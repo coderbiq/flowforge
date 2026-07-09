@@ -10,6 +10,26 @@
 - Lint: `golangci-lint run ./...`
 - Release: `make release` 或 `./scripts/release.sh <version>`
 
+## 发布流程
+
+每次发布时按以下步骤操作，不要遗漏：
+
+1. **提交所有变更**：`git add -A && git commit -m "<message>"`
+2. **打 tag**（格式 `v<major>.<minor>.<patch>[-alpha]`）：
+   ```bash
+   git tag -a v3.0.0-alpha -m "v3.0.0-alpha: <release summary>"
+   ```
+3. **推送代码和 tag**：
+   ```bash
+   git push origin main --tags
+   ```
+4. **验证**：确认 tag 出现在 GitHub Releases 页面，对应的构建产物自动生成
+
+tag 命名规范：
+- 正式版：`v3.0.0`、`v3.1.0`
+- 预发布：`v3.0.0-alpha`、`v3.0.0-beta`、`v3.0.0-rc1`
+- 之前已经有 `v3.0.0-alpha` tag，下一个 alpha 用 `v3.0.0-alpha.1` 或修正后重用（`git tag -d` + 重新打）
+
 ## Boundaries
 
 - ✅ **Always**: 变更前先读现有代码模式；变更后运行 `go test ./internal/...`；保持 SKILL 文件 < 200 tokens；错误必须显式处理（不用 `_` 忽略）
