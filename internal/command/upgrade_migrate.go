@@ -37,7 +37,39 @@ func needsV3Migration(oldVer, newVer string) bool {
 	oldMajor, _ := parseMajor(oldV)
 	newMajor, _ := parseMajor(newV)
 
-	return oldMajor < 3 && newMajor >= 3
+	if newMajor < 3 {
+		return false
+	}
+
+	if oldMajor < 3 {
+		return true
+	}
+
+	return compareVersion(newV, "3.0.2") >= 0 && compareVersion(oldV, "3.0.2") < 0
+}
+
+func compareVersion(a, b string) int {
+	ap := parseParts(a)
+	bp := parseParts(b)
+	for i := 0; i < 3 && i < len(ap) && i < len(bp); i++ {
+		if ap[i] < bp[i] {
+			return -1
+		}
+		if ap[i] > bp[i] {
+			return 1
+		}
+	}
+	return 0
+}
+
+func parseParts(v string) []int {
+	v = strings.SplitN(v, "-", 2)[0]
+	parts := strings.Split(v, ".")
+	nums := make([]int, len(parts))
+	for i, p := range parts {
+		fmt.Sscanf(p, "%d", &nums[i])
+	}
+	return nums
 }
 
 func parseMajor(v string) (int, error) {
