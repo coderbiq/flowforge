@@ -14,8 +14,8 @@ import (
 func newTaskCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "task",
-		Short: "Manage task cards",
-		Long:  "Create, list, claim, complete, block, and link task cards.",
+		Short: "[DEPRECATED] Manage task cards",
+		Long:  "DEPRECATED: Use 'card init --type feature' + 'card steps' instead.\n\nCreate, list, claim, complete, block, and link task cards.",
 	}
 
 	cmd.AddCommand(newTaskCreateCmd())

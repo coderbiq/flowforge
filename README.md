@@ -1,15 +1,14 @@
-# FlowForge <sup>v2.0.0-alpha</sup>
+# FlowForge <sup>v3.0.0-alpha</sup>
 
 面向 AI 辅助软件设计与交付的工作流工具包。通过 SKILL 体系将 AI Agent 的**需求分析、设计、实施和知识沉淀**工作流化。
 
 ## 核心理念
 
-- **原子卡片化**：借鉴 Zettelkasten，将所有知识（含任务、日志）拆解为原子卡片，通过类型化链接组织
-- **ID 表达层级**：卡片 ID 使用 `-` 分隔，通过 ID 表达 proposal 归属和任务父子关系
-- **文件名简洁**：文件名只包含 `{ID}_{slug}.md`，依赖关系通过 frontmatter 和缓存索引管理
-- **CLI 唯一入口**：Agent 通过 CLI 命令读写卡片，不直接操作文件
-- **workspace/library 同构**：两者结构相同（原子卡片），区别在于卡片状态/生命周期
-- **主题索引**：每个主题一个 Structure Note（STR 卡片），sqlite 负责查询加速
+- **阶段化文档**：按功能单元组织 FEATURE 卡片，随认知深入演进（draft → designed → planned → done）
+- **职责分离**：CLI 管理不变式（链接/阶段/进展），Agent 直接编辑卡片内容
+- **自动聚合**：`proposal inspect` 自动生成 Feature Map 和依赖图，无需手动维护索引
+- **Token 高效**：`context feature --step <n>` 仅返回当前步骤所需上下文（~400 tokens）
+- **横切知识**：CONV（约定）、DEC（决策）、MOD（模块知识）、FIND（发现）跨功能复用
 - **精准上下文**：Agent 按需加载卡片摘要，避免上下文爆炸
 
 ## 快速安装
@@ -155,38 +154,24 @@ flowforge project create <id>     # 注册项目
 flowforge project use <id>        # 切换当前项目
 flowforge proposal create "..."   # 创建提案
 
-# 任务管理（快捷命令）
-flowforge task create --title "..." --type a --links "STR..."
-flowforge task create --title "..." --type i --links "DES..."
-flowforge task ready              # 查看就绪任务
-flowforge task claim TASK...      # 认领
-flowforge task done TASK...       # 完成
-flowforge task sub TASK... --title "..."  # 创建子任务
-
-# 卡片管理（通用 CRUD）
-flowforge card create --type requirement --title "..."
-flowforge card read DEC...        # 读取卡片
-flowforge card list --type task   # 列出卡片
-flowforge card related DEC...     # 查看关联卡片
-flowforge card dependents DES...  # 查看谁依赖它
-
-# 索引
-flowforge index rebuild           # 重建 sqlite 索引
-flowforge index status            # 查看索引状态
-
-# Library 推荐
-flowforge library facets
-flowforge library classify --for TASK...
-flowforge library suggest --for TASK... --facet layer:service
+# FEATURE 卡片管理
+flowforge card init --type feature --title "..." --proposal <id>  # 创建卡片骨架
+flowforge card evolve <id> --stage designed            # 阶段升级（CLI 门控）
+flowforge card log <id> --event "..." --kind progress  # 记录进展
+flowforge card steps <id> --status done 3              # 更新步骤状态
+flowforge card split <id> --titles "A,B,C"             # 拆分过大 FEATURE
 
 # 上下文
-flowforge context proposal --proposal CR...
-flowforge context task --task TASK...
+flowforge context feature --feature <id> --step 3      # 步骤级执行上下文
+flowforge proposal inspect <id>                        # 聚合视图+健康检查
+
+# Library
+flowforge library suggest --for <id>                   # 推荐库卡片
 ```
 
 ## 当前状态
 
-**v2.0.0-alpha** — 已具备 init、project、proposal、card、task、log、structure、index、library suggest、context proposal/task，以及 flowforge-design / flowforge-implement 两个可部署 SKILL。当前暂缓 archive SKILL，优先加固安装到任务执行的闭环。
+**v3.0.0-alpha** — 卡片模型从 10 种精简为 5 种（FEATURE + CONV/DEC/MOD/FIND），FEATURE 阶段演进替代类型拆分。`task`、`structure`、`log create` 命令已废弃。设计文档见 `docs/proposal-v3/`。
 
 ## 许可证
 

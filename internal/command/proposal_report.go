@@ -170,6 +170,8 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	fmt.Fprintf(w, "- MissingIndexes: %s\n", joinOrNone(missingIndexes(s)))
 	fmt.Fprintln(w)
 
+	renderFeatureMap(w, s)
+
 	fmt.Fprintln(w, "## Health Issues")
 	renderProposalHealthIssues(w, report.health, 0)
 	fmt.Fprintln(w)
@@ -588,59 +590,39 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 	}
 
 	rootID := "PROP-" + snapshot.proposalID
-	reqIndexID := "STR-" + snapshot.proposalID + "-REQ"
 	if snapshot.rootCard == nil {
 		add("error", rootID, "missing proposal root card", "flowforge proposal create <title>")
-	} else if !hasLinkRelation(snapshot.rootCard, reqIndexID, "indexes") {
-		add("error", snapshot.rootCard.ID, "root does not index requirement index", "flowforge card link "+snapshot.rootCard.ID+" "+reqIndexID+" --relation indexes")
-	}
-	if snapshot.requirementIndex == nil {
-		add("error", reqIndexID, "missing requirement index", "flowforge proposal create <title>")
 	}
 
-	indexedRequirements := indexedRequirementSet(snapshot)
+	featureCount := 0
 	for _, card := range snapshot.cards {
 		switch card.Type {
 		case core.CardTypeProposal:
 			if proposalSummaryIsPlaceholder(card) {
-				add("warn", card.ID, "proposal card has no meaningful summary (replace placeholder text)", "flowforge card update "+card.ID+" --body \"## Summary\\n\\n<overview of requirements and status>\"")
+				add("warn", card.ID, "proposal card has no meaningful summary", "edit the proposal card directly or use 'card update'")
 			}
-		case core.CardTypeStructure:
-			if structurePurposeIsPlaceholder(card) {
-				add("warn", card.ID, "structure card has no meaningful purpose description", "flowforge card update "+card.ID+" --body \"## Purpose\\n\\n<describe this index theme>\"")
+			if propFeatureMapEmpty(snapshot, card) {
+				add("warn", card.ID, "proposal Feature Map is empty or placeholder", "edit PROP card to document feature responsibilities")
 			}
-			if !structureHasSynthesis(card) {
-				add("warn", card.ID, "structure card has no synthesis (## Synthesis section is missing or placeholder)", "flowforge card update "+card.ID+" --body \"## Synthesis\\n\\n<explain how indexed cards collaborate>\"")
+			if propFeatureMapStale(snapshot, card) {
+				add("warn", card.ID, "Feature Map may be out of sync with actual feature stages", "edit PROP card Feature Map to reflect current stages")
 			}
-		case core.CardTypeRequirement:
-			if !indexedRequirements[card.ID] {
-				add("warn", card.ID, "requirement is not reachable from a requirement index", "flowforge structure add "+reqIndexID+" "+card.ID)
+		case core.CardTypeFeature:
+			featureCount++
+			issues = append(issues, featureHealthIssues(snapshot, card)...)
+		case core.CardTypeConvention, core.CardTypeDecision:
+			if isOrphanCrossCuttingCard(snapshot, card) {
+				add("warn", card.ID, fmt.Sprintf("%s card has no FEATURE referencing it", card.Type), "link this card to a FEATURE with --relation constrains/references")
 			}
-			if requirementNeedsNavigation(snapshot, card) && !hasSection(card.Body, "FlowForge Navigation") {
-				add("warn", card.ID, "requirement navigation is stale or missing", "flowforge card refresh "+card.ID)
+		case core.CardTypeFinding:
+			if isOrphanCrossCuttingCard(snapshot, card) {
+				add("warn", card.ID, "finding has no FEATURE referencing it; may be forgotten", "link this finding to affected FEATURE cards")
 			}
-			if requirementIsTooThin(card) {
-				add("warn", card.ID, "requirement has very low content density; consider merging into parent", "flowforge card read "+card.ID)
-			}
-			if !requirementHasCrossLinks(snapshot, card) {
-				add("warn", card.ID, "requirement has no functional links to other requirements (only index/belongs_to); add requires/refines links", "flowforge card link "+card.ID+" <REQ>:requires")
-			}
-		case core.CardTypeDesign:
-			if !hasAnyRelation(card, "implements", "designs", "satisfies") {
-				add("warn", card.ID, "design card does not link to a requirement (implements/designs/satisfies)", "flowforge card link "+card.ID+" <REQ>:implements")
-			}
-			if designNeedsNavigation(snapshot, card) && !hasSection(card.Body, "FlowForge Navigation") {
-				add("warn", card.ID, "design navigation is stale or missing", "flowforge card refresh "+card.ID)
-			}
-		case core.CardTypeTask:
-			issues = append(issues, taskHealthIssues(snapshot, card)...)
 		}
 	}
 
-	activeReqCount := countActiveRequirements(snapshot)
-	designCount := countDesignCards(snapshot)
-	if activeReqCount >= 3 && designCount == 0 {
-		add("error", "PROP-"+snapshot.proposalID, fmt.Sprintf("design gap: %d active requirements but 0 design cards", activeReqCount), "flowforge card create --type design --status draft")
+	if featureCount == 0 && snapshot.rootCard != nil {
+		add("warn", rootID, "proposal has no FEATURE cards", "flowforge card init --type feature --title \"...\" --proposal "+snapshot.proposalID)
 	}
 
 	sort.SliceStable(issues, func(i, j int) bool {
@@ -945,6 +927,197 @@ func countDesignCards(snapshot *proposalSnapshot) int {
 		}
 	}
 	return count
+}
+
+func featureHealthIssues(snapshot *proposalSnapshot, card *core.Card) []proposalHealthIssue {
+	var issues []proposalHealthIssue
+	add := func(severity, message, command string) {
+		issues = append(issues, proposalHealthIssue{
+			Severity: severity,
+			CardID:   card.ID,
+			Message:  message,
+			Command:  command,
+		})
+	}
+
+	if card.Role == "container" {
+		hasChildren := false
+		for _, link := range card.Links {
+			if link.Relation == "decomposes" {
+				hasChildren = true
+				break
+			}
+		}
+		if !hasChildren {
+			add("warn", "container feature has no child features", "use 'card split' or remove container role")
+		}
+		return issues
+	}
+
+	switch card.Status {
+	case core.CardStatusDraft:
+		summarySection := extractSection(card.Body, "Summary")
+		motivationSection := extractSection(card.Body, "Motivation")
+		if isPlaceholder(summarySection) || isPlaceholder(motivationSection) {
+			add("warn", "draft feature has placeholder Summary or Motivation", "edit the feature card directly")
+		}
+	case core.CardStatusDesigned:
+		designSection := extractSection(card.Body, "Design")
+		if isPlaceholder(designSection) {
+			add("error", "feature is 'designed' but Design section is placeholder", "edit the Design section")
+		}
+	case core.CardStatusPlanned:
+		ipSection := extractSection(card.Body, "Implementation Plan")
+		if !strings.Contains(ipSection, "### Step ") {
+			add("error", "feature is 'planned' but has no Implementation Plan steps", "add ### Step N: sections")
+		}
+	case core.CardStatusInProgress:
+		ipSection := extractSection(card.Body, "Implementation Plan")
+		if !strings.Contains(ipSection, "step-status: done") && !strings.Contains(ipSection, "step-status: in_progress") {
+			add("warn", "feature is 'in_progress' but no step has been started", "use 'card steps --start 1' to begin")
+		}
+	}
+
+	if hasConstraintStale(snapshot, card) {
+		add("warn", "referenced CONV/DEC may have been updated since design; re-check constraints", "review linked library cards")
+	}
+
+	return issues
+}
+
+func propFeatureMapEmpty(snapshot *proposalSnapshot, propCard *core.Card) bool {
+	featureCount := 0
+	for _, card := range snapshot.cards {
+		if card.Type == core.CardTypeFeature {
+			featureCount++
+		}
+	}
+	if featureCount == 0 {
+		return false
+	}
+	fmSection := extractSection(propCard.Body, "Feature Map")
+	return isPlaceholder(fmSection) || !strings.Contains(fmSection, "|")
+}
+
+func propFeatureMapStale(snapshot *proposalSnapshot, propCard *core.Card) bool {
+	fmSection := extractSection(propCard.Body, "Feature Map")
+	if isPlaceholder(fmSection) {
+		return false
+	}
+	for _, card := range snapshot.cards {
+		if card.Type != core.CardTypeFeature {
+			continue
+		}
+		if !strings.Contains(fmSection, card.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+func isOrphanCrossCuttingCard(snapshot *proposalSnapshot, card *core.Card) bool {
+	for _, other := range snapshot.cards {
+		if other.Type != core.CardTypeFeature {
+			continue
+		}
+		for _, link := range other.Links {
+			if link.Target == card.ID {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func renderFeatureMap(w io.Writer, s *proposalSnapshot) {
+	features := make([]*core.Card, 0)
+	for _, card := range s.cards {
+		if card.Type == core.CardTypeFeature {
+			features = append(features, card)
+		}
+	}
+	if len(features) == 0 {
+		return
+	}
+
+	fmt.Fprintln(w, "## Feature Map")
+	fmt.Fprintln(w, "| ID | Title | Stage | Role |")
+	fmt.Fprintln(w, "|----|-------|-------|------|")
+	for _, f := range features {
+		stage := string(f.Status)
+		role := ""
+		if f.Role == "container" {
+			role = "container"
+		}
+		fmt.Fprintf(w, "| %s | %s | %s | %s |\n", f.ID, f.Title, stage, role)
+	}
+
+	stageCounts := make(map[string]int)
+	for _, f := range features {
+		stageCounts[string(f.Status)]++
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "### Stage Summary")
+	fmt.Fprintln(w, "| Stage | Count |")
+	fmt.Fprintln(w, "|-------|-------|")
+	for _, stage := range []string{"draft", "designed", "planned", "in_progress", "done"} {
+		if count, ok := stageCounts[stage]; ok {
+			fmt.Fprintf(w, "| %s | %d |\n", stage, count)
+		}
+	}
+
+	deps := featureDependencySummary(s)
+	if len(deps) > 0 {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, "### Dependencies")
+		for _, d := range deps {
+			fmt.Fprintf(w, "- %s depends_on %s (%s)\n", d.from, d.to, d.toStage)
+		}
+	}
+}
+
+func hasConstraintStale(snapshot *proposalSnapshot, card *core.Card) bool {
+	for _, link := range card.Links {
+		target := snapshot.cardByID[link.Target]
+		if target == nil {
+			continue
+		}
+		if target.Type == core.CardTypeConvention || target.Type == core.CardTypeDecision {
+			if target.Updated.After(card.Updated) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+type featureDepLink struct {
+	from    string
+	to      string
+	toStage string
+}
+
+func featureDependencySummary(s *proposalSnapshot) []featureDepLink {
+	var deps []featureDepLink
+	for _, card := range s.cards {
+		if card.Type != core.CardTypeFeature {
+			continue
+		}
+		for _, link := range card.Links {
+			if link.Relation != "depends_on" {
+				continue
+			}
+			target := s.cardByID[link.Target]
+			if target != nil && target.Type == core.CardTypeFeature {
+				deps = append(deps, featureDepLink{
+					from:    card.ID,
+					to:      target.ID,
+					toStage: string(target.Status),
+				})
+			}
+		}
+	}
+	return deps
 }
 
 func directLinkedCards(snapshot *proposalSnapshot, cardID string) []linkedCard {

@@ -23,12 +23,14 @@ const (
 	CardTypeModule      CardType = "module"
 	CardTypeStructure   CardType = "structure"
 	CardTypeProposal    CardType = "proposal"
+	CardTypeFeature     CardType = "feature"
 )
 
 func (t CardType) Valid() bool {
 	switch t {
 	case CardTypeRequirement, CardTypeDecision, CardTypeDesign, CardTypeTask,
-		CardTypeLog, CardTypeConvention, CardTypeFinding, CardTypeModule, CardTypeStructure, CardTypeProposal:
+		CardTypeLog, CardTypeConvention, CardTypeFinding, CardTypeModule, CardTypeStructure, CardTypeProposal,
+		CardTypeFeature:
 		return true
 	}
 	return false
@@ -56,6 +58,8 @@ func (t CardType) Prefix() string {
 		return "STR"
 	case CardTypeProposal:
 		return "PROP"
+	case CardTypeFeature:
+		return "FEAT"
 	}
 	return ""
 }
@@ -82,6 +86,8 @@ func CardTypeFromPrefix(prefix string) CardType {
 		return CardTypeStructure
 	case "PROP":
 		return CardTypeProposal
+	case "FEAT":
+		return CardTypeFeature
 	}
 	return ""
 }
@@ -101,6 +107,9 @@ const (
 	CardStatusDone       CardStatus = "done"
 	CardStatusBlocked    CardStatus = "blocked"
 	CardStatusCancelled  CardStatus = "cancelled"
+	CardStatusDesigned   CardStatus = "designed"
+	CardStatusPlanned    CardStatus = "planned"
+	CardStatusCompleted  CardStatus = "completed"
 )
 
 func (s CardStatus) Valid() bool {
@@ -108,6 +117,8 @@ func (s CardStatus) Valid() bool {
 	case CardStatusDraft, CardStatusActive, CardStatusAccepted, CardStatusDeprecated, CardStatusSuperseded:
 		return true
 	case CardStatusBacklog, CardStatusNotReady, CardStatusReady, CardStatusInProgress, CardStatusDone, CardStatusBlocked, CardStatusCancelled:
+		return true
+	case CardStatusDesigned, CardStatusPlanned, CardStatusCompleted:
 		return true
 	}
 	return false
@@ -162,6 +173,7 @@ type Card struct {
 	DirName     string      `yaml:"dir_name,omitempty" json:"dirName,omitempty"`
 	Slug        string      `yaml:"slug,omitempty" json:"slug,omitempty"`
 	Project     string      `yaml:"project,omitempty" json:"project,omitempty"`
+	Role        string      `yaml:"role,omitempty" json:"role,omitempty"`
 	Body        string      `yaml:"-" json:"body"`
 	FilePath    string      `yaml:"-" json:"filePath,omitempty"`
 }
@@ -237,6 +249,7 @@ func (c *Card) ToMarkdown() ([]byte, error) {
 		DirName    string     `yaml:"dir_name,omitempty"`
 		Slug       string     `yaml:"slug,omitempty"`
 		Project    string     `yaml:"project,omitempty"`
+		Role       string     `yaml:"role,omitempty"`
 	}{
 		ID:         c.ID,
 		Title:      c.Title,
@@ -253,6 +266,7 @@ func (c *Card) ToMarkdown() ([]byte, error) {
 		DirName:    c.DirName,
 		Slug:       c.Slug,
 		Project:    c.Project,
+		Role:       c.Role,
 	}
 
 	yamlData, err := yaml.Marshal(frontmatter)

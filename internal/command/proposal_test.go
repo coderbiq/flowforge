@@ -530,7 +530,6 @@ func TestProposalArchiveAndDeleteCommands(t *testing.T) {
 
 	store := testCardStore(t, tmpDir)
 	activeDir := store.ProposalDir(proposalID)
-	completedDir := filepath.Join(store.CompletedDir(), filepath.Base(activeDir))
 
 	archiveCmd := newProposalArchiveCmd()
 	if err := archiveCmd.Execute(); err == nil {
@@ -541,11 +540,16 @@ func TestProposalArchiveAndDeleteCommands(t *testing.T) {
 		t.Fatalf("proposal archive failed: %v", err)
 	}
 
-	if _, err := os.Stat(activeDir); !os.IsNotExist(err) {
-		t.Fatalf("expected active proposal dir to be moved, stat err=%v", err)
+	if _, err := os.Stat(activeDir); err != nil {
+		t.Fatalf("expected proposal dir to still exist after archive, stat err=%v", err)
 	}
-	if _, err := os.Stat(completedDir); err != nil {
-		t.Fatalf("expected completed proposal dir: %v", err)
+
+	propCard, err := store.ReadCard("PROP-" + proposalID)
+	if err != nil {
+		t.Fatalf("reading PROP card after archive: %v", err)
+	}
+	if propCard.Status != core.CardStatusCompleted {
+		t.Fatalf("expected PROP status 'completed', got '%s'", propCard.Status)
 	}
 
 	runtimeStore := runtimeStateStore(t, tmpDir)
@@ -571,8 +575,8 @@ func TestProposalArchiveAndDeleteCommands(t *testing.T) {
 	if err := deleteCmd.Execute(); err != nil {
 		t.Fatalf("proposal delete failed: %v", err)
 	}
-	if _, err := os.Stat(completedDir); !os.IsNotExist(err) {
-		t.Fatalf("expected completed proposal dir to be deleted, stat err=%v", err)
+	if _, err := os.Stat(activeDir); !os.IsNotExist(err) {
+		t.Fatalf("expected proposal dir to be deleted, stat err=%v", err)
 	}
 }
 

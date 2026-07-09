@@ -43,15 +43,15 @@ func (s *CardStore) WorkspaceDir() string {
 }
 
 func (s *CardStore) ActiveDir() string {
-	return filepath.Join(s.WorkspaceDir(), "01-active")
+	return s.WorkspaceDir()
 }
 
 func (s *CardStore) IntakeDir() string {
-	return filepath.Join(s.WorkspaceDir(), "02-intake")
+	return s.WorkspaceDir()
 }
 
 func (s *CardStore) CompletedDir() string {
-	return filepath.Join(s.WorkspaceDir(), "03-completed")
+	return s.WorkspaceDir()
 }
 
 func (s *CardStore) LibraryDir() string {
@@ -81,6 +81,8 @@ func (s *CardStore) LibraryTypeDir(cardType CardType) string {
 		dirName = "structures"
 	case CardTypeProposal:
 		dirName = "structures"
+	case CardTypeFeature:
+		dirName = "features"
 	default:
 		dirName = "misc"
 	}
@@ -534,20 +536,6 @@ func (s *CardStore) ListCardsByType(cardType CardType) ([]*Card, error) {
 		}
 	}
 
-	intakeCards, _ := s.ListCards(s.IntakeDir())
-	for _, card := range intakeCards {
-		if card.Type == cardType {
-			allCards = append(allCards, card)
-		}
-	}
-
-	completedCards, _ := s.ListCards(s.CompletedDir())
-	for _, card := range completedCards {
-		if card.Type == cardType {
-			allCards = append(allCards, card)
-		}
-	}
-
 	return allCards, nil
 }
 
@@ -577,7 +565,7 @@ func (s *CardStore) GetDependents(cardID string) ([]*Card, error) {
 
 	var dependents []*Card
 
-	allDirs := []string{s.ActiveDir(), s.LibraryDir(), s.IntakeDir(), s.CompletedDir(), s.ProposalCardDir()}
+	allDirs := []string{s.ActiveDir(), s.LibraryDir(), s.ProposalCardDir()}
 
 	for _, dir := range allDirs {
 		cards, _ := s.ListCards(dir)

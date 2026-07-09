@@ -13,8 +13,8 @@ import (
 func newStructureCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "structure",
-		Short: "Manage STR index links",
-		Long:  "Maintain indexes relations on structure cards.",
+		Short: "[DEPRECATED] Manage STR index links",
+		Long:  "DEPRECATED: STR cards are replaced by 'proposal inspect' auto-aggregation.\n\nMaintain indexes relations on structure cards.",
 	}
 
 	cmd.AddCommand(newStructureAddCmd())

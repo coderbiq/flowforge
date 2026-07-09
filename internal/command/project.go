@@ -342,9 +342,6 @@ func createProjectWikiRoot(wikiRoot string, projectID string, srcDirs []string) 
 	dirs := []string{
 		wikiRoot,
 		filepath.Join(wikiRoot, "01-workspace"),
-		filepath.Join(wikiRoot, "01-workspace", "01-active"),
-		filepath.Join(wikiRoot, "01-workspace", "02-intake"),
-		filepath.Join(wikiRoot, "01-workspace", "03-completed"),
 		filepath.Join(wikiRoot, "02-library"),
 		filepath.Join(wikiRoot, "02-library", "10-requirements"),
 		filepath.Join(wikiRoot, "02-library", "20-decisions"),
@@ -390,9 +387,7 @@ Project: %s
 
 ## Structure
 
-- **01-workspace/01-active/** - Current proposals and their cards
-- **01-workspace/02-intake/** - Pending requirements awaiting triage
-- **01-workspace/03-completed/** - Archived proposals
+- **01-workspace/** - All proposals (status tracked via PROP card frontmatter)
 - **02-library/** - Archived knowledge organized by type
 - **03-proposal/** - Proposal index cards
 

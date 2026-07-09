@@ -7,20 +7,29 @@ description: Use ONLY when the user asks to execute a ready FlowForge implementa
 
 ## Start
 
-Resolve the task with `flowforge task ready --type i` or an explicit task id. Run `flowforge context task --task <id>`. Confirm linked requirement, design, and constraints are present.
+Run `context feature --feature <id> --step <n>` to get the minimal execution context.
+Confirm linked constraints and dependencies are present.
 
 ## Workflow
 
-Follow `references/workflow-rules.md` for execution and completion steps.
+Token-aware execution loop:
+
+1. Get step context: `context feature --feature <id> --step <n>` (only ~400 tokens)
+2. Implement the step as described
+3. Record: `card steps <id> --status done <n>` + `card log <id> --event "..."`
+4. Validate: run tests + `flowforge validate all`
+5. Next step or complete: `card evolve <id> --stage done` when all steps done
 
 ## Hard Rules
 
-- Stop immediately if the task is `not_ready`, `blocked`, `design`, or `analysis`.
-- CLI is the only read/write path for cards.
-- Never edit card files, frontmatter, or wikilinks manually.
-- Only make changes within the ready task's defined scope.
-- Run tests and `flowforge validate all` when card state changed.
-- For multi-line body content: use inline `--body` with `\n` for newlines. Example: `--body '## Goal\n\ncontent'`. Never use shell heredoc or redirects with flowforge CLI — redirects trigger agent permission prompts.
+- Start each step with `context feature --feature <id> --step <n>`. This is your primary context.
+- Never read the whole FEATURE card during step execution. Use section-level reading for supplemental info.
+- Execute steps in order; skip blocked steps.
+- After each step, use `card log` to record progress and `card steps` to update status.
+- CLI for structured ops only (link, evolve, log, steps); direct file editing for body content.
+- If implementation reveals a missing detail, edit the FEATURE card directly to add it.
+- If a design issue is found: `card log --kind blocked` + `card steps --status blocked N --reason "..."`
+- Run tests and `flowforge validate all` when card state changes.
 
 ## Output
 

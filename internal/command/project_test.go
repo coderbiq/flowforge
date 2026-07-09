@@ -51,9 +51,7 @@ func TestProjectCreateBootstrapsDerivedWikiRoot(t *testing.T) {
 	}
 
 	expectedDirs := []string{
-		filepath.Join(tmpDir, "ff-wiki-frontend", "01-workspace", "01-active"),
-		filepath.Join(tmpDir, "ff-wiki-frontend", "01-workspace", "02-intake"),
-		filepath.Join(tmpDir, "ff-wiki-frontend", "01-workspace", "03-completed"),
+		filepath.Join(tmpDir, "ff-wiki-frontend", "01-workspace"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "10-requirements"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "20-decisions"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "30-designs"),
@@ -306,7 +304,7 @@ func TestCurrentCardStoreUsesRuntimeProject(t *testing.T) {
 		t.Fatalf("creating backend card failed: %v", err)
 	}
 
-	backendCardsDir := filepath.Join(tmpDir, "ff-wiki-be", "01-workspace", "01-active", "CR26061301", "90-cards")
+	backendCardsDir := filepath.Join(tmpDir, "ff-wiki-be", "01-workspace", "CR26061301", "90-cards")
 	entries, err := os.ReadDir(backendCardsDir)
 	if err != nil {
 		t.Fatalf("reading backend cards dir failed: %v", err)
@@ -315,7 +313,7 @@ func TestCurrentCardStoreUsesRuntimeProject(t *testing.T) {
 		t.Fatalf("expected backend card dir to contain 1 entry, got %d", len(entries))
 	}
 
-	frontendCardsDir := filepath.Join(tmpDir, "ff-wiki-fe", "01-workspace", "01-active", "CR26061301", "90-cards")
+	frontendCardsDir := filepath.Join(tmpDir, "ff-wiki-fe", "01-workspace", "CR26061301", "90-cards")
 	if _, err := os.Stat(frontendCardsDir); !os.IsNotExist(err) {
 		t.Fatalf("expected frontend cards dir to not exist, stat err=%v", err)
 	}

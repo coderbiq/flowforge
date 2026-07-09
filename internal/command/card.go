@@ -20,6 +20,11 @@ func newCardCmd() *cobra.Command {
 		Long:  "Create, read, update, delete, and list knowledge cards.",
 	}
 
+	cmd.AddCommand(newCardInitCmd())
+	cmd.AddCommand(newCardEvolveCmd())
+	cmd.AddCommand(newCardLogCmd())
+	cmd.AddCommand(newCardStepsCmd())
+	cmd.AddCommand(newCardSplitCmd())
 	cmd.AddCommand(newCardCreateCmd())
 	cmd.AddCommand(newCardReadCmd())
 	cmd.AddCommand(newCardListCmd())
@@ -147,14 +152,13 @@ func newCardCreateCmd() *cobra.Command {
 		Short: "Create a new card",
 		Long: `Create a new knowledge card.
 
-Card types: requirement, decision, design, task, log, convention, finding, module, structure
+Card types: feature, convention, decision, module, finding
+(requirement, design, task, log, structure are deprecated — use feature instead)
 
 Examples:
-  flowforge card create --type requirement --title "User login feature"
+  flowforge card create --type feature --title "FileProcessor Clone" --proposal CR26070801
+  flowforge card create --type convention --title "Clone pattern"
   flowforge card create --type decision --title "Use PostgreSQL" --proposal CR24010101
-  flowforge card create --type task --title "Implement API" --links "DEC-abc123"
-  flowforge card create --type structure --title "CLI Architecture" --status active
-  flowforge card create --type design --title "Init command" --status draft --body "## Goal\n\nDesign the init command."
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cardType == "" {
@@ -169,9 +173,18 @@ Examples:
 				return fmt.Errorf("invalid card type: %s", cardType)
 			}
 
+			switch ct {
+			case core.CardTypeRequirement, core.CardTypeDesign, core.CardTypeStructure, core.CardTypeLog:
+				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: card type '%s' is deprecated. Use 'feature' instead.\n", ct)
+			}
+
 			body, err := readBody(body)
 			if err != nil {
 				return err
+			}
+
+			if ct == core.CardTypeFeature && body == "" {
+				body = featureTemplateBody(title)
 			}
 
 			store, err := currentCardStore()
@@ -433,6 +446,15 @@ func parseMarkdownSections(body string) []markdownSection {
 }
 
 func extractCardSection(body, section string) (string, bool) {
+	if strings.Contains(section, ".") {
+		parts := strings.SplitN(section, ".", 2)
+		parent, ok := extractCardSection(body, parts[0])
+		if !ok {
+			return "", false
+		}
+		return extractCardSection(parent, parts[1])
+	}
+
 	target := strings.ToLower(strings.TrimSpace(section))
 	if target == "" {
 		return "", false

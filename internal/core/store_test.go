@@ -66,15 +66,15 @@ func TestCardStoreDirectories(t *testing.T) {
 		t.Errorf("unexpected WorkspaceDir: %s", store.WorkspaceDir())
 	}
 
-	if store.ActiveDir() != "/test/wiki/01-workspace/01-active" {
+	if store.ActiveDir() != "/test/wiki/01-workspace" {
 		t.Errorf("unexpected ActiveDir: %s", store.ActiveDir())
 	}
 
-	if store.IntakeDir() != "/test/wiki/01-workspace/02-intake" {
+	if store.IntakeDir() != "/test/wiki/01-workspace" {
 		t.Errorf("unexpected IntakeDir: %s", store.IntakeDir())
 	}
 
-	if store.CompletedDir() != "/test/wiki/01-workspace/03-completed" {
+	if store.CompletedDir() != "/test/wiki/01-workspace" {
 		t.Errorf("unexpected CompletedDir: %s", store.CompletedDir())
 	}
 

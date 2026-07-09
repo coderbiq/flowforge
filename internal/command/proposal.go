@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -252,7 +251,7 @@ func newProposalInspectCmd() *cobra.Command {
 func newProposalArchiveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "archive <proposal-id>",
-		Short: "Move an active proposal to completed",
+		Short: "Mark a proposal as completed (no directory move)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			proposalID := args[0]
@@ -268,18 +267,18 @@ func newProposalArchiveCmd() *cobra.Command {
 				return err
 			}
 
-			dst := filepath.Join(store.CompletedDir(), filepath.Base(src))
-			if _, err := os.Stat(dst); err == nil {
-				return fmt.Errorf("completed proposal %q already exists", proposalID)
-			} else if err != nil && !os.IsNotExist(err) {
-				return fmt.Errorf("checking completed proposal dir: %w", err)
+			propCardID := "PROP-" + proposalID
+			propCard, err := store.ReadCard(propCardID)
+			if err != nil {
+				return fmt.Errorf("reading proposal root card: %w", err)
+			}
+			if propCard.Status != core.CardStatusActive {
+				return fmt.Errorf("proposal %s is not active (status: %s)", proposalID, propCard.Status)
 			}
 
-			if err := os.MkdirAll(store.CompletedDir(), 0755); err != nil {
-				return fmt.Errorf("creating completed directory: %w", err)
-			}
-			if err := os.Rename(src, dst); err != nil {
-				return fmt.Errorf("archiving proposal: %w", err)
+			propCard.Status = core.CardStatusCompleted
+			if err := store.UpdateCard(propCard); err != nil {
+				return fmt.Errorf("updating proposal status: %w", err)
 			}
 
 			if err := clearCurrentProposalIfMatches(runtimeStore, projectID, proposalID); err != nil {
@@ -287,7 +286,9 @@ func newProposalArchiveCmd() *cobra.Command {
 			}
 
 			out := cmd.OutOrStdout()
-			fmt.Fprintf(out, "✓ Archived proposal %s\n", proposalID)
+			fmt.Fprintf(out, "✓ Proposal %s marked as completed\n", proposalID)
+			fmt.Fprintf(out, "Run 'proposal inspect %s' for final report.\n", proposalID)
+			fmt.Fprintf(out, "Run 'flowforge-curate' to extract reusable knowledge to library.\n")
 			return nil
 		},
 	}

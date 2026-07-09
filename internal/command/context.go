@@ -18,6 +18,7 @@ func newContextCmd() *cobra.Command {
 
 	cmd.AddCommand(newContextProposalCmd())
 	cmd.AddCommand(newContextTaskCmd())
+	cmd.AddCommand(newContextFeatureCmd())
 
 	return cmd
 }

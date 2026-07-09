@@ -12,7 +12,8 @@ import (
 func newLogCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "log",
-		Short: "Create proposal lifecycle log cards",
+		Short: "[DEPRECATED] Create proposal lifecycle log cards",
+		Long:  "DEPRECATED: Use 'card log' to append events to a FEATURE card's History section instead.",
 	}
 
 	cmd.AddCommand(newLogCreateCmd())
