@@ -94,6 +94,17 @@ also updated (equivalent to running flowforge assets update).`,
 				fmt.Fprintf(cmd.ErrOrStderr(), "Project assets update: %v\n", aErr)
 			}
 
+			cfg, cErr := config.Load(projectRoot)
+			if cErr == nil && cfg != nil {
+				wikiRoot := cfg.WikiRoot(projectRoot)
+				if wikiRoot != "" {
+					fmt.Fprintln(cmd.OutOrStdout())
+					if mErr := runPendingMigrations(result.OldVersion, result.NewVersion, wikiRoot); mErr != nil {
+						fmt.Fprintf(cmd.ErrOrStderr(), "Migration: %v\n", mErr)
+					}
+				}
+			}
+
 			return nil
 		},
 	}
