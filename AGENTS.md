@@ -14,21 +14,22 @@
 
 每次发布时按以下步骤操作，不要遗漏：
 
-1. **提交所有变更**：`git add -A && git commit -m "<message>"`
-2. **打 tag**（格式 `v<major>.<minor>.<patch>[-alpha]`）：
+1. **确认版本号**：每次发布必须有新的版本号。Bug 修复递增 patch（`v3.0.0-alpha` → `v3.0.0-alpha.1`），功能变更递增 minor（`v3.0.0` → `v3.1.0`）。**禁止重用已发布的 tag**——客户端靠版本号差异检测更新，同版本号不会触发升级。
+2. **提交所有变更**：`git add -A && git commit -m "<message>"`。commit message 必须描述本次发布的变更内容。
+3. **打 tag**（格式 `v<major>.<minor>.<patch>[-alpha.N]`）：
    ```bash
-   git tag -a v3.0.0-alpha -m "v3.0.0-alpha: <release summary>"
+   git tag -a v3.0.0-alpha.1 -m "v3.0.0-alpha.1: <release summary>"
    ```
-3. **推送代码和 tag**：
+4. **推送代码和 tag**：
    ```bash
    git push origin main --tags
    ```
-4. **验证**：确认 tag 出现在 GitHub Releases 页面，对应的构建产物自动生成
+5. **验证**：确认 tag 出现在 GitHub Releases 页面，对应的构建产物自动生成。确认 `flowforge upgrade --dry-run` 在已安装旧版本的客户端上能看到新版本。
 
 tag 命名规范：
 - 正式版：`v3.0.0`、`v3.1.0`
 - 预发布：`v3.0.0-alpha`、`v3.0.0-beta`、`v3.0.0-rc1`
-- 之前已经有 `v3.0.0-alpha` tag，下一个 alpha 用 `v3.0.0-alpha.1` 或修正后重用（`git tag -d` + 重新打）
+- 预发布迭代：`v3.0.0-alpha.1`、`v3.0.0-alpha.2`（Bug 修复逐次递增）
 
 ## Boundaries
 
