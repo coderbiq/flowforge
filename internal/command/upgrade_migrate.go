@@ -10,42 +10,37 @@ import (
 )
 
 type migration struct {
-	name string
-	run  func(store *core.CardStore, wikiRoot string) error
+	name       string
+	minVersion string
+	run        func(store *core.CardStore, wikiRoot string) error
+}
+
+var allMigrations = []migration{
+	{
+		name:       "v3-wiki-flatten",
+		minVersion: "3.0.2",
+		run:        migrateV3WikiFlatten,
+	},
 }
 
 func runPendingMigrations(oldVer, newVer string, wikiRoot string) error {
-	if !needsV3Migration(oldVer, newVer) {
-		fmt.Println("No migrations needed.")
-		return nil
-	}
-
 	store := core.NewCardStore(wikiRoot)
-	for _, m := range v3Migrations() {
-		fmt.Printf("Running migration: %s\n", m.name)
-		if err := m.run(store, wikiRoot); err != nil {
-			return fmt.Errorf("migration %s failed: %w", m.name, err)
+	oldV := strings.TrimPrefix(oldVer, "v")
+
+	var executed int
+	for _, m := range allMigrations {
+		if compareVersion(oldV, m.minVersion) < 0 {
+			fmt.Printf("Running migration: %s (old=%s < required=%s)\n", m.name, oldVer, m.minVersion)
+			if err := m.run(store, wikiRoot); err != nil {
+				return fmt.Errorf("migration %s failed: %w", m.name, err)
+			}
+			executed++
 		}
 	}
+	if executed == 0 {
+		fmt.Println("No migrations needed.")
+	}
 	return nil
-}
-
-func needsV3Migration(oldVer, newVer string) bool {
-	oldV := strings.TrimPrefix(oldVer, "v")
-	newV := strings.TrimPrefix(newVer, "v")
-
-	oldMajor, _ := parseMajor(oldV)
-	newMajor, _ := parseMajor(newV)
-
-	if newMajor < 3 {
-		return false
-	}
-
-	if oldMajor < 3 {
-		return true
-	}
-
-	return compareVersion(newV, "3.0.2") >= 0 && compareVersion(oldV, "3.0.2") < 0
 }
 
 func compareVersion(a, b string) int {
@@ -70,25 +65,6 @@ func parseParts(v string) []int {
 		fmt.Sscanf(p, "%d", &nums[i])
 	}
 	return nums
-}
-
-func parseMajor(v string) (int, error) {
-	parts := strings.SplitN(v, ".", 2)
-	if len(parts) == 0 {
-		return 0, fmt.Errorf("invalid version: %s", v)
-	}
-	var major int
-	_, err := fmt.Sscanf(parts[0], "%d", &major)
-	return major, err
-}
-
-func v3Migrations() []migration {
-	return []migration{
-		{
-			name: "v3-wiki-flatten",
-			run:  migrateV3WikiFlatten,
-		},
-	}
 }
 
 func migrateV3WikiFlatten(store *core.CardStore, wikiRoot string) error {
