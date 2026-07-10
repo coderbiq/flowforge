@@ -56,6 +56,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newSourceCmd())
 	cmd.AddCommand(newUpgradeCmd())
 	cmd.AddCommand(newUninstallCmd())
+	cmd.AddCommand(newRunMigrationsCmd())
 
 	return cmd
 }
