@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,9 +22,6 @@ import (
 const releasesBaseURL = "https://github.com/coderbiq/flowforge/releases"
 
 func manifestURL(version string) string {
-	if version == "latest" {
-		return releasesBaseURL + "/latest/download/manifest.json"
-	}
 	return releasesBaseURL + "/download/" + version + "/manifest.json"
 }
 
@@ -37,13 +35,44 @@ type UpgradeResult struct {
 }
 
 func Upgrade(currentVersion string) (*UpgradeResult, error) {
-	murl := manifestURL("latest")
+	latestTag, err := resolveLatestTag()
+	if err != nil {
+		return nil, fmt.Errorf("resolving latest version: %w", err)
+	}
+
+	murl := manifestURL(latestTag)
 	manifest, err := FetchManifest(murl)
 	if err != nil {
 		return nil, fmt.Errorf("upgrade: %w", err)
 	}
 
 	return UpgradeToVersion(manifest, currentVersion, manifest.Version)
+}
+
+type githubRelease struct {
+	TagName string `json:"tag_name"`
+}
+
+func resolveLatestTag() (string, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get("https://api.github.com/repos/coderbiq/flowforge/releases/latest")
+	if err != nil {
+		return "", fmt.Errorf("fetching latest release: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+	}
+
+	var release githubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", fmt.Errorf("decoding release info: %w", err)
+	}
+	if release.TagName == "" {
+		return "", fmt.Errorf("release has no tag_name")
+	}
+	return release.TagName, nil
 }
 
 func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) (*UpgradeResult, error) {
@@ -116,7 +145,12 @@ func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) 
 }
 
 func DryRunUpgrade(currentVersion string) (*Manifest, error) {
-	murl := manifestURL("latest")
+	latestTag, err := resolveLatestTag()
+	if err != nil {
+		return nil, fmt.Errorf("dry-run: resolving latest version: %w", err)
+	}
+
+	murl := manifestURL(latestTag)
 	manifest, err := FetchManifest(murl)
 	if err != nil {
 		return nil, fmt.Errorf("dry-run: %w", err)

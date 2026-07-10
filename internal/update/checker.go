@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const versionCheckURL = "https://github.com/coderbiq/flowforge/releases/latest/download/manifest.json"
-
 const versionCheckDebounce = 1 * time.Hour
 
 type VersionChecker struct {
@@ -73,7 +71,13 @@ func (c *VersionChecker) check() (string, error) {
 }
 
 func (c *VersionChecker) fetchLatestVersion() (string, error) {
-	resp, err := c.httpClient.Get(versionCheckURL)
+	latestTag, err := resolveLatestTag()
+	if err != nil {
+		return "", err
+	}
+
+	manifestURL := fmt.Sprintf("https://github.com/coderbiq/flowforge/releases/download/%s/manifest.json", latestTag)
+	resp, err := c.httpClient.Get(manifestURL)
 	if err != nil {
 		return "", fmt.Errorf("fetching manifest: %w", err)
 	}
