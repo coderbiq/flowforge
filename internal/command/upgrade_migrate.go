@@ -18,7 +18,7 @@ type migration struct {
 var allMigrations = []migration{
 	{
 		name:       "v3-wiki-flatten",
-		minVersion: "3.0.2",
+		minVersion: "3.0.6",
 		run:        migrateV3WikiFlatten,
 	},
 }
@@ -30,7 +30,7 @@ func runPendingMigrations(oldVer, newVer string, wikiRoot string) error {
 	var executed int
 	for _, m := range allMigrations {
 		if compareVersion(oldV, m.minVersion) < 0 {
-			fmt.Printf("Running migration: %s (old=%s < required=%s)\n", m.name, oldVer, m.minVersion)
+			fmt.Printf("Running migration: %s (old=%s < min=%s)\n", m.name, oldVer, m.minVersion)
 			if err := m.run(store, wikiRoot); err != nil {
 				return fmt.Errorf("migration %s failed: %w", m.name, err)
 			}
