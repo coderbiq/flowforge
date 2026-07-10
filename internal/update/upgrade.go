@@ -97,19 +97,19 @@ func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) 
 
 	client := &http.Client{Timeout: 5 * time.Minute}
 
-	binResp, err := client.Get(artifact.URL)
-	if err != nil {
-		return nil, fmt.Errorf("downloading artifact: %w", err)
+	var bin []byte
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * time.Second)
+		}
+		bin, lastErr = downloadArtifact(client, artifact.URL)
+		if lastErr == nil {
+			break
+		}
 	}
-	defer binResp.Body.Close()
-
-	if binResp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("artifact download returned status %d", binResp.StatusCode)
-	}
-
-	bin, err := io.ReadAll(binResp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading artifact bytes: %w", err)
+	if lastErr != nil {
+		return nil, fmt.Errorf("downloading artifact (3 attempts): %w", lastErr)
 	}
 
 	if artifact.SignatureURL != "" {
@@ -126,7 +126,7 @@ func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) 
 		return nil, fmt.Errorf("size mismatch: expected %d bytes, got %d", artifact.Size, len(bin))
 	}
 
-	bin, err = extractBinary(bin, platform)
+	bin, err := extractBinary(bin, platform)
 	if err != nil {
 		return nil, fmt.Errorf("extracting binary from artifact: %w", err)
 	}
@@ -161,6 +161,24 @@ func DryRunUpgrade(currentVersion string) (*Manifest, error) {
 	}
 
 	return manifest, nil
+}
+
+func downloadArtifact(client *http.Client, url string) ([]byte, error) {
+	binResp, err := client.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer binResp.Body.Close()
+
+	if binResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", binResp.StatusCode)
+	}
+
+	bin, err := io.ReadAll(binResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading bytes: %w", err)
+	}
+	return bin, nil
 }
 
 func verifyArtifactSignature(bin []byte, sigURL string, client *http.Client) error {
