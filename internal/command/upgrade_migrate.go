@@ -43,6 +43,17 @@ func runPendingMigrations(oldVer, newVer string, wikiRoot string) error {
 	return nil
 }
 
+func forceRunMigrations(wikiRoot string) error {
+	store := core.NewCardStore(wikiRoot)
+	for _, m := range allMigrations {
+		fmt.Printf("Running migration: %s (forced)\n", m.name)
+		if err := m.run(store, wikiRoot); err != nil {
+			return fmt.Errorf("migration %s failed: %w", m.name, err)
+		}
+	}
+	return nil
+}
+
 func compareVersion(a, b string) int {
 	ap := parseParts(a)
 	bp := parseParts(b)
