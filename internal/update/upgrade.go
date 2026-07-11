@@ -35,9 +35,21 @@ type UpgradeResult struct {
 }
 
 func Upgrade(currentVersion string) (*UpgradeResult, error) {
+	manifest, err := fetchLatestManifest()
+	if err != nil {
+		return nil, err
+	}
+	return UpgradeToVersion(manifest, currentVersion, manifest.Version)
+}
+
+func fetchLatestManifest() (*Manifest, error) {
 	latestTag, err := resolveLatestTag()
 	if err != nil {
-		return nil, fmt.Errorf("resolving latest version: %w", err)
+		manifest, fallbackErr := fallbackFetchManifest()
+		if fallbackErr != nil {
+			return nil, fmt.Errorf("upgrade: %w (api: %v)", fallbackErr, err)
+		}
+		return manifest, nil
 	}
 
 	murl := manifestURL(latestTag)
@@ -45,8 +57,11 @@ func Upgrade(currentVersion string) (*UpgradeResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("upgrade: %w", err)
 	}
+	return manifest, nil
+}
 
-	return UpgradeToVersion(manifest, currentVersion, manifest.Version)
+func fallbackFetchManifest() (*Manifest, error) {
+	return FetchManifest(releasesBaseURL + "/latest/download/manifest.json")
 }
 
 type githubRelease struct {
@@ -54,8 +69,15 @@ type githubRelease struct {
 }
 
 func resolveLatestTag() (string, error) {
+	req, err := http.NewRequest("GET", "https://api.github.com/repos/coderbiq/flowforge/releases/latest", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "flowforge-cli")
+	req.Header.Set("Accept", "application/vnd.github+json")
+
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get("https://api.github.com/repos/coderbiq/flowforge/releases/latest")
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("fetching latest release: %w", err)
 	}
@@ -145,13 +167,7 @@ func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) 
 }
 
 func DryRunUpgrade(currentVersion string) (*Manifest, error) {
-	latestTag, err := resolveLatestTag()
-	if err != nil {
-		return nil, fmt.Errorf("dry-run: resolving latest version: %w", err)
-	}
-
-	murl := manifestURL(latestTag)
-	manifest, err := FetchManifest(murl)
+	manifest, err := fetchLatestManifest()
 	if err != nil {
 		return nil, fmt.Errorf("dry-run: %w", err)
 	}

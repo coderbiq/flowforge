@@ -76,8 +76,8 @@ func (c *VersionChecker) fetchLatestVersion() (string, error) {
 		return "", err
 	}
 
-	manifestURL := fmt.Sprintf("https://github.com/coderbiq/flowforge/releases/download/%s/manifest.json", latestTag)
-	resp, err := c.httpClient.Get(manifestURL)
+	murl := fmt.Sprintf("https://github.com/coderbiq/flowforge/releases/download/%s/manifest.json", latestTag)
+	resp, err := c.httpClient.Get(murl)
 	if err != nil {
 		return "", fmt.Errorf("fetching manifest: %w", err)
 	}
