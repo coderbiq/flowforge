@@ -35,33 +35,17 @@ type UpgradeResult struct {
 }
 
 func Upgrade(currentVersion string) (*UpgradeResult, error) {
-	manifest, err := fetchLatestManifest()
-	if err != nil {
-		return nil, err
-	}
-	return UpgradeToVersion(manifest, currentVersion, manifest.Version)
-}
-
-func fetchLatestManifest() (*Manifest, error) {
 	latestTag, err := resolveLatestTag()
 	if err != nil {
-		manifest, fallbackErr := fallbackFetchManifest()
-		if fallbackErr != nil {
-			return nil, fmt.Errorf("upgrade: %w (api: %v)", fallbackErr, err)
-		}
-		return manifest, nil
+		return nil, fmt.Errorf("resolving latest version: %w", err)
 	}
 
-	murl := manifestURL(latestTag)
-	manifest, err := FetchManifest(murl)
+	manifest, err := FetchManifest(manifestURL(latestTag))
 	if err != nil {
 		return nil, fmt.Errorf("upgrade: %w", err)
 	}
-	return manifest, nil
-}
 
-func fallbackFetchManifest() (*Manifest, error) {
-	return FetchManifest(releasesBaseURL + "/latest/download/manifest.json")
+	return UpgradeToVersion(manifest, currentVersion, manifest.Version)
 }
 
 type githubRelease struct {
@@ -167,15 +151,15 @@ func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) 
 }
 
 func DryRunUpgrade(currentVersion string) (*Manifest, error) {
-	manifest, err := fetchLatestManifest()
+	latestTag, err := resolveLatestTag()
 	if err != nil {
 		return nil, fmt.Errorf("dry-run: %w", err)
 	}
 
-	if CompareVersions(manifest.Version, currentVersion) <= 0 {
-		return manifest, nil
+	manifest, err := FetchManifest(manifestURL(latestTag))
+	if err != nil {
+		return nil, fmt.Errorf("dry-run: %w", err)
 	}
-
 	return manifest, nil
 }
 
