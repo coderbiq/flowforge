@@ -84,14 +84,17 @@ get_artifact_info() {
     local manifest_json
     manifest_json="$(curl -sfL "$manifest_url")" || return 1
 
+    # 每个平台可能对应多个制品（.tar.gz / .zip 共享同一 platform 字段），
+    # 仅匹配第一个块（制品按 tar.gz 先于 zip 的顺序写入，正是 Unix 需要的），
+    # 并取解析结果第一行，避免多制品叠加导致 URL 包含多行而触发 curl 报错。
     local platform_entry
-    platform_entry="$(echo "$manifest_json" | grep -A5 "\"platform\": *\"$platform\"")" || {
+    platform_entry="$(echo "$manifest_json" | grep -A5 -m1 "\"platform\": *\"$platform\"")" || {
         return 1
     }
 
     local url sha256
-    url="$(echo "$platform_entry" | sed -n 's/.*"url": *"\([^"]*\)".*/\1/p')"
-    sha256="$(echo "$platform_entry" | sed -n 's/.*"sha256": *"\([^"]*\)".*/\1/p')"
+    url="$(echo "$platform_entry" | sed -n 's/.*"url": *"\([^"]*\)".*/\1/p' | head -n1)"
+    sha256="$(echo "$platform_entry" | sed -n 's/.*"sha256": *"\([^"]*\)".*/\1/p' | head -n1)"
 
     if [ -z "$url" ] || [ -z "$sha256" ]; then
         return 1
