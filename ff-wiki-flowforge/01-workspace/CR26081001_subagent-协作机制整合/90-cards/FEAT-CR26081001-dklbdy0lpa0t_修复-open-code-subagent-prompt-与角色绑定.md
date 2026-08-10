@@ -8,7 +8,7 @@ links:
     - target: PROP-CR26081001
       relation: belongs_to
 created: 2026-08-10T13:56:42.830931634Z
-updated: 2026-08-10T23:16:36.969439187+08:00
+updated: 2026-08-10T23:35:35.485780434+08:00
 source: CR26081001
 ---
 
@@ -106,6 +106,7 @@ source: CR26081001
 - 2026-08-10T23:03:22+08:00 | progress | 完成统一 sync 生命周期、host 探测、持久禁用、dry-run/adopt、manifest 冲突保留与 v3.1.0 精确接管。
 - 2026-08-10T23:04:44+08:00 | progress | 完成动态 AGENTS.md orchestration 区块、init/upgrade 自动同步，并彻底删除 assets adapter、assets update、skill update 命令入口。
 - 2026-08-10T23:16:36+08:00 | progress | 同步升级已保留受管 OpenCode/Codex subagent 的显式 model 配置，其余生成内容随新版本替换；新增两种格式的回归测试。
+- 2026-08-10T23:35:35+08:00 | bug | v3.1.x 升级器在替换为 v3.2.0 后仍调用 assets update，因新二进制删除该入口导致后置 sync 失败；新增隐藏跨版本兼容桥接并转发到 sync。
 
 ## Open Questions
 

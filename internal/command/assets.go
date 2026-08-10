@@ -4,9 +4,35 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"flowforge/internal/core"
 	"flowforge/internal/version"
 )
+
+// newLegacyAssetsCmd is intentionally hidden. FlowForge v3.1.x invokes
+// "assets update" after replacing itself, so the replacement binary must
+// retain this bridge until those clients can upgrade through a fixed release.
+func newLegacyAssetsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:    "assets",
+		Hidden: true,
+	}
+	cmd.AddCommand(&cobra.Command{
+		Use:    "update",
+		Hidden: true,
+		Args:   cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			svc, err := currentConfigService()
+			if err != nil {
+				return fmt.Errorf("finding project root: %w (run flowforge init first)", err)
+			}
+			defer svc.Close()
+			return syncProject(cmd, svc.ProjectRoot(), syncOptions{})
+		},
+	})
+	return cmd
+}
 
 func applyAssetUpdates(projectRoot string) (*AssetUpdateReport, error) {
 	oldManifest, err := core.LoadProjectManifest(projectRoot)

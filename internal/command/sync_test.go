@@ -378,11 +378,39 @@ func TestSyncFromSubdirectoryUsesProjectRootForConflicts(t *testing.T) {
 	}
 }
 
-func TestRootHasNoDeprecatedAssetCommands(t *testing.T) {
-	for _, cmd := range NewRootCmd().Commands() {
-		if cmd.Name() == "assets" || cmd.Name() == "skill" {
-			t.Fatalf("deprecated command still registered: %s", cmd.Name())
+func TestLegacyAssetsUpdateIsHiddenAndDelegatesToSync(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".opencode"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(root, ".opencode", "agents", "flowforge-executor.md")); err != nil {
+		t.Fatal(err)
+	}
+	oldWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(oldWD); err != nil {
+			t.Errorf("restoring working directory: %v", err)
 		}
+	})
+	cmd := newLegacyAssetsCmd()
+	if !cmd.Hidden {
+		t.Fatal("legacy assets command must remain hidden")
+	}
+	cmd.SetArgs([]string{"update"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".opencode", "agents", "flowforge-executor.md")); err != nil {
+		t.Fatalf("legacy assets update did not delegate to sync: %v", err)
 	}
 }
 

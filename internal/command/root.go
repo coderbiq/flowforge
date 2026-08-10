@@ -51,6 +51,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newLogCmd())
 	cmd.AddCommand(newValidateCmd())
 	cmd.AddCommand(newStructureCmd())
+	cmd.AddCommand(newLegacyAssetsCmd())
 	cmd.AddCommand(newSyncCmd())
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newSourceCmd())
