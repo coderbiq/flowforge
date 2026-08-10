@@ -8,7 +8,7 @@ links:
     - target: PROP-CR26081001
       relation: belongs_to
 created: 2026-08-10T13:56:42.830931634Z
-updated: 2026-08-10T23:47:12.755664641+08:00
+updated: 2026-08-10T23:56:23.645296727+08:00
 source: CR26081001
 ---
 
@@ -108,6 +108,7 @@ source: CR26081001
 - 2026-08-10T23:16:36+08:00 | progress | 同步升级已保留受管 OpenCode/Codex subagent 的显式 model 配置，其余生成内容随新版本替换；新增两种格式的回归测试。
 - 2026-08-10T23:35:35+08:00 | bug | v3.1.x 升级器在替换为 v3.2.0 后仍调用 assets update，因新二进制删除该入口导致后置 sync 失败；新增隐藏跨版本兼容桥接并转发到 sync。
 - 2026-08-10T23:47:12+08:00 | bug | v3.2.1 对旧 OpenCode frontmatter 的严格 YAML 解析仍会阻断 sync，且 v3.2.0 manifest 缺失的已生成 Agent 被误报未管理；改为容错 model 提取并自动接管带 FlowForge 生成签名的 Agent。
+- 2026-08-10T23:56:23+08:00 | bug | 真实项目发现基础 FlowForge 区块与独立 orchestration 区块被 Beads 内容分隔，导致 AGENTS.md 规则视觉和结构混排；已将 orchestration 合并进 FLOWFORGE 主区块并保留用户/Beads 内容及冲突修改。
 
 ## Open Questions
 

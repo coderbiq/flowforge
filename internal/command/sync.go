@@ -533,42 +533,83 @@ func reconcileOrchestrationBlock(cmd *cobra.Command, root string, manifest *core
 	if extractErr != nil {
 		return extractErr
 	}
+	orchestrationContent := []byte(nil)
+	if found {
+		orchestrationContent = current
+	}
 	if old != nil && (!found || core.SHA256Hex(current) != old.SHA256) {
 		fmt.Fprintln(cmd.ErrOrStderr(), "! conflict: AGENTS.md orchestration block (preserved)")
-		filtered = append(filtered, *old)
-		if !dryRun {
-			manifest.Files = filtered
-		}
-		return nil
+	}
+	if len(hosts) > 0 && len(orchestrationContent) == 0 {
+		orchestrationContent = []byte(renderOrchestrationRules(hosts))
+	}
+	base, baseFound, err := core.ExtractMarkedBlock(file, "<!-- FLOWFORGE:START -->", "<!-- FLOWFORGE:END -->")
+	if err != nil {
+		return err
 	}
 	if len(hosts) == 0 {
-		if found {
-			fmt.Fprintln(cmd.OutOrStdout(), "- AGENTS.md orchestration block")
-			if !dryRun {
-				if err := core.RemoveMarkedBlock(path, orchestrationBlockStart, orchestrationBlockEnd); err != nil {
-					return err
-				}
+		orchestrationContent = nil
+	}
+	merged := append([]byte(nil), base...)
+	if baseFound {
+		merged = removeNestedOrchestration(merged)
+		if len(orchestrationContent) > 0 {
+			if len(merged) > 0 && merged[len(merged)-1] != '\n' {
+				merged = append(merged, '\n')
 			}
+			merged = append(merged, []byte("\n"+orchestrationBlockStart+"\n")...)
+			merged = append(merged, orchestrationContent...)
+			if merged[len(merged)-1] != '\n' {
+				merged = append(merged, '\n')
+			}
+			merged = append(merged, []byte(orchestrationBlockEnd+"\n")...)
 		}
+	}
+	if !baseFound {
+		if len(hosts) > 0 {
+			merged = append([]byte("\n"+orchestrationBlockStart+"\n"), orchestrationContent...)
+			merged = append(merged, []byte(orchestrationBlockEnd+"\n")...)
+		}
+	}
+	if !baseFound && len(hosts) == 0 {
 		if !dryRun {
 			manifest.Files = filtered
 		}
 		return nil
 	}
-	rules := []byte(renderOrchestrationRules(hosts))
-	if !found || core.SHA256Hex(current) != core.SHA256Hex(rules) {
-		fmt.Fprintln(cmd.OutOrStdout(), "~ AGENTS.md orchestration block")
-		if !dryRun {
-			if err := core.ApplyMarkedBlock(path, orchestrationBlockStart, orchestrationBlockEnd, rules); err != nil {
+	if !dryRun {
+		if found {
+			if err := core.RemoveMarkedBlock(path, orchestrationBlockStart, orchestrationBlockEnd); err != nil {
 				return err
 			}
 		}
+		if err := core.ApplyMarkedBlock(path, "<!-- FLOWFORGE:START -->", "<!-- FLOWFORGE:END -->", merged); err != nil {
+			return err
+		}
 	}
-	filtered = append(filtered, core.FileEntry{Source: "generated/AGENTS.orchestration.md", Target: "AGENTS.md", SHA256: core.SHA256Hex(rules), Type: "orchestration_block", Markers: &core.BlockMarkers{Start: orchestrationBlockStart, End: orchestrationBlockEnd}})
 	if !dryRun {
 		manifest.Files = filtered
 	}
+	if len(hosts) > 0 {
+		filtered = append(filtered, core.FileEntry{Source: "generated/AGENTS.orchestration.md", Target: "AGENTS.md", SHA256: core.SHA256Hex(orchestrationContent), Type: "orchestration_block", Markers: &core.BlockMarkers{Start: orchestrationBlockStart, End: orchestrationBlockEnd}})
+		if !dryRun {
+			manifest.Files = filtered
+		}
+	}
 	return nil
+}
+
+func removeNestedOrchestration(content []byte) []byte {
+	start := bytes.Index(content, []byte(orchestrationBlockStart))
+	end := bytes.Index(content, []byte(orchestrationBlockEnd))
+	if start < 0 || end <= start {
+		return content
+	}
+	end += len(orchestrationBlockEnd)
+	if end < len(content) && content[end] == '\n' {
+		end++
+	}
+	return append(append([]byte(nil), content[:start]...), content[end:]...)
 }
 
 func renderOrchestrationRules(hosts hostSet) string {
