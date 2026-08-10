@@ -15,7 +15,6 @@ import (
 	"flowforge/internal/version"
 
 	"github.com/pelletier/go-toml/v2"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -286,7 +285,8 @@ func reconcileHostFiles(cmd *cobra.Command, root string, manifest *core.ProjectM
 		data, readErr := os.ReadFile(path)
 		entry, managed := old[target]
 		modelPreserved := false
-		if readErr == nil && managed {
+		generatedLike := readErr == nil && knownGeneratedAgent(target, data, item.content)
+		if readErr == nil && (managed || generatedLike) {
 			content, preserved, err := preserveAgentModel(item.kind, data, item.content)
 			if err != nil {
 				return nil, nil, fmt.Errorf("preserving model configuration in %s: %w", target, err)
@@ -294,7 +294,7 @@ func reconcileHostFiles(cmd *cobra.Command, root string, manifest *core.ProjectM
 			item.content = content
 			modelPreserved = preserved
 		}
-		adoptable := readErr == nil && (opts.adopt || knownV310Skeleton(target, data))
+		adoptable := readErr == nil && (opts.adopt || knownV310Skeleton(target, data) || generatedLike)
 		if readErr == nil && !managed && !adoptable {
 			fmt.Fprintf(cmd.ErrOrStderr(), "! conflict: %s (not managed; use --adopt to replace)\n", target)
 			failed[hostForKind(item.kind)] = true
@@ -378,37 +378,38 @@ func preserveOpenCodeModel(existing, generated []byte) ([]byte, bool, error) {
 	if !ok {
 		return generated, false, nil
 	}
-	var oldDocument yaml.Node
-	if err := yaml.Unmarshal(existingFrontmatter, &oldDocument); err != nil {
-		return nil, false, fmt.Errorf("parsing existing YAML frontmatter: %w", err)
-	}
-	oldModel := yamlMappingValue(&oldDocument, "model")
-	if oldModel == nil {
+	modelValue, found := frontmatterModelValue(existingFrontmatter)
+	if !found {
 		return generated, false, nil
 	}
 	generatedFrontmatter, generatedBody, ok := splitOpenCodeFrontmatter(generated)
 	if !ok {
 		return nil, false, fmt.Errorf("generated YAML frontmatter is missing")
 	}
-	var newDocument yaml.Node
-	if err := yaml.Unmarshal(generatedFrontmatter, &newDocument); err != nil {
-		return nil, false, fmt.Errorf("parsing generated YAML frontmatter: %w", err)
+	modelLine := []byte("model: " + quoteYAMLString(modelValue) + "\n")
+	lines := strings.Split(string(generatedFrontmatter), "\n")
+	inserted := false
+	for index, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "model:") {
+			lines[index] = strings.TrimSuffix(string(modelLine), "\n")
+			inserted = true
+			break
+		}
 	}
-	newMapping := yamlDocumentMapping(&newDocument)
-	if newMapping == nil {
-		return nil, false, fmt.Errorf("generated YAML frontmatter is not a mapping")
+	if !inserted {
+		for index, line := range lines {
+			if strings.HasPrefix(strings.TrimSpace(line), "mode:") {
+				lines = append(lines[:index+1], append([]string{strings.TrimSuffix(string(modelLine), "\n")}, lines[index+1:]...)...)
+				inserted = true
+				break
+			}
+		}
 	}
-	model := *oldModel
-	if current := yamlMappingValue(&newDocument, "model"); current != nil {
-		*current = model
-	} else {
-		newMapping.Content = append(newMapping.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "model"}, &model)
+	if !inserted {
+		lines = append(lines, strings.TrimSuffix(string(modelLine), "\n"))
 	}
-	encoded, err := yaml.Marshal(&newDocument)
-	if err != nil {
-		return nil, false, fmt.Errorf("encoding merged YAML frontmatter: %w", err)
-	}
-	return append(append([]byte("---\n"), encoded...), append([]byte("---\n"), generatedBody...)...), true, nil
+	mergedFrontmatter := []byte(strings.Join(lines, "\n"))
+	return append(append([]byte("---\n"), mergedFrontmatter...), append([]byte("\n---\n"), generatedBody...)...), true, nil
 }
 
 func splitOpenCodeFrontmatter(content []byte) (frontmatter, body []byte, ok bool) {
@@ -423,27 +424,21 @@ func splitOpenCodeFrontmatter(content []byte) (frontmatter, body []byte, ok bool
 	return rest[:end], rest[end+len("\n---\n"):], true
 }
 
-func yamlDocumentMapping(document *yaml.Node) *yaml.Node {
-	if document.Kind != yaml.DocumentNode || len(document.Content) != 1 {
-		return nil
+func frontmatterModelValue(frontmatter []byte) (string, bool) {
+	for _, line := range strings.Split(string(frontmatter), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "model:") {
+			continue
+		}
+		value := strings.TrimSpace(strings.TrimPrefix(trimmed, "model:"))
+		value = strings.Trim(value, "\"'")
+		return value, value != ""
 	}
-	if document.Content[0].Kind != yaml.MappingNode {
-		return nil
-	}
-	return document.Content[0]
+	return "", false
 }
 
-func yamlMappingValue(document *yaml.Node, key string) *yaml.Node {
-	mapping := yamlDocumentMapping(document)
-	if mapping == nil {
-		return nil
-	}
-	for index := 0; index+1 < len(mapping.Content); index += 2 {
-		if mapping.Content[index].Value == key {
-			return mapping.Content[index+1]
-		}
-	}
-	return nil
+func quoteYAMLString(value string) string {
+	return fmt.Sprintf("%q", value)
 }
 
 func preserveCodexModel(existing, generated []byte) ([]byte, bool, error) {
@@ -465,6 +460,34 @@ func preserveCodexModel(existing, generated []byte) ([]byte, bool, error) {
 		return nil, false, fmt.Errorf("encoding merged TOML: %w", err)
 	}
 	return merged, true, nil
+}
+
+func knownGeneratedAgent(target string, existing, generated []byte) bool {
+	name := filepath.Base(target)
+	if strings.HasPrefix(name, "flowforge-") && strings.Contains(string(existing), "# FlowForge ") &&
+		strings.Contains(string(existing), "Active Role:") && strings.Contains(string(existing), "## Shared Workflow") {
+		return true
+	}
+	if filepath.Ext(target) == ".md" {
+		return strings.TrimSpace(string(removeModelLine(existing))) == strings.TrimSpace(string(removeModelLine(generated)))
+	}
+	if filepath.Ext(target) == ".toml" {
+		return strings.TrimSpace(string(removeModelLine(existing))) == strings.TrimSpace(string(removeModelLine(generated)))
+	}
+	return false
+}
+
+func removeModelLine(content []byte) []byte {
+	lines := strings.Split(string(content), "\n")
+	filtered := lines[:0]
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "model:") || strings.HasPrefix(trimmed, "model =") {
+			continue
+		}
+		filtered = append(filtered, line)
+	}
+	return []byte(strings.Join(filtered, "\n"))
 }
 
 func hostForKind(kind string) string {

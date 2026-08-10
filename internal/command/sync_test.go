@@ -86,11 +86,80 @@ func TestSyncPreservesManagedOpenCodeModelDuringUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(data, []byte("model: local/executor")) {
+	if !bytes.Contains(data, []byte("model: \"local/executor\"")) {
 		t.Fatalf("OpenCode model was not preserved:\n%s", data)
 	}
 	if !bytes.Contains(data, []byte("## Result Contract")) {
 		t.Fatal("OpenCode prompt was not regenerated")
+	}
+}
+
+func TestSyncDoesNotFailOnMalformedOpenCodeFrontmatter(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".opencode"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, ".opencode", "agents", "flowforge-design-analyst.md")
+	data, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = bytes.Replace(data, []byte("mode: subagent\n"), []byte("mode: subagent\nmodel: local/analyst\ninvalid: [legacy: value\n"), 1)
+	if err := os.WriteFile(target, data, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+		t.Fatalf("malformed legacy frontmatter blocked sync: %v", err)
+	}
+	updated, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(updated, []byte("model: \"local/analyst\"")) {
+		t.Fatal("model was not preserved from malformed frontmatter")
+	}
+}
+
+func TestSyncAdoptsGeneratedAgentMissingFromManifest(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".opencode"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filtered := manifest.Files[:0]
+	for _, entry := range manifest.Files {
+		if entry.Type != "opencode_agent" {
+			filtered = append(filtered, entry)
+		}
+	}
+	manifest.Files = filtered
+	if err := manifest.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err = core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := 0
+	for _, entry := range manifest.Files {
+		if entry.Type == "opencode_agent" {
+			count++
+		}
+	}
+	if count != 3 {
+		t.Fatalf("expected all generated agents to be adopted, got %d", count)
 	}
 }
 
