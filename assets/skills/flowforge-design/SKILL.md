@@ -7,7 +7,7 @@ description: Use ONLY when the user wants to design or decompose a FlowForge pro
 
 ## Start
 
-Run `flowforge project current`, `flowforge proposal current`, `flowforge proposal inspect <id>`. If project/proposal is missing, ask the user.
+Run `flowforge project current`, `flowforge proposal current`, `flowforge proposal inspect <id>`, then `flowforge journal recent --proposal <id>`. If project/proposal is missing, ask the user.
 
 ## Workflow
 
@@ -33,7 +33,8 @@ Follow `references/card-templates.md` for card body templates.
 - Implementation Plan steps must include Files, Approach, and Edge Cases — no cross-card references.
 - All Open Questions must be cleared before `card evolve --stage designed`.
 - Run `flowforge proposal inspect <id>` and address all health issues before implementation.
+- After formal card updates and validation, append one concise Journal note with affected card IDs, the resulting stage or blocker, and the next action. Journal records references; it never duplicates design content.
 
 ## Output
 
-Report cards created/updated, relations added, unresolved gaps, and one next step.
+Report cards created/updated, relations added, unresolved gaps, the Journal entry, and one next step.

@@ -310,7 +310,7 @@ links:
   - target: DEC-xxx
     relation: references
   - target: FEAT-xxx
-    relation: depends_on
+     relation: requires
 created: ...
 updated: ...
 source: <proposal-id>

@@ -8,7 +8,7 @@ description: Use ONLY when the user is reviewing test results, code reviews, or 
 ## Start
 
 Run `context feature --feature <id>` (if triggered by a task execution) or
-`proposal inspect <id>` to gather current context. If no proposal is active,
+`proposal inspect <id>` plus `journal recent --proposal <id>` to gather current context. If no proposal is active,
 ask the user which proposal the discovery belongs to.
 
 ## Workflow
@@ -24,8 +24,9 @@ Use `references/classification-rules.md` for the 5-type decision tree.
 - Use `card log` (not `log create`) for progress recording.
 - Use `card link`/`card unlink` for all link operations.
 - Run `flowforge validate all` after any changes.
+- After formal tracking-card or existing-artifact updates and validation, append a concise Journal note with affected card IDs, discovery status, blocker if any, and next action.
 - `task`, `structure`, `log create` are DEPRECATED.
 
 ## Output
 
-Report cards created/updated, relations added, unresolved gaps, and one next step.
+Report cards created/updated, relations added, Journal entry, unresolved gaps, and one next step.

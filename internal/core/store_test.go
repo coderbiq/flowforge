@@ -124,6 +124,14 @@ func TestCreateProposal(t *testing.T) {
 	if _, err := os.Stat(cardsDir); err != nil {
 		t.Errorf("cards directory not created: %v", err)
 	}
+	journalPath := store.ProposalJournalPath("CR260612")
+	journalContent, err := os.ReadFile(journalPath)
+	if err != nil {
+		t.Fatalf("reading proposal journal: %v", err)
+	}
+	if string(journalContent) != journalHeader {
+		t.Fatalf("unexpected proposal journal:\n%s", journalContent)
+	}
 
 	expectedRootPath := filepath.Join(store.ProposalCardDir(), "CR260612_test-proposal.md")
 	if rootPath != expectedRootPath {

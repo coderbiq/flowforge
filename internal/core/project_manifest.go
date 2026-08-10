@@ -17,11 +17,11 @@ const ManifestFileName = "manifest.yaml"
 const configDirName = ".flowforge"
 
 type FileEntry struct {
-	Source   string            `yaml:"source"`
-	Target   string            `yaml:"target"`
-	SHA256   string            `yaml:"sha256"`
-	Type     string            `yaml:"type"`
-	Markers  *BlockMarkers     `yaml:"markers,omitempty"`
+	Source  string        `yaml:"source"`
+	Target  string        `yaml:"target"`
+	SHA256  string        `yaml:"sha256"`
+	Type    string        `yaml:"type"`
+	Markers *BlockMarkers `yaml:"markers,omitempty"`
 }
 
 type BlockMarkers struct {
@@ -220,6 +220,11 @@ func sha256Hex(data []byte) string {
 	h := sha256.New()
 	h.Write(data)
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// SHA256Hex returns the manifest checksum for generated managed assets.
+func SHA256Hex(data []byte) string {
+	return sha256Hex(data)
 }
 
 func (d *DiffResult) HasChanges() bool {

@@ -212,6 +212,9 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	if err := indexCard.Save(indexPath); err != nil {
 		return "", "", fmt.Errorf("writing requirement index card: %w", err)
 	}
+	if _, err := s.CreateProposalJournal(proposalID); err != nil {
+		return "", "", err
+	}
 
 	return rootPath, indexPath, nil
 }

@@ -228,7 +228,7 @@ func linkedLibraryCards(store *core.CardStore, card *core.Card) []*core.Card {
 func featureDependencies(store *core.CardStore, card *core.Card) []*core.Card {
 	var result []*core.Card
 	for _, link := range card.Links {
-		if link.Relation != "depends_on" {
+		if link.Relation != "requires" {
 			continue
 		}
 		target, err := store.ReadCard(link.Target)

@@ -119,8 +119,8 @@ seed → clarify → enrich → plan
 **Step 4 — 建立依赖**
 
 分析能力之间的时序关系：
-- A 的产出是 B 的输入？→ B `depends_on` A
-- A 和 B 可并行？→ 无 depends_on 关系
+- A 的产出是 B 的输入？→ B `requires` A
+- A 和 B 可并行？→ 无 requires 关系
 - A 的接口契约是 B 的设计前提？→ B 标注依赖并写明接口契约，不阻塞（可用 mock/stub）
 
 **Step 5 — 识别横切关注点**

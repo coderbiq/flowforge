@@ -11,6 +11,9 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 - `card steps <id> --status done|in_progress|blocked <n>` to update step status
 - `context feature --feature <id> --step <n>` for minimal execution context
 - `proposal inspect <id>` for auto-generated Feature Map and health checks
+- `journal append --actor <role> --message "..." [--references <card-id>] [--next "..."]` to record Proposal collaboration
+- `journal recent [--proposal <id>] [--limit <n>]` to resume from recent collaboration notes
+- `assets adapter install|update|uninstall --adapter opencode` manages the optional OpenCode subagent files without changing OpenCode configuration
 - `--body 'content\nwith\nnewlines'` for inline multi-line content
 - Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
 - Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts
@@ -22,6 +25,7 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 |------|-------|
 | Design / decompose proposal | `flowforge-design` |
 | Execute implementation task | `flowforge-implement` |
+| Independently review a completed planned implementation | `flowforge-review` |
 | Report bug / finding / gap | `flowforge-feedback` |
 | Import docs / archive proposal | `flowforge-curate` |
 <!-- FLOWFORGE:END -->

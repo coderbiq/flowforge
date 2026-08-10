@@ -24,7 +24,7 @@ FEATURE 模型改变了这三个前提：
 | 卡片数量 | 一个功能 3-4 张卡 | 一个功能 1 张卡 |
 | 单卡大小 | REQ ~45 行 | FEATURE 可达 200+ 行 |
 | 编辑频率 | 创建后很少修改 body | 持续渐进填充，频繁小修改 |
-| 链接复杂度 | 22 种 relation，跨卡导航 | 减少为功能间 depends_on + 库引用 |
+| 链接复杂度 | 22 种 relation，跨卡导航 | 减少为功能间 requires + 库引用 |
 | 操作方式 | 整段替换（`--section`） | 在已有段落中插入、修改细节 |
 
 更深层的问题是：**CLI 是为人类设计的交互界面，但 Agent 才是主要使用者。**
@@ -303,7 +303,7 @@ flowforge context feature --feature <id> [--step <n>]
 2. 解析 `### Step <n>:` 段落，提取目标步骤的全部字段
 3. 提取 `## Constraints` 段落
 4. 从 frontmatter links 中筛选 library 类型（CONV/DEC/MOD/FIND）的链接目标，读取并输出摘要
-5. 从 frontmatter links 中筛选 FEATURE 类型（`depends_on`）的链接目标，读取并输出阶段状态
+5. 从 frontmatter links 中筛选 FEATURE 类型（`requires`）的链接目标，读取并输出阶段状态
 6. 输出结构化的 Markdown
 
 ---

@@ -8,7 +8,7 @@ Use one primary mode per activation.
 2. Implement the step as described in Approach
 3. Handle Edge Cases listed in the step
 4. Write tests per Verification criteria
-5. Record progress: `card steps <id> --status done <n>` + `card log <id> --event "..."`
+5. Record progress: `card steps <id> --status done <n>` + `card log <id> --event "..."` + Journal summary
 6. Validate: run tests + `flowforge validate all`
 7. Next step or complete: `card evolve <id> --stage done` when all steps done
 
@@ -29,10 +29,9 @@ Never read the whole FEATURE card during step execution.
 If implementation reveals a design issue:
 1. `card steps <id> --status blocked N --reason "..."`
 2. `card log <id> --kind blocked --event "..."`
-3. Update Open Questions in the FEATURE card
-4. Switch to design mode: modify Design/Constraints
-5. Update affected Implementation Plan steps
-6. `card steps <id> --status in_progress N` to resume
+3. Append a Journal entry with the FEATURE reference, blocker, and next action
+4. Switch to `flowforge-feedback` or `flowforge-design`; Executor must not modify Design, Constraints, or Implementation Plan
+5. Resume only after a Design Analyst updates the artifact and the Coordinator routes a new execution attempt
 
 ## Finish
 
