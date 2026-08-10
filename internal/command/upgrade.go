@@ -27,8 +27,8 @@ verified with Ed25519 signature and SHA256 checksum, and
 installed atomatically. On failure, the previous version
 is automatically restored.
 
-After the CLI binary is upgraded, managed project assets are
-also updated (equivalent to running flowforge assets update).`,
+After the CLI binary is upgraded, project facilities are synchronized
+(equivalent to running flowforge sync).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRun {
 				manifest, err := update.DryRunUpgrade(version.Version)
@@ -76,22 +76,21 @@ also updated (equivalent to running flowforge assets update).`,
 
 			projectRoot, pErr := config.FindProjectRoot(".")
 			if pErr != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Skipping project assets update: %v\n", pErr)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Skipping project synchronization: %v\n", pErr)
 				return nil
 			}
 
 			if execPath == "" {
-				fmt.Fprintln(cmd.ErrOrStderr(), "Skipping project assets update: cannot locate executable")
-				return nil
+				return fmt.Errorf("synchronizing project: cannot locate upgraded executable")
 			}
 
-			assetCmd := exec.Command(execPath, "assets", "update")
+			assetCmd := exec.Command(execPath, "sync")
 			assetCmd.Dir = projectRoot
 			assetCmd.Stdout = cmd.OutOrStdout()
 			assetCmd.Stderr = cmd.ErrOrStderr()
 			assetCmd.Stdin = cmd.InOrStdin()
 			if aErr := assetCmd.Run(); aErr != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Project assets update: %v\n", aErr)
+				return fmt.Errorf("synchronizing project: %w", aErr)
 			}
 
 			migrateCmd := exec.Command(execPath, "_run-migrations", "--from", result.OldVersion)

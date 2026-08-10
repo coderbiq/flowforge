@@ -644,7 +644,7 @@ go test ./internal/... -count=1
 ```bash
 go test ./internal/...
 # 部署验证：
-flowforge assets update
+flowforge sync
 # 端到端：在测试项目中触发各 SKILL
 ```
 

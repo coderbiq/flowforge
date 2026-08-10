@@ -8,11 +8,11 @@ import (
 )
 
 type UpgradeReport struct {
-	Added    []FileEntry
-	Updated  []FileEntry
-	Conflict []FileEntry
+	Added        []FileEntry
+	Updated      []FileEntry
+	Conflict     []FileEntry
 	BlockUpdated bool
-	Error    error
+	Error        error
 }
 
 func ApplyUpgrade(diff *DiffResult, newManifest *ProjectManifest, projectRoot string, assetsFS fs.FS, backupDir string) *UpgradeReport {
@@ -27,7 +27,7 @@ func ApplyUpgrade(diff *DiffResult, newManifest *ProjectManifest, projectRoot st
 
 	for _, entry := range diff.Added {
 		if entry.Type == "agents_block" {
-			if err := applyAgentsBlockEntry(entry, assetsFS, backupDir); err != nil {
+			if err := applyAgentsBlockEntry(entry, projectRoot, assetsFS, backupDir); err != nil {
 				report.Error = fmt.Errorf("applying agents block: %w", err)
 				return report
 			}
@@ -44,7 +44,7 @@ func ApplyUpgrade(diff *DiffResult, newManifest *ProjectManifest, projectRoot st
 
 	for _, entry := range diff.Updated {
 		if entry.Type == "agents_block" {
-			if err := applyAgentsBlockEntry(entry, assetsFS, backupDir); err != nil {
+			if err := applyAgentsBlockEntry(entry, projectRoot, assetsFS, backupDir); err != nil {
 				report.Error = fmt.Errorf("updating agents block: %w", err)
 				return report
 			}
@@ -104,7 +104,7 @@ func applyUpdatedFile(entry FileEntry, projectRoot string, assetsFS fs.FS, backu
 	return nil
 }
 
-func applyAgentsBlockEntry(entry FileEntry, assetsFS fs.FS, backupDir string) error {
+func applyAgentsBlockEntry(entry FileEntry, projectRoot string, assetsFS fs.FS, backupDir string) error {
 	content, err := fs.ReadFile(assetsFS, entry.Source)
 	if err != nil {
 		return fmt.Errorf("reading asset %s: %w", entry.Source, err)
@@ -112,15 +112,16 @@ func applyAgentsBlockEntry(entry FileEntry, assetsFS fs.FS, backupDir string) er
 
 	content = StripBlockMarkers(content)
 
+	targetPath := filepath.Join(projectRoot, entry.Target)
 	if backupDir != "" {
-		if _, statErr := os.Stat(entry.Target); statErr == nil {
-			if err := backupFile(entry.Target, backupDir); err != nil {
+		if _, statErr := os.Stat(targetPath); statErr == nil {
+			if err := backupFile(targetPath, backupDir); err != nil {
 				return err
 			}
 		}
 	}
 
-	if err := ApplyAgentsBlock(entry.Target, content); err != nil {
+	if err := ApplyAgentsBlock(targetPath, content); err != nil {
 		return fmt.Errorf("applying agents block: %w", err)
 	}
 

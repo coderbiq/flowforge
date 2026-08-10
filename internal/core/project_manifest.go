@@ -30,9 +30,11 @@ type BlockMarkers struct {
 }
 
 type ProjectManifest struct {
-	Version    int         `yaml:"version"`
-	CLIVersion string      `yaml:"cli_version"`
-	Files      []FileEntry `yaml:"files"`
+	Version       int         `yaml:"version"`
+	CLIVersion    string      `yaml:"cli_version"`
+	DisabledHosts []string    `yaml:"disabled_hosts,omitempty"`
+	PendingHosts  []string    `yaml:"pending_hosts,omitempty"`
+	Files         []FileEntry `yaml:"files"`
 }
 
 type DiffResult struct {
@@ -158,7 +160,7 @@ func makeAgentsEntry(assetsFS fs.FS) (*FileEntry, error) {
 	return &FileEntry{
 		Source: "assets/AGENTS.md",
 		Target: "AGENTS.md",
-		SHA256: sha256Hex(content),
+		SHA256: sha256Hex(StripBlockMarkers(content)),
 		Type:   "agents_block",
 		Markers: &BlockMarkers{
 			Start: "<!-- FLOWFORGE:START -->",
@@ -167,7 +169,7 @@ func makeAgentsEntry(assetsFS fs.FS) (*FileEntry, error) {
 	}, nil
 }
 
-func CompareManifests(old, new *ProjectManifest) *DiffResult {
+func CompareManifests(old, new *ProjectManifest, projectRoot string) *DiffResult {
 	result := &DiffResult{}
 
 	oldMap := make(map[string]FileEntry)
@@ -189,8 +191,12 @@ func CompareManifests(old, new *ProjectManifest) *DiffResult {
 
 		if newFile.SHA256 != oldFile.SHA256 {
 			if oldFile.SHA256 != newFile.SHA256 {
-				oldOnDisk, err := readTargetFile(oldFile.Target)
-				if err == nil && oldOnDisk != oldFile.SHA256 {
+				matches, err := targetMatchesEntry(oldFile, projectRoot)
+				if err != nil && !os.IsNotExist(err) {
+					result.Conflict = append(result.Conflict, newFile)
+					continue
+				}
+				if err == nil && !matches {
 					result.Conflict = append(result.Conflict, newFile)
 					continue
 				}
@@ -208,12 +214,28 @@ func CompareManifests(old, new *ProjectManifest) *DiffResult {
 	return result
 }
 
-func readTargetFile(targetPath string) (string, error) {
-	content, err := os.ReadFile(targetPath)
+func targetMatchesEntry(entry FileEntry, projectRoot string) (bool, error) {
+	content, err := os.ReadFile(filepath.Join(projectRoot, entry.Target))
 	if err != nil {
-		return "", err
+		return false, err
 	}
-	return sha256Hex(content), nil
+	if entry.Markers != nil {
+		block, found, err := ExtractMarkedBlock(content, entry.Markers.Start, entry.Markers.End)
+		if err != nil {
+			return false, err
+		}
+		if !found {
+			return false, fmt.Errorf("managed block not found")
+		}
+		if sha256Hex(block) == entry.SHA256 {
+			return true, nil
+		}
+		legacy := []byte(entry.Markers.Start + "\n")
+		legacy = append(legacy, block...)
+		legacy = append(legacy, []byte(entry.Markers.End+"\n")...)
+		return sha256Hex(legacy) == entry.SHA256, nil
+	}
+	return sha256Hex(content) == entry.SHA256, nil
 }
 
 func sha256Hex(data []byte) string {

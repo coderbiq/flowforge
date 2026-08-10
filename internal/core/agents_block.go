@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -54,6 +55,93 @@ func ApplyAgentsBlock(targetPath string, newContent []byte) error {
 	}
 
 	return replaceBlock(targetPath, existing, startIdx, endIdx, newContent)
+}
+
+func ApplyMarkedBlock(targetPath, startMarker, endMarker string, newContent []byte) error {
+	existing, err := os.ReadFile(targetPath)
+	if os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+			return err
+		}
+		existing = nil
+	} else if err != nil {
+		return fmt.Errorf("reading marked block target: %w", err)
+	}
+	start := bytes.Index(existing, []byte(startMarker))
+	end := bytes.Index(existing, []byte(endMarker))
+	var buf bytes.Buffer
+	if start >= 0 && end > start {
+		buf.Write(existing[:start])
+	} else {
+		buf.Write(existing)
+		if len(existing) > 0 && existing[len(existing)-1] != '\n' {
+			buf.WriteByte('\n')
+		}
+		if len(existing) > 0 {
+			buf.WriteByte('\n')
+		}
+	}
+	buf.WriteString(startMarker + "\n")
+	buf.Write(newContent)
+	if len(newContent) > 0 && newContent[len(newContent)-1] != '\n' {
+		buf.WriteByte('\n')
+	}
+	buf.WriteString(endMarker + "\n")
+	if start >= 0 && end > start {
+		after := end + len(endMarker)
+		if after < len(existing) && existing[after] == '\n' {
+			after++
+		}
+		buf.Write(existing[after:])
+	}
+	return os.WriteFile(targetPath, buf.Bytes(), 0644)
+}
+
+// ExtractMarkedBlock returns the exact content between a pair of line markers.
+func ExtractMarkedBlock(content []byte, startMarker, endMarker string) ([]byte, bool, error) {
+	start := bytes.Index(content, []byte(startMarker))
+	end := bytes.Index(content, []byte(endMarker))
+	if start < 0 && end < 0 {
+		return nil, false, nil
+	}
+	if start < 0 || end <= start {
+		return nil, false, fmt.Errorf("invalid managed block markers")
+	}
+	start += len(startMarker)
+	if start < len(content) && content[start] == '\n' {
+		start++
+	}
+	blockEnd := end
+	if blockEnd > start && content[blockEnd-1] == '\n' {
+		blockEnd--
+	}
+	result := append([]byte(nil), content[start:blockEnd]...)
+	if len(result) > 0 {
+		result = append(result, '\n')
+	}
+	return result, true, nil
+}
+
+func RemoveMarkedBlock(targetPath, startMarker, endMarker string) error {
+	existing, err := os.ReadFile(targetPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("reading marked block target: %w", err)
+	}
+	start := bytes.Index(existing, []byte(startMarker))
+	end := bytes.Index(existing, []byte(endMarker))
+	if start < 0 || end <= start {
+		return nil
+	}
+	after := end + len(endMarker)
+	if after < len(existing) && existing[after] == '\n' {
+		after++
+	}
+	result := append([]byte{}, existing[:start]...)
+	result = append(result, existing[after:]...)
+	return os.WriteFile(targetPath, result, 0644)
 }
 
 func createWithBlock(path string, content []byte) error {

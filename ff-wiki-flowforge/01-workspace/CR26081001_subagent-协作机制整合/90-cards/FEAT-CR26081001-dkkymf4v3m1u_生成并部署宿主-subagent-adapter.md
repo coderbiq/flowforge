@@ -10,7 +10,7 @@ links:
     - target: PROP-CR26081001
       relation: belongs_to
 created: 2026-08-10T03:56:32.578399748Z
-updated: 2026-08-10T13:05:33.520882047Z
+updated: 2026-08-10T21:56:42.858002776+08:00
 source: CR26081001
 ---
 
@@ -104,6 +104,7 @@ AOK 已证明中立源生成 adapter 可行，但没有 installer；FlowForge �
 - 2026-08-10 [decision] AOK installer 不迁移，生命周期复用 FlowForge CLI。
 - 2026-08-10 [decision] 首版交付项目级、显式 opt-in OpenCode adapter。
 - 2026-08-10T21:05:33+08:00 | progress | 完成 OpenCode adapter：从中立 policy 渲染 FlowForge 命名 Agent 文件，显式 install/update/uninstall 使用 manifest hash 保护用户修改，不创建或合并 OpenCode 配置；增加静态 smoke。
+- 2026-08-10T21:56:42+08:00 | bug | v3.1.0 OpenCode adapter renderer 未嵌入角色协议或 Skill 工作流，仅生成一句通用提示；测试未验证完整 Prompt 与 OpenCode 解析，已确认属于设计与实现缺陷。
 
 ## Links
 

@@ -86,13 +86,17 @@ func runInit(targetDir string, yes bool, template string) error {
 	if err := writeVersionFile(targetDir); err != nil {
 		return fmt.Errorf("writing version file: %w", err)
 	}
+	if err := syncProject(&cobra.Command{}, targetDir, syncOptions{}); err != nil {
+		return fmt.Errorf("synchronizing project facilities: %w", err)
+	}
 
 	fmt.Println("✓ FlowForge initialized successfully")
 	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Register a project: flowforge project create <id>")
 	fmt.Println("  2. Create your first proposal: flowforge proposal create <title>")
-	fmt.Println("  3. Add cards: flowforge card create --type requirement --title \"...\"")
+	fmt.Println("  3. Create FEATURE cards with flowforge-design")
+	fmt.Println("  4. After configuring OpenCode or Codex, run: flowforge sync")
 
 	return nil
 }

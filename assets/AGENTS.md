@@ -13,12 +13,12 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 - `proposal inspect <id>` for auto-generated Feature Map and health checks
 - `journal append --actor <role> --message "..." [--references <card-id>] [--next "..."]` to record Proposal collaboration
 - `journal recent [--proposal <id>] [--limit <n>]` to resume from recent collaboration notes
-- `assets adapter install|update|uninstall --adapter opencode` manages the optional OpenCode subagent files without changing OpenCode configuration
+- `sync` detects OpenCode/Codex and reconciles Skills, subagents, routing rules, and the managed manifest
 - `--body 'content\nwith\nnewlines'` for inline multi-line content
 - Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
 - Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts
 - `-o json` for machine-readable output
-- `task`, `structure`, `log create` are DEPRECATED — use FEATURE-based commands instead
+- `task`, `structure`, and `log create` are DEPRECATED; use FEATURE-based commands instead
 
 ### Skills
 | When | Skill |

@@ -105,7 +105,7 @@ CLI 内部的 `CardStore.FindCardPath` 负责 ID→路径解析，Agent 不需�
 | `context` | 无文件输入 | **否** | — |
 | `project` | 项目 ID | **否** | ID 寻址 |
 | `proposal` | 提案 ID | **否** | ID 寻址 |
-| `skill update` | 无用户文件输入 | **否** | 内部复制 assets |
+| `sync` | 无用户文件输入 | **否** | 协调托管 assets、宿主 Agent 与路由规则 |
 | `config` | 无文件输入 | **否** | — |
 
 ### 3.2 card batch (已修正)
