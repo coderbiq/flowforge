@@ -17,11 +17,14 @@ type preflightIssue struct {
 }
 
 type preflightReport struct {
-	Feature  string           `json:"feature"`
-	Step     int              `json:"step"`
-	Decision string           `json:"decision"`
-	Issues   []preflightIssue `json:"issues"`
-	Next     string           `json:"next"`
+	Feature         string           `json:"feature"`
+	Step            int              `json:"step"`
+	Decision        string           `json:"decision"`
+	Owner           string           `json:"owner"`
+	HandoffRequired bool             `json:"handoffRequired"`
+	Context         string           `json:"context,omitempty"`
+	Issues          []preflightIssue `json:"issues"`
+	Next            string           `json:"next"`
 }
 
 func newContextPreflightCmd() *cobra.Command {
@@ -55,6 +58,13 @@ func newContextPreflightCmd() *cobra.Command {
 			for _, issue := range report.Issues {
 				fmt.Fprintf(cmd.OutOrStdout(), "- [%s] %s: %s\n", issue.Level, issue.Code, issue.Detail)
 			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Owner: %s\n", report.Owner)
+			if report.HandoffRequired {
+				fmt.Fprintln(cmd.OutOrStdout(), "Handoff: required")
+				fmt.Fprintf(cmd.OutOrStdout(), "Context: %s\n", report.Context)
+			} else {
+				fmt.Fprintln(cmd.OutOrStdout(), "Handoff: not required")
+			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Next: %s\n", report.Next)
 			return nil
 		},
@@ -66,10 +76,23 @@ func newContextPreflightCmd() *cobra.Command {
 }
 
 func buildPreflightReport(store *core.CardStore, card *core.Card, step int, intent string) preflightReport {
-	r := preflightReport{Feature: card.ID, Step: step, Decision: "allow", Next: fmt.Sprintf("flowforge context feature --feature %s --step %d", card.ID, step)}
+	contextCommand := fmt.Sprintf("flowforge context feature --feature %s --step %d", card.ID, step)
+	r := preflightReport{
+		Feature:         card.ID,
+		Step:            step,
+		Decision:        "allow",
+		Owner:           "flowforge-executor",
+		HandoffRequired: true,
+		Context:         contextCommand,
+		Next:            "delegate flowforge-executor with the exact Step context; the primary thread must not implement locally",
+	}
 	block := func(code, detail string) {
 		r.Issues = append(r.Issues, preflightIssue{Code: code, Level: "blocked", Detail: detail})
 		r.Decision = "blocked"
+		r.Owner = "coordinator"
+		r.HandoffRequired = false
+		r.Context = ""
+		r.Next = "return to flowforge-design or flowforge-feedback"
 	}
 	if card.Type != core.CardTypeFeature {
 		block("not_feature", "card is not a FEATURE")
@@ -107,9 +130,6 @@ func buildPreflightReport(store *core.CardStore, card *core.Card, step int, inte
 		if dep.Status != core.CardStatusDone {
 			block("dependency_not_done", fmt.Sprintf("%s is %s", dep.ID, dep.Status))
 		}
-	}
-	if r.Decision == "blocked" {
-		r.Next = "return to flowforge-design or flowforge-feedback"
 	}
 	return r
 }

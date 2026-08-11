@@ -155,10 +155,27 @@ func RenderCodex(policy Policy) (map[string][]byte, error) {
 			effort = "high"
 		}
 		prompt = strings.ReplaceAll(prompt, `"""`, `\"\"\"`)
-		content := fmt.Sprintf("name = %q\ndescription = %q\nsandbox_mode = %q\nmodel_reasoning_effort = %q\ndeveloper_instructions = \"\"\"\n%s\n\"\"\"\n", "flowforge-"+role.ID, "FlowForge "+role.DisplayName, sandbox, effort, prompt)
+		content := fmt.Sprintf("name = %q\ndescription = %q\nsandbox_mode = %q\nmodel_reasoning_effort = %q\ndeveloper_instructions = \"\"\"\n%s\n\"\"\"\n", "flowforge-"+role.ID, codexRoleDescription(role), sandbox, effort, prompt)
 		files["flowforge-"+role.ID+".toml"] = []byte(content)
 	}
 	return files, nil
+}
+
+func codexRoleDescription(role Role) string {
+	switch role.Kind {
+	case RoleKindCoordinator:
+		return "Use only when the user explicitly requests the FlowForge Coordinator as a manual fallback for routing ready design, investigation, implementation, and review work."
+	case RoleKindAnalyst:
+		return "Use for FlowForge Proposal design, FEATURE decomposition, architecture, impact analysis, evidence synthesis, or replanning. Do not use for product implementation."
+	case RoleKindInvestigator:
+		return "Use only for one ready registered FlowForge investigation brief with one assigned FIND. Do not use for broad design or product implementation."
+	case RoleKindExecutor:
+		return "Use only to implement one planned FlowForge FEATURE Step after context preflight returns allow and requires handoff. Do not use for design or unplanned work."
+	case RoleKindReviewer:
+		return "Use only for an independent FlowForge conformance review after implementation and verification are complete. Do not modify product code."
+	default:
+		return "FlowForge " + role.DisplayName
+	}
 }
 
 // EnforcementSummary describes host guarantees that cannot be inferred from

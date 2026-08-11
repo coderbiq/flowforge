@@ -52,6 +52,15 @@ func TestSyncDetectsCodexAndIsIdempotent(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, ".codex", "agents", "flowforge-executor.toml")); err != nil {
 		t.Fatal(err)
 	}
+	agents, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"current main thread IS the FlowForge Coordinator", "manual fallback", "user explicitly requests `flowforge-coordinator`", "delegation is mandatory", "MUST spawn `flowforge-design-analyst`", "MUST spawn `flowforge-executor`", "return `BLOCKED`"} {
+		if !strings.Contains(string(agents), want) {
+			t.Fatalf("Codex AGENTS missing %q", want)
+		}
+	}
 	var second bytes.Buffer
 	cmd.SetOut(&second)
 	if err := syncProject(cmd, root, syncOptions{}); err != nil {

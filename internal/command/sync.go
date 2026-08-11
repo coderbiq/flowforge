@@ -724,8 +724,14 @@ func renderOrchestrationRules(hosts hostSet) string {
 		}
 	}
 	coordinatorRule := ""
-	if hosts["opencode"] || hosts["codex"] {
-		coordinatorRule = "- Use `flowforge-coordinator` as the primary FlowForge routing agent when your host supports selecting a project primary agent; FlowForge does not change the host default automatically.\n"
+	if hosts["opencode"] {
+		coordinatorRule += "- In OpenCode, use `flowforge-coordinator` as the primary FlowForge routing agent.\n"
+	}
+	if hosts["codex"] {
+		coordinatorRule += "- In Codex, the current main thread IS the FlowForge Coordinator by default. The installed `flowforge-coordinator` custom agent remains available as a manual fallback: do not spawn it automatically, but use it when the user explicitly requests `flowforge-coordinator`.\n" +
+			"- For FlowForge-managed work in Codex, delegation is mandatory even for one Step, non-parallel work, or work the main thread could perform locally. The main thread MUST use native subagents and MUST NOT edit worker-owned design artifacts or product code.\n" +
+			"- In Codex, design, decomposition, architecture, impact analysis, evidence synthesis, and replanning MUST spawn `flowforge-design-analyst`; each ready registered investigation brief MUST spawn `flowforge-investigator`; implementation MUST run `context preflight` and, only when it returns `allow` with `Handoff: required`, MUST spawn `flowforge-executor` with the exact Step context.\n" +
+			"- If native Codex subagents are unavailable, return `BLOCKED` instead of silently executing worker work in the main thread.\n"
 	}
 	return fmt.Sprintf("## FlowForge Subagents\n\nInstalled hosts: %s\n\n"+
 		coordinatorRule+

@@ -16,6 +16,15 @@ func TestBuildPreflightReportAllowsPlannedCompleteStep(t *testing.T) {
 	if r.Decision != "allow" {
 		t.Fatalf("expected allow, got %#v", r)
 	}
+	if r.Owner != "flowforge-executor" || !r.HandoffRequired {
+		t.Fatalf("expected executor handoff, got %#v", r)
+	}
+	if r.Context != "flowforge context feature --feature FEAT-ready --step 1" {
+		t.Fatalf("unexpected context command: %q", r.Context)
+	}
+	if r.Next != "delegate flowforge-executor with the exact Step context; the primary thread must not implement locally" {
+		t.Fatalf("unexpected next action: %q", r.Next)
+	}
 	_ = root
 }
 
@@ -30,8 +39,8 @@ func TestBuildPreflightReportBlocksMissingIntentAndDependency(t *testing.T) {
 	if _, err := store.CreateCard(card, "CR260810"); err != nil {
 		t.Fatal(err)
 	}
-	if r := buildPreflightReport(store, card, 1, ""); r.Decision != "blocked" {
-		t.Fatalf("missing intent should block: %#v", r)
+	if r := buildPreflightReport(store, card, 1, ""); r.Decision != "blocked" || r.HandoffRequired || r.Owner != "coordinator" || r.Context != "" {
+		t.Fatalf("missing intent should block without handoff: %#v", r)
 	}
 	if r := buildPreflightReport(store, card, 1, "implement"); r.Decision != "blocked" {
 		t.Fatalf("unfinished dependency should block: %#v", r)

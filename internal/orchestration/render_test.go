@@ -88,7 +88,7 @@ func TestRenderCodexIncludesCompleteWorkerContracts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(files) != 4 {
-		t.Fatalf("expected coordinator and 3 workers, got %d", len(files))
+		t.Fatalf("expected manual coordinator and 3 workers, got %d", len(files))
 	}
 	for name, content := range files {
 		for _, want := range []string{"developer_instructions = \"\"\"", "Shared Workflow", "Default Skill:"} {
@@ -107,6 +107,17 @@ func TestRenderCodexIncludesCompleteWorkerContracts(t *testing.T) {
 	for _, name := range []string{"flowforge-design-analyst.toml", "flowforge-investigator.toml", "flowforge-executor.toml"} {
 		if !strings.Contains(string(files[name]), `sandbox_mode = "workspace-write"`) {
 			t.Fatalf("%s must be workspace-write", name)
+		}
+	}
+	checks := map[string]string{
+		"flowforge-coordinator.toml":    "explicitly requests the FlowForge Coordinator as a manual fallback",
+		"flowforge-design-analyst.toml": "Proposal design, FEATURE decomposition",
+		"flowforge-investigator.toml":   "one ready registered FlowForge investigation brief",
+		"flowforge-executor.toml":       "context preflight returns allow and requires handoff",
+	}
+	for name, want := range checks {
+		if !strings.Contains(string(files[name]), want) {
+			t.Fatalf("%s missing activation description %q", name, want)
 		}
 	}
 }

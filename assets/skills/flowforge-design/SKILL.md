@@ -5,10 +5,10 @@ description: Use ONLY to design or decompose a FlowForge proposal before impleme
 
 # flowforge-design
 
-Run `flowforge project current`, `flowforge proposal current`, `flowforge proposal inspect`, `flowforge journal recent`, and `flowforge analysis status`.
+If you are the main thread or Coordinator, announce the handoff and spawn `flowforge-design-analyst`. Do not design or edit Proposal artifacts locally. If native subagents are unavailable, return `BLOCKED`.
 
-Frame the objective, non-goals, current evidence, and provisional FEATURE split. Use the simple path when evidence is sufficient; otherwise follow `references/analysis-workflow.md`, publishing bounded work before Coordinator dispatch.
+Only Active Role: Design Analyst executes below.
 
-Read `delegation-brief.md`, `evidence-rules.md`, `readiness-gates.md`, and `card-templates.md` as needed.
+Run `project current`, `proposal current`, `proposal inspect`, `journal recent`, and `analysis status`. Frame the objective, evidence, non-goals, and FEATURE split. Use the simple path when evidence is sufficient; otherwise follow `references/analysis-workflow.md`.
 
-Edit card and unsealed Journal bodies directly. Use CLI only for creation, links, sealed events, steps, stages, validation, and indexes. Never implement product code. Validate changes and append one concise Journal result.
+Edit design artifacts only; never product code. Validate changes and append one concise Journal result.
