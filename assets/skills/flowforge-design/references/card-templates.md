@@ -29,13 +29,23 @@ Cards are created via `card init --type <type>`, then edited directly. Use `card
 
 <!-- step-status: not_started -->
 
-- **Goal**: Verifiable deliverable
-- **Files**: Paths relative to project root
-- **Approach**: Method signatures, pseudocode, algorithms
-- **Edge Cases**: At least 1 boundary condition
+- **Goal**:
+  One observable deliverable.
+- **Files**:
+  - Exact paths relative to project root.
+- **Symbols**:
+  - Exact classes, functions, commands, or sections; use `None (documentation-only)` only when accurate.
+- **Actions**:
+  1. Ordered mechanical action with input and output.
+  2. Next action; do not hide design choices behind "as needed".
+- **Constraints**:
+  - Forbidden changes, compatibility rules, and boundary behavior.
+- **Done When**:
+  - Observable completion conditions and assertions.
 - **Dependencies**: FEATURE IDs and wait strategy
 - **Parallel**: yes or no
-- **Verification**: Test scenarios, key assertions
+- **Verification**:
+  - Exact commands and expected results.
 
 ## Verification
 
@@ -47,7 +57,9 @@ Cards are created via `card init --type <type>`, then edited directly. Use `card
 ```
 
 Review rules:
-- Each step must include Files, Approach, and Edge Cases.
+- Each step must include Goal, Files, Symbols, Actions, Constraints, Done When, and Verification.
+- Put each action, constraint, completion condition, and command on its own line.
+- Reject TBD, TODO, "as needed", "as appropriate", “必要时”, “视情况”, and other unresolved execution choices.
 - No cross-card references (no "参考 DES-xxx").
 - Step status via HTML comments, CLI-managed.
 

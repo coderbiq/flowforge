@@ -280,7 +280,6 @@ var (
 	complexAnalysisModeRe = regexp.MustCompile(`(?mi)^\s*<!--\s*analysis-mode:\s*complex\s*-->\s*$`)
 	crossRefRe            = regexp.MustCompile(`参考\s*(DES|REQ|TASK|STR)-|参见.*卡片|see\s+(DES|REQ|TASK|STR)-`)
 	stepHeaderRe          = regexp.MustCompile(`(?m)^### Step (\d+):`)
-	stepFieldRe           = regexp.MustCompile(`(?m)^- \*\*(\w+)\*\*: (.+)`)
 )
 
 func validateDesignedGate(body string) []gateIssue {
@@ -363,20 +362,23 @@ func validatePlannedGate(body string) []gateIssue {
 		stepNum := match[1]
 		stepBody := extractSubSection(ipSection, "Step "+stepNum+":")
 		var missing []string
-		if !hasStepField(stepBody, "Files") {
-			missing = append(missing, "Files")
-		}
-		if !hasStepField(stepBody, "Approach") {
-			missing = append(missing, "Approach")
-		}
-		if !hasStepField(stepBody, "Edge Cases") {
-			missing = append(missing, "Edge Cases")
+		for _, field := range []string{"Goal", "Files", "Symbols", "Actions", "Constraints", "Done When", "Verification"} {
+			if !hasStepField(stepBody, field) {
+				missing = append(missing, field)
+			}
 		}
 		if len(missing) > 0 {
 			issues = append(issues, gateIssue{
 				Section: fmt.Sprintf("Implementation Plan.Step %s", stepNum),
 				Detail:  fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")),
 				Fix:     fmt.Sprintf("add %s with substantive content", strings.Join(missing, ", ")),
+			})
+		}
+		if vaguePlanRe.MatchString(stepBody) {
+			issues = append(issues, gateIssue{
+				Section: fmt.Sprintf("Implementation Plan.Step %s", stepNum),
+				Detail:  "contains vague execution language (for example TBD/as needed/必要时/视情况)",
+				Fix:     "replace ambiguity with an explicit condition, action, target, and observable result",
 			})
 		}
 	}
@@ -392,6 +394,8 @@ func validatePlannedGate(body string) []gateIssue {
 
 	return issues
 }
+
+var vaguePlanRe = regexp.MustCompile(`(?i)(\bTBD\b|\bTODO\b|\bas needed\b|\bas appropriate\b|必要时|视情况|酌情|待定|待确认)`)
 
 func validateDoneGate(body string) []gateIssue {
 	var issues []gateIssue
@@ -505,15 +509,34 @@ func extractSubSection(body, subHeading string) string {
 }
 
 func hasStepField(stepBody, field string) bool {
-	re := regexp.MustCompile(fmt.Sprintf(`(?m)^- \*\*%s\*\*: (.+)`, field))
-	matches := re.FindAllStringSubmatch(stepBody, -1)
-	for _, m := range matches {
-		val := strings.TrimSpace(m[1])
-		if val != "" && !placeholderRe.MatchString(val) && val != "TBD" {
-			return true
+	return stepFieldValue(stepBody, field) != ""
+}
+
+func stepFieldValue(stepBody, field string) string {
+	lines := strings.Split(stepBody, "\n")
+	prefix := "- **" + field + "**:"
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, prefix) {
+			continue
 		}
+		values := []string{strings.TrimSpace(strings.TrimPrefix(trimmed, prefix))}
+		for _, following := range lines[i+1:] {
+			candidate := strings.TrimSpace(following)
+			if stepFieldLineRe.MatchString(candidate) {
+				break
+			}
+			if candidate != "" && !strings.HasPrefix(candidate, "<!--") {
+				values = append(values, candidate)
+			}
+		}
+		value := strings.TrimSpace(strings.Join(values, "\n"))
+		if value == "" || placeholderRe.MatchString(value) || strings.EqualFold(value, "TBD") {
+			return ""
+		}
+		return value
 	}
-	return false
+	return ""
 }
 
 func resetStepStatuses(body string, resetAll bool) string {

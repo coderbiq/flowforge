@@ -152,8 +152,8 @@ func newCardCreateCmd() *cobra.Command {
 		Short: "Create a new card",
 		Long: `Create a new knowledge card.
 
-Card types: feature, convention, decision, module, finding
-(requirement, design, task, log, structure are deprecated — use feature instead)
+Card types: feature, requirement, structure, convention, decision, module, finding
+(design, task, and log are deprecated — use FEATURE-based workflows instead)
 
 Examples:
   flowforge card create --type feature --title "FileProcessor Clone" --proposal CR26070801
@@ -174,7 +174,7 @@ Examples:
 			}
 
 			switch ct {
-			case core.CardTypeRequirement, core.CardTypeDesign, core.CardTypeStructure, core.CardTypeLog:
+			case core.CardTypeDesign, core.CardTypeLog:
 				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: card type '%s' is deprecated. Use 'feature' instead.\n", ct)
 			}
 
@@ -754,7 +754,7 @@ func newCardDeleteCmd() *cobra.Command {
 				if err := store.DeleteCard(cardID); err != nil {
 					return err
 				}
-			
+
 			} else {
 				if err := store.ForceDeleteCard(cardID); err != nil {
 					return err

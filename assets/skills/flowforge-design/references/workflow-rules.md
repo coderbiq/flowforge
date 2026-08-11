@@ -25,13 +25,15 @@ Use one primary phase per turn.
 
 `card evolve` validates:
 - **draft → designed**: Design.Key Decisions ≥1, Constraints ≥1, Open Questions cleared
-- **designed → planned**: Implementation Plan steps with Files + Approach + Edge Cases, no cross-card refs
+- **designed → planned**: every Step has Goal + Files + Symbols + Actions + Constraints + Done When + Verification, no vague choices or cross-card refs
 - **in_progress → done**: All steps done, Verification results present
 
 ## Link Invariants
 
 - Do not hand-write `links` in frontmatter. Use `card link`/`card unlink`.
 - FEATURE cards link to PROP via `belongs_to`.
+- Every Proposal has at least one REQ indexed by `STR-<proposal>-REQ`.
+- Every FEATURE links to an indexed REQ with `implements`.
 - FEATURE cards link to other FEATUREs via `depends_on`.
 - FEATURE cards link to CONV/DEC via `constrains`/`references`.
 - Run `card related <id>` to view links.

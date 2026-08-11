@@ -269,12 +269,7 @@ func renderStepContext(out interface{ Write([]byte) (int, error) }, store *core.
 	fmt.Fprintf(w, "## Step Context: %s Step %d\n\n", card.ID, stepN)
 
 	fmt.Fprintln(w, "### Current Step")
-	stepFields := parseStepFields(stepBody)
-	for _, field := range []string{"Goal", "Files", "Approach", "Edge Cases", "Dependencies", "Parallel", "Verification"} {
-		if val, ok := stepFields[field]; ok {
-			fmt.Fprintf(w, "- **%s**: %s\n", field, val)
-		}
-	}
+	fmt.Fprintln(w, strings.TrimSpace(stepBody))
 
 	fmt.Fprintln(w, "\n### Constraints (from FEATURE)")
 	constraintsSection := extractSection(card.Body, "Constraints")
@@ -357,15 +352,14 @@ func linkRelation(card *core.Card, targetID string) string {
 	return "unknown"
 }
 
-var stepFieldLineRe = regexp.MustCompile(`^- \*\*(\w+(?:\s+\w+)*)\*\*: (.+)`)
+var stepFieldLineRe = regexp.MustCompile(`^- \*\*(\w+(?:\s+\w+)*)\*\*:\s*(.*)$`)
 
 func parseStepFields(stepBody string) map[string]string {
 	fields := make(map[string]string)
-	lines := strings.Split(stepBody, "\n")
-	for _, line := range lines {
+	for _, line := range strings.Split(stepBody, "\n") {
 		matches := stepFieldLineRe.FindStringSubmatch(strings.TrimSpace(line))
 		if len(matches) == 3 {
-			fields[matches[1]] = strings.TrimSpace(matches[2])
+			fields[matches[1]] = stepFieldValue(stepBody, matches[1])
 		}
 	}
 	return fields

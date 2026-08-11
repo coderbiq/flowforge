@@ -194,7 +194,7 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	rootCard.ProposalID = proposalID
 	rootCard.DirName = dirName
 	rootCard.Slug = slug
-	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Entries\n\n- [STR-%s-REQ](STR-%s-REQ.md) (structure, active) - Requirement index\n\n## Summary\n\nProposal root card.\n", title, proposalID, proposalID, proposalID)
+	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Entries\n\n- [STR-%s-REQ](../01-workspace/%s/STR-%s-REQ.md) (structure, active) - Requirement index\n\n## Summary\n\nProposal root card.\n", title, proposalID, proposalID, dirName, proposalID)
 	rootCard.AddLink("STR-"+proposalID+"-REQ", "indexes")
 
 	rootPath := filepath.Join(s.ProposalCardDir(), dirName+".md")

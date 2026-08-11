@@ -117,7 +117,11 @@ func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSn
 		return nil, err
 	}
 	proposalCards, _ := collectProposalCards(store, store.ProposalCardDir())
-	cards = append(cards, proposalCards...)
+	for _, card := range proposalCards {
+		if card.ID == "PROP-"+proposalID || card.ID == "ROOT-"+proposalID || card.Source == proposalID {
+			cards = append(cards, card)
+		}
+	}
 
 	snapshot := &proposalSnapshot{
 		projectID:   projectID,
@@ -638,6 +642,9 @@ func proposalRecommendations(snapshot *proposalSnapshot, openQuestions []string,
 			fmt.Sprintf("Continue analysis for %s", activeAnalysis[0].ID),
 		}
 	}
+	if proposalFeaturesComplete(snapshot) {
+		return []string{"No further design action; archive the proposal when release evidence is complete"}
+	}
 	if snapshot.requirementIndex != nil {
 		return []string{"Continue design by expanding the requirement index tree"}
 	}
@@ -663,6 +670,12 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 	if snapshot.rootCard == nil {
 		add("error", rootID, "missing proposal root card", "flowforge proposal create <title>")
 	}
+	if snapshot.requirementIndex == nil {
+		add("error", "STR-"+snapshot.proposalID+"-REQ", "missing top-level requirement index", "restore STR-"+snapshot.proposalID+"-REQ or recreate the proposal working surface")
+	} else if len(structureIndexedCardIDs(snapshot.requirementIndex)) == 0 {
+		add("error", snapshot.requirementIndex.ID, "top-level requirement index is empty", "flowforge card create --type requirement --title \"...\" --proposal "+snapshot.proposalID+" && flowforge structure add "+snapshot.requirementIndex.ID+" <REQ-ID>")
+	}
+	indexedRequirements := indexedRequirementSet(snapshot)
 
 	featureCount := 0
 	for _, card := range snapshot.cards {
@@ -680,6 +693,29 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 		case core.CardTypeFeature:
 			featureCount++
 			issues = append(issues, featureHealthIssues(snapshot, card)...)
+			if !featureLinksRequirement(snapshot, card, indexedRequirements) {
+				add("error", card.ID, "feature is not traceable to an indexed requirement", "flowforge card link "+card.ID+" <REQ-ID> --relation implements")
+			}
+		case core.CardTypeRequirement:
+			if !indexedRequirements[card.ID] {
+				add("error", card.ID, "requirement is not reachable from a requirement index (not indexed by a STR card)", "flowforge structure add STR-"+snapshot.proposalID+"-REQ "+card.ID)
+			}
+			if requirementNeedsNavigation(snapshot, card) && !hasSection(card.Body, "Links") {
+				add("warn", card.ID, "requirement navigation is stale or missing", "flowforge card refresh "+card.ID)
+			}
+		case core.CardTypeStructure:
+			if structurePurposeIsPlaceholder(card) {
+				add("warn", card.ID, "structure card has no meaningful purpose description", "edit the Purpose section")
+			}
+		case core.CardTypeDesign:
+			if !cardLinksRequirement(snapshot, card) {
+				add("warn", card.ID, "design card does not link to a requirement", "flowforge card link "+card.ID+" <REQ-ID> --relation designs")
+			}
+			if designNeedsNavigation(snapshot, card) && !hasSection(card.Body, "Links") {
+				add("warn", card.ID, "design navigation is stale or missing", "flowforge card refresh "+card.ID)
+			}
+		case core.CardTypeTask:
+			issues = append(issues, taskHealthIssues(snapshot, card)...)
 		case core.CardTypeConvention, core.CardTypeDecision:
 			if isOrphanCrossCuttingCard(snapshot, card) {
 				add("warn", card.ID, fmt.Sprintf("%s card has no FEATURE referencing it", card.Type), "link this card to a FEATURE with --relation constrains/references")
@@ -705,6 +741,29 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 		return issues[i].Message < issues[j].Message
 	})
 	return issues
+}
+
+func cardLinksRequirement(snapshot *proposalSnapshot, card *core.Card) bool {
+	for _, link := range card.Links {
+		target := snapshot.cardByID[link.Target]
+		if target != nil && target.Type == core.CardTypeRequirement {
+			return true
+		}
+	}
+	return false
+}
+
+func featureLinksRequirement(snapshot *proposalSnapshot, feature *core.Card, indexed map[string]bool) bool {
+	for _, link := range feature.Links {
+		target := snapshot.cardByID[link.Target]
+		if target == nil || target.Type != core.CardTypeRequirement || !indexed[target.ID] {
+			continue
+		}
+		if link.Relation == "implements" || link.Relation == "satisfies" || link.Relation == "requires" || link.Relation == "references" {
+			return true
+		}
+	}
+	return false
 }
 
 func renderProposalHealthIssues(w io.Writer, issues []proposalHealthIssue, limit int) {
@@ -1064,6 +1123,10 @@ func featureHealthIssues(snapshot *proposalSnapshot, card *core.Card) []proposal
 		ipSection := extractSection(card.Body, "Implementation Plan")
 		if !strings.Contains(ipSection, "### Step ") {
 			add("error", "feature is 'planned' but has no Implementation Plan steps", "add ### Step N: sections")
+		} else {
+			for _, issue := range validatePlannedGate(card.Body) {
+				add("error", fmt.Sprintf("planned step contract is invalid: %s: %s", issue.Section, issue.Detail), issue.Fix)
+			}
 		}
 	case core.CardStatusInProgress:
 		ipSection := extractSection(card.Body, "Implementation Plan")
@@ -1456,7 +1519,13 @@ func countTopLevelEntries(indexCard *core.Card) int {
 	if indexCard == nil {
 		return 0
 	}
-	return len(indexCard.Links)
+	count := 0
+	for _, link := range indexCard.Links {
+		if link.Relation == "indexes" {
+			count++
+		}
+	}
+	return count
 }
 
 func countChildIndexes(cards []*core.Card, proposalID string) int {

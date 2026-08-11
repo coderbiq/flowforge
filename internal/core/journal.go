@@ -50,6 +50,8 @@ var journalLocks sync.Map
 // JournalEntry is a concise, durable handoff note for a proposal. It never
 // stores full agent output; referenced artifacts remain the source of truth.
 type JournalEntry struct {
+	EventID       string
+	Source        string
 	Time          time.Time
 	Actor         string
 	Message       string
@@ -375,6 +377,16 @@ func renderJournalEntry(entry JournalEntry) string {
 	b.WriteString("\n\n- Summary: ")
 	b.WriteString(journalValue(entry.Message))
 	b.WriteString("\n")
+	if value := journalValue(entry.EventID); value != "" {
+		b.WriteString("- Event-ID: ")
+		b.WriteString(value)
+		b.WriteString("\n")
+	}
+	if value := journalValue(entry.Source); value != "" {
+		b.WriteString("- Imported-From: ")
+		b.WriteString(value)
+		b.WriteString("\n")
+	}
 	if len(entry.References) > 0 {
 		refs := make([]string, 0, len(entry.References))
 		for _, reference := range entry.References {
@@ -455,6 +467,10 @@ func parseJournalEntry(content string) (JournalEntry, error) {
 		switch {
 		case strings.HasPrefix(line, "- Summary: "):
 			entry.Message = strings.TrimPrefix(line, "- Summary: ")
+		case strings.HasPrefix(line, "- Event-ID: "):
+			entry.EventID = strings.TrimPrefix(line, "- Event-ID: ")
+		case strings.HasPrefix(line, "- Imported-From: "):
+			entry.Source = strings.TrimPrefix(line, "- Imported-From: ")
 		case strings.HasPrefix(line, "- References: "):
 			entry.References = splitJournalReferences(strings.TrimPrefix(line, "- References: "))
 		case strings.HasPrefix(line, "- Status: "):

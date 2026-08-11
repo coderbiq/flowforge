@@ -13,6 +13,7 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 - `proposal inspect <id>` for auto-generated Feature Map and health checks
 - `journal append --actor <role> --message "..." [--references <card-id>] [--next "..."]` to record Proposal collaboration
 - `journal recent [--proposal <id>] [--limit <n>]` to resume from recent collaboration notes
+- With no Proposal, do not create a journal unless dispatching a subagent. Before the first dispatch run `journal start --title "..."`, then use `journal append/recent --journal <id>`. After creating a Proposal, run `journal bind <id> --proposal <id>` once and write only to the Proposal Journal.
 - `sync` detects OpenCode/Codex and reconciles Skills, subagents, routing rules, and the managed manifest
 - `--body 'content\nwith\nnewlines'` for inline multi-line content
 - Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
@@ -33,5 +34,5 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 
 When FlowForge host subagents are installed, the Coordinator is a low-cost execution scheduler and the only interactive/delegating role. The Design Analyst owns framing, investigation planning, synthesis, and readiness decisions. The Investigator executes one registered brief and writes only its assigned FIND.
 
-Before delegation, read structured Journal revision/readiness/re-entry state and tell the user what background action will run. Keep delegation one level deep: the Coordinator dispatches every worker directly, and workers never delegate or ask the user. External sources require explicit work-item authorization; unavailable required access returns `BLOCKED`.
+Before delegation, select the Proposal Journal when one exists; otherwise start/reuse one temporary Handoff Journal. Read its recent state and tell the user what background action will run. Keep delegation one level deep: the Coordinator dispatches every worker directly, and workers never delegate or ask the user. External sources require explicit work-item authorization; unavailable required access returns `BLOCKED`.
 <!-- FLOWFORGE:END -->

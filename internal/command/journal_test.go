@@ -59,6 +59,40 @@ func TestJournalAppendAndRecentUseCurrentProposal(t *testing.T) {
 	}
 }
 
+func TestTemporaryHandoffJournalCommandLifecycle(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Bound journal")
+
+	handoffStore := core.NewHandoffJournalStore(tmpDir)
+	journal, err := handoffStore.Create("Investigate before proposal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	appendCmd := newJournalAppendCmd()
+	appendCmd.SetArgs([]string{"--journal", journal.ID, "--actor", "coordinator", "--kind", "delegation", "--work-id", "W1", "--message", "Inspect the failure", "--references", "GIIS-2219"})
+	if err := appendCmd.Execute(); err != nil {
+		t.Fatalf("append handoff entry: %v", err)
+	}
+
+	bindCmd := newJournalBindCmd()
+	bindCmd.SetArgs([]string{journal.ID, "--proposal", proposalID})
+	if err := bindCmd.Execute(); err != nil {
+		t.Fatalf("bind handoff journal: %v", err)
+	}
+	entries, err := testCardStore(t, tmpDir).RecentProposalJournal(proposalID, 0)
+	if err != nil || len(entries) != 1 || entries[0].Source != journal.ID {
+		t.Fatalf("unexpected bound entries: %#v, err=%v", entries, err)
+	}
+}
+
 func TestJournalAppendValidatesReferencesAndRequiredArguments(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)

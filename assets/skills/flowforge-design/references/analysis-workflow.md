@@ -4,6 +4,8 @@ Use this loop for Proposal design. Every transition must leave recoverable Artif
 
 ## 1. Intake and mode selection
 
+When no Proposal exists, work locally without a Journal until delegation is needed. Before the first delegation, create a temporary Handoff Journal and register the dispatch. If a Proposal is later created, bind the temporary journal immediately; all later entries go only to `JOURNAL.md`.
+
 1. Run `flowforge proposal inspect <id>`, `flowforge journal recent --proposal <id>`, and `flowforge analysis status --proposal <id>`.
 2. Choose the simple path when the objective, current behavior, constraints, and decisive evidence already fit one coherent design.
 3. Choose complex mode when two or more independent evidence gaps exist, context crosses modules or domains, a user claim needs verification, or likely findings may revise the design.

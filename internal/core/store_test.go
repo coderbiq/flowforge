@@ -150,7 +150,7 @@ func TestCreateProposal(t *testing.T) {
 	for _, want := range []string{
 		"## Purpose",
 		"## Entries",
-		"[STR-CR260612-REQ](STR-CR260612-REQ.md) (structure, active) - Requirement index",
+		"[STR-CR260612-REQ](../01-workspace/CR260612_test-proposal/STR-CR260612-REQ.md) (structure, active) - Requirement index",
 	} {
 		if !strings.Contains(rootCard.Body, want) {
 			t.Fatalf("root body missing %q:\n%s", want, rootCard.Body)

@@ -64,5 +64,5 @@ func testFeatureCard(id string, status core.CardStatus, body string) *core.Card 
 	return c
 }
 func completeStepBody(n int) string {
-	return "## Constraints\n\n- preserve behavior\n\n## Implementation Plan\n\n### Step 1: Work\n\n<!-- step-status: not_started -->\n\n- **Goal**: Complete work\n- **Files**: internal/example.go\n- **Approach**: Change implementation\n- **Edge Cases**: Empty input\n- **Verification**: go test\n\n## Open Questions\n\nNone\n"
+	return "## Constraints\n\n- preserve behavior\n\n## Implementation Plan\n\n### Step 1: Work\n\n<!-- step-status: not_started -->\n\n- **Goal**: Complete work\n- **Files**: internal/example.go\n- **Symbols**: Example.Run\n- **Actions**:\n  1. Change implementation.\n- **Constraints**: Preserve empty input\n- **Done When**: Tests observe the result\n- **Verification**: go test\n\n## Open Questions\n\nNone\n"
 }

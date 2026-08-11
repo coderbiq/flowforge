@@ -118,10 +118,13 @@ func buildPreflightReport(store *core.CardStore, card *core.Card, step int, inte
 	if strings.Contains(stepBody, "step-status: done") || strings.Contains(stepBody, "step-status: blocked") {
 		block("step_terminal", "Step is already done or blocked")
 	}
-	for _, field := range []string{"Goal", "Files", "Approach", "Edge Cases", "Verification"} {
-		if value := parseStepFields(stepBody)[field]; strings.TrimSpace(value) == "" {
+	for _, field := range []string{"Goal", "Files", "Symbols", "Actions", "Constraints", "Done When", "Verification"} {
+		if !hasStepField(stepBody, field) {
 			block("step_missing_field", field+" is required")
 		}
+	}
+	if vaguePlanRe.MatchString(stepBody) {
+		block("step_vague_language", "step contains unresolved execution choices")
 	}
 	if countOpenQuestions(extractSection(card.Body, "Open Questions")) > 0 {
 		block("unresolved_open_questions", "FEATURE contains unresolved questions")

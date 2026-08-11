@@ -13,8 +13,8 @@ import (
 func newStructureCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "structure",
-		Short: "[DEPRECATED] Manage STR index links",
-		Long:  "DEPRECATED: STR cards are replaced by 'proposal inspect' auto-aggregation.\n\nMaintain indexes relations on structure cards.",
+		Short: "Manage STR requirement index links",
+		Long:  "Maintain typed indexes relations and readable Entries navigation on STR cards.",
 	}
 
 	cmd.AddCommand(newStructureAddCmd())
@@ -39,10 +39,10 @@ func newStructureAddCmd() *cobra.Command {
 				return err
 			}
 
-		var indexedCount int
-		var structureBody string
-		var changed bool
-		if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
+			var indexedCount int
+			var structureBody string
+			var changed bool
+			if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
 				if card.Type != core.CardTypeStructure {
 					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
 				}
@@ -114,26 +114,26 @@ func newStructureRemoveCmd() *cobra.Command {
 				return err
 			}
 
-		var removed bool
-		if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
-			if card.Type != core.CardTypeStructure {
-				return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
-			}
+			var removed bool
+			if err := store.UpdateCardWithLock(structureID, func(card *core.Card) error {
+				if card.Type != core.CardTypeStructure {
+					return fmt.Errorf("card %s is not a structure card (type: %s)", structureID, card.Type)
+				}
 
-			if err := guardOrphanCardOnStructureRemove(store, cardID, structureID); err != nil {
+				if err := guardOrphanCardOnStructureRemove(store, cardID, structureID); err != nil {
+					return err
+				}
+
+				removed = card.RemoveLink(cardID, "indexes")
+				refreshedBody, err := refreshStructureEntriesBody(store, card)
+				if err != nil {
+					return err
+				}
+				card.Body = refreshedBody
+				return nil
+			}); err != nil {
 				return err
 			}
-
-			removed = card.RemoveLink(cardID, "indexes")
-			refreshedBody, err := refreshStructureEntriesBody(store, card)
-			if err != nil {
-				return err
-			}
-			card.Body = refreshedBody
-			return nil
-		}); err != nil {
-			return err
-		}
 
 			if !removed {
 				fmt.Fprintf(cmd.OutOrStdout(), "No change: %s does not index %s\n", structureID, cardID)

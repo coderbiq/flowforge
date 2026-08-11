@@ -56,7 +56,7 @@ func TestStructureCommandsAddListRemove(t *testing.T) {
 	if reloaded.Links[0].Target != "REQ-001" || reloaded.Links[0].Relation != "indexes" {
 		t.Fatalf("unexpected structure link: %#v", reloaded.Links[0])
 	}
-	if !strings.Contains(reloaded.Body, "## Entries") || !strings.Contains(reloaded.Body, "[REQ-001](../../01-workspace/02-intake/REQ-001_indexed-requirement.md) (requirement, draft) - Indexed requirement") {
+	if !strings.Contains(reloaded.Body, "## Entries") || !strings.Contains(reloaded.Body, "[REQ-001](../../01-workspace/REQ-001_indexed-requirement.md) (requirement, draft) - Indexed requirement") {
 		t.Fatalf("expected structure body to include readable entry, got:\n%s", reloaded.Body)
 	}
 
@@ -175,7 +175,7 @@ func TestStructureRefreshRebuildsReadableEntries(t *testing.T) {
 	for _, want := range []string{
 		"## Purpose\n\nNavigation.",
 		"## Entries",
-		"[REQ-READABLE](../../01-workspace/02-intake/REQ-READABLE_readable-requirement.md) (requirement, draft) - Readable requirement",
+		"[REQ-READABLE](../../01-workspace/REQ-READABLE_readable-requirement.md) (requirement, draft) - Readable requirement",
 	} {
 		if !strings.Contains(reloaded.Body, want) {
 			t.Fatalf("refreshed body missing %q:\n%s", want, reloaded.Body)
