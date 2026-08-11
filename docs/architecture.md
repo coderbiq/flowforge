@@ -151,6 +151,14 @@ TASK-2x9k3m00-i-7b2q6r5u --blocks--> TASK-2x9k3m00-i-8c3r7s6v
 - 超过 50K tokens 后性能显著退化
 - 工具输出可占总上下文的 81%（需严格控制）
 
+### 2.5 决策五：复杂分析采用可恢复的迭代编排
+
+复杂需求不使用一次性“调查后设计”流水线，而采用 `SEED → PLAN → INVESTIGATE → SYNTHESIZE → GATE` 循环；实施或评审暴露设计缺口时通过 `REOPEN` 开启新 revision。revision 是协作概念，不扩展 FEATURE stage schema。
+
+编排遵循三条边界：Design Analyst 负责问题 framing、调查计划与综合判断；Coordinator 只调度已登记计划并维护 Journal 调度事实；Investigator 只把证据写入指定 FIND，不修改 FEATURE、DEC 或产品代码。设计事实以 FEATURE/DEC/FIND 为准，调度事实以 Journal 为准，因此任何一轮都可在宿主 session 消失后恢复。
+
+简单需求允许 Analyst 直接设计；复杂分析的每轮则必须有预算、完成条件和 Analyst re-entry 条件。详细协议见 [复杂需求多代理分析协议](./analysis-orchestration.md)。
+
 ---
 
 ## 3. 系统架构

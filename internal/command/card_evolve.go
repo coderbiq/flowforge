@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"flowforge/internal/core"
+	"flowforge/internal/state"
 )
 
 func newCardEvolveCmd() *cobra.Command {
@@ -105,6 +106,14 @@ func handleEvolve(store *core.CardStore, card *core.Card, target core.CardStatus
 		issues = validateDoneGate(card.Body)
 	}
 
+	if target == core.CardStatusDesigned || target == core.CardStatusPlanned {
+		analysisIssues, err := complexAnalysisGateIssues(card, target)
+		if err != nil {
+			return err
+		}
+		issues = append(issues, analysisIssues...)
+	}
+
 	if len(issues) > 0 {
 		fmt.Fprintf(out, "Evolve to '%s' rejected — %d issues:\n\n", target, len(issues))
 		for i, issue := range issues {
@@ -126,6 +135,107 @@ func handleEvolve(store *core.CardStore, card *core.Card, target core.CardStatus
 
 	fmt.Fprintf(out, "✓ %s evolved to '%s'\n", card.ID, target)
 	return nil
+}
+
+func complexAnalysisGateIssues(card *core.Card, target core.CardStatus) ([]gateIssue, error) {
+	if card == nil || !complexAnalysisModeRe.MatchString(card.Body) {
+		return nil, nil
+	}
+
+	issues := validateComplexAnalysisBodyGate(card.Body, target)
+	proposalID := strings.TrimSpace(card.Source)
+	if proposalID == "" {
+		proposalID = strings.TrimSpace(card.ProposalID)
+	}
+	if proposalID == "" {
+		return append(issues, gateIssue{
+			Section: "Analysis State",
+			Detail:  "complex FEATURE has no proposal ID",
+			Fix:     "set source/proposal_id so analysis status can be resolved",
+		}), nil
+	}
+
+	view, closeFn, err := currentAnalysisView(proposalID, true)
+	if closeFn != nil {
+		defer closeFn()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("checking complex analysis readiness: %w", err)
+	}
+	return append(issues, validateComplexAnalysisState(view, target)...), nil
+}
+
+func validateComplexAnalysisBodyGate(body string, target core.CardStatus) []gateIssue {
+	var issues []gateIssue
+	for _, section := range []string{"Objective", "Current Understanding", "Evidence", "Working Design", "Rejected or Revised Assumptions", "Next Investigation"} {
+		content := extractSection(body, section)
+		if isComplexAnalysisPlaceholder(content) {
+			issues = append(issues, gateIssue{Section: section, Detail: "complex analysis section is missing or placeholder", Fix: "record a recoverable value; use None only when intentionally empty"})
+		}
+	}
+
+	evidence := strings.ToLower(extractSection(body, "Evidence"))
+	if !containsAny(evidence, "accepted", "rejected", "conflicting", "inconclusive", "已采纳", "已拒绝", "冲突", "无结论") {
+		issues = append(issues, gateIssue{Section: "Evidence", Detail: "no evidence support state found", Fix: "classify decisive evidence as accepted, rejected, conflicting, or inconclusive"})
+	}
+	next := strings.TrimSpace(extractSection(body, "Next Investigation"))
+	if !isExplicitNone(next) {
+		issues = append(issues, gateIssue{Section: "Next Investigation", Detail: "investigation remains active", Fix: "complete or supersede the investigation, then set this section to None"})
+	}
+	if target == core.CardStatusPlanned {
+		verification := extractSection(body, "Verification")
+		if isPlaceholder(verification) || countBulletLines(verification) == 0 {
+			issues = append(issues, gateIssue{Section: "Verification", Detail: "complex FEATURE needs explicit verification mappings", Fix: "map user-visible outcomes and design risks to tests or inspection"})
+		}
+		ipSection := extractSection(body, "Implementation Plan")
+		for _, match := range stepHeaderRe.FindAllStringSubmatch(ipSection, -1) {
+			stepBody := extractSubSection(ipSection, "Step "+match[1]+":")
+			for _, field := range []string{"Dependencies", "Parallel", "Verification"} {
+				if !hasStepField(stepBody, field) {
+					issues = append(issues, gateIssue{Section: "Implementation Plan.Step " + match[1], Detail: "missing complex-planning field: " + field, Fix: "add an explicit " + field + " value"})
+				}
+			}
+		}
+	}
+	return issues
+}
+
+func isComplexAnalysisPlaceholder(value string) bool {
+	cleaned := strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(value), "-* "))
+	if cleaned == "" {
+		return true
+	}
+	switch strings.ToLower(cleaned) {
+	case "tbd", "todo", "pending", "待补充", "待定", "<!-- tbd -->":
+		return true
+	default:
+		return false
+	}
+}
+
+func validateComplexAnalysisState(view state.AnalysisView, target core.CardStatus) []gateIssue {
+	if view.State == "no_plan" || view.State == "completed" {
+		return nil
+	}
+	detail := fmt.Sprintf("analysis state is %s (next action: %s)", view.State, view.NextAction)
+	if target == core.CardStatusPlanned && view.ActivePlan != nil {
+		detail += fmt.Sprintf("; active plan revision %d is not completed", view.ActivePlan.Revision)
+	}
+	return []gateIssue{{Section: "Analysis State", Detail: detail, Fix: "finish synthesis, resolve conflicts or user decisions, and seal analysis.completed"}}
+}
+
+func containsAny(value string, candidates ...string) bool {
+	for _, candidate := range candidates {
+		if strings.Contains(value, candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+func isExplicitNone(value string) bool {
+	cleaned := strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(value), "-* "))
+	return strings.EqualFold(cleaned, "none") || cleaned == "无" || cleaned == "无下一步调查"
 }
 
 func handleRegress(store *core.CardStore, card *core.Card, target core.CardStatus, cmd *cobra.Command) error {
@@ -166,10 +276,11 @@ func handleRegress(store *core.CardStore, card *core.Card, target core.CardStatu
 }
 
 var (
-	placeholderRe = regexp.MustCompile(`^(None|TBD|N/A|<!-- TBD -->)\s*$`)
-	crossRefRe    = regexp.MustCompile(`参考\s*(DES|REQ|TASK|STR)-|参见.*卡片|see\s+(DES|REQ|TASK|STR)-`)
-	stepHeaderRe  = regexp.MustCompile(`(?m)^### Step (\d+):`)
-	stepFieldRe   = regexp.MustCompile(`(?m)^- \*\*(\w+)\*\*: (.+)`)
+	placeholderRe         = regexp.MustCompile(`^(None|TBD|N/A|<!-- TBD -->)\s*$`)
+	complexAnalysisModeRe = regexp.MustCompile(`(?mi)^\s*<!--\s*analysis-mode:\s*complex\s*-->\s*$`)
+	crossRefRe            = regexp.MustCompile(`参考\s*(DES|REQ|TASK|STR)-|参见.*卡片|see\s+(DES|REQ|TASK|STR)-`)
+	stepHeaderRe          = regexp.MustCompile(`(?m)^### Step (\d+):`)
+	stepFieldRe           = regexp.MustCompile(`(?m)^- \*\*(\w+)\*\*: (.+)`)
 )
 
 func validateDesignedGate(body string) []gateIssue {

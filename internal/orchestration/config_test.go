@@ -51,9 +51,30 @@ func TestPolicyValidateRejectsInvalidTopologyAndReferences(t *testing.T) {
 		{
 			name: "product writer lacks verification",
 			edit: func(policy *Policy) {
-				policy.Roles[2].Capabilities = []Capability{CapabilityRead, CapabilityProductWrite}
+				policy.Roles[3].Capabilities = []Capability{CapabilityRead, CapabilityProductWrite}
 			},
 			want: "requires verify capability",
+		},
+		{
+			name: "investigator writes product",
+			edit: func(policy *Policy) {
+				policy.Roles[2].Capabilities = []Capability{CapabilityRead, CapabilityProductWrite, CapabilityVerify}
+			},
+			want: "investigator role \"investigator\" cannot write product files",
+		},
+		{
+			name: "worker schedules",
+			edit: func(policy *Policy) {
+				policy.Roles[1].Capabilities = append(policy.Roles[1].Capabilities, CapabilityScheduleWork)
+			},
+			want: "worker role \"design-analyst\" cannot schedule work",
+		},
+		{
+			name: "coordinator plans",
+			edit: func(policy *Policy) {
+				policy.Roles[0].Capabilities = append(policy.Roles[0].Capabilities, CapabilityPlanAnalysis)
+			},
+			want: "role \"coordinator\" cannot own analysis planning",
 		},
 		{
 			name: "mixed write scopes",
@@ -85,7 +106,7 @@ func TestPolicyValidateAllowsDisabledReviewerWithoutSkill(t *testing.T) {
 
 func TestPolicyValidateAllowsEnabledReviewerWithReviewSkill(t *testing.T) {
 	policy := DefaultPolicy()
-	policy.Roles[3].Enabled = true
+	policy.Roles[4].Enabled = true
 	if err := policy.Validate(KnownManagedSkills()); err != nil {
 		t.Fatalf("enabled reviewer should use the review skill: %v", err)
 	}

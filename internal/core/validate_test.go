@@ -234,6 +234,173 @@ func TestValidateCardValidLinks(t *testing.T) {
 	}
 }
 
+func TestValidateCardComplexAnalysisFeatureRequiresRecoverableSections(t *testing.T) {
+	card := &Card{
+		ID:         "FEAT-abc-analysis",
+		Title:      "Complex analysis",
+		Type:       CardTypeFeature,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body: `<!-- analysis-mode: complex -->
+
+## Objective
+
+Preserve the analysis state.
+
+## Current Understanding
+
+TBD
+`,
+	}
+
+	result := ValidateCard(card)
+	assertValidationField(t, result, "body.analysis.current-understanding")
+	assertValidationField(t, result, "body.analysis.evidence")
+	assertValidationField(t, result, "body.analysis.working-design")
+}
+
+func TestValidateCardSimpleFeatureDoesNotRequireAnalysisSections(t *testing.T) {
+	card := &Card{
+		ID:         "FEAT-abc-simple",
+		Title:      "Simple feature",
+		Type:       CardTypeFeature,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body:       "## Summary\n\nSmall, self-contained change.",
+	}
+
+	result := ValidateCard(card)
+	if result.HasErrors() {
+		t.Fatalf("simple feature should remain backward compatible: %s", result.String())
+	}
+}
+
+func TestValidateCardComplexAnalysisFindingRequiresWorkIDAndSource(t *testing.T) {
+	card := &Card{
+		ID:         "FIND-abc-analysis",
+		Title:      "Investigation evidence",
+		Type:       CardTypeFinding,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body: `<!-- analysis-mode: complex -->
+
+## Evidence
+
+Observed behavior.
+
+## Source
+
+TBD
+
+## Impact
+
+Changes the working design.
+
+## Open Questions
+
+None
+`,
+	}
+
+	result := ValidateCard(card)
+	assertValidationField(t, result, "body.analysis-work-id")
+	assertValidationField(t, result, "body.analysis.source")
+}
+
+func TestValidateCardComplexAnalysisFindingAcceptsStableWorkID(t *testing.T) {
+	card := &Card{
+		ID:         "FIND-abc-valid",
+		Title:      "Investigation evidence",
+		Type:       CardTypeFinding,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body: `<!-- analysis-mode: complex -->
+<!-- analysis-work-id: r2.cache-recovery -->
+
+## Evidence
+
+Observed behavior.
+
+## Source
+
+internal/core/store.go:42
+
+## Impact
+
+Changes the working design.
+
+## Open Questions
+
+None
+`,
+	}
+
+	result := ValidateCard(card)
+	if result.HasErrors() {
+		t.Fatalf("expected recoverable finding to validate: %s", result.String())
+	}
+}
+
+func TestValidateCardFileInStoreRejectsMissingAnalysisFindingReference(t *testing.T) {
+	tmpDir := t.TempDir()
+	store := NewCardStore(tmpDir)
+	if err := os.MkdirAll(store.ProposalCardsDir("CR260811"), 0755); err != nil {
+		t.Fatalf("creating proposal cards dir failed: %v", err)
+	}
+
+	card := &Card{
+		ID:         "FEAT-abc-reference",
+		Title:      "Complex analysis reference",
+		Type:       CardTypeFeature,
+		Status:     CardStatusDraft,
+		Importance: ImportanceShould,
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Body: `<!-- analysis-mode: complex -->
+
+## Objective
+Recover analysis.
+## Current Understanding
+Current facts.
+## Evidence
+Accepted FIND-missing-evidence.
+## Working Design
+Current design.
+## Rejected or Revised Assumptions
+None
+## Open Questions
+None
+## Next Investigation
+None
+`,
+	}
+	filePath := filepath.Join(store.ProposalCardsDir("CR260811"), GenerateFilename(card.ID, card.Title))
+	if err := card.Save(filePath); err != nil {
+		t.Fatalf("saving feature failed: %v", err)
+	}
+
+	result := ValidateCardFileInStore(filePath, store)
+	assertValidationField(t, result, "body.analysis.evidence")
+}
+
+func assertValidationField(t *testing.T, result *ValidationResult, field string) {
+	t.Helper()
+	for _, validationErr := range result.Errors {
+		if validationErr.Field == field {
+			return
+		}
+	}
+	t.Fatalf("expected validation field %q, got %s", field, result.String())
+}
+
 func TestValidateCardFile(t *testing.T) {
 	tmpDir := t.TempDir()
 

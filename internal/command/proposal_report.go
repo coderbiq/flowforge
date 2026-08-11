@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"flowforge/internal/core"
+	"flowforge/internal/state"
 )
 
 type proposalSnapshot struct {
@@ -28,14 +29,18 @@ type proposalBacklink struct {
 }
 
 type proposalInspectReport struct {
-	snapshot *proposalSnapshot
-	health   []proposalHealthIssue
+	snapshot      *proposalSnapshot
+	health        []proposalHealthIssue
+	analysis      *state.AnalysisView
+	analysisIssue string
 }
 
 type proposalContextReport struct {
-	snapshot *proposalSnapshot
-	focus    *core.Card
-	health   []proposalHealthIssue
+	snapshot      *proposalSnapshot
+	focus         *core.Card
+	health        []proposalHealthIssue
+	analysis      *state.AnalysisView
+	analysisIssue string
 }
 
 type proposalHealthIssue struct {
@@ -50,7 +55,8 @@ func buildProposalInspectReport(store *core.CardStore, proposalID string) (*prop
 	if err != nil {
 		return nil, err
 	}
-	return &proposalInspectReport{snapshot: snapshot, health: collectProposalHealthIssues(snapshot)}, nil
+	analysis, analysisIssue := proposalAnalysisFromJournal(store, proposalID)
+	return &proposalInspectReport{snapshot: snapshot, health: collectProposalHealthIssues(snapshot), analysis: analysis, analysisIssue: analysisIssue}, nil
 }
 
 func buildProposalContextReport(store *core.CardStore, proposalID, cardID, taskID string) (*proposalContextReport, error) {
@@ -58,11 +64,31 @@ func buildProposalContextReport(store *core.CardStore, proposalID, cardID, taskI
 	if err != nil {
 		return nil, err
 	}
+	analysis, analysisIssue := proposalAnalysisFromJournal(store, proposalID)
 	return &proposalContextReport{
-		snapshot: snapshot,
-		focus:    focusCardFromFlags(snapshot, cardID, taskID),
-		health:   collectProposalHealthIssues(snapshot),
+		snapshot:      snapshot,
+		focus:         focusCardFromFlags(snapshot, cardID, taskID),
+		health:        collectProposalHealthIssues(snapshot),
+		analysis:      analysis,
+		analysisIssue: analysisIssue,
 	}, nil
+}
+
+func proposalAnalysisFromJournal(store *core.CardStore, proposalID string) (*state.AnalysisView, string) {
+	events, err := store.ProposalJournalEvents(proposalID, false)
+	if err != nil {
+		return nil, err.Error()
+	}
+	revision, err := store.ProposalJournalSourceRevision(proposalID)
+	if err != nil {
+		return nil, err.Error()
+	}
+	view, err := state.BuildAnalysisView(proposalID, revision, events)
+	if err != nil {
+		return nil, err.Error()
+	}
+	view.History = nil
+	return &view, ""
 }
 
 func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSnapshot, error) {
@@ -208,7 +234,11 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, "## Active Analysis")
-	if len(activeAnalysis) == 0 {
+	if report.analysisIssue != "" {
+		fmt.Fprintf(w, "- Invalid Journal state: %s\n", report.analysisIssue)
+	} else if report.analysis != nil && report.analysis.ActivePlan != nil {
+		renderActiveAnalysisView(w, *report.analysis)
+	} else if len(activeAnalysis) == 0 {
 		fmt.Fprintln(w, "- None")
 	} else {
 		fmt.Fprintln(w, "| ID | Title | Status | Analyzes | Done When |")
@@ -222,6 +252,16 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 				escapeTableCell(item.DoneWhen),
 			)
 		}
+	}
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "## Next Action")
+	if proposalFeaturesComplete(s) && (report.analysis == nil || report.analysis.ActivePlan == nil) {
+		fmt.Fprintln(w, "- None")
+	} else if report.analysis != nil {
+		fmt.Fprintf(w, "- %s\n", report.analysis.NextAction)
+	} else {
+		fmt.Fprintln(w, "- None")
 	}
 	fmt.Fprintln(w)
 
@@ -260,6 +300,23 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	return nil
 }
 
+func proposalFeaturesComplete(snapshot *proposalSnapshot) bool {
+	if snapshot == nil {
+		return false
+	}
+	found := false
+	for _, card := range snapshot.cards {
+		if card.Type != core.CardTypeFeature || card.Role == "container" {
+			continue
+		}
+		found = true
+		if card.Status != core.CardStatusDone {
+			return false
+		}
+	}
+	return found
+}
+
 func renderProposalContextReport(w io.Writer, report *proposalContextReport) error {
 	if report == nil || report.snapshot == nil {
 		return fmt.Errorf("missing proposal context data")
@@ -289,6 +346,19 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	fmt.Fprintf(w, "- RootCard: %s\n", cardIDOrMissing(s.rootCard))
 	fmt.Fprintf(w, "- Summary: %s\n", summaryText(s.rootCard))
 	fmt.Fprintf(w, "- CurrentState: %s\n", proposalCurrentState(s))
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "## Active Analysis")
+	if report.analysisIssue != "" {
+		fmt.Fprintf(w, "- Invalid Journal state: %s\n", report.analysisIssue)
+	} else if report.analysis != nil && report.analysis.ActivePlan != nil {
+		renderActiveAnalysisView(w, *report.analysis)
+	} else {
+		fmt.Fprintln(w, "- None")
+	}
+	if report.analysis != nil {
+		fmt.Fprintf(w, "- Next Action: %s\n", report.analysis.NextAction)
+	}
 	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, "## Health Summary")
@@ -662,11 +732,13 @@ func renderProposalHealthIssues(w io.Writer, issues []proposalHealthIssue, limit
 }
 
 type proposalInspectJSON struct {
-	ProposalID   string                `json:"proposalId"`
-	Title        string                `json:"title"`
-	Project      string                `json:"project"`
-	HealthIssues []proposalHealthIssue `json:"healthIssues"`
-	CardCounts   map[string]int        `json:"cardCounts"`
+	ProposalID    string                `json:"proposalId"`
+	Title         string                `json:"title"`
+	Project       string                `json:"project"`
+	HealthIssues  []proposalHealthIssue `json:"healthIssues"`
+	CardCounts    map[string]int        `json:"cardCounts"`
+	Analysis      *state.AnalysisView   `json:"analysis,omitempty"`
+	AnalysisIssue string                `json:"analysisIssue,omitempty"`
 }
 
 func renderProposalInspectReportJSON(w io.Writer, report *proposalInspectReport) error {
@@ -681,16 +753,38 @@ func renderProposalInspectReportJSON(w io.Writer, report *proposalInspectReport)
 	}
 
 	jsonReport := proposalInspectJSON{
-		ProposalID:   s.proposalID,
-		Title:        proposalDisplayTitle(s),
-		Project:      s.projectID,
-		HealthIssues: report.health,
-		CardCounts:   counts,
+		ProposalID:    s.proposalID,
+		Title:         proposalDisplayTitle(s),
+		Project:       s.projectID,
+		HealthIssues:  report.health,
+		CardCounts:    counts,
+		Analysis:      report.analysis,
+		AnalysisIssue: report.analysisIssue,
 	}
 
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(jsonReport)
+}
+
+func renderActiveAnalysisView(w io.Writer, view state.AnalysisView) {
+	if view.ActivePlan == nil {
+		fmt.Fprintln(w, "- None")
+		return
+	}
+	fmt.Fprintf(w, "- Cycle: %s\n", view.ActivePlan.CycleID)
+	fmt.Fprintf(w, "- Revision: %d\n", view.ActivePlan.Revision)
+	fmt.Fprintf(w, "- State: %s\n", view.State)
+	fmt.Fprintf(w, "- Ready: %d; Running: %d; Returned: %d; Blocked: %d\n", len(view.ReadyWork), len(view.RunningWork), len(view.ReturnedWork), len(view.BlockedWork))
+	for _, work := range view.ReadyWork {
+		fmt.Fprintf(w, "- Ready Work: %s [%s] %s\n", work.WorkID, work.Role, work.Question)
+	}
+	for _, work := range view.ReturnedWork {
+		fmt.Fprintf(w, "- Awaiting Synthesis: %s (%s)\n", work.WorkID, work.State)
+	}
+	for _, work := range view.BlockedWork {
+		fmt.Fprintf(w, "- Blocker: %s (%s)\n", work.WorkID, work.State)
+	}
 }
 
 func severityRank(severity string) int {

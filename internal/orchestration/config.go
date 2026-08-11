@@ -14,7 +14,10 @@ const (
 	CapabilityRead             Capability = "read"
 	CapabilityConverse         Capability = "converse"
 	CapabilityDelegate         Capability = "delegate"
+	CapabilityPlanAnalysis     Capability = "plan_analysis"
+	CapabilityScheduleWork     Capability = "schedule_work"
 	CapabilityArtifactWrite    Capability = "artifact_write"
+	CapabilityEvidenceWrite    Capability = "evidence_write"
 	CapabilityProductWrite     Capability = "product_write"
 	CapabilityVerify           Capability = "verify"
 	CapabilityExternalResearch Capability = "external_research"
@@ -26,17 +29,19 @@ const (
 	ModelProfileLowCostGeneral         ModelProfile = "low-cost-general"
 	ModelProfileHighCapability         ModelProfile = "high-capability"
 	ModelProfileToolCapable            ModelProfile = "tool-capable"
+	ModelProfileToolCapableReadOnly    ModelProfile = "tool-capable-read-only"
 	ModelProfileHighCapabilityReadOnly ModelProfile = "high-capability-read-only"
 )
 
 type RoleKind string
 
 const (
-	RoleKindCoordinator RoleKind = "coordinator"
-	RoleKindAnalyst     RoleKind = "analyst"
-	RoleKindExecutor    RoleKind = "executor"
-	RoleKindReviewer    RoleKind = "reviewer"
-	RoleKindCustom      RoleKind = "custom"
+	RoleKindCoordinator  RoleKind = "coordinator"
+	RoleKindAnalyst      RoleKind = "analyst"
+	RoleKindInvestigator RoleKind = "investigator"
+	RoleKindExecutor     RoleKind = "executor"
+	RoleKindReviewer     RoleKind = "reviewer"
+	RoleKindCustom       RoleKind = "custom"
 )
 
 type StopCondition string
@@ -84,6 +89,7 @@ func DefaultPolicy() Policy {
 			{ID: ModelProfileLowCostGeneral, Description: "Low-cost interactive routing and coordination."},
 			{ID: ModelProfileHighCapability, Description: "High-capability analysis and workflow artifact authoring."},
 			{ID: ModelProfileToolCapable, Description: "Tool-capable bounded implementation and verification."},
+			{ID: ModelProfileToolCapableReadOnly, Description: "Tool-capable bounded evidence collection without product writes."},
 			{ID: ModelProfileHighCapabilityReadOnly, Description: "High-capability read-only semantic conformance review."},
 		},
 		Roles: []Role{
@@ -93,8 +99,8 @@ func DefaultPolicy() Policy {
 				DisplayName:  "Coordinator",
 				Enabled:      true,
 				Interactive:  true,
-				Capabilities: []Capability{CapabilityRead, CapabilityConverse, CapabilityDelegate},
-				MayDelegate:  []string{"design-analyst", "executor", "reviewer"},
+				Capabilities: []Capability{CapabilityRead, CapabilityConverse, CapabilityDelegate, CapabilityScheduleWork},
+				MayDelegate:  []string{"design-analyst", "investigator", "executor", "reviewer"},
 				ModelProfile: ModelProfileLowCostGeneral,
 			},
 			{
@@ -102,11 +108,21 @@ func DefaultPolicy() Policy {
 				Kind:            RoleKindAnalyst,
 				DisplayName:     "Design Analyst",
 				Enabled:         true,
-				Capabilities:    []Capability{CapabilityRead, CapabilityArtifactWrite, CapabilityExternalResearch},
+				Capabilities:    []Capability{CapabilityRead, CapabilityPlanAnalysis, CapabilityArtifactWrite, CapabilityExternalResearch},
 				ModelProfile:    ModelProfileHighCapability,
 				DefaultSkill:    "flowforge-design",
 				EntryConditions: []string{"proposal_exists"},
 				StopConditions:  []StopCondition{StopConditionUserDecision},
+			},
+			{
+				ID:              "investigator",
+				Kind:            RoleKindInvestigator,
+				DisplayName:     "Investigator",
+				Enabled:         true,
+				Capabilities:    []Capability{CapabilityRead, CapabilityEvidenceWrite, CapabilityExternalResearch},
+				ModelProfile:    ModelProfileToolCapableReadOnly,
+				EntryConditions: []string{"analysis_work_item_ready", "investigation_brief_available"},
+				StopConditions:  []StopCondition{StopConditionPlanStale, StopConditionUserDecision},
 			},
 			{
 				ID:              "executor",
@@ -151,6 +167,7 @@ func (p Policy) Validate(knownSkills []string) error {
 	}
 	roles := make(map[string]Role, len(p.Roles))
 	coordinatorCount := 0
+	interactiveCount := 0
 	for _, role := range p.Roles {
 		if err := validateRole(role, profiles, skills); err != nil {
 			return err
@@ -162,9 +179,15 @@ func (p Policy) Validate(knownSkills []string) error {
 		if role.Kind == RoleKindCoordinator {
 			coordinatorCount++
 		}
+		if role.Interactive {
+			interactiveCount++
+		}
 	}
 	if coordinatorCount != 1 {
 		return fmt.Errorf("exactly one coordinator role is required, got %d", coordinatorCount)
+	}
+	if interactiveCount != 1 {
+		return fmt.Errorf("exactly one interactive role is required, got %d", interactiveCount)
 	}
 
 	for _, role := range p.Roles {
@@ -216,10 +239,22 @@ func validateRole(role Role, profiles map[ModelProfile]bool, skills map[string]b
 	if capabilities[CapabilityArtifactWrite] && capabilities[CapabilityProductWrite] {
 		return fmt.Errorf("role %q cannot combine artifact and product write capabilities", role.ID)
 	}
+	if capabilities[CapabilityEvidenceWrite] && (capabilities[CapabilityArtifactWrite] || capabilities[CapabilityProductWrite]) {
+		return fmt.Errorf("role %q cannot combine evidence write with artifact or product write capabilities", role.ID)
+	}
+	if role.Kind == RoleKindInvestigator && capabilities[CapabilityProductWrite] {
+		return fmt.Errorf("investigator role %q cannot write product files", role.ID)
+	}
+	if role.Kind != RoleKindCoordinator && capabilities[CapabilityScheduleWork] {
+		return fmt.Errorf("worker role %q cannot schedule work", role.ID)
+	}
+	if role.Kind != RoleKindAnalyst && capabilities[CapabilityPlanAnalysis] {
+		return fmt.Errorf("role %q cannot own analysis planning", role.ID)
+	}
 	if capabilities[CapabilityProductWrite] && !capabilities[CapabilityVerify] {
 		return fmt.Errorf("product-writing role %q requires verify capability", role.ID)
 	}
-	if role.Enabled && role.Kind != RoleKindCoordinator {
+	if role.Enabled && role.Kind != RoleKindCoordinator && role.Kind != RoleKindInvestigator {
 		if role.DefaultSkill == "" {
 			return fmt.Errorf("enabled worker role %q requires a default skill", role.ID)
 		}
@@ -232,7 +267,7 @@ func validateRole(role Role, profiles map[ModelProfile]bool, skills map[string]b
 
 func isKnownCapability(capability Capability) bool {
 	switch capability {
-	case CapabilityRead, CapabilityConverse, CapabilityDelegate, CapabilityArtifactWrite, CapabilityProductWrite, CapabilityVerify, CapabilityExternalResearch:
+	case CapabilityRead, CapabilityConverse, CapabilityDelegate, CapabilityPlanAnalysis, CapabilityScheduleWork, CapabilityArtifactWrite, CapabilityEvidenceWrite, CapabilityProductWrite, CapabilityVerify, CapabilityExternalResearch:
 		return true
 	}
 	return false

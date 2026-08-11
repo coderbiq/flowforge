@@ -186,3 +186,70 @@ func TestAppendProposalJournalPreservesConcurrentEntries(t *testing.T) {
 		t.Fatalf("expected %d entries, got %d", entryCount, len(entries))
 	}
 }
+
+func TestProposalJournalEventInitEditSealRoundTrip(t *testing.T) {
+	store, _ := setupTestStore(t)
+	proposalID := "CR26081101"
+	event, err := store.InitProposalJournalEvent(proposalID, "analysis.plan_published", "JEV-plan-1")
+	if err != nil {
+		t.Fatalf("initializing journal event: %v", err)
+	}
+	if event.State != "draft" || event.Version != JournalEventSchemaVersion {
+		t.Fatalf("unexpected draft event: %#v", event)
+	}
+
+	path := store.ProposalJournalPath(proposalID)
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading journal: %v", err)
+	}
+	updated := strings.Replace(string(content), `"cycleId": ""`, `"cycleId": "cycle-1"`, 1)
+	updated = strings.Replace(updated, `"work": []`, `"work": [{"workId":"w1","question":"inspect","required":true}]`, 1)
+	if err := os.WriteFile(path, []byte(updated), 0644); err != nil {
+		t.Fatalf("editing journal event: %v", err)
+	}
+
+	sealed, err := store.SealProposalJournalEvent(proposalID, "JEV-plan-1")
+	if err != nil {
+		t.Fatalf("sealing journal event: %v", err)
+	}
+	if sealed.State != "sealed" || sealed.Kind != "analysis.plan_published" {
+		t.Fatalf("unexpected sealed event: %#v", sealed)
+	}
+	events, err := store.ProposalJournalEvents(proposalID, false)
+	if err != nil {
+		t.Fatalf("reading events: %v", err)
+	}
+	if len(events) != 1 || events[0].ID != "JEV-plan-1" {
+		t.Fatalf("unexpected events: %#v", events)
+	}
+}
+
+func TestProposalJournalDraftMayBeHalfWritten(t *testing.T) {
+	store, _ := setupTestStore(t)
+	proposalID := "CR26081101"
+	path, err := store.CreateProposalJournal(proposalID)
+	if err != nil {
+		t.Fatalf("creating journal: %v", err)
+	}
+	content := journalHeader + `
+<!-- flowforge:journal-event id="JEV-half" version="2" state="draft" -->
+` + "```json\n{\n" + journalEventEnd + "\n"
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("writing half event: %v", err)
+	}
+	if _, err := store.ProposalJournalEvents(proposalID, false); err != nil {
+		t.Fatalf("draft event should be ignored: %v", err)
+	}
+}
+
+func TestProposalJournalRejectsDuplicateEventID(t *testing.T) {
+	store, _ := setupTestStore(t)
+	proposalID := "CR26081101"
+	if _, err := store.InitProposalJournalEvent(proposalID, "analysis.completed", "JEV-dup"); err != nil {
+		t.Fatalf("initializing first event: %v", err)
+	}
+	if _, err := store.InitProposalJournalEvent(proposalID, "analysis.completed", "JEV-dup"); err == nil {
+		t.Fatal("expected duplicate event ID error")
+	}
+}

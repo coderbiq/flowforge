@@ -84,7 +84,97 @@ func ValidateCard(card *Card) *ValidationResult {
 		}
 	}
 
+	validateComplexAnalysisBody(card, result)
+
 	return result
+}
+
+var analysisModePattern = regexp.MustCompile(`(?mi)^\s*<!--\s*analysis-mode:\s*complex\s*-->\s*$`)
+var analysisWorkIDPattern = regexp.MustCompile(`(?mi)^\s*<!--\s*analysis-work-id:\s*([A-Za-z0-9][A-Za-z0-9._:-]*)\s*-->\s*$`)
+var findingIDPattern = regexp.MustCompile(`\bFIND-[A-Za-z0-9][A-Za-z0-9-]*\b`)
+
+var complexFeatureSections = []string{
+	"Objective",
+	"Current Understanding",
+	"Evidence",
+	"Working Design",
+	"Rejected or Revised Assumptions",
+	"Open Questions",
+	"Next Investigation",
+}
+
+var complexFindingSections = []string{
+	"Evidence",
+	"Source",
+	"Impact",
+	"Open Questions",
+}
+
+func validateComplexAnalysisBody(card *Card, result *ValidationResult) {
+	if card == nil || !analysisModePattern.MatchString(card.Body) {
+		return
+	}
+
+	var sections []string
+	switch card.Type {
+	case CardTypeFeature:
+		sections = complexFeatureSections
+	case CardTypeFinding:
+		sections = complexFindingSections
+		match := analysisWorkIDPattern.FindStringSubmatch(card.Body)
+		if len(match) != 2 {
+			result.AddError("body.analysis-work-id", "complex analysis FIND requires <!-- analysis-work-id: <stable-id> -->")
+		}
+	default:
+		result.AddError("body.analysis-mode", "complex analysis mode is only valid for FEATURE and FIND cards")
+		return
+	}
+
+	for _, name := range sections {
+		content, ok := markdownSection(card.Body, name)
+		if !ok {
+			result.AddError("body.analysis."+analysisFieldName(name), fmt.Sprintf("missing required section: ## %s", name))
+			continue
+		}
+		if isAnalysisPlaceholder(content) {
+			result.AddError("body.analysis."+analysisFieldName(name), fmt.Sprintf("section ## %s must contain a recoverable value; use None when intentionally empty", name))
+		}
+	}
+}
+
+func markdownSection(body, name string) (string, bool) {
+	heading := regexp.MustCompile(`(?m)^##\s+` + regexp.QuoteMeta(name) + `\s*$`)
+	match := heading.FindStringIndex(body)
+	if match == nil {
+		return "", false
+	}
+	contentStart := match[1]
+	nextHeading := regexp.MustCompile(`(?m)^#{1,2}\s+`).FindStringIndex(body[contentStart:])
+	contentEnd := len(body)
+	if nextHeading != nil {
+		contentEnd = contentStart + nextHeading[0]
+	}
+	return strings.TrimSpace(body[contentStart:contentEnd]), true
+}
+
+func isAnalysisPlaceholder(content string) bool {
+	cleaned := strings.TrimSpace(content)
+	cleaned = strings.TrimSpace(strings.TrimLeft(cleaned, "-* "))
+	cleaned = strings.Trim(cleaned, "`[]()")
+	cleaned = strings.TrimSpace(cleaned)
+	if cleaned == "" {
+		return true
+	}
+	switch strings.ToLower(cleaned) {
+	case "tbd", "todo", "pending", "待补充", "待定":
+		return true
+	default:
+		return false
+	}
+}
+
+func analysisFieldName(name string) string {
+	return strings.ReplaceAll(strings.ToLower(name), " ", "-")
 }
 
 func validateCardID(id string, cardType CardType, result *ValidationResult) {
@@ -217,7 +307,34 @@ func ValidateCardFileInStore(filePath string, store *CardStore) *ValidationResul
 		}
 	}
 
+	validateComplexAnalysisReferences(card, store, result)
+
 	return result
+}
+
+func validateComplexAnalysisReferences(card *Card, store *CardStore, result *ValidationResult) {
+	if card == nil || store == nil || card.Type != CardTypeFeature || !analysisModePattern.MatchString(card.Body) {
+		return
+	}
+	evidence, ok := markdownSection(card.Body, "Evidence")
+	if !ok {
+		return
+	}
+	seen := map[string]bool{}
+	for _, findingID := range findingIDPattern.FindAllString(evidence, -1) {
+		if seen[findingID] {
+			continue
+		}
+		seen[findingID] = true
+		finding, err := store.ReadCard(findingID)
+		if err != nil {
+			result.AddError("body.analysis.evidence", fmt.Sprintf("referenced finding not found: %s", findingID))
+			continue
+		}
+		if finding.Type != CardTypeFinding {
+			result.AddError("body.analysis.evidence", fmt.Sprintf("referenced evidence must be a FIND card: %s", findingID))
+		}
+	}
 }
 
 var wikiLinkPattern = regexp.MustCompile(`\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]`)

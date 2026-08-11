@@ -11,18 +11,21 @@ var roleSources embed.FS
 
 const sharedWorkflow = `## Shared Workflow
 
-- The primary Coordinator is the only role that talks to the user or delegates.
+- The primary Coordinator is the only role that talks to the user or delegates; delegation depth is exactly one.
 - Start by reading recent Proposal Journal entries and referenced artifacts.
-- Proposal, FEATURE, Step, History, and Verification are authoritative; Journal is only a collaboration index.
+- Proposal, FEATURE, DEC, FIND, Step, History, and Verification own durable design and execution facts. Journal owns revision and work-item scheduling facts and indexes those artifacts.
 - Use FlowForge CLI for stages, steps, validation, preflight, risk review, and Journal updates.
 - Workers never delegate or ask the user directly. Return a concise result to the Coordinator.
+- External research is denied unless the assigned work item explicitly authorizes external sources. If required access is unavailable, return STATUS: BLOCKED.
 - Never claim verification passed unless it actually ran. Preserve unrelated worktree changes.
 
 ## Result Contract
 
-Every result starts with one of: STATUS: COMPLETED, STATUS: BLOCKED, STATUS: DESIGN_GAP, STATUS: SCOPE_EXPANDED, STATUS: PLAN_STALE, STATUS: VERIFICATION_FAILED, or STATUS: USER_DECISION_REQUIRED.
+Every result starts with exactly one of: STATUS: COMPLETED, STATUS: BLOCKED, STATUS: INCONCLUSIVE, STATUS: EVIDENCE_CONFLICT, STATUS: DESIGN_GAP, STATUS: SCOPE_EXPANDED, STATUS: PLAN_STALE, STATUS: VERIFICATION_FAILED, or STATUS: USER_DECISION_REQUIRED.
 
 Then report these headings: Summary, Changed Artifacts or Files, Verification, Findings or Blocker, and Next Action. Use None when a section has no entries.
+
+INCONCLUSIVE means the authorized budget ended without enough evidence. EVIDENCE_CONFLICT means sources disagree and the role lacks authority to resolve them. USER_DECISION_REQUIRED pauses work and gives the Coordinator the minimum decision to ask; workers never ask the user themselves.
 `
 
 func rolePrompt(role Role) (string, error) {
@@ -35,7 +38,9 @@ func rolePrompt(role Role) (string, error) {
 	case RoleKindCoordinator:
 		contract = `## Routing Contract
 
-- Delegate design, investigation, architecture, impact analysis, and replanning to flowforge-design-analyst.
+- Act as an execution-only scheduler: run deterministic CLI checks, present user-visible actions, dispatch only work already registered by the Design Analyst, and escalate exceptions. Never create investigation questions or synthesize evidence.
+- Delegate framing, investigation planning, architecture, impact analysis, synthesis, and replanning to flowforge-design-analyst. Delegate each ready investigation brief directly to flowforge-investigator.
+- After a result, record or seal its scheduling state, query ready work and the Analyst re-entry condition again, and invoke the Analyst only when that condition is met. Retry at most one recoverable host failure.
 - Before implementation run context preflight with explicit implementation intent; delegate only when it returns allow.
 - After implementation run context risk-review. Delegate to flowforge-reviewer when it is installed and review_required; otherwise perform the review in the primary session.
 - Route bugs, gaps, stale plans, and scope expansion to flowforge-feedback or flowforge-design.
@@ -43,9 +48,18 @@ func rolePrompt(role Role) (string, error) {
 	case RoleKindAnalyst:
 		contract = `## Execution Contract
 
-1. Load flowforge-design and read project, Proposal, Journal, artifact, knowledge, and code evidence.
-2. Write design facts to FlowForge artifacts; never modify product code.
-3. Run stage and validation gates, append a concise Journal entry, and return changed artifacts, decisions, gaps, and next action.
+1. Load flowforge-design and read project, Proposal, Journal revision state, artifacts, knowledge, and code evidence.
+2. Own framing, complexity, FEATURE decomposition, investigation plans and revisions, evidence acceptance or rejection, synthesis, and stage readiness. Register every follow-up before the Coordinator may dispatch it.
+3. Write design facts to Proposal, FEATURE, DEC, or FIND artifacts; never modify product code or delegate.
+4. Re-enter after required results return, the budget ends, evidence conflicts, or assumptions become stale. Synthesize the revision, run gates, and return the next registered plan or the minimum user-owned decision.
+`
+	case RoleKindInvestigator:
+		contract = `## Investigation Contract
+
+1. Accept only a registered brief containing Proposal/FEATURE, cycle and revision, work ID, question, scope, sources, evidence requirements, budget, done_when, and one writable FIND.
+2. Investigate only that question. Separate observations, inferences, and unknowns; cite reproducible sources.
+3. Edit only the assigned FIND Evidence, Source, Impact, and Open Questions fields, then return the scheduling result. Never edit FEATURE, DEC, product code, or the investigation plan.
+4. Return BLOCKED for missing authorized access, INCONCLUSIVE when budget expires, EVIDENCE_CONFLICT for unresolved source disagreement, and USER_DECISION_REQUIRED through the Coordinator.
 `
 	case RoleKindExecutor:
 		contract = `## Execution Contract
@@ -63,7 +77,11 @@ func rolePrompt(role Role) (string, error) {
 3. Route implementation issues through flowforge-feedback and append the review result to Journal.
 `
 	}
-	return fmt.Sprintf("Active Role: %s\nModel Profile: %s\nDefault Skill: %s\n\n%s\n%s\n%s", role.DisplayName, role.ModelProfile, role.DefaultSkill, sharedWorkflow, source, contract), nil
+	defaultSkill := role.DefaultSkill
+	if defaultSkill == "" {
+		defaultSkill = "None"
+	}
+	return fmt.Sprintf("Active Role: %s\nModel Profile: %s\nDefault Skill: %s\n\n%s\n%s\n%s", role.DisplayName, role.ModelProfile, defaultSkill, sharedWorkflow, source, contract), nil
 }
 
 func RenderOpenCode(policy Policy) (map[string][]byte, error) {
@@ -98,8 +116,14 @@ func RenderOpenCode(policy Policy) (map[string][]byte, error) {
 			taskPermission = allow.String()
 			bashPermission = ""
 		}
-		if role.Kind == RoleKindExecutor || role.Kind == RoleKindAnalyst {
+		if role.Kind == RoleKindExecutor || role.Kind == RoleKindAnalyst || role.Kind == RoleKindInvestigator {
 			edit = "allow"
+		}
+		if role.Kind == RoleKindAnalyst {
+			bashPermission = "  bash:\n    \"*\": deny\n    \"flowforge *\": allow\n    \"./bin/flowforge *\": allow\n    \"git status*\": allow\n    \"git diff*\": allow\n    \"git log*\": allow\n    \"git show*\": allow\n"
+		}
+		if role.Kind == RoleKindInvestigator {
+			bashPermission = "  bash:\n    \"*\": deny\n    \"rg *\": allow\n    \"sed *\": allow\n    \"git status*\": allow\n    \"git diff*\": allow\n    \"git log*\": allow\n    \"git show*\": allow\n"
 		}
 		if role.Kind == RoleKindExecutor {
 			bashPermission = "  bash:\n    \"*\": ask\n    \"git status*\": allow\n    \"git diff*\": allow\n"
@@ -124,7 +148,7 @@ func RenderCodex(policy Policy) (map[string][]byte, error) {
 			return nil, err
 		}
 		sandbox, effort := "read-only", "medium"
-		if role.Kind == RoleKindExecutor {
+		if role.Kind == RoleKindExecutor || role.Kind == RoleKindAnalyst || role.Kind == RoleKindInvestigator {
 			sandbox = "workspace-write"
 		}
 		if role.Kind == RoleKindAnalyst || role.Kind == RoleKindReviewer {
@@ -135,4 +159,18 @@ func RenderCodex(policy Policy) (map[string][]byte, error) {
 		files["flowforge-"+role.ID+".toml"] = []byte(content)
 	}
 	return files, nil
+}
+
+// EnforcementSummary describes host guarantees that cannot be inferred from
+// the role prompt alone. Conditional external access is intentionally marked
+// unsupported until a host can bind it to an individual work-item brief.
+func EnforcementSummary(host string) string {
+	switch host {
+	case "opencode":
+		return "delegation=hard, interaction=hard, write_scope=soft, external_sources=unsupported"
+	case "codex":
+		return "sandbox=hard, delegation=soft, interaction=soft, write_scope=soft, external_sources=unsupported"
+	default:
+		return "unsupported"
+	}
 }

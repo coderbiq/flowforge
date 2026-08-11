@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 	"flowforge/internal/version"
 
 	"github.com/pelletier/go-toml/v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -96,7 +98,7 @@ func syncProject(cmd *cobra.Command, root string, opts syncOptions) error {
 		if err := previewAssetUpdates(cmd, root, manifest); err != nil {
 			return err
 		}
-	} else if _, err := applyAssetUpdates(root); err != nil {
+	} else if _, err := applyAssetUpdates(root, opts.adopt); err != nil {
 		return err
 	} else if manifest, err = core.LoadProjectManifest(root); err != nil {
 		return err
@@ -149,6 +151,9 @@ func syncProject(cmd *cobra.Command, root string, opts syncOptions) error {
 		fmt.Fprintln(cmd.OutOrStdout(), "No supported agent host enabled; base facilities synchronized. Run `flowforge sync` after configuring OpenCode or Codex.")
 	} else {
 		fmt.Fprintf(cmd.OutOrStdout(), "Synchronized hosts: %s\n", strings.Join(sortedHosts(available), ", "))
+		for _, host := range sortedHosts(available) {
+			fmt.Fprintf(cmd.OutOrStdout(), "Enforcement %s: %s\n", host, orchestration.EnforcementSummary(host))
+		}
 	}
 	return nil
 }
@@ -378,38 +383,109 @@ func preserveOpenCodeModel(existing, generated []byte) ([]byte, bool, error) {
 	if !ok {
 		return generated, false, nil
 	}
-	modelValue, found := frontmatterModelValue(existingFrontmatter)
-	if !found {
-		return generated, false, nil
-	}
 	generatedFrontmatter, generatedBody, ok := splitOpenCodeFrontmatter(generated)
 	if !ok {
 		return nil, false, fmt.Errorf("generated YAML frontmatter is missing")
 	}
-	modelLine := []byte("model: " + quoteYAMLString(modelValue) + "\n")
+	preserved := false
+	modelValue, found := frontmatterModelValue(existingFrontmatter)
+	modelLine := []byte(nil)
+	if found {
+		modelLine = []byte("model: " + quoteYAMLString(modelValue) + "\n")
+		preserved = true
+	}
 	lines := strings.Split(string(generatedFrontmatter), "\n")
 	inserted := false
-	for index, line := range lines {
-		if strings.HasPrefix(strings.TrimSpace(line), "model:") {
-			lines[index] = strings.TrimSuffix(string(modelLine), "\n")
-			inserted = true
-			break
-		}
-	}
-	if !inserted {
+	if found {
 		for index, line := range lines {
-			if strings.HasPrefix(strings.TrimSpace(line), "mode:") {
-				lines = append(lines[:index+1], append([]string{strings.TrimSuffix(string(modelLine), "\n")}, lines[index+1:]...)...)
+			if strings.HasPrefix(strings.TrimSpace(line), "model:") {
+				lines[index] = strings.TrimSuffix(string(modelLine), "\n")
 				inserted = true
 				break
 			}
 		}
-	}
-	if !inserted {
-		lines = append(lines, strings.TrimSuffix(string(modelLine), "\n"))
+		if !inserted {
+			for index, line := range lines {
+				if strings.HasPrefix(strings.TrimSpace(line), "mode:") {
+					lines = append(lines[:index+1], append([]string{strings.TrimSuffix(string(modelLine), "\n")}, lines[index+1:]...)...)
+					inserted = true
+					break
+				}
+			}
+		}
+		if !inserted {
+			lines = append(lines, strings.TrimSuffix(string(modelLine), "\n"))
+		}
 	}
 	mergedFrontmatter := []byte(strings.Join(lines, "\n"))
-	return append(append([]byte("---\n"), mergedFrontmatter...), append([]byte("\n---\n"), generatedBody...)...), true, nil
+	merged, permissionPreserved := preserveOpenCodePermission(existing, mergedFrontmatter, generatedBody)
+	return merged, preserved || permissionPreserved, nil
+}
+
+func preserveOpenCodePermission(existing, generatedFrontmatter, generatedBody []byte) ([]byte, bool) {
+	var oldDocument, newDocument map[string]any
+	oldFrontmatter, _, ok := splitOpenCodeFrontmatter(existing)
+	if !ok || yaml.Unmarshal(oldFrontmatter, &oldDocument) != nil || yaml.Unmarshal(generatedFrontmatter, &newDocument) != nil {
+		return append(append([]byte("---\n"), generatedFrontmatter...), append([]byte("\n---\n"), generatedBody...)...), false
+	}
+	oldPermission, found := oldDocument["permission"]
+	if !found || reflect.DeepEqual(oldPermission, newDocument["permission"]) || isLegacyOpenCodePermission(existing, oldPermission) {
+		return append(append([]byte("---\n"), generatedFrontmatter...), append([]byte("\n---\n"), generatedBody...)...), false
+	}
+	newDocument["permission"] = oldPermission
+	encoded, err := yaml.Marshal(newDocument)
+	if err != nil {
+		return append(append([]byte("---\n"), generatedFrontmatter...), append([]byte("\n---\n"), generatedBody...)...), false
+	}
+	return append(append([]byte("---\n"), bytes.TrimSuffix(encoded, []byte("\n"))...), append([]byte("\n---\n"), generatedBody...)...), true
+}
+
+func isLegacyOpenCodePermission(content []byte, permission any) bool {
+	role := ""
+	for _, candidate := range []string{"Coordinator", "Design Analyst", "Executor"} {
+		if bytes.Contains(content, []byte("Active Role: "+candidate)) {
+			role = candidate
+			break
+		}
+	}
+	legacy := map[string]string{
+		"Coordinator": `edit: deny
+task:
+  "*": deny
+  flowforge-design-analyst: allow
+  flowforge-executor: allow
+question: allow
+skill: allow
+`,
+		"Design Analyst": `edit: allow
+task: deny
+question: deny
+skill: allow
+bash:
+  "*": deny
+  "git status*": allow
+  "git diff*": allow
+  "git log*": allow
+  "git show*": allow
+`,
+		"Executor": `edit: allow
+task: deny
+question: deny
+skill: allow
+bash:
+  "*": ask
+  "git status*": allow
+  "git diff*": allow
+`,
+	}[role]
+	if legacy == "" {
+		return false
+	}
+	var expected any
+	if yaml.Unmarshal([]byte(legacy), &expected) != nil {
+		return false
+	}
+	return reflect.DeepEqual(permission, expected)
 }
 
 func splitOpenCodeFrontmatter(content []byte) (frontmatter, body []byte, ok bool) {
@@ -446,15 +522,43 @@ func preserveCodexModel(existing, generated []byte) ([]byte, bool, error) {
 	if err := toml.Unmarshal(existing, &oldDocument); err != nil {
 		return nil, false, fmt.Errorf("parsing existing TOML: %w", err)
 	}
-	model, hasModel := oldDocument["model"]
-	if !hasModel {
-		return generated, false, nil
-	}
 	var newDocument map[string]any
 	if err := toml.Unmarshal(generated, &newDocument); err != nil {
 		return nil, false, fmt.Errorf("parsing generated TOML: %w", err)
 	}
-	newDocument["model"] = model
+	preserved := false
+	if model, hasModel := oldDocument["model"]; hasModel {
+		newDocument["model"] = model
+		preserved = true
+	}
+	role := fmt.Sprint(oldDocument["name"])
+	legacySandbox := map[string]string{
+		"flowforge-coordinator":    "read-only",
+		"flowforge-design-analyst": "read-only",
+		"flowforge-executor":       "workspace-write",
+	}[role]
+	if sandbox, found := oldDocument["sandbox_mode"]; found && sandbox != newDocument["sandbox_mode"] && fmt.Sprint(sandbox) != legacySandbox {
+		newDocument["sandbox_mode"] = sandbox
+		preserved = true
+	}
+	legacyEffort := map[string]string{
+		"flowforge-coordinator":    "medium",
+		"flowforge-design-analyst": "high",
+		"flowforge-executor":       "medium",
+	}[role]
+	if effort, found := oldDocument["model_reasoning_effort"]; found && effort != newDocument["model_reasoning_effort"] && fmt.Sprint(effort) != legacyEffort {
+		newDocument["model_reasoning_effort"] = effort
+		preserved = true
+	}
+	for _, key := range []string{"approval_policy", "network_access"} {
+		if value, found := oldDocument[key]; found {
+			newDocument[key] = value
+			preserved = true
+		}
+	}
+	if !preserved {
+		return generated, false, nil
+	}
 	merged, err := toml.Marshal(newDocument)
 	if err != nil {
 		return nil, false, fmt.Errorf("encoding merged TOML: %w", err)
@@ -625,12 +729,15 @@ func renderOrchestrationRules(hosts hostSet) string {
 	}
 	return fmt.Sprintf("## FlowForge Subagents\n\nInstalled hosts: %s\n\n"+
 		coordinatorRule+
-		"- The primary Coordinator is the only role that talks to the user and delegates; workers never delegate or ask the user directly.\n"+
-		"- Use `flowforge-design-analyst` for Proposal design, investigation, architecture, impact analysis, and replanning.\n"+
+		"- The primary Coordinator is the only role that talks to the user and delegates. It is an execution scheduler: read structured analysis revision/readiness/re-entry state, show the user each background action, and dispatch only work already registered by the Design Analyst.\n"+
+		"- Delegation depth is one: every worker is dispatched directly by the Coordinator; workers never delegate or ask the user directly.\n"+
+		"- Use `flowforge-design-analyst` for framing, FEATURE decomposition, investigation planning, evidence synthesis, architecture, impact analysis, and replanning.\n"+
+		"- Use `flowforge-investigator` only for a ready registered investigation brief; it writes only the assigned FIND and returns structured blocked, inconclusive, conflict, or decision status.\n"+
 		"- Use `flowforge-executor` only after `context preflight` returns `allow` for a planned FEATURE Step and the user explicitly requested implementation.\n"+
 		reviewerRule+
 		"- Run `context risk-review` after implementation; when review is required but no Reviewer is installed, the primary agent performs the read-only conformance review.\n"+
-		"- Read `journal recent` before delegation. Proposal, FEATURE, Step, History, and Verification artifacts override Journal summaries.\n"+
+		"- Read `journal recent` before delegation. Proposal, FEATURE, DEC, FIND, Step, History, and Verification own durable facts; Journal owns analysis scheduling state and artifact references.\n"+
+		"- External sources require explicit authorization in the work-item brief; unavailable required access returns BLOCKED.\n"+
 		"- After worker completion, inspect artifact state and verification evidence, then append one concise Journal entry.\n",
 		strings.Join(sortedHosts(hosts), ", "))
 }

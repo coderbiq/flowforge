@@ -34,7 +34,7 @@ func newLegacyAssetsCmd() *cobra.Command {
 	return cmd
 }
 
-func applyAssetUpdates(projectRoot string) (*AssetUpdateReport, error) {
+func applyAssetUpdates(projectRoot string, adopt bool) (*AssetUpdateReport, error) {
 	oldManifest, err := core.LoadProjectManifest(projectRoot)
 	if err != nil {
 		oldManifest = &core.ProjectManifest{}
@@ -53,6 +53,10 @@ func applyAssetUpdates(projectRoot string) (*AssetUpdateReport, error) {
 	newManifest.PendingHosts = append([]string(nil), oldManifest.PendingHosts...)
 
 	diff := core.CompareManifests(oldManifest, newManifest, projectRoot)
+	if adopt && len(diff.Conflict) > 0 {
+		diff.Updated = append(diff.Updated, diff.Conflict...)
+		diff.Conflict = nil
+	}
 	if !diff.HasChanges() {
 		return nil, nil
 	}

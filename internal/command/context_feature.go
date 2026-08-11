@@ -8,12 +8,15 @@ import (
 	"github.com/spf13/cobra"
 
 	"flowforge/internal/core"
+	"flowforge/internal/state"
 )
 
 func newContextFeatureCmd() *cobra.Command {
 	var (
 		featureID string
 		stepN     int
+		role      string
+		workID    string
 	)
 
 	cmd := &cobra.Command{
@@ -55,6 +58,10 @@ Examples:
 				return renderContainerFeatureContext(out, store, card)
 			}
 
+			if role != "" {
+				return renderRoleFeatureContext(out, store, card, stepN, role, workID)
+			}
+
 			if stepN > 0 {
 				return renderStepContext(out, store, card, stepN)
 			}
@@ -64,7 +71,106 @@ Examples:
 
 	cmd.Flags().StringVar(&featureID, "feature", "", "FEATURE card ID")
 	cmd.Flags().IntVar(&stepN, "step", 0, "Step number for execution context")
+	cmd.Flags().StringVar(&role, "role", "", "Role-specific context (design-analyst|coordinator|investigator|executor)")
+	cmd.Flags().StringVar(&workID, "work", "", "Analysis work ID for investigator context")
 	return cmd
+}
+
+func renderRoleFeatureContext(out interface{ Write([]byte) (int, error) }, store *core.CardStore, card *core.Card, stepN int, role, workID string) error {
+	switch role {
+	case "executor":
+		if stepN <= 0 {
+			return fmt.Errorf("--step is required for executor context")
+		}
+		return renderStepContext(out, store, card, stepN)
+	case "design-analyst":
+		if err := renderFullFeatureContext(out, store, card); err != nil {
+			return err
+		}
+		view, closeFn, err := currentAnalysisView(card.Source, true)
+		if closeFn != nil {
+			defer closeFn()
+		}
+		if err != nil {
+			return fmt.Errorf("loading analyst context: %w", err)
+		}
+		return renderAnalysisContext(out, view, true)
+	case "coordinator":
+		view, closeFn, err := currentAnalysisView(card.Source, true)
+		if closeFn != nil {
+			defer closeFn()
+		}
+		if err != nil {
+			return fmt.Errorf("loading coordinator context: %w", err)
+		}
+		fmt.Fprintf(out, "## Coordinator Context: %s\n", card.ID)
+		return renderAnalysisContext(out, view, false)
+	case "investigator":
+		if workID == "" {
+			return fmt.Errorf("--work is required for investigator context")
+		}
+		view, closeFn, err := currentAnalysisView(card.Source, true)
+		if closeFn != nil {
+			defer closeFn()
+		}
+		if err != nil {
+			return fmt.Errorf("loading investigator context: %w", err)
+		}
+		work, ok := findAnalysisWork(view, workID)
+		if !ok {
+			return fmt.Errorf("analysis work %s is not in the active plan", workID)
+		}
+		return renderInvestigatorContext(out, card, work)
+	default:
+		return fmt.Errorf("invalid --role %q (valid: design-analyst, coordinator, investigator, executor)", role)
+	}
+}
+
+func renderAnalysisContext(out interface{ Write([]byte) (int, error) }, view state.AnalysisView, includeHistory bool) error {
+	fmt.Fprintln(out, "\n### Analysis State")
+	fmt.Fprintf(out, "- State: %s\n- Next Action: %s\n", view.State, view.NextAction)
+	if view.ActivePlan != nil {
+		fmt.Fprintf(out, "- Active Plan: %s revision %d\n", view.ActivePlan.CycleID, view.ActivePlan.Revision)
+	}
+	fmt.Fprintf(out, "- Ready: %d\n- Running: %d\n- Returned: %d\n- Blocked: %d\n", len(view.ReadyWork), len(view.RunningWork), len(view.ReturnedWork), len(view.BlockedWork))
+	if includeHistory {
+		fmt.Fprintf(out, "- Sealed Events: %d\n", len(view.History))
+	}
+	for _, work := range view.ReadyWork {
+		fmt.Fprintf(out, "- Dispatchable: %s — %s\n", work.WorkID, work.Question)
+	}
+	return nil
+}
+
+func findAnalysisWork(view state.AnalysisView, workID string) (state.AnalysisWork, bool) {
+	groups := [][]state.AnalysisWork{view.ReadyWork, view.RunningWork, view.ReturnedWork, view.BlockedWork}
+	for _, group := range groups {
+		for _, work := range group {
+			if work.WorkID == workID {
+				return work, true
+			}
+		}
+	}
+	return state.AnalysisWork{}, false
+}
+
+func renderInvestigatorContext(out interface{ Write([]byte) (int, error) }, card *core.Card, work state.AnalysisWork) error {
+	fmt.Fprintf(out, "## Investigator Context: %s\n\n", work.WorkID)
+	fmt.Fprintf(out, "- FEATURE: %s\n- Question: %s\n- Scope: %s\n- State: %s\n- Evidence Target: %s\n- Done When: %s\n", card.ID, work.Question, work.Scope, work.State, work.EvidenceTarget, work.DoneWhen)
+	if len(work.Sources) > 0 {
+		fmt.Fprintf(out, "- Allowed Sources: %s\n", strings.Join(work.Sources, ", "))
+	}
+	if len(work.Inputs) > 0 {
+		fmt.Fprintf(out, "- Persisted Inputs: %s\n", strings.Join(work.Inputs, ", "))
+	}
+	if work.Skill != "" {
+		fmt.Fprintf(out, "- Skill: %s\n", work.Skill)
+	}
+	if work.Budget != nil {
+		fmt.Fprintf(out, "- Budget: %v\n", work.Budget)
+	}
+	fmt.Fprintln(out, "- Write Boundary: edit only the designated FIND Evidence, Source, Impact, and Open Questions")
+	return nil
 }
 
 func renderContainerFeatureContext(out interface{ Write([]byte) (int, error) }, store *core.CardStore, card *core.Card) error {

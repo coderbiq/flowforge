@@ -32,5 +32,14 @@ FlowForge 通过 `<!-- FLOWFORGE:START -->` 和 `<!-- FLOWFORGE:END -->` 注释�
 
 ## Links
 
-- None
+### Outgoing
+
+- [STR-djkddmq0cabv](../structures/STR-djkddmq0cabv_project-artifacts-upgrade.md) [structure] - Project Artifacts Upgrade
+#### references
+- [DES-CR26062102-dji5hnjgds9i](../../01-workspace/03-completed/CR26062102_flowforge-安装版本检查与自动升级/90-cards/DES-CR26062102-dji5hnjgds9i_agentsmd-区块包裹部署规范.md) [design] - AGENTS.md 区块包裹部署规范
+- [FIND-djkdcbewf8xk](../70-findings/FIND-djkdcbewf8xk_curation-plan-cr26062102-安装升级-proposal.md) [finding] - Curation Plan: CR26062102 安装升级 proposal 归档
+
+### Incoming
+
+- [FEAT-CR26081101-dklt4yyrcz3r](../../01-workspace/CR26081101_复杂需求多代理分析编排/90-cards/FEAT-CR26081101-dklt4yyrcz3r_重构-flowforge-design-方法论与端到端评估.md) [feature] - 重构 flowforge-design 方法论与端到端评估
 

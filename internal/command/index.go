@@ -55,10 +55,21 @@ func newIndexRebuildCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			analysisEvents := 0
+			if proposalID, ok, currentErr := store.CurrentProposalID(project.ID); currentErr != nil {
+				return currentErr
+			} else if ok {
+				view, rebuildErr := rebuildAnalysisIndex(cardStore, store, proposalID)
+				if rebuildErr != nil {
+					return rebuildErr
+				}
+				analysisEvents = len(view.History)
+			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Rebuilt index for project %s\n", project.ID)
 			fmt.Fprintf(cmd.OutOrStdout(), "  cards: %d\n", indexedCards)
 			fmt.Fprintf(cmd.OutOrStdout(), "  links: %d\n", indexedLinks)
+			fmt.Fprintf(cmd.OutOrStdout(), "  analysis events: %d\n", analysisEvents)
 			return nil
 		},
 	}
@@ -83,8 +94,10 @@ func newIndexStatusCmd() *cobra.Command {
 				return err
 			}
 
-			wikiRoot, _ := cfg.WikiRootForProject(projectRoot, project.ID)
-			_ = wikiRoot
+			wikiRoot, err := cfg.WikiRootForProject(projectRoot, project.ID)
+			if err != nil {
+				return err
+			}
 
 			syncSvc := state.NewCardSyncService(store.DB())
 
@@ -98,6 +111,22 @@ func newIndexStatusCmd() *cobra.Command {
 			fmt.Fprintf(out, "Source: %s\n", source)
 			fmt.Fprintf(out, "card_index: %d\n", status.CardCount)
 			fmt.Fprintf(out, "card_link: %d\n", status.LinkCount)
+			if proposalID, ok, currentErr := store.CurrentProposalID(project.ID); currentErr != nil {
+				return currentErr
+			} else if ok {
+				cardStore := core.NewCardStore(wikiRoot)
+				sourceRevision, revisionErr := cardStore.ProposalJournalSourceRevision(proposalID)
+				if revisionErr != nil {
+					return revisionErr
+				}
+				analysisStatus, statusErr := store.AnalysisIndexStatus(proposalID, sourceRevision)
+				if statusErr != nil {
+					return statusErr
+				}
+				fmt.Fprintf(out, "analysis_proposal: %s\n", proposalID)
+				fmt.Fprintf(out, "analysis_present: %t\n", analysisStatus.Present)
+				fmt.Fprintf(out, "analysis_stale: %t\n", analysisStatus.Stale)
+			}
 			return nil
 		},
 	}

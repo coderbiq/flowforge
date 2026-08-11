@@ -29,6 +29,91 @@ func newJournalCmd() *cobra.Command {
 	}
 	cmd.AddCommand(newJournalAppendCmd())
 	cmd.AddCommand(newJournalRecentCmd())
+	cmd.AddCommand(newJournalEventCmd())
+	return cmd
+}
+
+func newJournalEventCmd() *cobra.Command {
+	cmd := &cobra.Command{Use: "event", Short: "Manage Journal v2 scheduling events"}
+	cmd.AddCommand(newJournalEventInitCmd())
+	cmd.AddCommand(newJournalEventSealCmd())
+	return cmd
+}
+
+func newJournalEventInitCmd() *cobra.Command {
+	var proposalID, kind, eventID string
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Append an editable Journal v2 event skeleton",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if strings.TrimSpace(kind) == "" {
+				return fmt.Errorf("--kind is required")
+			}
+			store, err := currentCardStore()
+			if err != nil {
+				return err
+			}
+			proposalID, err = resolveJournalProposalID(proposalID)
+			if err != nil {
+				return err
+			}
+			if err := ensureJournalProposal(store, proposalID); err != nil {
+				return err
+			}
+			event, err := store.InitProposalJournalEvent(proposalID, kind, eventID)
+			if err != nil {
+				return err
+			}
+			if isJSONOutput(cmd) {
+				return writeJournalJSON(cmd, event)
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Initialized journal event %s (%s)\n", event.ID, event.Kind)
+			fmt.Fprintf(cmd.OutOrStdout(), "  edit: %s\n", store.ProposalJournalPath(proposalID))
+			fmt.Fprintf(cmd.OutOrStdout(), "  seal: flowforge journal event seal %s --proposal %s\n", event.ID, proposalID)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&proposalID, "proposal", "", "Proposal ID (default: current proposal)")
+	cmd.Flags().StringVar(&kind, "kind", "", "Event kind")
+	cmd.Flags().StringVar(&eventID, "id", "", "Stable event ID (generated when omitted)")
+	return cmd
+}
+
+func newJournalEventSealCmd() *cobra.Command {
+	var proposalID string
+	cmd := &cobra.Command{
+		Use:   "seal <event-id>",
+		Short: "Validate and seal an edited Journal v2 event",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cardStore, projectID, runtimeStore, err := currentProposalStoreWithState()
+			if err != nil {
+				return err
+			}
+			defer closeStateStore(runtimeStore)
+			proposalID, err = resolveJournalProposalIDWithStore(proposalID, runtimeStore, projectID)
+			if err != nil {
+				return err
+			}
+			if err := ensureJournalProposal(cardStore, proposalID); err != nil {
+				return err
+			}
+			event, err := cardStore.SealProposalJournalEvent(proposalID, args[0])
+			if err != nil {
+				return err
+			}
+			if _, err := rebuildAnalysisIndex(cardStore, runtimeStore, proposalID); err != nil {
+				return fmt.Errorf("journal event %s is sealed, but rebuilding derived analysis index failed: %w", event.ID, err)
+			}
+			if isJSONOutput(cmd) {
+				return writeJournalJSON(cmd, event)
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Sealed journal event %s\n", event.ID)
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&proposalID, "proposal", "", "Proposal ID (default: current proposal)")
 	return cmd
 }
 
@@ -146,6 +231,22 @@ func resolveJournalProposalID(proposalID string) (string, error) {
 	}
 	defer closeStateStore(runtimeStore)
 	return currentProposalIDForProject(runtimeStore, projectID)
+}
+
+func resolveJournalProposalIDWithStore(proposalID string, runtimeStore interface {
+	CurrentProposalID(string) (string, bool, error)
+}, projectID string) (string, error) {
+	if proposalID != "" {
+		return proposalID, nil
+	}
+	value, ok, err := runtimeStore.CurrentProposalID(projectID)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("no current proposal set for project %q; run flowforge proposal use <proposal-id>", projectID)
+	}
+	return value, nil
 }
 
 func ensureJournalProposal(store *core.CardStore, proposalID string) error {

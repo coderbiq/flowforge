@@ -101,6 +101,69 @@ CREATE TABLE IF NOT EXISTS version_check (
 	id INTEGER PRIMARY KEY,
 	check_time TEXT NOT NULL,
 	checked_version TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS journal_event (
+	proposal_id TEXT NOT NULL,
+	event_id TEXT NOT NULL,
+	sequence INTEGER NOT NULL,
+	kind TEXT NOT NULL,
+	event_time TEXT NOT NULL,
+	actor TEXT NOT NULL,
+	payload_json TEXT NOT NULL,
+	PRIMARY KEY (proposal_id, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_journal_event_proposal_sequence ON journal_event(proposal_id, sequence);
+
+CREATE TABLE IF NOT EXISTS journal_event_ref (
+	proposal_id TEXT NOT NULL,
+	event_id TEXT NOT NULL,
+	reference TEXT NOT NULL,
+	PRIMARY KEY (proposal_id, event_id, reference)
+);
+
+CREATE TABLE IF NOT EXISTS analysis_plan (
+	proposal_id TEXT NOT NULL,
+	revision INTEGER NOT NULL,
+	cycle_id TEXT NOT NULL,
+	event_id TEXT NOT NULL,
+	supersedes INTEGER,
+	reentry_condition TEXT NOT NULL,
+	active INTEGER NOT NULL,
+	PRIMARY KEY (proposal_id, revision)
+);
+
+CREATE TABLE IF NOT EXISTS analysis_work (
+	proposal_id TEXT NOT NULL,
+	revision INTEGER NOT NULL,
+	work_id TEXT NOT NULL,
+	work_json TEXT NOT NULL,
+	PRIMARY KEY (proposal_id, revision, work_id)
+);
+
+CREATE TABLE IF NOT EXISTS analysis_work_dep (
+	proposal_id TEXT NOT NULL,
+	revision INTEGER NOT NULL,
+	work_id TEXT NOT NULL,
+	depends_on TEXT NOT NULL,
+	PRIMARY KEY (proposal_id, revision, work_id, depends_on)
+);
+
+CREATE TABLE IF NOT EXISTS analysis_work_state (
+	proposal_id TEXT NOT NULL,
+	revision INTEGER NOT NULL,
+	work_id TEXT NOT NULL,
+	state TEXT NOT NULL,
+	event_id TEXT NOT NULL,
+	updated_at TEXT NOT NULL,
+	PRIMARY KEY (proposal_id, revision, work_id)
+);
+
+CREATE TABLE IF NOT EXISTS analysis_proposal_state (
+	proposal_id TEXT PRIMARY KEY,
+	source_revision TEXT NOT NULL,
+	state_json TEXT NOT NULL,
+	updated_at TEXT NOT NULL
 );`
 
 	if _, err := s.db.Exec(query); err != nil {

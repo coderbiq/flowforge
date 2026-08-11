@@ -326,7 +326,14 @@ func (s *CardStore) UpdateCardWithLock(cardID string, mutate func(*Card) error) 
 		}
 	}()
 
-	card, err := s.ReadCard(cardID)
+	// Structured mutations must always start from the authoritative Markdown
+	// file. The sqlite sync service is a derived index and may lag behind a
+	// direct body edit; reading it here could overwrite newer prose.
+	cardPath, err := s.FindCardPath(cardID)
+	if err != nil {
+		return err
+	}
+	card, err := ParseCardFile(cardPath)
 	if err != nil {
 		return fmt.Errorf("reading card %s: %w", cardID, err)
 	}

@@ -45,6 +45,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newTaskCmd())
 	cmd.AddCommand(newProposalCmd())
 	cmd.AddCommand(newJournalCmd())
+	cmd.AddCommand(newAnalysisCmd())
 	cmd.AddCommand(newIndexCmd())
 	cmd.AddCommand(newLibraryCmd())
 	cmd.AddCommand(newContextCmd())

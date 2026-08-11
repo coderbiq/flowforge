@@ -28,4 +28,10 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 | Independently review a completed planned implementation | `flowforge-review` |
 | Report bug / finding / gap | `flowforge-feedback` |
 | Import docs / archive proposal | `flowforge-curate` |
+
+### Subagent Orchestration
+
+When FlowForge host subagents are installed, the Coordinator is a low-cost execution scheduler and the only interactive/delegating role. The Design Analyst owns framing, investigation planning, synthesis, and readiness decisions. The Investigator executes one registered brief and writes only its assigned FIND.
+
+Before delegation, read structured Journal revision/readiness/re-entry state and tell the user what background action will run. Keep delegation one level deep: the Coordinator dispatches every worker directly, and workers never delegate or ask the user. External sources require explicit work-item authorization; unavailable required access returns `BLOCKED`.
 <!-- FLOWFORGE:END -->

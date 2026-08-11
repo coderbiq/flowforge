@@ -51,6 +51,47 @@ Review rules:
 - No cross-card references (no "参考 DES-xxx").
 - Step status via HTML comments, CLI-managed.
 
+### Complex analysis opt-in
+
+Simple FEATURE cards keep the minimum structure above. Only add the marker below when the requirement needs a recoverable investigation loop; validation then requires every listed section to contain a value (`None` is valid, `TBD` is not).
+
+```markdown
+<!-- analysis-mode: complex -->
+
+## Objective
+
+## Current Understanding
+
+## Evidence
+
+Use FIND card IDs for accepted investigation evidence, or `None` before evidence exists.
+
+## Working Design
+
+## Rejected or Revised Assumptions
+
+## Open Questions
+
+## Next Investigation
+```
+
+Each investigation FIND uses the same opt-in marker and a stable work ID from the published plan:
+
+```markdown
+<!-- analysis-mode: complex -->
+<!-- analysis-work-id: <revision-and-work-id> -->
+
+## Evidence
+
+## Source
+
+## Impact
+
+## Open Questions
+```
+
+Investigators edit only those four FIND sections. Sources must be independently recoverable; do not rely on a live Agent session.
+
 ## Content Density Guidelines
 
 | Density | Effective Content | Action |
