@@ -62,7 +62,10 @@ func newLogCreateCmd() *cobra.Command {
 			}
 
 			logCard := core.NewCard(core.CardTypeLog, title)
-			logCard.ID = core.GenerateCardID(core.CardTypeLog, proposalTimestamp(resolvedProposalID))
+			logCard.ID, err = store.NextCardID(core.CardTypeLog, resolvedProposalID)
+			if err != nil {
+				return err
+			}
 			logCard.Body = renderLogBody(kind, summary)
 			logCard.Tags = append([]string{kind}, tags...)
 			if len(forCards) == 0 {

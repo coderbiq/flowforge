@@ -51,7 +51,7 @@ func GenerateTaskID(proposalTs string, taskType string) string {
 func GenerateSubTaskID(parentTaskID string) (string, error) {
 	parts := strings.Split(parentTaskID, "-")
 	if len(parts) < 4 {
-		return "", fmt.Errorf("invalid parent task ID format: %s (expected TASK-{proposalTs}-{type}-{taskTs})", parentTaskID)
+		return "", fmt.Errorf("invalid parent task ID format: %s (expected TASK-{proposalId}-{type}-{sequence})", parentTaskID)
 	}
 
 	existingLetter := 'a' - 1

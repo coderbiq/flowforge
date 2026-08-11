@@ -207,17 +207,17 @@ Examples:
 				return err
 			}
 
-			proposalTs := proposalTimestamp(resolvedProposalID)
-
 			if ct == core.CardTypeTask {
 				taskType := "i"
-				if len(resolvedProposalID) > 0 {
-					card.ID = core.GenerateTaskID(proposalTs, taskType)
-				} else {
-					card.ID = core.GenerateTaskID("", taskType)
+				card.ID, err = store.NextTaskID(resolvedProposalID, taskType)
+				if err != nil {
+					return err
 				}
 			} else {
-				card.ID = core.GenerateCardID(ct, proposalTs)
+				card.ID, err = store.NextCardID(ct, resolvedProposalID)
+				if err != nil {
+					return err
+				}
 			}
 
 			parsedLinks, err := parseLinkArgs(links)

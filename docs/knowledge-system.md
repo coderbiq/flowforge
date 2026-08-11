@@ -226,20 +226,22 @@ cancelled
 
 **格式原则**：使用 `-` 连接各部分，通过 ID 表达归属/层级关系。
 
+本文后续较早编写的示例中仍可能出现 Base36 时间戳 ID；这些仅用于说明旧数据兼容性，新建 proposal 卡片以本节定义的递增序号格式为准。
+
 #### 分隔符规则
 
 | 位置 | 分隔符 | 说明 |
 |------|--------|------|
-| **ID 内部** | `-` | 连接类型、proposal、时间戳、子层级 |
+| **ID 内部** | `-` | 连接类型、proposal、序号、子层级 |
 | **文件名中** | `_` | 分隔 ID 和 slug |
 
 #### 各类型 ID 格式
 
 | 类型 | 格式 | 示例 | 说明 |
 |------|------|------|------|
-| 需求/设计/决策/发现/日志 | `{TYPE}-{proposalTs}-{cardTs}` | `REQ-2x9k3m00-3x8m2n1q` | proposal 归属 + 自身时间戳 |
-| 任务 | `TASK-{proposalTs}-{type}-{taskTs}` | `TASK-2x9k3m00-i-5z0o4p3s` | 含任务类型字母 |
-| 子任务 | `{父任务ID}-{letter}` | `TASK-2x9k3m00-i-5z0o4p3s-a` | 父 ID + `-a/b/c` |
+| 需求/设计/决策/发现/日志 | `{TYPE}-{proposalId}-{seq}` | `REQ-CR26061201-001` | proposal 归属 + proposal 内递增序号 |
+| 任务 | `TASK-{proposalId}-{type}-{seq}` | `TASK-CR26061201-i-002` | 含任务类型字母和 proposal 内递增序号 |
+| 子任务 | `{父任务ID}-{letter}` | `TASK-CR26061201-i-003-a` | 父 ID + `-a/b/c` |
 | proposal 根卡 | `ROOT-{proposalId}` | `ROOT-CR26061201` | proposal 稳定入口 |
 | 全局卡片 | `{TYPE}-{NN}` | `CONV-001`, `MOD-001` | 无 proposal 归属 |
 
@@ -261,18 +263,21 @@ cancelled
 - **任务**：最多 2 层（父 → 子），子任务用 `-a`, `-b`, `-c` 后缀
 - **全局卡片**（CONV/MOD/STR）：无 proposal 归属
 
-#### 时间戳生成
+#### Proposal 卡片序号
 
-使用 Unix 时间戳（秒）转 **Base36**（0-9, a-z）：
+proposal 作用域内新建的普通卡片和任务共用一个递增序号，默认使用三位十进制显示：
 
-```javascript
-function generateCardTimestamp() {
-  return Math.floor(Date.now() / 1000).toString(36);
-}
-
-// 2024-06-12 10:00:00 UTC → 1718172000 → "2x9k3m7p"
-// 2024-06-12 10:00:01 UTC → 1718172001 → "2x9k3m7q"
+```text
+REQ-CR26061201-001
+FEAT-CR26061201-002
+TASK-CR26061201-i-003
 ```
+
+序号从 `001` 开始，超过 `999` 后自然扩展为 `1000`，之后继续按实际位数增长，不设置人为位数上限。序号由 CLI 在 proposal 卡片目录中加锁分配，序号分配状态写入 `.flowforge-card-sequence`；删除卡片后不复用序号，创建失败也允许留下空洞。
+
+proposal 根卡和固定结构索引卡不占用序号。没有 proposal 归属的全局卡片继续使用各自的全局 ID 规则。
+
+旧版本生成的 Base36 时间戳 ID 继续兼容读取和链接，新建 proposal 卡片不再生成该格式。
 
 ### 3.4 文件命名规范
 
@@ -286,7 +291,7 @@ function generateCardTimestamp() {
 
 | 部分 | 说明 | 分隔符 |
 |------|------|--------|
-| `{ID}` | 完整卡片 ID（含类型、proposal、时间戳） | `_` 连接 slug |
+| `{ID}` | 完整卡片 ID（含类型、proposal、序号） | `_` 连接 slug |
 | `{slug}` | 标题短横线化（kebab-case） | - |
 
 #### 示例

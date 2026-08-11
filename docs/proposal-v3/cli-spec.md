@@ -105,7 +105,7 @@ flowforge card init --type feature --title "FileProcessor Clone" --proposal CR26
 **行为：**
 
 1. 验证参数（type 必须有效，title 非空）
-2. 生成 card ID（`FEAT-<proposalTs>-<cardTs>`）
+2. 生成 card ID（proposal 卡片使用 `FEAT-<proposalId>-<sequence>`，序号至少三位显示）
 3. 在 proposal 的 cards 目录创建 `.md` 文件
 4. 写入完整 frontmatter（id, title, type: feature, status: draft, importance: should, created, updated, source, proposal_id）
 5. 自动添加 `belongs_to → PROP-<proposalId>` 链接

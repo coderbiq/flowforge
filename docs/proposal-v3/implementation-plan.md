@@ -68,8 +68,8 @@ CardStatusPlanned  CardStatus = "planned"
 
 **`internal/core/naming.go`：**
 
-- 确认 `GenerateCardID(CardTypeFeature, proposalTs)` 可正常工作（Prefix → "FEAT"）
-- 无需修改 `GenerateCardID` 核心逻辑
+- 通过 `CardStore.NextCardID(CardTypeFeature, proposalID)` 分配 proposal 内递增序号（Prefix → "FEAT"）
+- 保留 `GenerateCardID` 作为无 proposal 卡片的兼容生成逻辑
 
 **`internal/core/card_density.go`：**
 
@@ -101,7 +101,7 @@ func newCardInitCmd() *cobra.Command {
 
 **行为：**
 1. 验证 type 在允许范围内
-2. 调用 `core.GenerateCardID(ct, proposalTs)` 生成 ID
+2. 调用 `store.NextCardID(ct, proposalID)` 生成 proposal 内递增 ID
 3. 构建 Card 对象：frontmatter + template body
 4. 调用 `store.CreateCard(card, proposalID)` 写入文件
 5. 输出 JSON：`{"id": "FEAT-xxx", "path": "/path/to/card.md", "type": "feature"}`

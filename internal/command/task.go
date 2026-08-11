@@ -70,7 +70,10 @@ func newTaskCreateCmd() *cobra.Command {
 			}
 
 			task := core.NewCard(core.CardTypeTask, title)
-			task.ID = core.GenerateTaskID(proposalTimestamp(resolvedProposalID), taskType)
+			task.ID, err = store.NextTaskID(resolvedProposalID, taskType)
+			if err != nil {
+				return err
+			}
 			task.Status = taskStatus
 			task.Body = renderTaskBody(body, task.ID)
 			task.Tags = tags

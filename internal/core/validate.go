@@ -192,7 +192,7 @@ func validateCardID(id string, cardType CardType, result *ValidationResult) {
 
 	if cardType == CardTypeTask {
 		if len(parts) < 3 {
-			result.AddError("id", "task ID must have at least 3 parts: TASK-{proposalTs}-{type}-{taskTs}")
+			result.AddError("id", "task ID must have at least 3 parts: TASK-{proposalId}-{type}-{sequence}")
 		} else if len(parts) >= 3 {
 			taskType := parts[2]
 			if !isValidTaskType(taskType) && len(taskType) == 1 {

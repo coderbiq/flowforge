@@ -153,8 +153,11 @@ The indexes relation automatically performs structure add.`,
 				errors = append(errors, batchError{Index: i, Error: err.Error()})
 				continue
 			}
-			proposalTs := proposalTimestamp(resolvedProposalID)
-			newCard.ID = core.GenerateCardID(ct, proposalTs)
+			newCard.ID, err = store.NextCardID(ct, resolvedProposalID)
+			if err != nil {
+				errors = append(errors, batchError{Index: i, Error: err.Error()})
+				continue
+			}
 
 			addProposalOwnershipLink(newCard, resolvedProposalID)
 

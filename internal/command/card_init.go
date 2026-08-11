@@ -62,8 +62,10 @@ Examples:
 				return err
 			}
 
-			proposalTs := proposalTimestamp(resolvedProposalID)
-			card.ID = core.GenerateCardID(ct, proposalTs)
+			card.ID, err = store.NextCardID(ct, resolvedProposalID)
+			if err != nil {
+				return err
+			}
 			card.Source = resolvedProposalID
 			card.Body = templateBody(ct, title)
 			addProposalOwnershipLink(card, resolvedProposalID)

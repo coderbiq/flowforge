@@ -54,12 +54,14 @@ Examples:
 			}
 
 			proposalID := parent.Source
-			proposalTs := proposalTimestamp(proposalID)
 			var childIDs []string
 
 			for _, title := range childTitles {
 				child := core.NewCard(core.CardTypeFeature, title)
-				child.ID = core.GenerateCardID(core.CardTypeFeature, proposalTs)
+				child.ID, err = store.NextCardID(core.CardTypeFeature, proposalID)
+				if err != nil {
+					return err
+				}
 				child.Source = proposalID
 				child.Status = core.CardStatusDraft
 				child.Body = featureTemplateBody(title)
