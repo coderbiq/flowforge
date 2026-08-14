@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -59,7 +60,7 @@ func buildProposalInspectReport(store *core.CardStore, proposalID string) (*prop
 	return &proposalInspectReport{snapshot: snapshot, health: collectProposalHealthIssues(snapshot), analysis: analysis, analysisIssue: analysisIssue}, nil
 }
 
-func buildProposalContextReport(store *core.CardStore, proposalID, cardID, taskID string) (*proposalContextReport, error) {
+func buildProposalContextReport(store *core.CardStore, proposalID, cardID string) (*proposalContextReport, error) {
 	snapshot, err := loadProposalSnapshot(store, proposalID)
 	if err != nil {
 		return nil, err
@@ -67,7 +68,7 @@ func buildProposalContextReport(store *core.CardStore, proposalID, cardID, taskI
 	analysis, analysisIssue := proposalAnalysisFromJournal(store, proposalID)
 	return &proposalContextReport{
 		snapshot:      snapshot,
-		focus:         focusCardFromFlags(snapshot, cardID, taskID),
+		focus:         focusCardFromFlags(snapshot, cardID),
 		health:        collectProposalHealthIssues(snapshot),
 		analysis:      analysis,
 		analysisIssue: analysisIssue,
@@ -116,6 +117,10 @@ func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSn
 	if err != nil {
 		return nil, err
 	}
+	metadataCards, err := loadProposalMetadata(store, proposalID, proposalDir)
+	if err != nil {
+		return nil, err
+	}
 	proposalCards, _ := collectProposalCards(store, store.ProposalCardDir())
 	for _, card := range proposalCards {
 		if card.ID == "PROP-"+proposalID || card.ID == "ROOT-"+proposalID || card.Source == proposalID {
@@ -137,9 +142,12 @@ func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSn
 		if card.ID == "PROP-"+proposalID || card.ID == "ROOT-"+proposalID {
 			snapshot.rootCard = card
 		}
+	}
+	for _, card := range metadataCards {
 		if card.ID == "STR-"+proposalID+"-REQ" {
 			snapshot.requirementIndex = card
 		}
+		snapshot.cardByID[card.ID] = card
 	}
 
 	for _, card := range cards {
@@ -154,6 +162,50 @@ func loadProposalSnapshot(store *core.CardStore, proposalID string) (*proposalSn
 	}
 
 	return snapshot, nil
+}
+
+// loadProposalMetadata is the only path that reads proposal control-plane
+// metadata. These cards are intentionally absent from CardStore listings and
+// the runtime index.
+func loadProposalMetadata(store *core.CardStore, proposalID, proposalDir string) ([]*core.Card, error) {
+	indexPath := store.ProposalRequirementIndexPath(proposalID)
+	indexCard, err := core.ParseCardFile(indexPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("reading proposal metadata index: %w", err)
+	}
+	metadata := []*core.Card{indexCard}
+	indexedIDs := map[string]bool{}
+	for _, link := range indexCard.Links {
+		if link.Relation == "indexes" {
+			indexedIDs[link.Target] = true
+		}
+	}
+	if len(indexedIDs) == 0 {
+		return metadata, nil
+	}
+	err = filepath.Walk(proposalDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() || filepath.Clean(path) == filepath.Clean(indexPath) || filepath.Ext(path) != ".md" {
+			return nil
+		}
+		card, parseErr := core.ParseCardFile(path)
+		if parseErr != nil {
+			return nil
+		}
+		if indexedIDs[card.ID] {
+			metadata = append(metadata, card)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("scanning proposal metadata entries: %w", err)
+	}
+	return metadata, nil
 }
 
 func collectProposalCards(store *core.CardStore, proposalDir string) ([]*core.Card, error) {
@@ -178,11 +230,7 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	}
 
 	s := report.snapshot
-	taskSummary := summarizeTasks(s.cards)
 	openQuestions := collectOpenQuestions(s.cards)
-	activeAnalysis := collectAnalysisTasks(s.cards)
-	notReadyTasks := collectNotReadyTasks(s)
-	recentLogs := collectRecentLogs(s.cards, 5)
 	proposalTitle := proposalDisplayTitle(s)
 
 	fmt.Fprintln(w, "## Proposal")
@@ -193,38 +241,10 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	fmt.Fprintf(w, "- RequirementIndex: %s\n", cardIDOrMissing(s.requirementIndex))
 	fmt.Fprintln(w)
 
-	fmt.Fprintln(w, "## Structure Health")
-	fmt.Fprintf(w, "- TopLevelEntries: %d\n", countTopLevelEntries(s.requirementIndex))
-	fmt.Fprintf(w, "- DirectChildIndexes: %d\n", countChildIndexes(s.cards, s.proposalID))
-	fmt.Fprintf(w, "- OversizedIndexes: %s\n", joinOrNone(oversizedIndexes(s.cards)))
-	fmt.Fprintf(w, "- MissingIndexes: %s\n", joinOrNone(missingIndexes(s)))
-	fmt.Fprintln(w)
-
 	renderFeatureMap(w, s)
 
 	fmt.Fprintln(w, "## Health Issues")
 	renderProposalHealthIssues(w, report.health, 0)
-	fmt.Fprintln(w)
-
-	fmt.Fprintln(w, "## Task Summary")
-	fmt.Fprintln(w, "| Type | backlog | not_ready | ready | in_progress | blocked | done |")
-	fmt.Fprintln(w, "|------|---------|-----------|-------|-------------|---------|------|")
-	fmt.Fprintf(w, "| analysis | %d | %d | %d | %d | %d | %d |\n",
-		taskSummary.analysis["backlog"],
-		taskSummary.analysis["not_ready"],
-		taskSummary.analysis["ready"],
-		taskSummary.analysis["in_progress"],
-		taskSummary.analysis["blocked"],
-		taskSummary.analysis["done"],
-	)
-	fmt.Fprintf(w, "| implementation | %d | %d | %d | %d | %d | %d |\n",
-		taskSummary.implementation["backlog"],
-		taskSummary.implementation["not_ready"],
-		taskSummary.implementation["ready"],
-		taskSummary.implementation["in_progress"],
-		taskSummary.implementation["blocked"],
-		taskSummary.implementation["done"],
-	)
 	fmt.Fprintln(w)
 
 	fmt.Fprintln(w, "## Open Questions")
@@ -242,20 +262,8 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 		fmt.Fprintf(w, "- Invalid Journal state: %s\n", report.analysisIssue)
 	} else if report.analysis != nil && report.analysis.ActivePlan != nil {
 		renderActiveAnalysisView(w, *report.analysis)
-	} else if len(activeAnalysis) == 0 {
-		fmt.Fprintln(w, "- None")
 	} else {
-		fmt.Fprintln(w, "| ID | Title | Status | Analyzes | Done When |")
-		fmt.Fprintln(w, "|----|-------|--------|----------|-----------|")
-		for _, item := range activeAnalysis {
-			fmt.Fprintf(w, "| %s | %s | %s | %s | %s |\n",
-				item.ID,
-				escapeTableCell(item.Title),
-				item.Status,
-				escapeTableCell(item.Analyzes),
-				escapeTableCell(item.DoneWhen),
-			)
-		}
+		fmt.Fprintln(w, "- None")
 	}
 	fmt.Fprintln(w)
 
@@ -269,35 +277,8 @@ func renderProposalInspectReport(w io.Writer, report *proposalInspectReport) err
 	}
 	fmt.Fprintln(w)
 
-	fmt.Fprintln(w, "## Not Ready Tasks")
-	if len(notReadyTasks) == 0 {
-		fmt.Fprintln(w, "- None")
-	} else {
-		fmt.Fprintln(w, "| ID | Title | Status | Missing |")
-		fmt.Fprintln(w, "|----|-------|--------|---------|")
-		for _, item := range notReadyTasks {
-			fmt.Fprintf(w, "| %s | %s | %s | %s |\n",
-				item.ID,
-				escapeTableCell(item.Title),
-				item.Status,
-				escapeTableCell(item.Missing),
-			)
-		}
-	}
-	fmt.Fprintln(w)
-
-	fmt.Fprintln(w, "## Recent Important Logs")
-	if len(recentLogs) == 0 {
-		fmt.Fprintln(w, "- None")
-	} else {
-		for _, item := range recentLogs {
-			fmt.Fprintf(w, "- %s [%s] %s\n", item.ID, item.Status, item.Title)
-		}
-	}
-	fmt.Fprintln(w)
-
 	fmt.Fprintln(w, "## Recommendations")
-	for _, line := range proposalRecommendations(s, openQuestions, activeAnalysis, notReadyTasks) {
+	for _, line := range proposalRecommendations(s, openQuestions) {
 		fmt.Fprintf(w, "- %s\n", line)
 	}
 
@@ -449,20 +430,6 @@ func renderProposalContextReport(w io.Writer, report *proposalContextReport) err
 	return nil
 }
 
-type taskSummaryCounts struct {
-	analysis       map[string]int
-	implementation map[string]int
-}
-
-type proposalTaskItem struct {
-	ID       string
-	Title    string
-	Status   string
-	Analyzes string
-	DoneWhen string
-	Missing  string
-}
-
 type linkedCard struct {
 	ID       string
 	Type     core.CardType
@@ -474,112 +441,6 @@ type linkedCard struct {
 type findingItem struct {
 	ID      string
 	Summary string
-}
-
-func summarizeTasks(cards []*core.Card) taskSummaryCounts {
-	counts := taskSummaryCounts{
-		analysis: map[string]int{
-			"backlog":     0,
-			"not_ready":   0,
-			"ready":       0,
-			"in_progress": 0,
-			"blocked":     0,
-			"done":        0,
-		},
-		implementation: map[string]int{
-			"backlog":     0,
-			"not_ready":   0,
-			"ready":       0,
-			"in_progress": 0,
-			"blocked":     0,
-			"done":        0,
-		},
-	}
-
-	for _, card := range cards {
-		if card.Type != core.CardTypeTask {
-			continue
-		}
-		bucket := counts.implementation
-		if isAnalysisTask(card) {
-			bucket = counts.analysis
-		}
-		status := string(card.Status)
-		if _, ok := bucket[status]; ok {
-			bucket[status]++
-		}
-	}
-
-	return counts
-}
-
-func collectAnalysisTasks(cards []*core.Card) []proposalTaskItem {
-	var items []proposalTaskItem
-	for _, card := range cards {
-		if card.Type == core.CardTypeTask && isAnalysisTask(card) && isActiveTaskStatus(card.Status) {
-			items = append(items, proposalTaskItem{
-				ID:       card.ID,
-				Title:    card.Title,
-				Status:   string(card.Status),
-				Analyzes: linkedTargetsByRelation(card, "analyzes"),
-				DoneWhen: sectionSummaryOrMissing(card.Body, "Done When"),
-			})
-		}
-	}
-	sort.SliceStable(items, func(i, j int) bool { return items[i].ID < items[j].ID })
-	return items
-}
-
-func collectNotReadyTasks(snapshot *proposalSnapshot) []proposalTaskItem {
-	var items []proposalTaskItem
-	if snapshot == nil {
-		return items
-	}
-	for _, card := range snapshot.cards {
-		if card.Type != core.CardTypeTask {
-			continue
-		}
-		if isNotReadyStatus(card.Status) {
-			items = append(items, proposalTaskItem{
-				ID:      card.ID,
-				Title:   card.Title,
-				Status:  string(card.Status),
-				Missing: missingTaskReadiness(card, snapshot),
-			})
-		}
-	}
-	sort.SliceStable(items, func(i, j int) bool { return items[i].ID < items[j].ID })
-	return items
-}
-
-func collectRecentLogs(cards []*core.Card, limit int) []proposalTaskItem {
-	var logs []*core.Card
-	for _, card := range cards {
-		if card.Type == core.CardTypeLog {
-			logs = append(logs, card)
-		}
-	}
-
-	sort.SliceStable(logs, func(i, j int) bool {
-		if logs[i].Updated.Equal(logs[j].Updated) {
-			return logs[i].ID < logs[j].ID
-		}
-		return logs[i].Updated.After(logs[j].Updated)
-	})
-
-	if limit > 0 && len(logs) > limit {
-		logs = logs[:limit]
-	}
-
-	items := make([]proposalTaskItem, 0, len(logs))
-	for _, logCard := range logs {
-		items = append(items, proposalTaskItem{
-			ID:     logCard.ID,
-			Title:  logCard.Title,
-			Status: string(logCard.Status),
-		})
-	}
-	return items
 }
 
 func collectOpenQuestions(cards []*core.Card) []string {
@@ -616,7 +477,7 @@ func cardOpenQuestions(card *core.Card) []string {
 	return questions
 }
 
-func proposalRecommendations(snapshot *proposalSnapshot, openQuestions []string, activeAnalysis []proposalTaskItem, notReadyTasks []proposalTaskItem) []string {
+func proposalRecommendations(snapshot *proposalSnapshot, openQuestions []string) []string {
 	if snapshot == nil {
 		return []string{"No snapshot available"}
 	}
@@ -630,16 +491,6 @@ func proposalRecommendations(snapshot *proposalSnapshot, openQuestions []string,
 	if len(openQuestions) > 0 {
 		return []string{
 			fmt.Sprintf("Continue design by resolving %s", openQuestions[0]),
-		}
-	}
-	if len(notReadyTasks) > 0 {
-		return []string{
-			fmt.Sprintf("Resolve blockers for %s", notReadyTasks[0].ID),
-		}
-	}
-	if len(activeAnalysis) > 0 {
-		return []string{
-			fmt.Sprintf("Continue analysis for %s", activeAnalysis[0].ID),
 		}
 	}
 	if proposalFeaturesComplete(snapshot) {
@@ -670,14 +521,8 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 	if snapshot.rootCard == nil {
 		add("error", rootID, "missing proposal root card", "flowforge proposal create <title>")
 	}
-	if snapshot.requirementIndex == nil {
-		add("error", "STR-"+snapshot.proposalID+"-REQ", "missing top-level requirement index", "restore STR-"+snapshot.proposalID+"-REQ or recreate the proposal working surface")
-	} else if len(structureIndexedCardIDs(snapshot.requirementIndex)) == 0 {
-		add("error", snapshot.requirementIndex.ID, "top-level requirement index is empty", "flowforge card create --type requirement --title \"...\" --proposal "+snapshot.proposalID+" && flowforge structure add "+snapshot.requirementIndex.ID+" <REQ-ID>")
-	}
-	indexedRequirements := indexedRequirementSet(snapshot)
-
 	featureCount := 0
+	indexedRequirements := indexedRequirementSet(snapshot)
 	for _, card := range snapshot.cards {
 		switch card.Type {
 		case core.CardTypeProposal:
@@ -696,26 +541,6 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 			if !featureLinksRequirement(snapshot, card, indexedRequirements) {
 				add("error", card.ID, "feature is not traceable to an indexed requirement", "flowforge card link "+card.ID+" <REQ-ID> --relation implements")
 			}
-		case core.CardTypeRequirement:
-			if !indexedRequirements[card.ID] {
-				add("error", card.ID, "requirement is not reachable from a requirement index (not indexed by a STR card)", "flowforge structure add STR-"+snapshot.proposalID+"-REQ "+card.ID)
-			}
-			if requirementNeedsNavigation(snapshot, card) && !hasSection(card.Body, "Links") {
-				add("warn", card.ID, "requirement navigation is stale or missing", "flowforge card refresh "+card.ID)
-			}
-		case core.CardTypeStructure:
-			if structurePurposeIsPlaceholder(card) {
-				add("warn", card.ID, "structure card has no meaningful purpose description", "edit the Purpose section")
-			}
-		case core.CardTypeDesign:
-			if !cardLinksRequirement(snapshot, card) {
-				add("warn", card.ID, "design card does not link to a requirement", "flowforge card link "+card.ID+" <REQ-ID> --relation designs")
-			}
-			if designNeedsNavigation(snapshot, card) && !hasSection(card.Body, "Links") {
-				add("warn", card.ID, "design navigation is stale or missing", "flowforge card refresh "+card.ID)
-			}
-		case core.CardTypeTask:
-			issues = append(issues, taskHealthIssues(snapshot, card)...)
 		case core.CardTypeConvention, core.CardTypeDecision:
 			if isOrphanCrossCuttingCard(snapshot, card) {
 				add("warn", card.ID, fmt.Sprintf("%s card has no FEATURE referencing it", card.Type), "link this card to a FEATURE with --relation constrains/references")
@@ -743,20 +568,10 @@ func collectProposalHealthIssues(snapshot *proposalSnapshot) []proposalHealthIss
 	return issues
 }
 
-func cardLinksRequirement(snapshot *proposalSnapshot, card *core.Card) bool {
-	for _, link := range card.Links {
-		target := snapshot.cardByID[link.Target]
-		if target != nil && target.Type == core.CardTypeRequirement {
-			return true
-		}
-	}
-	return false
-}
-
 func featureLinksRequirement(snapshot *proposalSnapshot, feature *core.Card, indexed map[string]bool) bool {
 	for _, link := range feature.Links {
 		target := snapshot.cardByID[link.Target]
-		if target == nil || target.Type != core.CardTypeRequirement || !indexed[target.ID] {
+		if target == nil || !indexed[target.ID] {
 			continue
 		}
 		if link.Relation == "implements" || link.Relation == "satisfies" || link.Relation == "requires" || link.Relation == "references" {
@@ -859,151 +674,15 @@ func severityRank(severity string) int {
 
 func indexedRequirementSet(snapshot *proposalSnapshot) map[string]bool {
 	indexed := map[string]bool{}
-	for _, card := range snapshot.cards {
-		if card.Type != core.CardTypeStructure {
-			continue
-		}
-		for _, link := range card.Links {
-			if link.Relation != "indexes" {
-				continue
-			}
-			target := snapshot.cardByID[link.Target]
-			if target != nil && target.Type == core.CardTypeRequirement {
-				indexed[target.ID] = true
-			}
+	if snapshot == nil || snapshot.requirementIndex == nil {
+		return indexed
+	}
+	for _, link := range snapshot.requirementIndex.Links {
+		if link.Relation == "indexes" {
+			indexed[link.Target] = true
 		}
 	}
 	return indexed
-}
-
-func requirementNeedsNavigation(snapshot *proposalSnapshot, requirement *core.Card) bool {
-	for _, backlink := range snapshot.backlinks[requirement.ID] {
-		card := backlink.from
-		switch card.Type {
-		case core.CardTypeTask:
-			if backlink.relation == "analyzes" || backlink.relation == "requires" || backlink.relation == "satisfies" {
-				return true
-			}
-		case core.CardTypeDesign:
-			if backlink.relation == "designs" || backlink.relation == "satisfies" || backlink.relation == "requires" || backlink.relation == "references" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func designNeedsNavigation(snapshot *proposalSnapshot, design *core.Card) bool {
-	for _, backlink := range snapshot.backlinks[design.ID] {
-		card := backlink.from
-		if card.Type == core.CardTypeTask && !isAnalysisTask(card) && (backlink.relation == "implements" || backlink.relation == "requires" || backlink.relation == "references") {
-			return true
-		}
-	}
-	return false
-}
-
-func taskHealthIssues(snapshot *proposalSnapshot, task *core.Card) []proposalHealthIssue {
-	var issues []proposalHealthIssue
-	add := func(message, command string) {
-		issues = append(issues, proposalHealthIssue{
-			Severity: "warn",
-			CardID:   task.ID,
-			Message:  message,
-			Command:  command,
-		})
-	}
-	addError := func(message, command string) {
-		issues = append(issues, proposalHealthIssue{
-			Severity: "error",
-			CardID:   task.ID,
-			Message:  message,
-			Command:  command,
-		})
-	}
-
-	if core.IsSubTaskID(task.ID) {
-		parentID, err := core.GetParentTaskID(task.ID)
-		if err == nil && !hasLinkRelation(task, parentID, "decomposes") {
-			add("subtask does not link to parent with decomposes", "flowforge task link-add "+task.ID+" "+parentID+":decomposes")
-		}
-	}
-
-	if isAnalysisTask(task) {
-		if !hasAnyRelation(task, "analyzes") {
-			add("analysis task does not link to analyzed requirement or structure", "flowforge task link-add "+task.ID+" <REQ-or-STR>:analyzes")
-		}
-		return issues
-	}
-
-	if task.Status == core.CardStatusReady && !taskBodyHasContent(task.Body) {
-		addError("ready task has no body content (requires Goal, Deliverables, Acceptance)", "flowforge card update "+task.ID+" --body \"## Goal\\n\\n...\"")
-	}
-
-	if !hasAnyRelation(task, "implements") {
-		add("implementation task does not link to a design with implements", "flowforge task link-add "+task.ID+" <DES>:implements")
-	}
-	if !hasAnyRelation(task, "satisfies") && !linksToRequirementThroughDesign(snapshot, task) {
-		add("implementation task is not traceable to a requirement", "flowforge task link-add "+task.ID+" <REQ>:satisfies")
-	}
-	if task.Status == core.CardStatusReady && !hasAnyRelation(task, "constrains") {
-		add("ready implementation task has no linked convention constraints", "flowforge library suggest --for "+task.ID+" --types convention,module")
-	}
-	return issues
-}
-
-func linksToRequirementThroughDesign(snapshot *proposalSnapshot, task *core.Card) bool {
-	for _, link := range task.Links {
-		if link.Relation != "implements" {
-			continue
-		}
-		design := snapshot.cardByID[link.Target]
-		if design == nil {
-			continue
-		}
-		for _, designLink := range design.Links {
-			target := snapshot.cardByID[designLink.Target]
-			if target != nil && target.Type == core.CardTypeRequirement {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func taskBodyHasContent(body string) bool {
-	body = strings.TrimSpace(body)
-	if body == "" {
-		return false
-	}
-	body = stripAutoGeneratedLinks(body)
-	return strings.TrimSpace(body) != ""
-}
-
-func stripAutoGeneratedLinks(body string) string {
-	for _, sep := range []string{"\n## Links\n", "\n## Links", "## Links\n", "## Links"} {
-		if idx := strings.Index(body, sep); idx >= 0 {
-			return strings.TrimSpace(body[:idx])
-		}
-	}
-	return body
-}
-
-func hasAnyRelation(card *core.Card, relations ...string) bool {
-	relationSet := map[string]bool{}
-	for _, relation := range relations {
-		relationSet[relation] = true
-	}
-	for _, link := range card.Links {
-		if relationSet[link.Relation] {
-			return true
-		}
-	}
-	return false
-}
-
-func hasSection(body, section string) bool {
-	return strings.TrimSpace(extractSection(body, section)) != ""
 }
 
 func proposalSummaryIsPlaceholder(card *core.Card) bool {
@@ -1018,68 +697,6 @@ func proposalSummaryIsPlaceholder(card *core.Card) bool {
 		}
 	}
 	return false
-}
-
-func structurePurposeIsPlaceholder(card *core.Card) bool {
-	purpose := strings.TrimSpace(extractSection(card.Body, "Purpose"))
-	if purpose == "" {
-		return true
-	}
-	purpose = strings.ToLower(purpose)
-	if strings.Contains(purpose, "top-level requirement index for") {
-		return true
-	}
-	return false
-}
-
-func structureHasSynthesis(card *core.Card) bool {
-	section := strings.TrimSpace(extractSection(card.Body, "Synthesis"))
-	if section == "" || section == "None" || section == "TBD" || section == "Structure index." {
-		return false
-	}
-	return len(strings.Split(section, "\n")) >= 2
-}
-
-func requirementIsTooThin(card *core.Card) bool {
-	return core.EffectiveContentLines(card.Body) < 5
-}
-
-func requirementHasCrossLinks(snapshot *proposalSnapshot, card *core.Card) bool {
-	crossRelations := map[string]bool{"requires": true, "refines": true, "extends": true, "supports": true, "blocks": true}
-	for _, link := range card.Links {
-		if crossRelations[link.Relation] {
-			target := snapshot.cardByID[link.Target]
-			if target != nil && target.Type == core.CardTypeRequirement {
-				return true
-			}
-		}
-	}
-	for _, bl := range snapshot.backlinks[card.ID] {
-		if crossRelations[bl.relation] && bl.from.Type == core.CardTypeRequirement {
-			return true
-		}
-	}
-	return false
-}
-
-func countActiveRequirements(snapshot *proposalSnapshot) int {
-	count := 0
-	for _, card := range snapshot.cards {
-		if card.Type == core.CardTypeRequirement && card.Status == core.CardStatusActive {
-			count++
-		}
-	}
-	return count
-}
-
-func countDesignCards(snapshot *proposalSnapshot) int {
-	count := 0
-	for _, card := range snapshot.cards {
-		if card.Type == core.CardTypeDesign {
-			count++
-		}
-	}
-	return count
 }
 
 func featureHealthIssues(snapshot *proposalSnapshot, card *core.Card) []proposalHealthIssue {
@@ -1320,8 +937,7 @@ func extendedLinkedCards(snapshot *proposalSnapshot, stable []linkedCard) []link
 				if !ok {
 					continue
 				}
-				if target.Type != core.CardTypeDesign && target.Type != core.CardTypeFinding &&
-					target.Type != core.CardTypeDecision && target.Type != core.CardTypeRequirement {
+				if target.Type != core.CardTypeFinding && target.Type != core.CardTypeDecision {
 					continue
 				}
 				seen[link.Target] = true
@@ -1395,7 +1011,7 @@ func deepReadSuggestions(cards []linkedCard) []string {
 func requirementMapCards(cards []*core.Card) []*core.Card {
 	var filtered []*core.Card
 	for _, card := range cards {
-		if card.Type == core.CardTypeRequirement || card.Type == core.CardTypeStructure {
+		if strings.HasPrefix(card.ID, "STR-") && strings.HasSuffix(card.ID, "-REQ") {
 			filtered = append(filtered, card)
 		}
 	}
@@ -1414,7 +1030,7 @@ func contextRequirementMapCards(cards []*core.Card) []*core.Card {
 		if strings.HasPrefix(card.ID, "PROP-") || strings.HasPrefix(card.ID, "ROOT-") {
 			continue
 		}
-		if card.Type == core.CardTypeRequirement || card.Type == core.CardTypeStructure {
+		if strings.HasPrefix(card.ID, "STR-") && strings.HasSuffix(card.ID, "-REQ") {
 			filtered = append(filtered, card)
 		}
 	}
@@ -1441,7 +1057,7 @@ func requirementMapCardsForContext(snapshot *proposalSnapshot, focus *core.Card)
 		if strings.HasPrefix(card.ID, "PROP-") || strings.HasPrefix(card.ID, "ROOT-") {
 			return
 		}
-		if card.Type != core.CardTypeRequirement && card.Type != core.CardTypeStructure {
+		if card.ID != "STR-"+snapshot.proposalID+"-REQ" {
 			return
 		}
 		seen[card.ID] = true
@@ -1473,9 +1089,6 @@ func requirementNote(card *core.Card, snapshot *proposalSnapshot) string {
 	case "STR-" + snapshot.proposalID + "-REQ":
 		return "requirement-index"
 	}
-	if card.Type == core.CardTypeStructure {
-		return "structure"
-	}
 	downstream := countDownstreamCards(card, snapshot)
 	if downstream != "" {
 		return downstream
@@ -1486,9 +1099,7 @@ func requirementNote(card *core.Card, snapshot *proposalSnapshot) string {
 func countDownstreamCards(card *core.Card, snapshot *proposalSnapshot) string {
 	downstreamTypes := map[core.CardType]bool{
 		core.CardTypeFinding:  true,
-		core.CardTypeDesign:   true,
 		core.CardTypeDecision: true,
-		core.CardTypeTask:     true,
 	}
 	counts := map[core.CardType]int{}
 	for _, bl := range snapshot.backlinks[card.ID] {
@@ -1499,12 +1110,10 @@ func countDownstreamCards(card *core.Card, snapshot *proposalSnapshot) string {
 	if len(counts) == 0 {
 		return ""
 	}
-	ordered := []core.CardType{core.CardTypeFinding, core.CardTypeDesign, core.CardTypeDecision, core.CardTypeTask}
+	ordered := []core.CardType{core.CardTypeFinding, core.CardTypeDecision}
 	shortCodes := map[core.CardType]string{
 		core.CardTypeFinding:  "F",
-		core.CardTypeDesign:   "D",
 		core.CardTypeDecision: "C",
-		core.CardTypeTask:     "T",
 	}
 	parts := make([]string, 0, len(ordered))
 	for _, t := range ordered {
@@ -1513,54 +1122,6 @@ func countDownstreamCards(card *core.Card, snapshot *proposalSnapshot) string {
 		}
 	}
 	return strings.Join(parts, "/")
-}
-
-func countTopLevelEntries(indexCard *core.Card) int {
-	if indexCard == nil {
-		return 0
-	}
-	count := 0
-	for _, link := range indexCard.Links {
-		if link.Relation == "indexes" {
-			count++
-		}
-	}
-	return count
-}
-
-func countChildIndexes(cards []*core.Card, proposalID string) int {
-	count := 0
-	for _, card := range cards {
-		if card.Type == core.CardTypeStructure && card.ID != "PROP-"+proposalID && card.ID != "ROOT-"+proposalID && card.ID != "STR-"+proposalID+"-REQ" {
-			count++
-		}
-	}
-	return count
-}
-
-func oversizedIndexes(cards []*core.Card) []string {
-	var oversized []string
-	for _, card := range cards {
-		if card.Type != core.CardTypeStructure {
-			continue
-		}
-		if len(card.Links) > 15 {
-			oversized = append(oversized, card.ID)
-		}
-	}
-	sort.Strings(oversized)
-	return oversized
-}
-
-func missingIndexes(snapshot *proposalSnapshot) []string {
-	var missing []string
-	if snapshot.rootCard == nil {
-		missing = append(missing, "PROP-"+snapshot.proposalID)
-	}
-	if snapshot.requirementIndex == nil {
-		missing = append(missing, "STR-"+snapshot.proposalID+"-REQ")
-	}
-	return missing
 }
 
 func proposalDisplayTitle(snapshot *proposalSnapshot) string {
@@ -1636,115 +1197,6 @@ func firstParagraph(body string) string {
 		inParagraph = true
 	}
 	return strings.Join(parts, " ")
-}
-
-func linkedTargetsByRelation(card *core.Card, relation string) string {
-	if card == nil {
-		return "None"
-	}
-	var targets []string
-	for _, link := range card.Links {
-		if link.Relation == relation {
-			targets = append(targets, link.Target)
-		}
-	}
-	return joinOrNone(targets)
-}
-
-func sectionSummaryOrMissing(body, section string) string {
-	text := extractSection(body, section)
-	if text == "" {
-		return "missing"
-	}
-	if lines := splitBulletLines(text); len(lines) > 0 {
-		return strings.Join(lines, "; ")
-	}
-	summary := firstParagraph(text)
-	if summary == "" {
-		return "missing"
-	}
-	return summary
-}
-
-func missingTaskReadiness(card *core.Card, snapshot *proposalSnapshot) string {
-	if card == nil {
-		return "task"
-	}
-	var missing []string
-	if strings.TrimSpace(card.Body) == "" {
-		missing = append(missing, "body")
-	}
-	for _, section := range requiredTaskSections(card) {
-		if strings.TrimSpace(extractSection(card.Body, section)) == "" {
-			missing = append(missing, section)
-		}
-	}
-	if !isAnalysisTask(card) && len(card.Links) == 0 {
-		missing = append(missing, "links")
-	}
-	if card.Status == core.CardStatusBlocked {
-		if reason := sectionSummaryOrMissing(card.Body, "Blocked"); reason != "missing" {
-			missing = append(missing, "blocked: "+reason)
-		} else {
-			missing = append(missing, "blocked reason")
-		}
-	}
-	missing = append(missing, incompleteTaskDependencies(card, snapshot)...)
-	return joinOrNone(missing)
-}
-
-func incompleteTaskDependencies(card *core.Card, snapshot *proposalSnapshot) []string {
-	if card == nil || snapshot == nil {
-		return nil
-	}
-
-	var missing []string
-	for _, link := range card.Links {
-		if !strings.HasPrefix(link.Target, "TASK-") {
-			continue
-		}
-		dependency := snapshot.cardByID[link.Target]
-		if dependency == nil {
-			missing = append(missing, "dependency "+link.Target+" missing")
-			continue
-		}
-		if dependency.Status != core.CardStatusDone {
-			missing = append(missing, fmt.Sprintf("dependency %s is %s", dependency.ID, dependency.Status))
-		}
-	}
-	return missing
-}
-
-func isActiveTaskStatus(status core.CardStatus) bool {
-	switch status {
-	case core.CardStatusDone, core.CardStatusCancelled:
-		return false
-	default:
-		return true
-	}
-}
-
-func isNotReadyStatus(status core.CardStatus) bool {
-	switch status {
-	case core.CardStatusBacklog, core.CardStatusNotReady, core.CardStatusBlocked:
-		return true
-	default:
-		return false
-	}
-}
-
-func taskKindFromID(cardID string) string {
-	parts := strings.Split(cardID, "-")
-	if len(parts) < 2 || parts[0] != "TASK" {
-		return ""
-	}
-	if len(parts) == 3 {
-		return parts[1]
-	}
-	if len(parts) >= 4 {
-		return parts[2]
-	}
-	return ""
 }
 
 func queryTermsFromCard(card *core.Card) []string {

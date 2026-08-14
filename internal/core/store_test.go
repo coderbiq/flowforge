@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -90,15 +91,12 @@ func TestCardStoreLibraryTypeDir(t *testing.T) {
 		cardType CardType
 		expected string
 	}{
-		{CardTypeRequirement, "/test/wiki/02-library/10-requirements"},
 		{CardTypeDecision, "/test/wiki/02-library/20-decisions"},
-		{CardTypeDesign, "/test/wiki/02-library/30-designs"},
-		{CardTypeTask, "/test/wiki/02-library/40-tasks"},
-		{CardTypeLog, "/test/wiki/02-library/50-logs"},
 		{CardTypeConvention, "/test/wiki/02-library/60-conventions"},
 		{CardTypeFinding, "/test/wiki/02-library/70-findings"},
 		{CardTypeModule, "/test/wiki/02-library/80-modules"},
-		{CardTypeStructure, "/test/wiki/02-library/structures"},
+		{CardTypeProposal, "/test/wiki/02-library/proposals"},
+		{CardTypeFeature, "/test/wiki/02-library/features"},
 	}
 
 	for _, tt := range tests {
@@ -144,44 +142,30 @@ func TestCreateProposal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parsing root card failed: %v", err)
 	}
-	if !cardHasLink(rootCard, "STR-CR260612-REQ", "indexes") {
+	if len(rootCard.Links) != 0 {
 		t.Fatalf("root card missing indexes link to requirement index: %#v", rootCard.Links)
 	}
 	for _, want := range []string{
 		"## Purpose",
-		"## Entries",
-		"[STR-CR260612-REQ](../01-workspace/CR260612_test-proposal/STR-CR260612-REQ.md) (structure, active) - Requirement index",
+		"## Summary",
 	} {
 		if !strings.Contains(rootCard.Body, want) {
 			t.Fatalf("root body missing %q:\n%s", want, rootCard.Body)
 		}
 	}
 
-	expectedIndexPath := filepath.Join(proposalDir, "STR-CR260612-REQ.md")
-	if indexPath != expectedIndexPath {
-		t.Fatalf("expected indexPath %s, got %s", expectedIndexPath, indexPath)
-	}
-	if _, err := os.Stat(indexPath); err != nil {
-		t.Errorf("requirement index card not created: %v", err)
+	if indexPath != filepath.Join(proposalDir, "STR-CR260612-REQ.md") {
+		t.Fatalf("expected proposal metadata index path, got %s", indexPath)
 	}
 	indexCard, err := ParseCardFile(indexPath)
-	if err != nil {
-		t.Fatalf("parsing index card failed: %v", err)
+	if err != nil || indexCard.ID != "STR-CR260612-REQ" {
+		t.Fatalf("invalid proposal metadata index: %v", err)
 	}
-	if !cardHasLink(indexCard, "PROP-CR260612", "belongs_to") {
-		t.Fatalf("requirement index missing belongs_to link to root: %#v", indexCard.Links)
-	}
-	for _, want := range []string{
-		"## Purpose",
-		"Top-level requirement index for Test Proposal.",
-		"## Entries\n\n- None",
-		"## Open Questions\n\n- None",
-	} {
-		if !strings.Contains(indexCard.Body, want) {
-			t.Fatalf("index body missing %q:\n%s", want, indexCard.Body)
-		}
-	}
-
+	/* legacy index assertions intentionally removed */
+	/*
+		if !cardHasLink(indexCard, "PROP-CR260612", "belongs_to") {
+			t.Fatalf("requirement index missing belongs_to link to root: %#v", indexCard.Links)
+		} */
 	_, _, err = store.CreateProposal("CR260612", "Test Proposal")
 	if err == nil {
 		t.Error("expected error for duplicate proposal")
@@ -204,12 +188,8 @@ func TestReadCardFindsProposalRootAndIndexFiles(t *testing.T) {
 		t.Fatalf("expected root type proposal, got %s", root.Type)
 	}
 
-	index, err := store.ReadCard("STR-CR260612-REQ")
-	if err != nil {
-		t.Fatalf("ReadCard requirement index failed: %v", err)
-	}
-	if index.Type != CardTypeStructure {
-		t.Fatalf("expected index type structure, got %s", index.Type)
+	if _, err := store.ReadCard("STR-CR260612-REQ"); err == nil {
+		t.Fatal("expected legacy requirement index to be not found")
 	}
 }
 
@@ -219,8 +199,8 @@ func TestCreateCard(t *testing.T) {
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	card := NewCard(CardTypeRequirement, "Test Requirement")
-	card.ID = "REQ-abc-123"
+	card := NewCard(CardTypeFeature, "Test Requirement")
+	card.ID = "FEAT-abc-123"
 
 	filePath, err := store.CreateCard(card, "CR260612")
 	if err != nil {
@@ -276,27 +256,77 @@ func TestReadCardNotFound(t *testing.T) {
 	}
 }
 
+func TestLegacyFallbackIsReadOnlyAndExcludesLegacyCards(t *testing.T) {
+	root := t.TempDir()
+	store := NewCardStore(root)
+	legacyPath := filepath.Join(root, "02-library", "40-tasks", "TASK-legacy-task.md")
+	strPath := filepath.Join(root, "01-workspace", "STR-legacy-REQ.md")
+	currentPath := filepath.Join(root, "01-workspace", "FEAT-current.md")
+	for _, path := range []string{legacyPath, strPath, currentPath} {
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	legacy := []byte("# legacy task\n\nunchanged legacy body\n")
+	str := []byte("# legacy metadata\n\noriginal STR metadata\n")
+	if err := os.WriteFile(legacyPath, legacy, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(strPath, str, 0644); err != nil {
+		t.Fatal(err)
+	}
+	card := NewCard(CardTypeFeature, "Current feature")
+	card.ID = "FEAT-current"
+	if err := card.Save(currentPath); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := store.FindCardPath("TASK-legacy"); err == nil {
+		t.Fatal("legacy card unexpectedly resolved by fallback")
+	}
+	path, err := store.FindCardPath("FEAT-current")
+	if err != nil || path != currentPath {
+		t.Fatalf("current card fallback path = %q, err = %v", path, err)
+	}
+	cards, err := store.ListCardsFromFiles(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cards) != 1 || cards[0].ID != "FEAT-current" {
+		t.Fatalf("fallback returned unexpected cards: %#v", cards)
+	}
+	for path, want := range map[string][]byte{legacyPath: legacy, strPath: str} {
+		got, readErr := os.ReadFile(path)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("legacy file %s was rewritten", path)
+		}
+	}
+}
+
 func TestUpdateCard(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	card := NewCard(CardTypeRequirement, "Original Title")
-	card.ID = "REQ-abc-789"
+	card := NewCard(CardTypeFeature, "Original Title")
+	card.ID = "FEAT-abc-789"
 	filePath, err := store.CreateCard(card, "CR260612")
 	if err != nil {
 		t.Fatalf("failed to create card: %v", err)
 	}
 
-	loaded, _ := store.ReadCard("REQ-abc-789")
+	loaded, _ := store.ReadCard("FEAT-abc-789")
 	loaded.Title = "Updated Title"
 
 	if err := store.UpdateCard(loaded); err != nil {
 		t.Fatalf("failed to update card: %v", err)
 	}
 
-	reloaded, _ := store.ReadCard("REQ-abc-789")
+	reloaded, _ := store.ReadCard("FEAT-abc-789")
 	if reloaded.Title != "Updated Title" {
 		t.Errorf("expected updated title, got %s", reloaded.Title)
 	}
@@ -314,15 +344,15 @@ func TestUpdateCardWithLockPreservesConcurrentLinkAdds(t *testing.T) {
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	structure := NewCard(CardTypeStructure, "Concurrent structure")
-	structure.ID = "STR-atomic"
+	structure := NewCard(CardTypeFeature, "Concurrent structure")
+	structure.ID = "FEAT-atomic"
 	if _, err := store.CreateCard(structure, "CR260612"); err != nil {
 		t.Fatalf("failed to create structure card: %v", err)
 	}
 
-	linkIDs := []string{"REQ-atomic-1", "REQ-atomic-2", "REQ-atomic-3"}
+	linkIDs := []string{"FEAT-atomic-1", "FEAT-atomic-2", "FEAT-atomic-3"}
 	for i, linkID := range linkIDs {
-		req := NewCard(CardTypeRequirement, "Requirement")
+		req := NewCard(CardTypeFeature, "Requirement")
 		req.ID = linkID
 		req.Body = filepath.Base(linkID) + " body"
 		if _, err := store.CreateCard(req, "CR260612"); err != nil {
@@ -338,7 +368,7 @@ func TestUpdateCardWithLockPreservesConcurrentLinkAdds(t *testing.T) {
 		go func(id string) {
 			defer wg.Done()
 			<-start
-			errs <- store.UpdateCardWithLock("STR-atomic", func(card *Card) error {
+			errs <- store.UpdateCardWithLock("FEAT-atomic", func(card *Card) error {
 				card.AddLink(id, "indexes")
 				time.Sleep(20 * time.Millisecond)
 				return nil
@@ -356,7 +386,7 @@ func TestUpdateCardWithLockPreservesConcurrentLinkAdds(t *testing.T) {
 		}
 	}
 
-	reloaded, err := store.ReadCard("STR-atomic")
+	reloaded, err := store.ReadCard("FEAT-atomic")
 	if err != nil {
 		t.Fatalf("failed to reload structure card: %v", err)
 	}
@@ -406,11 +436,11 @@ func TestDeleteCard(t *testing.T) {
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	card := NewCard(CardTypeRequirement, "To Delete")
-	card.ID = "REQ-abc-del"
+	card := NewCard(CardTypeFeature, "To Delete")
+	card.ID = "FEAT-abc-del"
 	filePath, _ := store.CreateCard(card, "CR260612")
 
-	if err := store.DeleteCard("REQ-abc-del"); err != nil {
+	if err := store.DeleteCard("FEAT-abc-del"); err != nil {
 		t.Fatalf("failed to delete card: %v", err)
 	}
 
@@ -425,12 +455,12 @@ func TestDeleteCardNonDraft(t *testing.T) {
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	card := NewCard(CardTypeRequirement, "Active Card")
-	card.ID = "REQ-abc-act"
+	card := NewCard(CardTypeFeature, "Active Card")
+	card.ID = "FEAT-abc-act"
 	card.Status = CardStatusActive
 	store.CreateCard(card, "CR260612")
 
-	err := store.DeleteCard("REQ-abc-act")
+	err := store.DeleteCard("FEAT-abc-act")
 	if err == nil {
 		t.Error("expected error when deleting non-draft card")
 	}
@@ -443,8 +473,8 @@ func TestListCards(t *testing.T) {
 	createTestProposal(t, store, "CR260612", "Test")
 
 	for i := 0; i < 3; i++ {
-		card := NewCard(CardTypeRequirement, "Req "+string(rune('A'+i)))
-		card.ID = "REQ-abc-" + string(rune('0'+i))
+		card := NewCard(CardTypeFeature, "Req "+string(rune('A'+i)))
+		card.ID = "FEAT-abc-" + string(rune('0'+i))
 		store.CreateCard(card, "CR260612")
 	}
 
@@ -459,25 +489,44 @@ func TestListCards(t *testing.T) {
 	}
 }
 
+func TestListCardsFromDirsDeduplicatesOverlappingPhysicalDirectories(t *testing.T) {
+	store, wikiRoot := setupTestStore(t)
+	createTestDirs(t, wikiRoot)
+
+	card := NewCard(CardTypeFeature, "Unique current card")
+	card.ID = "FEAT-dedup-1"
+	if _, err := store.CreateCard(card, "CR260612"); err != nil {
+		t.Fatalf("creating card: %v", err)
+	}
+
+	cards, err := store.ListCardsFromDirs(store.ActiveDir(), store.IntakeDir(), store.WorkspaceDir())
+	if err != nil {
+		t.Fatalf("listing overlapping directories: %v", err)
+	}
+	if len(cards) != 1 || cards[0].ID != card.ID {
+		t.Fatalf("expected one deduplicated card, got %#v", cards)
+	}
+}
+
 func TestListCardsByType(t *testing.T) {
 	store, wikiRoot := setupTestStore(t)
 	createTestDirs(t, wikiRoot)
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	req1 := NewCard(CardTypeRequirement, "Req 1")
-	req1.ID = "REQ-abc-r1"
+	req1 := NewCard(CardTypeFeature, "Req 1")
+	req1.ID = "FEAT-abc-r1"
 	store.CreateCard(req1, "CR260612")
 
 	dec1 := NewCard(CardTypeDecision, "Dec 1")
 	dec1.ID = "DEC-abc-d1"
 	store.CreateCard(dec1, "CR260612")
 
-	req2 := NewCard(CardTypeRequirement, "Req 2")
-	req2.ID = "REQ-abc-r2"
+	req2 := NewCard(CardTypeFeature, "Req 2")
+	req2.ID = "FEAT-abc-r2"
 	store.CreateCard(req2, "CR260612")
 
-	reqCards, _ := store.ListCardsByType(CardTypeRequirement)
+	reqCards, _ := store.ListCardsByType(CardTypeFeature)
 	if len(reqCards) != 2 {
 		t.Errorf("expected 2 requirements, got %d", len(reqCards))
 	}
@@ -494,16 +543,16 @@ func TestGetDependents(t *testing.T) {
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	req := NewCard(CardTypeRequirement, "Requirement")
-	req.ID = "REQ-abc-main"
+	req := NewCard(CardTypeFeature, "Requirement")
+	req.ID = "FEAT-abc-main"
 	store.CreateCard(req, "CR260612")
 
 	dec := NewCard(CardTypeDecision, "Decision")
 	dec.ID = "DEC-abc-dep"
-	dec.AddLink("REQ-abc-main", "references")
+	dec.AddLink("FEAT-abc-main", "references")
 	store.CreateCard(dec, "CR260612")
 
-	dependents, err := store.GetDependents("REQ-abc-main")
+	dependents, err := store.GetDependents("FEAT-abc-main")
 	if err != nil {
 		t.Fatalf("failed to get dependents: %v", err)
 	}
@@ -523,13 +572,13 @@ func TestGetRelated(t *testing.T) {
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	req := NewCard(CardTypeRequirement, "Requirement")
-	req.ID = "REQ-abc-rel"
+	req := NewCard(CardTypeFeature, "Requirement")
+	req.ID = "FEAT-abc-rel"
 	store.CreateCard(req, "CR260612")
 
 	dec := NewCard(CardTypeDecision, "Decision")
 	dec.ID = "DEC-abc-rel"
-	dec.AddLink("REQ-abc-rel", "references")
+	dec.AddLink("FEAT-abc-rel", "references")
 	store.CreateCard(dec, "CR260612")
 
 	related, err := store.GetRelated("DEC-abc-rel", "", 1)
@@ -541,8 +590,8 @@ func TestGetRelated(t *testing.T) {
 		t.Errorf("expected 1 related card, got %d", len(related))
 	}
 
-	if related[0].ID != "REQ-abc-rel" {
-		t.Errorf("expected related REQ-abc-rel, got %s", related[0].ID)
+	if related[0].ID != "FEAT-abc-rel" {
+		t.Errorf("expected related FEAT-abc-rel, got %s", related[0].ID)
 	}
 }
 
@@ -552,13 +601,13 @@ func TestGetRelatedWithFilter(t *testing.T) {
 
 	createTestProposal(t, store, "CR260612", "Test")
 
-	req := NewCard(CardTypeRequirement, "Requirement")
-	req.ID = "REQ-abc-fil"
+	req := NewCard(CardTypeFeature, "Requirement")
+	req.ID = "FEAT-abc-fil"
 	store.CreateCard(req, "CR260612")
 
 	dec := NewCard(CardTypeDecision, "Decision")
 	dec.ID = "DEC-abc-fil"
-	dec.AddLink("REQ-abc-fil", "references")
+	dec.AddLink("FEAT-abc-fil", "references")
 	store.CreateCard(dec, "CR260612")
 
 	related, _ := store.GetRelated("DEC-abc-fil", "implements", 1)

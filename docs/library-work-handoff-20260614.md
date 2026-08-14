@@ -1,5 +1,7 @@
 # Library 工作交接（2026-06-14）
 
+> `historical` / 不可执行：本文记录旧 library 讨论的背景与失败样本。文中的命令、卡片类型、路径和修复建议不得复制执行，也不构成 current-v3 规范；当前规范以 [`proposal-v3/`](proposal-v3/README.md) 为准。
+
 > 目的：记录本轮围绕 FlowForge library 的讨论结论、当前实现问题、以及后续继续推进时的起点。
 > 说明：当前 `ff-wiki` 已存在大量错误链接与错误结构，不能作为可信事实源继续增量修补。后续应先修正 FlowForge，再删除并重建 wiki。
 

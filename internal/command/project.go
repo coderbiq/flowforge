@@ -310,12 +310,7 @@ func resolveDefaultProposalID(explicitProposalID string, cardType core.CardType)
 
 func cardTypeDefaultsToCurrentProposal(cardType core.CardType) bool {
 	switch cardType {
-	case core.CardTypeRequirement,
-		core.CardTypeDecision,
-		core.CardTypeDesign,
-		core.CardTypeTask,
-		core.CardTypeLog,
-		core.CardTypeFinding:
+	case core.CardTypeDecision, core.CardTypeFinding:
 		return true
 	default:
 		return false
@@ -343,11 +338,7 @@ func createProjectWikiRoot(wikiRoot string, projectID string, srcDirs []string) 
 		wikiRoot,
 		filepath.Join(wikiRoot, "01-workspace"),
 		filepath.Join(wikiRoot, "02-library"),
-		filepath.Join(wikiRoot, "02-library", "10-requirements"),
 		filepath.Join(wikiRoot, "02-library", "20-decisions"),
-		filepath.Join(wikiRoot, "02-library", "30-designs"),
-		filepath.Join(wikiRoot, "02-library", "40-tasks"),
-		filepath.Join(wikiRoot, "02-library", "50-logs"),
 		filepath.Join(wikiRoot, "02-library", "60-conventions"),
 		filepath.Join(wikiRoot, "02-library", "70-findings"),
 		filepath.Join(wikiRoot, "02-library", "80-modules"),
@@ -368,17 +359,13 @@ func createProjectWikiRoot(wikiRoot string, projectID string, srcDirs []string) 
 }
 
 func writeProjectHomeIndex(wikiRoot string, projectID string, srcDirs []string) error {
-	homeIndexPath := filepath.Join(wikiRoot, "00-STR-HOME.md")
+	homeIndexPath := filepath.Join(wikiRoot, "00-FLOWFORGE-HOME.md")
 	proposalCmd := "`flowforge proposal create \"My Feature\"`"
-	cardCmd := "`flowforge card create --type requirement --title \"...\"`"
-	progressCmd := "`flowforge card list --status in_progress`"
+	featureCmd := "`flowforge card init --type feature --title \"My Feature\" --proposal <proposal-id>`"
+	progressCmd := "`flowforge context feature --feature <feature-id> --step <n>`"
 
 	content := fmt.Sprintf(`---
-id: STR-HOME
 title: "FlowForge Knowledge Base"
-type: structure
-status: active
-cards: []
 ---
 
 # FlowForge Knowledge Base
@@ -394,9 +381,9 @@ Project: %s
 ## Getting Started
 
 1. Create a proposal: %s
-2. Add cards to the proposal: %s
+2. Add a FEATURE to the proposal: %s
 3. Track progress: %s
-`, projectID, proposalCmd, cardCmd, progressCmd)
+`, projectID, proposalCmd, featureCmd, progressCmd)
 
 	if len(srcDirs) > 0 {
 		content += "\n## Source Directories\n\n"

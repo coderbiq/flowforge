@@ -13,83 +13,26 @@ import (
 type CardType string
 
 const (
-	CardTypeRequirement CardType = "requirement"
-	CardTypeDecision    CardType = "decision"
-	CardTypeDesign      CardType = "design"
-	CardTypeTask        CardType = "task"
-	CardTypeLog         CardType = "log"
-	CardTypeConvention  CardType = "convention"
-	CardTypeFinding     CardType = "finding"
-	CardTypeModule      CardType = "module"
-	CardTypeStructure   CardType = "structure"
-	CardTypeProposal    CardType = "proposal"
-	CardTypeFeature     CardType = "feature"
+	CardTypeDecision   CardType = "decision"
+	CardTypeConvention CardType = "convention"
+	CardTypeFinding    CardType = "finding"
+	CardTypeModule     CardType = "module"
+	CardTypeProposal   CardType = "proposal"
+	CardTypeFeature    CardType = "feature"
 )
 
 func (t CardType) Valid() bool {
+	return t.IsCurrentType()
+}
+
+// IsCurrentType identifies cards exposed by the v3 runtime.
+func (t CardType) IsCurrentType() bool {
 	switch t {
-	case CardTypeRequirement, CardTypeDecision, CardTypeDesign, CardTypeTask,
-		CardTypeLog, CardTypeConvention, CardTypeFinding, CardTypeModule, CardTypeStructure, CardTypeProposal,
-		CardTypeFeature:
+	case CardTypeDecision, CardTypeConvention, CardTypeFinding, CardTypeModule, CardTypeProposal, CardTypeFeature:
 		return true
+	default:
+		return false
 	}
-	return false
-}
-
-func (t CardType) Prefix() string {
-	switch t {
-	case CardTypeRequirement:
-		return "REQ"
-	case CardTypeDecision:
-		return "DEC"
-	case CardTypeDesign:
-		return "DES"
-	case CardTypeTask:
-		return "TASK"
-	case CardTypeLog:
-		return "LOG"
-	case CardTypeConvention:
-		return "CONV"
-	case CardTypeFinding:
-		return "FIND"
-	case CardTypeModule:
-		return "MOD"
-	case CardTypeStructure:
-		return "STR"
-	case CardTypeProposal:
-		return "PROP"
-	case CardTypeFeature:
-		return "FEAT"
-	}
-	return ""
-}
-
-func CardTypeFromPrefix(prefix string) CardType {
-	switch prefix {
-	case "REQ":
-		return CardTypeRequirement
-	case "DEC":
-		return CardTypeDecision
-	case "DES":
-		return CardTypeDesign
-	case "TASK":
-		return CardTypeTask
-	case "LOG":
-		return CardTypeLog
-	case "CONV":
-		return CardTypeConvention
-	case "FIND":
-		return CardTypeFinding
-	case "MOD":
-		return CardTypeModule
-	case "STR":
-		return CardTypeStructure
-	case "PROP":
-		return CardTypeProposal
-	case "FEAT":
-		return CardTypeFeature
-	}
-	return ""
 }
 
 type CardStatus string
@@ -158,24 +101,24 @@ type LibrarySuggestion struct {
 }
 
 type Card struct {
-	ID          string      `yaml:"id" json:"id"`
-	Title       string      `yaml:"title" json:"title"`
-	Type        CardType    `yaml:"type" json:"type"`
-	Status      CardStatus  `yaml:"status" json:"status"`
-	Importance  Importance  `yaml:"importance,omitempty" json:"importance,omitempty"`
-	Tags        []string    `yaml:"tags,omitempty" json:"tags,omitempty"`
-	Links       []Link      `yaml:"links,omitempty" json:"links,omitempty"`
-	Created     time.Time   `yaml:"created" json:"created"`
-	Updated     time.Time   `yaml:"updated" json:"updated"`
-	Source      string      `yaml:"source,omitempty" json:"source,omitempty"`
-	Domain      string      `yaml:"domain,omitempty" json:"domain,omitempty"`
-	ProposalID  string      `yaml:"proposal_id,omitempty" json:"proposalId,omitempty"`
-	DirName     string      `yaml:"dir_name,omitempty" json:"dirName,omitempty"`
-	Slug        string      `yaml:"slug,omitempty" json:"slug,omitempty"`
-	Project     string      `yaml:"project,omitempty" json:"project,omitempty"`
-	Role        string      `yaml:"role,omitempty" json:"role,omitempty"`
-	Body        string      `yaml:"-" json:"body"`
-	FilePath    string      `yaml:"-" json:"filePath,omitempty"`
+	ID         string     `yaml:"id" json:"id"`
+	Title      string     `yaml:"title" json:"title"`
+	Type       CardType   `yaml:"type" json:"type"`
+	Status     CardStatus `yaml:"status" json:"status"`
+	Importance Importance `yaml:"importance,omitempty" json:"importance,omitempty"`
+	Tags       []string   `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Links      []Link     `yaml:"links,omitempty" json:"links,omitempty"`
+	Created    time.Time  `yaml:"created" json:"created"`
+	Updated    time.Time  `yaml:"updated" json:"updated"`
+	Source     string     `yaml:"source,omitempty" json:"source,omitempty"`
+	Domain     string     `yaml:"domain,omitempty" json:"domain,omitempty"`
+	ProposalID string     `yaml:"proposal_id,omitempty" json:"proposalId,omitempty"`
+	DirName    string     `yaml:"dir_name,omitempty" json:"dirName,omitempty"`
+	Slug       string     `yaml:"slug,omitempty" json:"slug,omitempty"`
+	Project    string     `yaml:"project,omitempty" json:"project,omitempty"`
+	Role       string     `yaml:"role,omitempty" json:"role,omitempty"`
+	Body       string     `yaml:"-" json:"body"`
+	FilePath   string     `yaml:"-" json:"filePath,omitempty"`
 }
 
 func NewCard(cardType CardType, title string) *Card {

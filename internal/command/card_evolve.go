@@ -278,7 +278,6 @@ func handleRegress(store *core.CardStore, card *core.Card, target core.CardStatu
 var (
 	placeholderRe         = regexp.MustCompile(`^(None|TBD|N/A|<!-- TBD -->)\s*$`)
 	complexAnalysisModeRe = regexp.MustCompile(`(?mi)^\s*<!--\s*analysis-mode:\s*complex\s*-->\s*$`)
-	crossRefRe            = regexp.MustCompile(`参考\s*(DES|REQ|TASK|STR)-|参见.*卡片|see\s+(DES|REQ|TASK|STR)-`)
 	stepHeaderRe          = regexp.MustCompile(`(?m)^### Step (\d+):`)
 )
 
@@ -348,14 +347,6 @@ func validatePlannedGate(body string) []gateIssue {
 			Fix:     "add at least one implementation step",
 		})
 		return issues
-	}
-
-	if crossRefRe.MatchString(ipSection) {
-		issues = append(issues, gateIssue{
-			Section: "Implementation Plan",
-			Detail:  "cross-card references found (参考 DES/REQ/TASK)",
-			Fix:     "replace with information inline in the step",
-		})
 	}
 
 	for _, match := range steps {

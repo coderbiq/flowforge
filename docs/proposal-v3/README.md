@@ -1,36 +1,29 @@
-# FlowForge 卡片模型 v3 重构方案
+# FlowForge v3 规范
 
-> 日期：2026-07-09
->
-> 基于 CR26063001 和 CR26070801 两个真实提案的实证分析，提出从 10 种卡片类型到 FEATURE 阶段演进模型的根本性重构。
+> `authoritative` / `current`。本文档族是 v3 唯一规范；实现状态以源码、测试和 `docs/index-management.md` 为准。
 
----
+## 模型
 
-## 方案概述
+| 类型 | 作用 |
+|---|---|
+| `PROP` | Proposal control-plane metadata；提案范围、FEATURE 关系和聚合入口。 |
+| `FEATURE` | 一个可交付功能的完整生命周期。 |
+| `CONV` | 可执行的跨功能约定。 |
+| `DEC` | 跨功能架构决策。 |
+| `MOD` | 可复用模块知识。 |
+| `FIND` | 探索发现和证据。 |
 
-**核心变化**：将 REQ+DES+TASK 三种按类型拆分的卡片合并为一张 FEATURE 卡片，用阶段演进（draft → designed → planned → in_progress → done）替代跨卡跳转。卡片类型从 10 种精简为 5 种（+ PROP）。同时放宽 Agent 直接读写卡片的约束，CLI 专注于不变式保护。
+FEATURE 阶段为 `draft`、`designed`、`planned`、`in_progress`、`done`。PROP 的 Feature Map 是语义控制面；`proposal inspect` 是机械聚合视图。
 
-## 文档索引
+STR 仅表示 Proposal control-plane metadata，不是普通用户卡。旧类型、旧 ID/links、历史 wiki 和迁移能力不属于当前 v3 规范。
 
-| 文档 | 内容 | 读它当你想... |
-|------|------|-------------|
-| [card-model.md](./card-model.md) | 问题诊断、FEATURE 生命周期/模板、PROP 全景、拆分策略、横切类型 | 理解"为什么改"和"改成什么样" |
-| [cli-spec.md](./cli-spec.md) | 约束放宽、废弃清单（16 个命令）、新增命令（init/evolve/log/steps/split/context feature）、修改命令、迁移策略 | 实现 CLI 改造或了解命令变更 |
-| [skill-spec.md](./skill-spec.md) | Token 消耗控制设计、需求分解方法论、信息探索/设计推理/任务拆分/约束构建的 Agent 思维链 | 编写或审查 SKILL 文件 |
+## CLI 原则
 
-## 关键决策记录
+当前入口是 `card init`、`card evolve`、`card log`、`card steps`、`card link`、`context feature`、`proposal inspect` 和库查询命令。旧 `task`、`structure`、`log create`、`requirement` CLI 直接删除，不提供 deprecated 兼容入口。
 
-| 决策 | 理由 |
-|------|------|
-| REQ+DES+TASK → FEATURE (阶段演进) | 三者信息高度重叠，拆分只产生维护成本 |
-| 保留 CONV/MOD/DEC/FIND | 横切关注点，天然跨功能生效 |
-| STR → `proposal inspect` 自动聚合 | 手动维护的合成价值不抵维护成本 |
-| 门控在 CLI 层 (`card evolve`) 强制执行 | 不依赖 SKILL 自律 |
-| Agent 可直接读写 .md 文件 | CLI 为人类设计，Agent 需要直接文件访问效率 |
-| CLI 保留链接/阶段/进展操作 | 多文件一致性和复杂解析逻辑 |
+## 文档边界
 
-## 相关文档
-
-- [methodology-review-card-fragmentation.md](../methodology-review-card-fragmentation.md) — 原始问题诊断
-- [remediation-card-fragmentation.md](../remediation-card-fragmentation.md) — 补丁方案（已实现但未触及根因）
-- [methodology-card-model-simplification.md](../methodology-card-model-simplification.md) — 早期模型简化方向探索
+- `card-model.md` 定义模型与生命周期。
+- `cli-spec.md` 定义当前 CLI 契约。
+- `skill-spec.md` 定义 Agent 工作流。
+- `implementation-plan.md` 只记录计划，不能证明实现已完成。

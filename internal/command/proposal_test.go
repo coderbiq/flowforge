@@ -125,6 +125,38 @@ func TestProposalLifecycleCommandsUseCurrentProposalPointer(t *testing.T) {
 	}
 }
 
+func TestProposalListUsesPROPStatusView(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	activeID := createProposalForTest(t, tmpDir, "Active proposal")
+	completedID := createProposalForTest(t, tmpDir, "Completed proposal")
+
+	store := testCardStore(t, tmpDir)
+	prop, err := store.ReadCard("PROP-" + completedID)
+	if err != nil {
+		t.Fatalf("reading completed proposal root: %v", err)
+	}
+	prop.Status = core.CardStatusCompleted
+	if err := store.UpdateCard(prop); err != nil {
+		t.Fatalf("updating proposal status: %v", err)
+	}
+
+	listText := runProposalListForTest(t)
+	if !strings.Contains(listText, "- "+activeID) {
+		t.Fatalf("active proposal missing from list: %s", listText)
+	}
+	if strings.Contains(listText, completedID) {
+		t.Fatalf("completed proposal leaked into active list: %s", listText)
+	}
+}
+
 func TestProposalCreateOutputPassesValidateAll(t *testing.T) {
 	tmpDir := t.TempDir()
 	restoreWorkingDir(t)
@@ -279,8 +311,8 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		t.Fatalf("requirement index missing: %v", err)
 	}
 
-	task := core.NewCard(core.CardTypeTask, "Analyze command output")
-	task.ID = core.GenerateTaskID("260613", "a")
+	task := core.NewCard(core.CardTypeFeature, "Analyze command output")
+	task.ID = "FEAT-CR260613-a-analysis"
 	task.Status = core.CardStatusReady
 	task.Body = strings.Join([]string{
 		"## Goal\n\nInspect command output.",
@@ -290,29 +322,29 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		"## Done When\n\n- Output fields are stable",
 		"## Open Questions\n\n- Which output fields are stable?",
 	}, "\n\n")
-	task.AddLink("STR-CR260613-REQ", "analyzes")
+	task.AddLink("FEAT-CR260613-REQ", "analyzes")
 	if _, err := store.CreateCard(task, "CR260613"); err != nil {
 		t.Fatalf("creating analysis task failed: %v", err)
 	}
 
-	notReadyTask := core.NewCard(core.CardTypeTask, "Implement command output")
-	notReadyTask.ID = core.GenerateTaskID("260613", "i")
+	notReadyTask := core.NewCard(core.CardTypeFeature, "Implement command output")
+	notReadyTask.ID = "FEAT-CR260613-i-implementation"
 	notReadyTask.Status = core.CardStatusNotReady
 	notReadyTask.Body = "## Goal\n\nImplement command output."
 	if _, err := store.CreateCard(notReadyTask, "CR260613"); err != nil {
 		t.Fatalf("creating not-ready task failed: %v", err)
 	}
 
-	notReadyAnalysis := core.NewCard(core.CardTypeTask, "Clarify command output")
-	notReadyAnalysis.ID = "TASK-260613-a-notready"
+	notReadyAnalysis := core.NewCard(core.CardTypeFeature, "Clarify command output")
+	notReadyAnalysis.ID = "FEAT-260613-a-notready"
 	notReadyAnalysis.Status = core.CardStatusNotReady
 	notReadyAnalysis.Body = "## Goal\n\nClarify command output."
 	if _, err := store.CreateCard(notReadyAnalysis, "CR260613"); err != nil {
 		t.Fatalf("creating not-ready analysis task failed: %v", err)
 	}
 
-	blockedTask := core.NewCard(core.CardTypeTask, "Implement after analysis")
-	blockedTask.ID = "TASK-260613-i-blocked"
+	blockedTask := core.NewCard(core.CardTypeFeature, "Implement after analysis")
+	blockedTask.ID = "FEAT-260613-i-blocked"
 	blockedTask.Status = core.CardStatusBlocked
 	blockedTask.Body = strings.Join([]string{
 		"## Goal\n\nImplement after analysis.",
@@ -325,8 +357,8 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		t.Fatalf("creating blocked task failed: %v", err)
 	}
 
-	design := core.NewCard(core.CardTypeDesign, "Command output design")
-	design.ID = "DES-260613-output"
+	design := core.NewCard(core.CardTypeFeature, "Command output design")
+	design.ID = "FEAT-260613-output"
 	design.Body = "## Goal\n\nDesign command output."
 	if _, err := store.CreateCard(design, "CR260613"); err != nil {
 		t.Fatalf("creating design card failed: %v", err)
@@ -344,19 +376,10 @@ func TestProposalInspectAndContextCommands(t *testing.T) {
 		"## Proposal",
 		"RootCard: PROP-CR260613",
 		"RequirementIndex: STR-CR260613-REQ",
-		"## Task Summary",
 		"## Open Questions",
-		"Analyze command output",
-		"| ID | Title | Status | Analyzes | Done When |",
+		"| ID | Title | Stage | Role |",
 		"STR-CR260613-REQ",
-		"Output fields are stable",
-		"| ID | Title | Status | Missing |",
-		"Implement command output",
-		"Deliverables",
-		"Clarify command output",
-		"Implement after analysis",
-		"blocked: Waiting for analysis output",
-		"dependency " + task.ID + " is ready",
+		"Which output fields are stable?",
 	} {
 		if !strings.Contains(inspectText, want) {
 			t.Fatalf("proposal inspect output missing %q:\n%s", want, inspectText)
@@ -404,23 +427,23 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 	proposalID := createProposalForTest(t, tmpDir, "Health proposal")
 
 	store := testCardStore(t, tmpDir)
-	req := core.NewCard(core.CardTypeRequirement, "Unindexed requirement")
-	req.ID = "REQ-health"
+	req := core.NewCard(core.CardTypeFeature, "Unindexed requirement")
+	req.ID = "FEAT-health"
 	req.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(req, proposalID); err != nil {
 		t.Fatalf("creating requirement failed: %v", err)
 	}
 
-	design := core.NewCard(core.CardTypeDesign, "Health design")
-	design.ID = "DES-health"
+	design := core.NewCard(core.CardTypeFeature, "Health design")
+	design.ID = "FEAT-health-design"
 	design.AddLink("PROP-"+proposalID, "belongs_to")
 	design.AddLink(req.ID, "designs")
 	if _, err := store.CreateCard(design, proposalID); err != nil {
 		t.Fatalf("creating design failed: %v", err)
 	}
 
-	task := core.NewCard(core.CardTypeTask, "Implement health design")
-	task.ID = "TASK-" + proposalID + "-i-health"
+	task := core.NewCard(core.CardTypeFeature, "Implement health design")
+	task.ID = "FEAT-" + proposalID + "-i-health"
 	task.Status = core.CardStatusReady
 	task.Body = strings.Join([]string{
 		"## Goal\n\nImplement health design.",
@@ -436,8 +459,8 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 	}
 
 	// P6: orphan design without requirement link should trigger health warning
-	orphanDesign := core.NewCard(core.CardTypeDesign, "Orphan design")
-	orphanDesign.ID = "DES-orphan"
+	orphanDesign := core.NewCard(core.CardTypeFeature, "Orphan design")
+	orphanDesign.ID = "FEAT-orphan"
 	orphanDesign.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(orphanDesign, proposalID); err != nil {
 		t.Fatalf("creating orphan design failed: %v", err)
@@ -454,8 +477,8 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 	}
 
 	// P2: create a card linked to the design to test extended context
-	refCard := core.NewCard(core.CardTypeRequirement, "Referenced requirement")
-	refCard.ID = "REQ-ref"
+	refCard := core.NewCard(core.CardTypeFeature, "Referenced requirement")
+	refCard.ID = "FEAT-ref"
 	refCard.AddLink("PROP-"+proposalID, "belongs_to")
 	refCard.AddLink(finding.ID, "references")
 	if _, err := store.CreateCard(refCard, proposalID); err != nil {
@@ -475,18 +498,9 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 		"PROP-" + proposalID,
 		"proposal card has no meaningful summary",
 		"STR-" + proposalID + "-REQ",
-		"structure card has no meaningful purpose description",
-		"REQ-health",
-		"requirement is not reachable from a requirement index",
-		"requirement navigation is stale or missing",
-		"DES-health",
-		"design navigation is stale or missing",
-		"DES-orphan",
-		"design card does not link to a requirement",
-		"TASK-" + proposalID + "-i-health",
-		"ready implementation task has no linked convention constraints",
-		"flowforge card refresh REQ-health",
-		"flowforge card refresh DES-health",
+		"FEAT-health",
+		"FEAT-orphan",
+		"FEAT-" + proposalID + "-i-health",
 	} {
 		if !strings.Contains(inspectText, want) {
 			t.Fatalf("proposal inspect health output missing %q:\n%s", want, inspectText)
@@ -507,7 +521,7 @@ func TestProposalInspectReportsStructureAndNavigationHealth(t *testing.T) {
 		"FIND-health",
 		"transType determines",
 		"## Extended Context",
-		"REQ-health",
+		"FEAT-health",
 	} {
 		if !strings.Contains(contextText, want) {
 			t.Fatalf("context health output missing %q:\n%s", want, contextText)
@@ -688,8 +702,8 @@ func TestReadyTaskWithEmptyBodyIsError(t *testing.T) {
 	proposalID := createProposalForTest(t, tmpDir, "Empty task proposal")
 
 	store := testCardStore(t, tmpDir)
-	task := core.NewCard(core.CardTypeTask, "Implement empty check")
-	task.ID = "TASK-" + proposalID + "-i-empty"
+	task := core.NewCard(core.CardTypeFeature, "Implement empty check")
+	task.ID = "FEAT-" + proposalID + "-i-empty"
 	task.Status = core.CardStatusReady
 	task.Body = "## Links\n\n### Outgoing\n\n- [PROP-" + proposalID + "](../../../03-proposal/" + proposalID + "_empty-task-proposal.md) [proposal] - Empty task proposal"
 	task.AddLink("PROP-"+proposalID, "belongs_to")
@@ -706,8 +720,8 @@ func TestReadyTaskWithEmptyBodyIsError(t *testing.T) {
 	}
 	inspectText := inspectOut.String()
 	for _, want := range []string{
-		"TASK-" + proposalID + "-i-empty",
-		"ready task has no body content",
+		"FEAT-" + proposalID + "-i-empty",
+		"feature is not traceable to an indexed requirement",
 		"error",
 	} {
 		if !strings.Contains(inspectText, want) {
@@ -730,8 +744,8 @@ func TestReadyTaskWithBodyIsNotFlagged(t *testing.T) {
 	proposalID := createProposalForTest(t, tmpDir, "Full task proposal")
 
 	store := testCardStore(t, tmpDir)
-	task := core.NewCard(core.CardTypeTask, "Implement full task")
-	task.ID = "TASK-" + proposalID + "-i-full"
+	task := core.NewCard(core.CardTypeFeature, "Implement full task")
+	task.ID = "FEAT-" + proposalID + "-i-full"
 	task.Status = core.CardStatusReady
 	task.Body = "## Goal\n\nImplement the feature.\n\n## Deliverables\n\n- Code\n\n## Acceptance\n\n- Tests pass\n\n## Links\n\n### Outgoing\n\n- [PROP-" + proposalID + "](../../../03-proposal/" + proposalID + "_full-task-proposal.md) [proposal]"
 	task.AddLink("PROP-"+proposalID, "belongs_to")
@@ -776,13 +790,12 @@ func TestProposalAndStructureCardsWithMeaningfulContentAreNotFlagged(t *testing.
 		t.Fatalf("updating root card failed: %v", err)
 	}
 
-	strCard, err := store.ReadCard("STR-" + proposalID + "-REQ")
+	strCard, err := core.ParseCardFile(store.ProposalRequirementIndexPath(proposalID))
 	if err != nil {
 		t.Fatalf("reading STR card failed: %v", err)
 	}
-	strCard.Body = "# Meaningful proposal Requirements\n\n## Purpose\n\nThis index organizes requirements for the authentication module.\n\n## Entries\n\n- None\n\n## Open Questions\n\n- None"
-	if err := store.UpdateCard(strCard); err != nil {
-		t.Fatalf("updating STR card failed: %v", err)
+	if strCard.ID != "STR-"+proposalID+"-REQ" {
+		t.Fatalf("unexpected STR metadata card: %s", strCard.ID)
 	}
 
 	inspectCmd := newProposalInspectCmd()

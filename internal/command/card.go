@@ -173,11 +173,6 @@ Examples:
 				return fmt.Errorf("invalid card type: %s", cardType)
 			}
 
-			switch ct {
-			case core.CardTypeDesign, core.CardTypeLog:
-				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: card type '%s' is deprecated. Use 'feature' instead.\n", ct)
-			}
-
 			body, err := readBody(body)
 			if err != nil {
 				return err
@@ -207,17 +202,9 @@ Examples:
 				return err
 			}
 
-			if ct == core.CardTypeTask {
-				taskType := "i"
-				card.ID, err = store.NextTaskID(resolvedProposalID, taskType)
-				if err != nil {
-					return err
-				}
-			} else {
-				card.ID, err = store.NextCardID(ct, resolvedProposalID)
-				if err != nil {
-					return err
-				}
+			card.ID, err = store.NextCardID(ct, resolvedProposalID)
+			if err != nil {
+				return err
 			}
 
 			parsedLinks, err := parseLinkArgs(links)
@@ -246,7 +233,9 @@ Examples:
 			for i, link := range parsedLinks {
 				targetIDs[i] = link.target
 			}
-			refreshTargetCardsNavigation(store, targetIDs)
+			if err := refreshTargetCardsNavigation(store, targetIDs); err != nil {
+				return err
+			}
 
 			out := cmd.OutOrStdout()
 			printResult(cmd, out, CommandResult{
@@ -259,7 +248,7 @@ Examples:
 		},
 	}
 
-	cmd.Flags().StringVar(&cardType, "type", "", "Card type (requirement/decision/design/task/log/convention/finding/module/structure)")
+	cmd.Flags().StringVar(&cardType, "type", "", "Card type (feature/convention/decision/module/finding)")
 	cmd.Flags().StringVar(&title, "title", "", "Card title")
 	cmd.Flags().StringVar(&body, "body", "", "Card body content; use '-' to read from stdin")
 	cmd.Flags().StringVar(&status, "status", string(core.CardStatusDraft), "Card status (draft/active/accepted/deprecated/superseded)")
@@ -578,9 +567,9 @@ Examples:
 					store.IntakeDir(),
 					store.LibraryDir(),
 				}
-				for _, dir := range allDirs {
-					dirCards, _ := store.ListCards(dir)
-					cards = append(cards, dirCards...)
+				cards, err = store.ListCardsFromDirs(allDirs...)
+				if err != nil {
+					return err
 				}
 			}
 
@@ -914,7 +903,9 @@ func newCardLinkCmd() *cobra.Command {
 				return err
 			}
 
-			refreshTargetCardsNavigation(store, []string{toID})
+			if err := refreshTargetCardsNavigation(store, []string{toID}); err != nil {
+				return err
+			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Linked %s -> %s (%s)\n", fromID, toID, relation)
 			return nil
@@ -937,22 +928,13 @@ func ensureLinkTargetsExist(store *core.CardStore, links []parsedLinkArg) error 
 func refreshCardGeneratedNavigation(store *core.CardStore, card *core.Card) (string, bool, error) {
 	body := card.Body
 
-	if card.Type == core.CardTypeStructure {
-		entries, err := renderStructureEntries(store, card)
-		if err != nil {
-			return "", false, err
-		}
-		body = upsertMarkdownSection(card.Body, "Entries", entries)
-		return body, body != card.Body, nil
-	}
-
 	linksContent := renderUnifiedLinksSection(store, card)
 	body = upsertMarkdownSection(card.Body, "Links", linksContent)
 
 	return body, body != card.Body, nil
 }
 
-func refreshTargetCardsNavigation(store *core.CardStore, targetIDs []string) {
+func refreshTargetCardsNavigation(store *core.CardStore, targetIDs []string) error {
 	seen := map[string]bool{}
 	for _, id := range targetIDs {
 		if id == "" || seen[id] {
@@ -960,19 +942,22 @@ func refreshTargetCardsNavigation(store *core.CardStore, targetIDs []string) {
 		}
 		seen[id] = true
 		if _, err := store.ReadCard(id); err != nil {
-			continue
+			return fmt.Errorf("reading navigation target %s: %w", id, err)
 		}
-		_ = store.UpdateCardWithLock(id, func(card *core.Card) error {
+		if err := store.UpdateCardWithLock(id, func(card *core.Card) error {
 			newBody, changed, err := refreshCardGeneratedNavigation(store, card)
 			if err != nil {
-				return nil
+				return err
 			}
 			if changed {
 				card.Body = newBody
 			}
 			return nil
-		})
+		}); err != nil {
+			return fmt.Errorf("refreshing navigation target %s: %w", id, err)
+		}
 	}
+	return nil
 }
 
 func renderUnifiedLinksSection(store *core.CardStore, card *core.Card) string {
@@ -1023,7 +1008,7 @@ func renderIncomingLinks(store *core.CardStore, card *core.Card) string {
 
 	grouped := map[string][]string{}
 	for _, dep := range dependents {
-		if dep.Type == core.CardTypeProposal || dep.Type == core.CardTypeStructure {
+		if dep.Type == core.CardTypeProposal {
 			continue
 		}
 		relation := ""
@@ -1246,20 +1231,9 @@ func searchCards(store *core.CardStore, query, scope, proposalID, types, status,
 		return nil, err
 	}
 
-	var cards []*core.Card
-	seen := map[string]bool{}
-	for _, dir := range dirs {
-		dirCards, err := store.ListCards(dir)
-		if err != nil {
-			return nil, err
-		}
-		for _, card := range dirCards {
-			if seen[card.ID] {
-				continue
-			}
-			seen[card.ID] = true
-			cards = append(cards, card)
-		}
+	cards, err := store.ListCardsFromDirs(dirs...)
+	if err != nil {
+		return nil, err
 	}
 
 	results := make([]cardSearchResult, 0, len(cards))
@@ -1437,9 +1411,6 @@ func unescapeBody(s string) string {
 }
 
 func upsertLinksSection(store *core.CardStore, card *core.Card) {
-	if card.Type == core.CardTypeStructure {
-		return
-	}
 	content := renderUnifiedLinksSection(store, card)
 	card.Body = upsertMarkdownSection(card.Body, "Links", content)
 }

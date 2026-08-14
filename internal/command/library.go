@@ -74,7 +74,10 @@ func newLibraryImportCmd() *cobra.Command {
 			}
 
 			card := core.NewCard(ct, title)
-			card.ID = core.GenerateCardID(ct, "")
+			card.ID, err = store.NextCardID(ct, "")
+			if err != nil {
+				return err
+			}
 			card.Status = cardStatus
 			card.Importance = cardImportance
 			card.Body = body
@@ -196,7 +199,10 @@ func newLibraryPromoteCmd() *cobra.Command {
 			}
 
 			card := core.NewCard(ct, cardTitle)
-			card.ID = core.GenerateCardID(ct, "")
+			card.ID, err = store.NextCardID(ct, "")
+			if err != nil {
+				return err
+			}
 			card.Status = cardStatus
 			card.Importance = cardImportance
 			card.Body = sourceCard.Body
@@ -245,13 +251,7 @@ func validateLibraryImportType(cardType core.CardType) error {
 		return fmt.Errorf("invalid library card type: %s", cardType)
 	}
 	switch cardType {
-	case core.CardTypeRequirement,
-		core.CardTypeDecision,
-		core.CardTypeDesign,
-		core.CardTypeConvention,
-		core.CardTypeFinding,
-		core.CardTypeModule,
-		core.CardTypeStructure:
+	case core.CardTypeDecision, core.CardTypeConvention, core.CardTypeFinding, core.CardTypeModule:
 		return nil
 	default:
 		return fmt.Errorf("card type %s cannot be imported into library through this command", cardType)
@@ -330,7 +330,7 @@ func newLibraryFacetsCmd() *cobra.Command {
 				return err
 			}
 
-			cards, err := store.ListCards(store.LibraryDir())
+			cards, err := listCurrentLibraryCards(store)
 			if err != nil {
 				return err
 			}
@@ -365,7 +365,7 @@ func newLibraryClassifyCmd() *cobra.Command {
 				return err
 			}
 
-			cards, err := store.ListCards(store.LibraryDir())
+			cards, err := listCurrentLibraryCards(store)
 			if err != nil {
 				return err
 			}
@@ -422,7 +422,6 @@ func defaultLibrarySuggestionTypes() []core.CardType {
 		core.CardTypeConvention,
 		core.CardTypeDecision,
 		core.CardTypeModule,
-		core.CardTypeDesign,
 		core.CardTypeFinding,
 	}
 }
@@ -448,7 +447,7 @@ func parseCardTypeFilter(raw string, defaults []core.CardType) (map[core.CardTyp
 }
 
 func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map[core.CardType]bool, relation string, facetFilter []libraryFacet, limit int) ([]librarySuggestion, error) {
-	cards, err := store.ListCards(store.LibraryDir())
+	cards, err := listCurrentLibraryCards(store)
 	if err != nil {
 		return nil, err
 	}
@@ -511,6 +510,15 @@ func suggestLibraryCards(store *core.CardStore, focus *core.Card, typeFilter map
 	}
 
 	return suggestions, nil
+}
+
+func listCurrentLibraryCards(store *core.CardStore) ([]*core.Card, error) {
+	return store.ListCardsFromDirs(
+		store.LibraryTypeDir(core.CardTypeConvention),
+		store.LibraryTypeDir(core.CardTypeDecision),
+		store.LibraryTypeDir(core.CardTypeModule),
+		store.LibraryTypeDir(core.CardTypeFinding),
+	)
 }
 
 func parseFacetArgs(values []string) ([]libraryFacet, error) {
@@ -754,7 +762,7 @@ func suggestedLibraryRelation(cardType core.CardType, requested string) string {
 	switch cardType {
 	case core.CardTypeConvention, core.CardTypeModule:
 		return "constrains"
-	case core.CardTypeDecision, core.CardTypeDesign, core.CardTypeFinding:
+	case core.CardTypeDecision, core.CardTypeFinding:
 		return "references"
 	default:
 		return "related"

@@ -12,44 +12,18 @@ func TestCardTypeValid(t *testing.T) {
 		cardType CardType
 		valid    bool
 	}{
-		{CardTypeRequirement, true},
 		{CardTypeDecision, true},
-		{CardTypeDesign, true},
-		{CardTypeTask, true},
-		{CardTypeLog, true},
 		{CardTypeConvention, true},
 		{CardTypeFinding, true},
 		{CardTypeModule, true},
-		{CardTypeStructure, true},
+		{CardTypeProposal, true},
+		{CardTypeFeature, true},
 		{CardType("invalid"), false},
 	}
 
 	for _, tt := range tests {
 		if got := tt.cardType.Valid(); got != tt.valid {
 			t.Errorf("CardType(%q).Valid() = %v, want %v", tt.cardType, got, tt.valid)
-		}
-	}
-}
-
-func TestCardTypePrefix(t *testing.T) {
-	tests := []struct {
-		cardType CardType
-		prefix   string
-	}{
-		{CardTypeRequirement, "REQ"},
-		{CardTypeDecision, "DEC"},
-		{CardTypeDesign, "DES"},
-		{CardTypeTask, "TASK"},
-		{CardTypeLog, "LOG"},
-		{CardTypeConvention, "CONV"},
-		{CardTypeFinding, "FIND"},
-		{CardTypeModule, "MOD"},
-		{CardTypeStructure, "STR"},
-	}
-
-	for _, tt := range tests {
-		if got := tt.cardType.Prefix(); got != tt.prefix {
-			t.Errorf("CardType(%q).Prefix() = %q, want %q", tt.cardType, got, tt.prefix)
 		}
 	}
 }
@@ -101,10 +75,10 @@ func TestImportanceValid(t *testing.T) {
 }
 
 func TestNewCard(t *testing.T) {
-	card := NewCard(CardTypeRequirement, "Test Card")
+	card := NewCard(CardTypeFeature, "Test Card")
 
-	if card.Type != CardTypeRequirement {
-		t.Errorf("expected type %s, got %s", CardTypeRequirement, card.Type)
+	if card.Type != CardTypeFeature {
+		t.Errorf("expected type %s, got %s", CardTypeFeature, card.Type)
 	}
 
 	if card.Title != "Test Card" {
@@ -125,7 +99,7 @@ func TestNewCard(t *testing.T) {
 }
 
 func TestCardAddLink(t *testing.T) {
-	card := NewCard(CardTypeRequirement, "Test")
+	card := NewCard(CardTypeFeature, "Test")
 
 	card.AddLink("DEC-123", "references")
 
@@ -148,7 +122,7 @@ func TestCardAddLink(t *testing.T) {
 }
 
 func TestCardRemoveLink(t *testing.T) {
-	card := NewCard(CardTypeRequirement, "Test")
+	card := NewCard(CardTypeFeature, "Test")
 	card.AddLink("DEC-123", "references")
 	card.AddLink("DEC-456", "implements")
 
@@ -204,8 +178,8 @@ This is the body content.
 		t.Errorf("expected title 'Test Requirement', got %s", card.Title)
 	}
 
-	if card.Type != CardTypeRequirement {
-		t.Errorf("expected type requirement, got %s", card.Type)
+	if card.Type != CardType("requirement") {
+		t.Errorf("expected historical type requirement, got %s", card.Type)
 	}
 
 	if card.Status != CardStatusDraft {
@@ -245,7 +219,7 @@ func TestCardToMarkdown(t *testing.T) {
 	card := &Card{
 		ID:         "REQ-123",
 		Title:      "Test Card",
-		Type:       CardTypeRequirement,
+		Type:       CardType("requirement"),
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Tags:       []string{"test", "cli"},

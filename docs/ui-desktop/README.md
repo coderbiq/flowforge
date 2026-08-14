@@ -1,5 +1,7 @@
 # FlowForge 卡片查看器 UI 设计方案
 
+> `historical` / 不可执行：本文保留旧 UI 方案和模型映射作为背景研究。文中的命令、卡片类型、路径和链接仅用于追溯，不得复制执行；当前规范以 [`proposal-v3/`](../proposal-v3/README.md) 为准。该 UI 不代表当前产品能力。
+
 > 版本：v0.1.0-draft | 创建：2026-06-17
 >
 > 本文档描述 FlowForge 卡片查看器（Card Viewer）的设计方案，包括核心需求、Wails v3 技术调研、架构设计、UI/UX 设计、和数据层设计。

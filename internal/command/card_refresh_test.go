@@ -23,15 +23,15 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 	proposalID := createProposalForTest(t, tmpDir, "Navigation proposal")
 
 	store := testCardStore(t, tmpDir)
-	req := core.NewCard(core.CardTypeRequirement, "Navigation requirement")
-	req.ID = "REQ-nav"
+	req := core.NewCard(core.CardTypeFeature, "Navigation requirement")
+	req.ID = "FEAT-nav"
 	req.AddLink("PROP-"+proposalID, "belongs_to")
 	if _, err := store.CreateCard(req, proposalID); err != nil {
 		t.Fatalf("creating requirement failed: %v", err)
 	}
 
-	analysis := core.NewCard(core.CardTypeTask, "Analyze requirement")
-	analysis.ID = "TASK-" + proposalID + "-a-nav"
+	analysis := core.NewCard(core.CardTypeFeature, "Analyze requirement")
+	analysis.ID = "FEAT-" + proposalID + "-a-nav"
 	analysis.Status = core.CardStatusReady
 	analysis.AddLink("PROP-"+proposalID, "belongs_to")
 	analysis.AddLink(req.ID, "analyzes")
@@ -39,16 +39,16 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 		t.Fatalf("creating analysis task failed: %v", err)
 	}
 
-	design := core.NewCard(core.CardTypeDesign, "Navigation design")
-	design.ID = "DES-nav"
+	design := core.NewCard(core.CardTypeFeature, "Navigation design")
+	design.ID = "FEAT-nav-design"
 	design.AddLink("PROP-"+proposalID, "belongs_to")
 	design.AddLink(req.ID, "designs")
 	if _, err := store.CreateCard(design, proposalID); err != nil {
 		t.Fatalf("creating design failed: %v", err)
 	}
 
-	task := core.NewCard(core.CardTypeTask, "Implement navigation")
-	task.ID = "TASK-" + proposalID + "-i-nav"
+	task := core.NewCard(core.CardTypeFeature, "Implement navigation")
+	task.ID = "FEAT-" + proposalID + "-i-nav"
 	task.Status = core.CardStatusReady
 	task.AddLink("PROP-"+proposalID, "belongs_to")
 	task.AddLink(design.ID, "implements")
@@ -63,7 +63,7 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 	if err := reqRefresh.Execute(); err != nil {
 		t.Fatalf("requirement refresh failed: %v", err)
 	}
-	if !strings.Contains(reqOut.String(), "✓ REQ-nav") {
+	if !strings.Contains(reqOut.String(), "✓ FEAT-nav") {
 		t.Fatalf("unexpected requirement refresh output:\n%s", reqOut.String())
 	}
 
@@ -76,8 +76,8 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 		"### Outgoing",
 		"[PROP-" + proposalID + "]",
 		"### Incoming",
-		"[TASK-" + proposalID + "-a-nav]",
-		"[DES-nav]",
+		"[FEAT-" + proposalID + "-a-nav]",
+		"[FEAT-nav-design]",
 	} {
 		if !strings.Contains(refreshedReq.Body, want) {
 			t.Fatalf("requirement body missing %q:\n%s", want, refreshedReq.Body)
@@ -98,9 +98,9 @@ func TestCardRefreshGeneratesLinksAndEntriesForAllCardTypes(t *testing.T) {
 		"## Links",
 		"### Outgoing",
 		"[PROP-" + proposalID + "]",
-		"[REQ-nav]",
+		"[FEAT-nav]",
 		"### Incoming",
-		"[TASK-" + proposalID + "-i-nav]",
+		"[FEAT-" + proposalID + "-i-nav]",
 	} {
 		if !strings.Contains(refreshedDesign.Body, want) {
 			t.Fatalf("design links missing %q:\n%s", want, refreshedDesign.Body)

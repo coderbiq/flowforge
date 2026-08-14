@@ -9,9 +9,9 @@ import (
 
 func TestValidateCard(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
+		ID:         "FEAT-abc-123",
 		Title:      "Test Card",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
@@ -27,7 +27,7 @@ func TestValidateCard(t *testing.T) {
 func TestValidateCardMissingID(t *testing.T) {
 	card := &Card{
 		Title:      "Test Card",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
@@ -53,8 +53,8 @@ func TestValidateCardMissingID(t *testing.T) {
 
 func TestValidateCardMissingTitle(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
-		Type:       CardTypeRequirement,
+		ID:         "FEAT-abc-123",
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
@@ -69,7 +69,7 @@ func TestValidateCardMissingTitle(t *testing.T) {
 
 func TestValidateCardInvalidType(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
+		ID:         "FEAT-abc-123",
 		Title:      "Test",
 		Type:       CardType("invalid"),
 		Status:     CardStatusDraft,
@@ -97,9 +97,9 @@ func TestValidateCardInvalidType(t *testing.T) {
 
 func TestValidateCardInvalidStatus(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
+		ID:         "FEAT-abc-123",
 		Title:      "Test",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatus("invalid"),
 		Importance: ImportanceShould,
 		Created:    time.Now(),
@@ -114,9 +114,9 @@ func TestValidateCardInvalidStatus(t *testing.T) {
 
 func TestValidateCardInvalidImportance(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
+		ID:         "FEAT-abc-123",
 		Title:      "Test",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: Importance("invalid"),
 		Created:    time.Now(),
@@ -131,9 +131,9 @@ func TestValidateCardInvalidImportance(t *testing.T) {
 
 func TestValidateCardMissingTimestamps(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
+		ID:         "FEAT-abc-123",
 		Title:      "Test",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 	}
@@ -162,7 +162,7 @@ func TestValidateCardIDPrefixMismatch(t *testing.T) {
 	card := &Card{
 		ID:         "DEC-abc-123",
 		Title:      "Test",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
@@ -188,9 +188,9 @@ func TestValidateCardIDPrefixMismatch(t *testing.T) {
 
 func TestValidateCardInvalidLink(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
+		ID:         "FEAT-abc-123",
 		Title:      "Test",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Links: []Link{
@@ -214,15 +214,15 @@ func TestValidateCardInvalidLink(t *testing.T) {
 
 func TestValidateCardValidLinks(t *testing.T) {
 	card := &Card{
-		ID:         "REQ-abc-123",
+		ID:         "FEAT-abc-123",
 		Title:      "Test",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Links: []Link{
 			{Target: "DEC-456", Relation: "references"},
-			{Target: "DES-789", Relation: "implements"},
-			{Target: "TASK-abc", Relation: "blocks"},
+			{Target: "FEAT-789", Relation: "implements"},
+			{Target: "FEAT-abc", Relation: "blocks"},
 		},
 		Created: time.Now(),
 		Updated: time.Now(),
@@ -405,9 +405,9 @@ func TestValidateCardFile(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	card := &Card{
-		ID:         "REQ-abc-file",
+		ID:         "FEAT-abc-file",
 		Title:      "Test Card",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
@@ -432,16 +432,16 @@ func TestValidateCardFileFilenameMismatch(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	card := &Card{
-		ID:         "REQ-abc-mis",
+		ID:         "FEAT-abc-mis",
 		Title:      "Test Card",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
 		Updated:    time.Now(),
 	}
 
-	wrongFilename := "REQ-different_wrong-name.md"
+	wrongFilename := "FEAT-different_wrong-name.md"
 	filePath := filepath.Join(tmpDir, wrongFilename)
 
 	if err := card.Save(filePath); err != nil {
@@ -488,13 +488,13 @@ func TestValidateCardFileInStoreRejectsMissingLinkTargets(t *testing.T) {
 	}
 
 	card := &Card{
-		ID:         "DES-abc-link",
+		ID:         "FEAT-abc-link",
 		Title:      "Broken link card",
-		Type:       CardTypeDesign,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Links: []Link{
-			{Target: "REQ-MISSING", Relation: "references"},
+			{Target: "FEAT-MISSING", Relation: "references"},
 		},
 		Created: time.Now(),
 		Updated: time.Now(),
@@ -520,14 +520,14 @@ func TestValidateCardFileInStoreRejectsMissingMarkdownLinkTargets(t *testing.T) 
 	}
 
 	card := &Card{
-		ID:         "STR-abc-req",
+		ID:         "FEAT-abc-req",
 		Title:      "Broken structure",
-		Type:       CardTypeStructure,
+		Type:       CardTypeFeature,
 		Status:     CardStatusActive,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
 		Updated:    time.Now(),
-		Body:       "## Entries\n\n- [REQ-MISSING](REQ-MISSING.md) - missing",
+		Body:       "## Entries\n\n- [FEAT-MISSING](FEAT-MISSING.md) - missing",
 	}
 
 	filePath := filepath.Join(store.ProposalCardsDir("CR260612"), GenerateFilename(card.ID, card.Title))
@@ -550,15 +550,15 @@ func TestValidateCardFileInStoreRejectsWikiLinks(t *testing.T) {
 	}
 
 	card := &Card{
-		ID:         "STR-abc-wiki",
+		ID:         "FEAT-abc-wiki",
 		Title:      "Wiki structure",
-		Type:       CardTypeStructure,
+		Type:       CardTypeFeature,
 		Status:     CardStatusActive,
 		Importance: ImportanceShould,
 		Links:      []Link{{Target: "PROP-CR260612", Relation: "belongs_to"}},
 		Created:    time.Now(),
 		Updated:    time.Now(),
-		Body:       "## Entries\n\n- [[REQ-MISSING]] - missing",
+		Body:       "## Entries\n\n- [[FEAT-MISSING]] - missing",
 	}
 
 	root := NewCard(CardTypeProposal, "Root")
@@ -602,9 +602,9 @@ func TestValidateCardFileInStoreRequiresFrontmatterOutboundLink(t *testing.T) {
 	}
 
 	card := &Card{
-		ID:         "REQ-abc-orphan",
+		ID:         "FEAT-abc-orphan",
 		Title:      "Orphan with body link",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Created:    time.Now(),
@@ -638,9 +638,9 @@ func TestValidateCardFileInStoreSkipsExternalAndAnchorMarkdownLinks(t *testing.T
 	}
 
 	card := &Card{
-		ID:         "REQ-abc-external",
+		ID:         "FEAT-abc-external",
 		Title:      "External link card",
-		Type:       CardTypeRequirement,
+		Type:       CardTypeFeature,
 		Status:     CardStatusDraft,
 		Importance: ImportanceShould,
 		Links:      []Link{{Target: "PROP-CR260612", Relation: "belongs_to"}},
@@ -696,19 +696,5 @@ func TestIsValidRelation(t *testing.T) {
 
 	if isValidRelation("invalid") {
 		t.Error("expected 'invalid' to be invalid relation")
-	}
-}
-
-func TestIsValidTaskType(t *testing.T) {
-	validTypes := []string{"a", "i", "t", "d", "f", "r", "c"}
-
-	for _, tt := range validTypes {
-		if !isValidTaskType(tt) {
-			t.Errorf("expected %s to be valid task type", tt)
-		}
-	}
-
-	if isValidTaskType("x") {
-		t.Error("expected 'x' to be invalid task type")
 	}
 }

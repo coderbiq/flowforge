@@ -17,6 +17,9 @@ const (
 // NextCardID allocates a human-readable ID for a card belonging to a proposal.
 // Legacy timestamp IDs remain available for cards without proposal ownership.
 func (s *CardStore) NextCardID(cardType CardType, proposalID string) (string, error) {
+	if !cardType.IsCurrentType() {
+		return "", fmt.Errorf("card type %q is not supported", cardType)
+	}
 	if proposalID == "" {
 		return GenerateCardID(cardType, ""), nil
 	}
@@ -25,24 +28,7 @@ func (s *CardStore) NextCardID(cardType CardType, proposalID string) (string, er
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s-%s-%0*d", cardType.Prefix(), proposalID, proposalCardSequenceWidth, sequence), nil
-}
-
-// NextTaskID allocates a task ID using the same proposal-wide sequence as all
-// other proposal cards. The task kind remains part of the stable ID shape.
-func (s *CardStore) NextTaskID(proposalID, taskType string) (string, error) {
-	if proposalID == "" {
-		return GenerateTaskID("", taskType), nil
-	}
-	if taskType == "" {
-		taskType = "i"
-	}
-
-	sequence, err := s.nextProposalCardSequence(proposalID)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("TASK-%s-%s-%0*d", proposalID, taskType, proposalCardSequenceWidth, sequence), nil
+	return fmt.Sprintf("%s-%s-%0*d", currentCardPrefix(cardType), proposalID, proposalCardSequenceWidth, sequence), nil
 }
 
 func (s *CardStore) nextProposalCardSequence(proposalID string) (sequence int, err error) {
@@ -127,12 +113,6 @@ func proposalCardSequence(cardID, proposalID string) (int, bool) {
 		return 0, false
 	}
 	sequencePart := parts[2]
-	if parts[0] == "TASK" {
-		if len(parts) < 4 {
-			return 0, false
-		}
-		sequencePart = parts[3]
-	}
 	if len(sequencePart) < proposalCardSequenceWidth {
 		return 0, false
 	}

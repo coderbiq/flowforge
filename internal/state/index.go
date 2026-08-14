@@ -61,7 +61,7 @@ VALUES (?, ?, ?);`)
 	linkCount := 0
 
 	for _, card := range cards {
-		if card == nil {
+		if card == nil || !card.Type.IsCurrentType() {
 			continue
 		}
 		if seen[card.ID] {

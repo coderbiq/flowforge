@@ -35,6 +35,37 @@ func TestSyncDetectsOpenCodeAndUpdatesRoutingBlock(t *testing.T) {
 	}
 }
 
+func TestSyncLeavesLegacyCardAndHistoryWikiBytesUntouched(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	legacyPath := filepath.Join(root, "ff-wiki", "02-library", "40-tasks", "TASK-legacy.md")
+	historyPath := filepath.Join(root, "ff-wiki", "03-proposal", "history-wiki.md")
+	legacy := []byte("# legacy task\n\nlegacy body and [[OLD-123]]\n")
+	history := []byte("# historical wiki\n\nold links remain byte-for-byte\n")
+	for path, data := range map[string][]byte{legacyPath: legacy, historyPath: history} {
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string][]byte{legacyPath: legacy, historyPath: history} {
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("sync rewrote historical file %s", path)
+		}
+	}
+}
+
 func TestSyncDetectsCodexAndIsIdempotent(t *testing.T) {
 	root := t.TempDir()
 	if err := runInit(root, true, "default"); err != nil {
@@ -491,6 +522,51 @@ func TestSyncPreservesModifiedStaticAssetManifestBaseline(t *testing.T) {
 	}
 }
 
+func TestSyncDoesNotAdoptUntrustedStaticAsset(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, ".agents", "skills", "flowforge-design", "SKILL.md")
+	userData := []byte("user-owned skill\n")
+	if err := os.WriteFile(target, userData, 0644); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filtered := manifest.Files[:0]
+	for _, entry := range manifest.Files {
+		if entry.Target != filepath.Join(".agents", "skills", "flowforge-design", "SKILL.md") {
+			filtered = append(filtered, entry)
+		}
+	}
+	manifest.Files = filtered
+	if err := manifest.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{adopt: true}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, userData) {
+		t.Fatal("--adopt replaced an untrusted static asset")
+	}
+	updated, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range updated.Files {
+		if entry.Target == filepath.Join(".agents", "skills", "flowforge-design", "SKILL.md") {
+			t.Fatal("untrusted conflict advanced the manifest baseline")
+		}
+	}
+}
+
 func TestSyncFromSubdirectoryUsesProjectRootForConflicts(t *testing.T) {
 	root := t.TempDir()
 	if err := runInit(root, true, "default"); err != nil {
@@ -537,42 +613,6 @@ func TestSyncFromSubdirectoryUsesProjectRootForConflicts(t *testing.T) {
 	}
 	if string(data) != "user modification\n" {
 		t.Fatal("subdirectory sync overwrote project-root conflict")
-	}
-}
-
-func TestLegacyAssetsUpdateIsHiddenAndDelegatesToSync(t *testing.T) {
-	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, ".opencode"), 0755); err != nil {
-		t.Fatal(err)
-	}
-	if err := runInit(root, true, "default"); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Remove(filepath.Join(root, ".opencode", "agents", "flowforge-executor.md")); err != nil {
-		t.Fatal(err)
-	}
-	oldWD, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(root); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(oldWD); err != nil {
-			t.Errorf("restoring working directory: %v", err)
-		}
-	})
-	cmd := newLegacyAssetsCmd()
-	if !cmd.Hidden {
-		t.Fatal("legacy assets command must remain hidden")
-	}
-	cmd.SetArgs([]string{"update"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(filepath.Join(root, ".opencode", "agents", "flowforge-executor.md")); err != nil {
-		t.Fatalf("legacy assets update did not delegate to sync: %v", err)
 	}
 }
 

@@ -28,7 +28,7 @@ Use `references/extraction-guide.md` for knowledge unit criteria and card type m
 - Use `card link` for cross-references; use `-o json` to capture created card IDs.
 - For batch card creation, generate a YAML manifest string and use `card batch`.
 - For proposal archive mode, append a concise Journal note after card updates or archive actions; external imports without a Proposal do not require a Journal entry.
-- `task`, `structure`, `log create` are DEPRECATED.
+- Legacy task/requirement/structure routes are not current entry points.
 
 ## Output
 

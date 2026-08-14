@@ -105,6 +105,32 @@ func TestRunInitCreatesInstallOnly(t *testing.T) {
 	}
 }
 
+func TestRunInitPreservesPreexistingSkillAndTemplate(t *testing.T) {
+	root := t.TempDir()
+	skillPath := filepath.Join(root, ".agents", "skills", "custom", "SKILL.md")
+	templatePath := filepath.Join(root, ".flowforge", "templates", "custom.md")
+	for path := range map[string]struct{}{skillPath: {}, templatePath: {}} {
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("user content\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	for path := range map[string]struct{}{skillPath: {}, templatePath: {}} {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != "user content\n" {
+			t.Fatalf("preexisting asset %s was overwritten", path)
+		}
+	}
+}
+
 func TestRunInitAppendsFlowForgeBlockToExistingAgentRules(t *testing.T) {
 	tmpDir := t.TempDir()
 	agentPath := filepath.Join(tmpDir, "AGENTS.md")

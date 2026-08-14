@@ -1,6 +1,6 @@
 ---
 name: flowforge-implement
-description: Use ONLY when the user asks to execute a ready FlowForge implementation task, or provides a task id and wants code changes for that task. Do NOT use for design, analysis, feedback, archive, or general card lookup.
+description: Use ONLY when the user asks to execute a ready FlowForge implementation Step, or provides a FEATURE id and Step and wants code changes. Do NOT use for design, analysis, feedback, archive, or general card lookup.
 ---
 
 # flowforge-implement

@@ -2,11 +2,14 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/viper"
 
 	"flowforge/internal/core"
 )
@@ -27,7 +30,7 @@ func TestCardBatchStdin(t *testing.T) {
 	yaml := fmt.Sprintf(`proposal: %s
 cards:
   - ref: "stdin-req"
-    type: requirement
+    type: feature
     title: "Stdin Batch Requirement"
     status: draft
     body: |
@@ -35,7 +38,7 @@ cards:
       A requirement created via stdin.
     tags: [batch, stdin]
     domain: flowforge
-  - type: design
+  - type: feature
     title: "Stdin Batch Design"
     status: draft
     body: |
@@ -70,10 +73,10 @@ cards:
 
 	var reqFound, desFound bool
 	for _, c := range cards {
-		if c.Type == core.CardTypeRequirement && c.Title == "Stdin Batch Requirement" {
+		if c.Type == core.CardTypeFeature && c.Title == "Stdin Batch Requirement" {
 			reqFound = true
 		}
-		if c.Type == core.CardTypeDesign && c.Title == "Stdin Batch Design" {
+		if c.Type == core.CardTypeFeature && c.Title == "Stdin Batch Design" {
 			desFound = true
 		}
 	}
@@ -101,7 +104,7 @@ func TestCardBatchForwardRefResolution(t *testing.T) {
 	yaml := fmt.Sprintf(`proposal: %s
 cards:
   - ref: "design-ref"
-    type: design
+    type: feature
     title: "Batch Forward Ref Design"
     status: draft
     body: |
@@ -118,7 +121,7 @@ cards:
     tags: [batch, ref-test]
     domain: flowforge
 
-  - type: task
+  - type: feature
     title: "Batch Forward Ref Task (implements design)"
     status: not_ready
     body: |
@@ -141,6 +144,8 @@ cards:
 	}
 
 	cmd := newCardCreateBatchCmd()
+	cmd.SilenceUsage = true
+	cmd.SilenceErrors = true
 	var out bytes.Buffer
 	cmd.SetOut(&out)
 	cmd.SetArgs([]string{manifestPath})
@@ -163,7 +168,7 @@ cards:
 
 	var taskCard *core.Card
 	for _, c := range cards {
-		if c.Type == core.CardTypeTask && strings.Contains(c.Title, "Batch Forward Ref Task") {
+		if c.Type == core.CardTypeFeature && strings.Contains(c.Title, "Batch Forward Ref Task") {
 			taskCard = c
 			break
 		}
@@ -179,7 +184,7 @@ cards:
 			if terr != nil {
 				t.Fatalf("reading linked design card %s: %v", link.Target, terr)
 			}
-			if targetCard.Type == core.CardTypeDesign && targetCard.Title == "Batch Forward Ref Design" {
+			if targetCard.Type == core.CardTypeFeature && targetCard.Title == "Batch Forward Ref Design" {
 				found = true
 				break
 			}
@@ -187,6 +192,203 @@ cards:
 	}
 	if !found {
 		t.Fatalf("task card missing implements link to design card; links: %#v", taskCard.Links)
+	}
+}
+
+func TestCardBatchPhaseOneDuplicateIDRetainsSuccessfulPeers(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Batch duplicate ID proposal")
+	store := testCardStore(t, tmpDir)
+	existing := core.NewCard(core.CardTypeFeature, "Existing card")
+	existing.ID = "FEAT-" + proposalID + "-001"
+	existing.Body = "existing body"
+	if _, err := store.CreateCard(existing, proposalID); err != nil {
+		t.Fatalf("creating existing card: %v", err)
+	}
+	sequencePath := filepath.Join(store.ProposalCardsDir(proposalID), ".flowforge-card-sequence")
+	if err := os.WriteFile(sequencePath, []byte("1\n"), 0600); err != nil {
+		t.Fatalf("writing sequence counter: %v", err)
+	}
+
+	manifest := fmt.Sprintf(`proposal: %s
+cards:
+  - type: feature
+    title: "Duplicate card"
+  - type: feature
+    title: "Successful peer"
+`, proposalID)
+	cmd := newCardCreateBatchCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--manifest", manifest})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected batch to report the duplicate ID")
+	}
+	text := out.String()
+	if !strings.Contains(text, "phase 1") || !strings.Contains(text, "manifest[0]") || !strings.Contains(text, "FEAT-"+proposalID+"-001") {
+		t.Fatalf("duplicate error is not auditable: %s", text)
+	}
+	if !strings.Contains(text, "Successful peer") {
+		t.Fatalf("successful peer missing from report: %s", text)
+	}
+	peer, err := store.ReadCard("FEAT-" + proposalID + "-002")
+	if err != nil {
+		t.Fatalf("successful peer was not retained: %v", err)
+	}
+	if peer.Title != "Successful peer" {
+		t.Fatalf("unexpected retained peer: %#v", peer)
+	}
+	reloaded, err := store.ReadCard(existing.ID)
+	if err != nil {
+		t.Fatalf("reading existing card: %v", err)
+	}
+	if reloaded.Body != existing.Body {
+		t.Fatalf("duplicate ID overwrote existing body: %q", reloaded.Body)
+	}
+	next, err := store.NextCardID(core.CardTypeFeature, proposalID)
+	if err != nil {
+		t.Fatalf("allocating subsequent ID: %v", err)
+	}
+	if next != "FEAT-"+proposalID+"-003" {
+		t.Fatalf("sequence counter rolled back or collided: %s", next)
+	}
+}
+
+func TestCardBatchJSONPartialFailureReportIsStable(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Batch JSON proposal")
+	store := testCardStore(t, tmpDir)
+	existing := core.NewCard(core.CardTypeFeature, "Existing JSON card")
+	existing.ID = "FEAT-" + proposalID + "-001"
+	if _, err := store.CreateCard(existing, proposalID); err != nil {
+		t.Fatalf("creating existing card: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(store.ProposalCardsDir(proposalID), ".flowforge-card-sequence"), []byte("1\n"), 0600); err != nil {
+		t.Fatalf("writing sequence counter: %v", err)
+	}
+	viper.Set("output", "json")
+	defer viper.Set("output", "text")
+	cmd := newCardCreateBatchCmd()
+	cmd.SilenceUsage = true
+	cmd.SilenceErrors = true
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--manifest", fmt.Sprintf("proposal: %s\ncards:\n  - type: feature\n    title: Duplicate JSON\n", proposalID)})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected JSON batch partial failure")
+	}
+	var result batchResult
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatalf("invalid JSON batch report: %v; output=%s", err, out.String())
+	}
+	if len(result.Errors) != 1 || result.Errors[0].Index != 0 || !strings.Contains(result.Errors[0].Error, "phase 1") || !strings.Contains(result.Errors[0].Error, existing.ID) {
+		t.Fatalf("unstable or incomplete JSON error report: %#v", result)
+	}
+}
+
+func TestCardBatchPhaseTwoBadTargetRetainsCreatedLinksAndNavigation(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Batch bad target proposal")
+	store := testCardStore(t, tmpDir)
+	target := core.NewCard(core.CardTypeDecision, "Existing target")
+	target.ID = "DEC-" + proposalID + "-target"
+	if _, err := store.CreateCard(target, proposalID); err != nil {
+		t.Fatalf("creating target: %v", err)
+	}
+	manifest := fmt.Sprintf(`proposal: %s
+cards:
+  - type: feature
+    title: "Partial links"
+    links:
+      - "%s:references"
+      - "DEC-missing-target:references"
+`, proposalID, target.ID)
+	cmd := newCardCreateBatchCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"--manifest", manifest})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected batch to report the bad target")
+	}
+	text := out.String()
+	if !strings.Contains(text, "phase 2") || !strings.Contains(text, "target DEC-missing-target") {
+		t.Fatalf("bad target error is not auditable: %s", text)
+	}
+	created, err := store.ReadCard("FEAT-" + proposalID + "-001")
+	if err != nil {
+		t.Fatalf("created card was not retained: %v", err)
+	}
+	if !hasLinkRelation(created, target.ID, "references") {
+		t.Fatalf("valid link was not retained: %#v", created.Links)
+	}
+	if strings.Contains(created.Body, "DEC-missing-target") {
+		t.Fatalf("bad target leaked into generated navigation: %s", created.Body)
+	}
+	updatedTarget, err := store.ReadCard(target.ID)
+	if err != nil {
+		t.Fatalf("reading navigation target: %v", err)
+	}
+	if !strings.Contains(updatedTarget.Body, created.ID) {
+		t.Fatalf("existing target navigation was not retained: %s", updatedTarget.Body)
+	}
+}
+
+func TestCardBatchDuplicateRefRejectedBeforeWrites(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Batch duplicate ref proposal")
+	manifest := fmt.Sprintf(`proposal: %s
+cards:
+  - ref: same
+    type: feature
+    title: "First"
+  - ref: same
+    type: decision
+    title: "Second"
+`, proposalID)
+	cmd := newCardCreateBatchCmd()
+	cmd.SetArgs([]string{"--manifest", manifest})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected duplicate ref preflight rejection")
+	}
+	store := testCardStore(t, tmpDir)
+	cards, err := store.ListCards(store.ProposalCardsDir(proposalID))
+	if err != nil {
+		t.Fatalf("listing proposal cards: %v", err)
+	}
+	if len(cards) != 0 {
+		t.Fatalf("duplicate ref preflight wrote cards: %#v", cards)
 	}
 }
 

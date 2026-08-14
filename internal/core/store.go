@@ -59,32 +59,16 @@ func (s *CardStore) LibraryDir() string {
 }
 
 func (s *CardStore) LibraryTypeDir(cardType CardType) string {
-	dirName := ""
-	switch cardType {
-	case CardTypeRequirement:
-		dirName = "10-requirements"
-	case CardTypeDecision:
-		dirName = "20-decisions"
-	case CardTypeDesign:
-		dirName = "30-designs"
-	case CardTypeTask:
-		dirName = "40-tasks"
-	case CardTypeLog:
-		dirName = "50-logs"
-	case CardTypeConvention:
-		dirName = "60-conventions"
-	case CardTypeFinding:
-		dirName = "70-findings"
-	case CardTypeModule:
-		dirName = "80-modules"
-	case CardTypeStructure:
-		dirName = "structures"
-	case CardTypeProposal:
-		dirName = "structures"
-	case CardTypeFeature:
-		dirName = "features"
-	default:
-		dirName = "misc"
+	dirName := map[CardType]string{
+		CardTypeDecision:   "20-decisions",
+		CardTypeConvention: "60-conventions",
+		CardTypeFinding:    "70-findings",
+		CardTypeModule:     "80-modules",
+		CardTypeProposal:   "proposals",
+		CardTypeFeature:    "features",
+	}[cardType]
+	if dirName == "" {
+		return s.LibraryDir()
 	}
 	return filepath.Join(s.LibraryDir(), dirName)
 }
@@ -194,8 +178,7 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	rootCard.ProposalID = proposalID
 	rootCard.DirName = dirName
 	rootCard.Slug = slug
-	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Entries\n\n- [STR-%s-REQ](../01-workspace/%s/STR-%s-REQ.md) (structure, active) - Requirement index\n\n## Summary\n\nProposal root card.\n", title, proposalID, proposalID, dirName, proposalID)
-	rootCard.AddLink("STR-"+proposalID+"-REQ", "indexes")
+	rootCard.Body = fmt.Sprintf("# %s\n\n## Purpose\n\nStable entry for proposal %s.\n\n## Summary\n\nProposal root card.\n", title, proposalID)
 
 	rootPath := filepath.Join(s.ProposalCardDir(), dirName+".md")
 	if err := rootCard.Save(rootPath); err != nil {
@@ -203,7 +186,7 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 	}
 
 	indexPath := s.ProposalRequirementIndexPath(proposalID)
-	indexCard := NewCard(CardTypeStructure, title+" Requirements")
+	indexCard := NewCard(CardType("structure"), title+" Requirements")
 	indexCard.ID = "STR-" + proposalID + "-REQ"
 	indexCard.Status = CardStatusActive
 	indexCard.Source = proposalID
@@ -220,15 +203,25 @@ func (s *CardStore) CreateProposal(proposalID, title string) (string, string, er
 }
 
 func (s *CardStore) CreateCard(card *Card, proposalID string) (string, error) {
+	if card == nil {
+		return "", fmt.Errorf("card is required")
+	}
+	if !card.Type.IsCurrentType() {
+		return "", fmt.Errorf("card type %q is not supported", card.Type)
+	}
 	var targetDir string
 
 	if proposalID != "" {
 		targetDir = s.ProposalCardsDir(proposalID)
 		card.Source = proposalID
-	} else if card.Type == CardTypeRequirement {
-		targetDir = s.IntakeDir()
 	} else {
 		targetDir = s.LibraryTypeDir(card.Type)
+	}
+
+	if existingPath, err := s.FindCardPath(card.ID); err == nil {
+		return "", fmt.Errorf("card ID %s already exists at %s", card.ID, existingPath)
+	} else if !strings.HasPrefix(err.Error(), "card not found:") {
+		return "", fmt.Errorf("checking card ID %s: %w", card.ID, err)
 	}
 
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
@@ -250,7 +243,10 @@ func (s *CardStore) CreateCard(card *Card, proposalID string) (string, error) {
 			}
 		}
 	} else {
-		existingCards, _ := s.ListCards(targetDir)
+		existingCards, err := s.ListCards(targetDir)
+		if err != nil {
+			return "", fmt.Errorf("checking card filenames in %s: %w", targetDir, err)
+		}
 		for i, existing := range existingCards {
 			if existing.FilePath == filePath {
 				filename = GenerateFilename(card.ID, card.Title)
@@ -277,6 +273,9 @@ func (s *CardStore) CreateCard(card *Card, proposalID string) (string, error) {
 }
 
 func (s *CardStore) ReadCard(cardID string) (*Card, error) {
+	if legacyCardID(cardID) {
+		return nil, fmt.Errorf("card not found: %s", cardID)
+	}
 	if s.hasSync() {
 		card, err := s.syncService.ReadCard(cardID)
 		if err == nil {
@@ -420,6 +419,9 @@ func (s *CardStore) ForceDeleteCard(cardID string) error {
 }
 
 func (s *CardStore) FindCardPath(cardID string) (string, error) {
+	if legacyCardID(cardID) {
+		return "", fmt.Errorf("card not found: %s", cardID)
+	}
 	if s.hasSync() {
 		path, err := s.syncService.FindCardPath(cardID)
 		if err == nil {
@@ -434,7 +436,16 @@ func (s *CardStore) FindCardPath(cardID string) (string, error) {
 		s.ProposalCardDir(),
 	}
 
+	seenDirs := make(map[string]bool, len(searchDirs))
 	for _, dir := range searchDirs {
+		cleanDir, err := filepath.Abs(filepath.Clean(dir))
+		if err != nil {
+			return "", fmt.Errorf("normalizing card directory %s: %w", dir, err)
+		}
+		if seenDirs[cleanDir] {
+			continue
+		}
+		seenDirs[cleanDir] = true
 		path, err := s.findCardInDir(cardID, dir)
 		if err == nil {
 			return path, nil
@@ -497,6 +508,36 @@ func (s *CardStore) ListCards(dir string) ([]*Card, error) {
 	return s.ListCardsFromFiles(dir)
 }
 
+// ListCardsFromDirs scans each physical directory at most once and removes
+// duplicate current-v3 cards that are reachable through overlapping views.
+func (s *CardStore) ListCardsFromDirs(dirs ...string) ([]*Card, error) {
+	seenDirs := make(map[string]bool, len(dirs))
+	seenCards := make(map[string]bool)
+	var cards []*Card
+	for _, dir := range dirs {
+		cleanDir, err := filepath.Abs(filepath.Clean(dir))
+		if err != nil {
+			return nil, fmt.Errorf("normalizing card directory %s: %w", dir, err)
+		}
+		if seenDirs[cleanDir] {
+			continue
+		}
+		seenDirs[cleanDir] = true
+		dirCards, err := s.ListCards(dir)
+		if err != nil {
+			return nil, fmt.Errorf("listing cards in %s: %w", dir, err)
+		}
+		for _, card := range dirCards {
+			if card == nil || seenCards[card.ID] {
+				continue
+			}
+			seenCards[card.ID] = true
+			cards = append(cards, card)
+		}
+	}
+	return cards, nil
+}
+
 func (s *CardStore) ListCardsFromFiles(dir string) ([]*Card, error) {
 	var cards []*Card
 
@@ -519,11 +560,26 @@ func (s *CardStore) ListCardsFromFiles(dir string) ([]*Card, error) {
 			return nil
 		}
 
-		cards = append(cards, card)
+		if card.Type.IsCurrentType() {
+			cards = append(cards, card)
+		}
 		return nil
 	})
 
 	return cards, err
+}
+
+func legacyCardID(cardID string) bool {
+	parts := strings.SplitN(cardID, "-", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	switch parts[0] {
+	case "REQ", "DES", "TASK", "LOG", "STR":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *CardStore) ListCardsByType(cardType CardType) ([]*Card, error) {
@@ -534,19 +590,18 @@ func (s *CardStore) ListCardsByType(cardType CardType) ([]*Card, error) {
 		}
 	}
 
-	var allCards []*Card
-
-	libraryCards, _ := s.ListCards(s.LibraryTypeDir(cardType))
-	allCards = append(allCards, libraryCards...)
-
-	activeCards, _ := s.ListCards(s.ActiveDir())
-	for _, card := range activeCards {
+	allCards, err := s.ListCardsFromDirs(s.LibraryTypeDir(cardType), s.ActiveDir(), s.ProposalCardDir())
+	if err != nil {
+		return nil, err
+	}
+	filtered := make([]*Card, 0, len(allCards))
+	for _, card := range allCards {
 		if card.Type == cardType {
-			allCards = append(allCards, card)
+			filtered = append(filtered, card)
 		}
 	}
 
-	return allCards, nil
+	return filtered, nil
 }
 
 func (s *CardStore) ListCardsByStatus(cardType CardType, status CardStatus) ([]*Card, error) {

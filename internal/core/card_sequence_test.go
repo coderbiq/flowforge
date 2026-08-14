@@ -25,13 +25,6 @@ func TestNextProposalCardIDUsesPaddedSequence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	second, err := store.NextTaskID("CR26081102", "i")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if second != "TASK-CR26081102-i-002" {
-		t.Fatalf("unexpected second ID: %s", second)
-	}
 }
 
 func TestNextProposalCardIDRemainsUniqueAcrossConcurrentAllocations(t *testing.T) {
@@ -83,11 +76,11 @@ func TestProposalCardSequenceExpandsBeyondThreeDigits(t *testing.T) {
 	if err := writeSequenceCounter(sequencePath, 1000); err != nil {
 		t.Fatal(err)
 	}
-	id, err := store.NextCardID(CardTypeRequirement, "CR26081104")
+	id, err := store.NextCardID(CardTypeFeature, "CR26081104")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if id != "REQ-CR26081104-1000" {
+	if id != "FEAT-CR26081104-1000" {
 		t.Fatalf("expected four-digit sequence after 999, got %s", id)
 	}
 }
@@ -99,7 +92,6 @@ func TestProposalCardSequenceRecognizesOnlyNumericSequenceParts(t *testing.T) {
 		matched bool
 	}{
 		{"FEAT-CR26081102-001", 1, true},
-		{"TASK-CR26081102-i-1000", 1000, true},
 		{"FEAT-CR26081102-dkm31krtv79s", 0, false},
 		{"FEAT-OTHER-001", 0, false},
 	}

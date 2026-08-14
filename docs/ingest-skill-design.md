@@ -1,6 +1,7 @@
 # 知识策展 SKILL 设计（外部导入 + 归档）
 
 > 状态：draft
+> 历史资料：本文件仅保留早期策展设计背景，不是当前执行入口；其中的旧卡片类型、索引维护和 proposal 收尾流程均不可执行。当前流程以 `assets/skills/flowforge-curate/SKILL.md`、`README.md` 和 `AGENTS.md` 中的 v3 路由为准。
 > 目标：定义 `flowforge-curate` SKILL 的工作流，将外部资料或 proposal 中的可复用知识沉淀到 library。
 
 ## 1. 定位
@@ -360,7 +361,7 @@ created: 2026-06-20
     - skip: 记录跳过原因
   - 创建本批涉及的 STR 索引卡（如果尚未创建）
   - 建立卡片间链接：card link
-  - 维护 STR 索引：structure add
+  - 维护旧版 STR 索引（历史设计，当前不可执行）
   │
   v
 6c. 更新计划卡
@@ -417,9 +418,8 @@ flowforge card create --type convention --title "pageSize 上限 100" \
 # 3. 建立卡片间链接
 flowforge card link CONV-xxx CONV-yyy --relation references
 
-# 4. 将卡片加入 STR 索引
-flowforge structure add --index STR-API-PAGINATION --card CONV-xxx
-flowforge structure add --index STR-API-PAGINATION --card CONV-yyy
+# 4. 旧版 STR 索引维护（历史示例；当前不可执行，不要照此操作）
+# 此处原有的索引写入命令已移除。
 
 # 5. 合并（如果需要）
 flowforge card read CONV-003 --summary
@@ -429,8 +429,7 @@ flowforge card link CONV-003 FIND-xxx --relation derived-from
 # 6. 更新计划卡：标记本批条目为 [x]
 flowforge card update FIND-xxx-plan     # 更新计划卡正文
 
-# 7. 重建索引
-flowforge index rebuild
+# 7. 旧版索引重建（历史步骤；当前不可执行，已移除具体命令）
 ```
 
 ### 4.9 Mode B only：提案收尾
@@ -550,8 +549,8 @@ flowforge-curate（知识策展 SKILL）
    → 用户审查确认
    → 生成计划卡：分批组织，写入 library 持久化
    → 分批执行：每轮激活处理一批（5-10 条）
-     → card create → card link → structure add → 更新计划卡进度
-   → 全部批次完成后：index rebuild
+     → card create → card link → 更新计划卡进度（以上为历史流程示意，不是当前执行指令）
+   → 全部批次完成后：旧版索引收尾步骤（历史说明，当前不可执行）
    → (Mode B only) 提案收尾：proposal archive 移动目录
 
 输出：导入/归档报告
@@ -589,7 +588,7 @@ flowforge-curate（知识策展 SKILL）
 5. 共享：聚类 → 生成审查计划 → 用户审查 → 生成计划卡
 6. 分批执行：每轮激活处理一批（5-10 条），更新计划卡进度
 7. Mode B only：全部完成后移动 proposal 到 completed
-8. 只使用 CLI 原子操作（card create / card link / structure add / index rebuild）
+8. 只使用 CLI 原子操作（本条为历史设计约束，当前执行路由以 v3 文档为准）
 9. 不直接操作文件，不自行构建索引
 10. 默认创建 `status: draft` 卡片
 11. 每轮必须输出审查报告或进度报告，不直接写入
@@ -607,8 +606,8 @@ curate SKILL 依赖的 CLI 原子操作已全部存在或已在 MVP 计划中：
 | `card update` | 更新卡片内容/状态 | MVP |
 | `card link --relation` | 建立类型化链接 | MVP |
 | `card search --scope library` | 搜索已有卡片 | MVP |
-| `structure add --index --card` | 维护 STR 索引 | MVP |
-| `index rebuild` | 重建 sqlite 索引 | MVP |
+| 旧版 STR 索引写入 | 历史设计中的索引维护 | 已废弃，不可执行 |
+| 旧版索引重建 | 历史设计中的收尾步骤 | 已废弃，不可执行 |
 | `proposal archive <id>` | 移动 proposal 到 completed | MVP |
 | `proposal inspect <id>` | 扫描 proposal 状态 | MVP |
 

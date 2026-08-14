@@ -98,10 +98,14 @@ func syncProject(cmd *cobra.Command, root string, opts syncOptions) error {
 		if err := previewAssetUpdates(cmd, root, manifest); err != nil {
 			return err
 		}
-	} else if _, err := applyAssetUpdates(root, opts.adopt); err != nil {
+	} else if report, err := applyAssetUpdates(root, opts.adopt); err != nil {
 		return err
 	} else if manifest, err = core.LoadProjectManifest(root); err != nil {
 		return err
+	} else if report != nil {
+		for _, entry := range report.Conflict {
+			fmt.Fprintf(cmd.ErrOrStderr(), "! conflict: %s -> %s (preserved)\n", entry.Source, entry.Target)
+		}
 	}
 
 	policy := orchestration.DefaultPolicy()
@@ -255,7 +259,7 @@ func previewAssetUpdates(cmd *cobra.Command, root string, old *core.ProjectManif
 		fmt.Fprintf(cmd.OutOrStdout(), "~ %s\n", entry.Target)
 	}
 	for _, entry := range diff.Conflict {
-		fmt.Fprintf(cmd.ErrOrStderr(), "! conflict: %s (preserved)\n", entry.Target)
+		fmt.Fprintf(cmd.ErrOrStderr(), "! conflict: %s -> %s (preserved)\n", entry.Source, entry.Target)
 	}
 	return nil
 }

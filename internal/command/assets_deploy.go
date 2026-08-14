@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
@@ -18,11 +19,11 @@ func deployManagedAssets(targetDir string) error {
 	}
 	defer cleanup()
 
-	if err := copyDir(filepath.Join(assetsDir, "skills"), filepath.Join(targetDir, ".agents", "skills"), true); err != nil {
+	if err := copyDir(filepath.Join(assetsDir, "skills"), filepath.Join(targetDir, ".agents", "skills"), false); err != nil {
 		return fmt.Errorf("deploying skills: %w", err)
 	}
 
-	if err := copyDir(filepath.Join(assetsDir, "templates"), filepath.Join(targetDir, ".flowforge", "templates"), true); err != nil {
+	if err := copyDir(filepath.Join(assetsDir, "templates"), filepath.Join(targetDir, ".flowforge", "templates"), false); err != nil {
 		return fmt.Errorf("deploying templates: %w", err)
 	}
 
@@ -173,7 +174,14 @@ func copyDir(srcDir, dstDir string, overwrite bool) error {
 
 func copyFile(srcPath, dstPath string, overwrite bool) error {
 	if !overwrite {
-		if _, err := os.Stat(dstPath); err == nil {
+		if existing, err := os.ReadFile(dstPath); err == nil {
+			source, readErr := os.ReadFile(srcPath)
+			if readErr != nil {
+				return fmt.Errorf("reading source file %s: %w", srcPath, readErr)
+			}
+			if !bytes.Equal(existing, source) {
+				fmt.Fprintf(os.Stderr, "! conflict: %s -> %s (preserved)\n", srcPath, dstPath)
+			}
 			return nil
 		} else if !os.IsNotExist(err) {
 			return fmt.Errorf("checking target file %s: %w", dstPath, err)

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode"
@@ -25,6 +26,9 @@ func (s *CardSyncService) SyncCard(card *core.Card) error {
 	}
 	if card == nil || card.ID == "" {
 		return fmt.Errorf("card ID is required")
+	}
+	if !card.Type.IsCurrentType() {
+		return fmt.Errorf("card type %q is not supported", card.Type)
 	}
 
 	tx, err := s.db.Begin()
@@ -127,7 +131,16 @@ func (s *CardSyncService) RebuildAll(listCardsFromFiles func(dir string) ([]*cor
 	}
 
 	var cards []*core.Card
+	seenDirs := make(map[string]bool, len(dirs))
 	for _, dir := range dirs {
+		cleanDir, err := filepath.Abs(filepath.Clean(dir))
+		if err != nil {
+			return 0, 0, fmt.Errorf("normalizing rebuild directory %s: %w", dir, err)
+		}
+		if seenDirs[cleanDir] {
+			continue
+		}
+		seenDirs[cleanDir] = true
 		dirCards, err := listCardsFromFiles(dir)
 		if err != nil {
 			return 0, 0, fmt.Errorf("scanning %s: %w", dir, err)
@@ -154,7 +167,7 @@ func (s *CardSyncService) RebuildAll(listCardsFromFiles func(dir string) ([]*cor
 	cardCount, linkCount := 0, 0
 	seen := map[string]bool{}
 	for _, card := range cards {
-		if card == nil || card.ID == "" || seen[card.ID] {
+		if card == nil || card.ID == "" || !card.Type.IsCurrentType() || seen[card.ID] {
 			continue
 		}
 		seen[card.ID] = true
@@ -210,6 +223,9 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
 }
 
 func (s *CardSyncService) ReadCard(id string) (*core.Card, error) {
+	if legacyID(id) {
+		return nil, fmt.Errorf("card not found: %s", id)
+	}
 	if s == nil || s.db == nil {
 		return nil, fmt.Errorf("sync service not initialized")
 	}
@@ -229,6 +245,9 @@ FROM card_index WHERE id = ?;`, id)
 }
 
 func (s *CardSyncService) FindCardPath(id string) (string, error) {
+	if legacyID(id) {
+		return "", fmt.Errorf("card not found: %s", id)
+	}
 	if s == nil || s.db == nil {
 		return "", fmt.Errorf("sync service not initialized")
 	}
@@ -260,6 +279,7 @@ FROM card_index WHERE file_path LIKE ? ORDER BY file_path;`, dir+"/%")
 	if err != nil {
 		return nil, err
 	}
+	cards = currentCards(cards)
 	if err := s.hydrateLinks(cards); err != nil {
 		return nil, err
 	}
@@ -283,10 +303,34 @@ FROM card_index WHERE type = ? ORDER BY id;`, string(cardType))
 	if err != nil {
 		return nil, err
 	}
+	cards = currentCards(cards)
 	if err := s.hydrateLinks(cards); err != nil {
 		return nil, err
 	}
 	return cards, nil
+}
+
+func currentCards(cards []*core.Card) []*core.Card {
+	filtered := make([]*core.Card, 0, len(cards))
+	for _, card := range cards {
+		if card != nil && card.Type.IsCurrentType() {
+			filtered = append(filtered, card)
+		}
+	}
+	return filtered
+}
+
+func legacyID(id string) bool {
+	parts := strings.SplitN(id, "-", 2)
+	if len(parts) != 2 {
+		return false
+	}
+	switch parts[0] {
+	case "REQ", "DES", "TASK", "LOG", "STR":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *CardSyncService) GetDependents(cardID string) ([]*core.Card, error) {
@@ -377,6 +421,11 @@ func (s *CardSyncService) SearchCards(query string, typeFilter map[core.CardType
 	whereClause := ""
 	if len(conditions) > 0 {
 		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+	if whereClause == "" {
+		whereClause = "WHERE ci.type IN ('decision', 'convention', 'finding', 'module', 'proposal', 'feature')"
+	} else {
+		whereClause += " AND ci.type IN ('decision', 'convention', 'finding', 'module', 'proposal', 'feature')"
 	}
 
 	sqlQuery := fmt.Sprintf(`
@@ -789,7 +838,7 @@ func suggestedRelationForType(cardType core.CardType) string {
 	switch cardType {
 	case core.CardTypeConvention, core.CardTypeModule:
 		return "constrains"
-	case core.CardTypeDecision, core.CardTypeDesign, core.CardTypeFinding:
+	case core.CardTypeDecision, core.CardTypeFinding:
 		return "references"
 	default:
 		return "related"

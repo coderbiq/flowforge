@@ -38,21 +38,33 @@ func TestIndexRebuildStatusAndBacklinks(t *testing.T) {
 	}
 
 	cardStore := testCardStore(t, tmpDir)
-	alpha := core.NewCard(core.CardTypeRequirement, "Alpha requirement")
-	alpha.ID = "REQ-ALPHA"
+	legacyPath := filepath.Join(cardStore.LibraryDir(), "40-tasks", "TASK-legacy.md")
+	historyPath := filepath.Join(tmpDir, "ff-wiki", "historical-wiki.md")
+	legacy := []byte("# legacy task\n\nold link [[OLD-123]]\n")
+	history := []byte("# historical wiki\n\nold content\n")
+	for path, data := range map[string][]byte{legacyPath: legacy, historyPath: history} {
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	alpha := core.NewCard(core.CardTypeFeature, "Alpha requirement")
+	alpha.ID = "FEAT-ALPHA"
 	alpha.Status = core.CardStatusActive
 	alpha.Source = "default"
 	alpha.Domain = "platform"
-	alpha.AddLink("REQ-BETA", "references")
-	if err := alpha.Save(filepath.Join(cardStore.ActiveDir(), "REQ-ALPHA-alpha-requirement.md")); err != nil {
+	alpha.AddLink("FEAT-BETA", "references")
+	if err := alpha.Save(filepath.Join(cardStore.ActiveDir(), "FEAT-ALPHA-alpha-requirement.md")); err != nil {
 		t.Fatalf("saving alpha card failed: %v", err)
 	}
 
-	beta := core.NewCard(core.CardTypeDesign, "Beta design")
-	beta.ID = "REQ-BETA"
+	beta := core.NewCard(core.CardTypeFeature, "Beta design")
+	beta.ID = "FEAT-BETA"
 	beta.Status = core.CardStatusReady
 	beta.Source = "default"
-	if err := beta.Save(filepath.Join(cardStore.IntakeDir(), "REQ-BETA-beta-design.md")); err != nil {
+	if err := beta.Save(filepath.Join(cardStore.IntakeDir(), "FEAT-BETA-beta-design.md")); err != nil {
 		t.Fatalf("saving beta card failed: %v", err)
 	}
 
@@ -60,12 +72,12 @@ func TestIndexRebuildStatusAndBacklinks(t *testing.T) {
 	if err := os.MkdirAll(completedLogDir, 0755); err != nil {
 		t.Fatalf("creating completed log dir failed: %v", err)
 	}
-	completedLog := core.NewCard(core.CardTypeLog, "Completed log")
-	completedLog.ID = "LOG-COMPLETED"
+	completedLog := core.NewCard(core.CardTypeFeature, "Completed log")
+	completedLog.ID = "FEAT-COMPLETED"
 	completedLog.Status = core.CardStatusDone
 	completedLog.Source = "CR260612"
-	completedLog.AddLink("REQ-BETA", "records")
-	if err := completedLog.Save(filepath.Join(completedLogDir, "LOG-COMPLETED-completed-log.md")); err != nil {
+	completedLog.AddLink("FEAT-BETA", "records")
+	if err := completedLog.Save(filepath.Join(completedLogDir, "FEAT-COMPLETED-completed-log.md")); err != nil {
 		t.Fatalf("saving completed log failed: %v", err)
 	}
 
@@ -98,14 +110,23 @@ func TestIndexRebuildStatusAndBacklinks(t *testing.T) {
 	backlinksCmd := newIndexBacklinksCmd()
 	var backlinksOut bytes.Buffer
 	backlinksCmd.SetOut(&backlinksOut)
-	backlinksCmd.SetArgs([]string{"REQ-BETA"})
+	backlinksCmd.SetArgs([]string{"FEAT-BETA"})
 	if err := backlinksCmd.Execute(); err != nil {
 		t.Fatalf("index backlinks failed: %v", err)
 	}
 	backlinksText := backlinksOut.String()
-	for _, want := range []string{"Backlinks for REQ-BETA:", "LOG-COMPLETED records", "REQ-ALPHA references"} {
+	for _, want := range []string{"Backlinks for FEAT-BETA:", "FEAT-COMPLETED records", "FEAT-ALPHA references"} {
 		if !strings.Contains(backlinksText, want) {
 			t.Fatalf("backlinks output missing %q:\n%s", want, backlinksText)
+		}
+	}
+	for path, want := range map[string][]byte{legacyPath: legacy, historyPath: history} {
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(got, want) {
+			t.Fatalf("index rebuild rewrote historical file %s", path)
 		}
 	}
 }
@@ -123,7 +144,7 @@ func TestIndexBacklinksSuggestsRebuildWhenEmpty(t *testing.T) {
 	createProjectForTest(t, "default")
 
 	cmd := newIndexBacklinksCmd()
-	cmd.SetArgs([]string{"REQ-MISSING"})
+	cmd.SetArgs([]string{"FEAT-MISSING"})
 	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "run `flowforge index rebuild` first") {
 		t.Fatalf("expected helpful rebuild message, got %v", err)
 	}

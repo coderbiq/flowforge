@@ -119,15 +119,3 @@ Investigators edit only those four FIND sections. Sources must be independently 
 3. **Design after seeding**: Fill Design and evolve to designed before more FEATUREs.
 
 ---
-
-<!-- DEPRECATED below -->
-
-## Requirement (DEPRECATED)
-
-## Design (DEPRECATED)
-
-## Implementation Task (DEPRECATED)
-
-## Log (DEPRECATED)
-
-## Structure (DEPRECATED)

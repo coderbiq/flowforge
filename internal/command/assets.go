@@ -4,35 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
-
 	"flowforge/internal/core"
 	"flowforge/internal/version"
 )
-
-// newLegacyAssetsCmd is intentionally hidden. FlowForge v3.1.x invokes
-// "assets update" after replacing itself, so the replacement binary must
-// retain this bridge until those clients can upgrade through a fixed release.
-func newLegacyAssetsCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:    "assets",
-		Hidden: true,
-	}
-	cmd.AddCommand(&cobra.Command{
-		Use:    "update",
-		Hidden: true,
-		Args:   cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			svc, err := currentConfigService()
-			if err != nil {
-				return fmt.Errorf("finding project root: %w (run flowforge init first)", err)
-			}
-			defer svc.Close()
-			return syncProject(cmd, svc.ProjectRoot(), syncOptions{})
-		},
-	})
-	return cmd
-}
 
 func applyAssetUpdates(projectRoot string, adopt bool) (*AssetUpdateReport, error) {
 	oldManifest, err := core.LoadProjectManifest(projectRoot)
@@ -54,8 +28,23 @@ func applyAssetUpdates(projectRoot string, adopt bool) (*AssetUpdateReport, erro
 
 	diff := core.CompareManifests(oldManifest, newManifest, projectRoot)
 	if adopt && len(diff.Conflict) > 0 {
-		diff.Updated = append(diff.Updated, diff.Conflict...)
-		diff.Conflict = nil
+		oldBySource := make(map[string]core.FileEntry, len(oldManifest.Files))
+		for _, entry := range oldManifest.Files {
+			oldBySource[entry.Source] = entry
+		}
+		adopted := make([]core.FileEntry, 0, len(diff.Conflict))
+		preserved := make([]core.FileEntry, 0, len(diff.Conflict))
+		for _, entry := range diff.Conflict {
+			// --adopt is bounded to files already identified by the trusted
+			// manifest. A newly appearing arbitrary target remains preserved.
+			if _, known := oldBySource[entry.Source]; known {
+				adopted = append(adopted, entry)
+			} else {
+				preserved = append(preserved, entry)
+			}
+		}
+		diff.Updated = append(diff.Updated, adopted...)
+		diff.Conflict = preserved
 	}
 	if !diff.HasChanges() {
 		return nil, nil
@@ -79,11 +68,17 @@ func applyAssetUpdates(projectRoot string, adopt bool) (*AssetUpdateReport, erro
 		for _, entry := range diff.Conflict {
 			conflicts[entry.Source] = true
 		}
-		for i, entry := range newManifest.Files {
-			if conflicts[entry.Source] {
-				newManifest.Files[i] = oldBySource[entry.Source]
+		kept := make([]core.FileEntry, 0, len(newManifest.Files))
+		for _, entry := range newManifest.Files {
+			if !conflicts[entry.Source] {
+				kept = append(kept, entry)
+				continue
+			}
+			if old, ok := oldBySource[entry.Source]; ok {
+				kept = append(kept, old)
 			}
 		}
+		newManifest.Files = kept
 	}
 
 	if err := newManifest.Save(projectRoot); err != nil {

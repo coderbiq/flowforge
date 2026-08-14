@@ -1,5 +1,7 @@
 # Library Knowledge Ingestion Design
 
+> `historical` / non-executable: this v2 design is retained as background only. Commands, card types, paths, and workflows in this document are historical examples and must not be copied or treated as current-v3 behavior. See [`proposal-v3/`](proposal-v3/README.md) for the current specification.
+
 > Status: draft
 > Scope: FlowForge v2 library knowledge supply chain
 

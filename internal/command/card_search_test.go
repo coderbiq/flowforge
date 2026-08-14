@@ -22,8 +22,8 @@ func TestCardSearchScopesAndFilters(t *testing.T) {
 	createProjectForTest(t, "default")
 	store := testCardStore(t, tmpDir)
 
-	workspaceCard := core.NewCard(core.CardTypeDesign, "Keyword from workspace")
-	workspaceCard.ID = "DES-work-1"
+	workspaceCard := core.NewCard(core.CardTypeFeature, "Keyword from workspace")
+	workspaceCard.ID = "FEAT-work-1"
 	workspaceCard.Status = core.CardStatusActive
 	workspaceCard.Tags = []string{"searchable", "shared"}
 	workspaceCard.Domain = "workspace-domain"
@@ -42,8 +42,8 @@ func TestCardSearchScopesAndFilters(t *testing.T) {
 		t.Fatalf("creating library card failed: %v", err)
 	}
 
-	otherCard := core.NewCard(core.CardTypeTask, "Different topic")
-	otherCard.ID = "TASK-work-2"
+	otherCard := core.NewCard(core.CardTypeFeature, "Different topic")
+	otherCard.ID = "FEAT-work-2"
 	otherCard.Status = core.CardStatusReady
 	otherCard.Tags = []string{"other-tag"}
 	otherCard.Domain = "other-domain"
@@ -62,23 +62,23 @@ func TestCardSearchScopesAndFilters(t *testing.T) {
 		{
 			name:       "status filter",
 			args:       []string{"UniqueKeyword", "--scope", "all", "--status", "active", "--limit", "5"},
-			wantIDs:    []string{"CONV-lib-1", "DES-work-1"},
+			wantIDs:    []string{"CONV-lib-1", "FEAT-work-1"},
 			wantMatch:  "Match: matched body | status=active",
-			wantNotIDs: []string{"TASK-work-2"},
+			wantNotIDs: []string{"FEAT-work-2"},
 		},
 		{
 			name:       "domain filter",
 			args:       []string{"UniqueKeyword", "--scope", "all", "--domain", "workspace-domain", "--limit", "5"},
-			wantIDs:    []string{"DES-work-1"},
+			wantIDs:    []string{"FEAT-work-1"},
 			wantMatch:  "Match: matched body | domain=workspace-domain",
-			wantNotIDs: []string{"CONV-lib-1", "TASK-work-2"},
+			wantNotIDs: []string{"CONV-lib-1", "FEAT-work-2"},
 		},
 		{
 			name:       "tag filter",
 			args:       []string{"UniqueKeyword", "--scope", "all", "--tag", "missing, searchable", "--limit", "5"},
-			wantIDs:    []string{"DES-work-1"},
+			wantIDs:    []string{"FEAT-work-1"},
 			wantMatch:  "Match: matched body | tag=searchable",
-			wantNotIDs: []string{"CONV-lib-1", "TASK-work-2"},
+			wantNotIDs: []string{"CONV-lib-1", "FEAT-work-2"},
 		},
 	}
 
@@ -191,16 +191,16 @@ func TestCardSearchProposalScope(t *testing.T) {
 	proposalID := createProposalForTest(t, tmpDir, "Search proposal")
 
 	store := testCardStore(t, tmpDir)
-	req := core.NewCard(core.CardTypeRequirement, "Searchable requirement")
-	req.ID = "REQ-search-" + proposalID[len(proposalID)-2:]
+	req := core.NewCard(core.CardTypeFeature, "Searchable requirement")
+	req.ID = "FEAT-search-" + proposalID[len(proposalID)-2:]
 	req.AddLink("PROP-"+proposalID, "belongs_to")
 	req.Body = "UniqueProposalKeyword for scoped search test."
 	if _, err := store.CreateCard(req, proposalID); err != nil {
 		t.Fatalf("creating proposal card failed: %v", err)
 	}
 
-	libraryCard := core.NewCard(core.CardTypeDesign, "Library card with keyword")
-	libraryCard.ID = "DES-lib-search"
+	libraryCard := core.NewCard(core.CardTypeFeature, "Library card with keyword")
+	libraryCard.ID = "FEAT-lib-search"
 	libraryCard.Body = "UniqueProposalKeyword also in library."
 	if _, err := store.CreateCard(libraryCard, ""); err != nil {
 		t.Fatalf("creating library card failed: %v", err)

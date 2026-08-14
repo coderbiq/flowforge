@@ -1,5 +1,7 @@
 # Library Proposal Salvage（来自 CR26061401）
 
+> `historical` / 不可执行：本文是旧 proposal 的背景整理，不是当前实施说明。文中的命令、卡片类型、路径和链接仅供追溯，不得复制执行；当前规范以 [`proposal-v3/`](proposal-v3/README.md) 为准。
+
 > 目的：在删除并重建 `ff-wiki` 之前，把 proposal `CR26061401` 中仍有价值的内容转存到 `docs/`。
 > 来源：`ff-wiki/01-workspace/01-active/CR26061401`
 > 注意：原 proposal 的结构和链接已经失真，本文档按“保留价值”重新整理，不保留原索引组织错误。

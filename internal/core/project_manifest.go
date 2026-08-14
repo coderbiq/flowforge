@@ -185,6 +185,19 @@ func CompareManifests(old, new *ProjectManifest, projectRoot string) *DiffResult
 	for _, newFile := range new.Files {
 		oldFile, exists := oldMap[newFile.Source]
 		if !exists {
+			// A newly shipped static asset must not overwrite an existing file
+			// that is absent from the trusted baseline. Managed blocks are
+			// reconciled separately and generated host files have their own
+			// adoption rules.
+			if newFile.Type != "agents_block" && newFile.Type != "opencode_agent" && newFile.Type != "codex_agent" {
+				if _, err := os.Stat(filepath.Join(projectRoot, newFile.Target)); err == nil {
+					result.Conflict = append(result.Conflict, newFile)
+					continue
+				} else if !os.IsNotExist(err) {
+					result.Conflict = append(result.Conflict, newFile)
+					continue
+				}
+			}
 			result.Added = append(result.Added, newFile)
 			continue
 		}

@@ -71,10 +71,10 @@ func newProposalCreateCmd() *cobra.Command {
 			fmt.Fprintf(out, "✓ Created proposal %s\n", proposalID)
 			fmt.Fprintf(out, "  Title: %s\n", title)
 			fmt.Fprintf(out, "  Root card: %s\n", rootPath)
-			fmt.Fprintf(out, "  Requirement index: %s\n", indexPath)
+			_ = indexPath
 			fmt.Fprintln(out)
 			fmt.Fprintln(out, "Next steps:")
-			fmt.Fprintf(out, "  flowforge card create --type requirement --title \"...\" --proposal %s\n", proposalID)
+			fmt.Fprintf(out, "  flowforge card init --type feature --title \"...\" --proposal %s\n", proposalID)
 
 			return nil
 		},
@@ -186,19 +186,14 @@ func newProposalListCmd() *cobra.Command {
 			}
 			store := core.NewCardStore(wikiRoot)
 
-			entries, err := os.ReadDir(store.ActiveDir())
+			proposalCards, err := store.ListCards(store.ProposalCardDir())
 			if err != nil {
-				if os.IsNotExist(err) {
-					fmt.Fprintln(cmd.OutOrStdout(), "No active proposals.")
-					return nil
-				}
-				return fmt.Errorf("reading active proposals: %w", err)
+				return fmt.Errorf("reading proposal metadata: %w", err)
 			}
-
 			var proposalIDs []string
-			for _, entry := range entries {
-				if entry.IsDir() {
-					proposalIDs = append(proposalIDs, entry.Name())
+			for _, card := range proposalCards {
+				if card.Type == core.CardTypeProposal && card.Status == core.CardStatusActive && card.Source != "" {
+					proposalIDs = append(proposalIDs, card.Source)
 				}
 			}
 			sort.Strings(proposalIDs)

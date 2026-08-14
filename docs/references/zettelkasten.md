@@ -1,6 +1,8 @@
 # Zettelkasten 卡片盒子笔记法
 
 > 背景参考文档 | 2026-06-12
+>
+> `historical` / 不可执行：本文包含 FlowForge v2 卡片模型示例，仅用于方法论背景，不代表 current-v3 类型、命令或工作流。当前规范以 [`../proposal-v3/README.md`](../proposal-v3/README.md) 为准。
 
 本文档整理 Zettelkasten（卡片盒子笔记法）的核心原则及其在技术项目管理中的应用，为 FlowForge v2 的卡片化知识系统提供理论基础。
 

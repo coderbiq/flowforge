@@ -52,11 +52,7 @@ func TestProjectCreateBootstrapsDerivedWikiRoot(t *testing.T) {
 
 	expectedDirs := []string{
 		filepath.Join(tmpDir, "ff-wiki-frontend", "01-workspace"),
-		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "10-requirements"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "20-decisions"),
-		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "30-designs"),
-		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "40-tasks"),
-		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "50-logs"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "60-conventions"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "70-findings"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "80-modules"),
@@ -71,9 +67,35 @@ func TestProjectCreateBootstrapsDerivedWikiRoot(t *testing.T) {
 			t.Fatalf("expected directory, got file: %s", dir)
 		}
 	}
+	for _, dir := range []string{
+		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "10-requirements"),
+		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "30-designs"),
+		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "40-tasks"),
+		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "50-logs"),
+	} {
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			t.Fatalf("expected legacy directory %s to be absent, stat err=%v", dir, err)
+		}
+	}
 
-	if _, err := os.Stat(filepath.Join(tmpDir, "ff-wiki-frontend", "00-STR-HOME.md")); err != nil {
-		t.Fatalf("expected home index file: %v", err)
+	if _, err := os.Stat(filepath.Join(tmpDir, "ff-wiki-frontend", "00-FEAT-HOME.md")); !os.IsNotExist(err) {
+		t.Fatalf("expected legacy home index to be absent, got: %v", err)
+	}
+	homePath := filepath.Join(tmpDir, "ff-wiki-frontend", "00-FLOWFORGE-HOME.md")
+	home, err := os.ReadFile(homePath)
+	if err != nil {
+		t.Fatalf("reading current home index failed: %v", err)
+	}
+	homeText := string(home)
+	for _, forbidden := range []string{"type: structure", "card create --type requirement", "00-STR-HOME"} {
+		if strings.Contains(homeText, forbidden) {
+			t.Fatalf("current home index contains legacy content %q:\n%s", forbidden, homeText)
+		}
+	}
+	for _, required := range []string{"card init --type feature", "context feature"} {
+		if !strings.Contains(homeText, required) {
+			t.Fatalf("current home index missing %q:\n%s", required, homeText)
+		}
 	}
 
 	store, err := state.Open(filepath.Join(tmpDir, ".flowforge", "cache", "flowforge.sqlite"))
@@ -147,8 +169,8 @@ func TestProjectCreateSupportsFlagsAndDuplicateCheck(t *testing.T) {
 		t.Fatalf("closing runtime store failed: %v", err)
 	}
 
-	if _, err := os.Stat(filepath.Join(tmpDir, "custom-wiki", "00-STR-HOME.md")); err != nil {
-		t.Fatalf("expected custom home index file: %v", err)
+	if _, err := os.Stat(filepath.Join(tmpDir, "custom-wiki", "00-FEAT-HOME.md")); !os.IsNotExist(err) {
+		t.Fatalf("expected legacy home index to be absent, got: %v", err)
 	}
 
 	duplicateCmd := newProjectCreateCmd()
@@ -186,8 +208,8 @@ func TestProjectCreateUsesDefaultWikiRootForReservedID(t *testing.T) {
 	if project.WikiRoot != "ff-wiki" {
 		t.Fatalf("expected wiki root ff-wiki, got %s", project.WikiRoot)
 	}
-	if _, err := os.Stat(filepath.Join(tmpDir, "ff-wiki", "00-STR-HOME.md")); err != nil {
-		t.Fatalf("expected default home index file: %v", err)
+	if _, err := os.Stat(filepath.Join(tmpDir, "ff-wiki", "00-FEAT-HOME.md")); !os.IsNotExist(err) {
+		t.Fatalf("expected legacy home index to be absent, got: %v", err)
 	}
 }
 
@@ -298,8 +320,8 @@ func TestCurrentCardStoreUsesRuntimeProject(t *testing.T) {
 		t.Fatalf("currentCardStore failed: %v", err)
 	}
 
-	card := core.NewCard(core.CardTypeTask, "Backend task")
-	card.ID = core.GenerateTaskID("260613", "i")
+	card := core.NewCard(core.CardTypeFeature, "Backend task")
+	card.ID = "FEAT-CR26061301-i-backend"
 	if _, err := store.CreateCard(card, "CR26061301"); err != nil {
 		t.Fatalf("creating backend card failed: %v", err)
 	}

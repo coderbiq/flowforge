@@ -16,7 +16,7 @@ Explore in priority order:
 
 - `flowforge library facets`: discover the project's library facet vocabulary before guessing tags or dimensions.
 - `flowforge library classify --for <card-id>`: classify a requirement, design, or task against discovered facets.
-- `flowforge library suggest --for <card-id>`: primary recommendation pass for a requirement, analysis task, design, or implementation task.
+- `flowforge library suggest --for <card-id>`: primary recommendation pass for a FEATURE, analysis, design, or implementation card.
 - `flowforge library suggest --for <card-id> --facet key:value`: recommendation pass constrained by confirmed project facets.
 - `flowforge card search <query> --scope library`: targeted keyword and type search when you need to narrow the candidate set.
 - `flowforge card read <id> --summary`: quick validation of a candidate.
@@ -64,11 +64,11 @@ Do not expand the whole library just because the first candidate set is small.
 Write links only after the candidate is confirmed relevant.
 
 Suggested relationships:
-- analysis task `references ->` module / decision / finding cards
-- analysis task `constrains ->` convention cards
+- analysis FEATURE `references ->` module / decision / finding cards
+- analysis FEATURE `constrains ->` convention cards
 - design card `references ->` decision / finding cards
 - design card `constrains ->` convention / module cards
-- implementation task `constrains ->` convention cards
+- implementation FEATURE `constrains ->` convention cards
 
 Unselected candidates may be mentioned in a log, but they should not be linked into the center card.
 
@@ -85,10 +85,10 @@ Do not write library files directly. Do not import title-only candidates. Every 
 If the library does not return a useful candidate:
 - do not invent a rule
 - record the search result in a log
-- leave the open question visible in the analysis task or design card
+- leave the open question visible in the analysis FEATURE or design card
 - if the new knowledge is reusable, create a finding card
 
-If the gap still blocks implementation, keep the task `not_ready` or create a new analysis task.
+If the gap still blocks implementation, keep the affected FEATURE Step blocked or return to design.
 
 If library returns no useful result and external sources also produce no match, do not expand the search scope without a concrete new query. Record the gap in a log and leave the open question visible.
 

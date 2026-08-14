@@ -1,5 +1,7 @@
 # 卡片模型简化方案：从"类型拆分"到"阶段演进"
 
+> `historical` / 不可执行：本文记录 v3 形成过程中的旧模型分析。文中的 REQ、DES、TASK、LOG、STR 类型与兼容建议仅用于历史追溯，不代表当前能力；当前规范以 [`proposal-v3/`](./proposal-v3/README.md) 为准。
+
 > 日期：2026-07-08
 >
 > 基于 `methodology-review-card-fragmentation.md` 的诊断、`remediation-card-fragmentation.md` 的补丁方案，
@@ -622,7 +624,7 @@ STR 卡片不再作为手动维护的卡片类型存在。其功能拆分如下�
 3. `card log` 追加 History
 4. `card split` 拆分支持
 
-旧类型（REQ/DES/TASK）保留读取能力，创建能力标记为 deprecated 但继续工作。
+旧类型（REQ/DES/TASK）在当前 v3 中不再兼容读取或创建；本节仅保留当时的迁移讨论，不能作为当前实现方案。
 
 ### 阶段三：渐进清理
 1. 归档工具支持将旧提案中的 REQ+DES+TASK 合并为 FEATURE

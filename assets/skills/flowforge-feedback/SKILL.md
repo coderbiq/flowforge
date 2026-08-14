@@ -21,11 +21,11 @@ Use `references/classification-rules.md` for the 5-type decision tree.
 - Create tracking cards via `card init --type feature`; then edit directly.
 - Bug / missing-requirement / design-flaw → create a FEATURE card (draft) or annotate existing.
 - Knowledge findings → route to `library import` or `library promote`.
-- Use `card log` (not `log create`) for progress recording.
+- Use `card log` for progress recording.
 - Use `card link`/`card unlink` for all link operations.
 - Run `flowforge validate all` after any changes.
 - After formal tracking-card or existing-artifact updates and validation, append a concise Journal note with affected card IDs, discovery status, blocker if any, and next action.
-- `task`, `structure`, `log create` are DEPRECATED.
+- Legacy task/requirement/structure routes are not current entry points.
 
 ## Output
 

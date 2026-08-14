@@ -1,208 +1,33 @@
 # Workflow Rules
 
-This reference defines the complete feedback SKILL turn loop, from receiving a
-discovery to routing it to the correct output (task card, log card, or library
-card).  Every step references the classification rules in
-`classification-rules.md` — do not duplicate classification logic here.
+This reference defines the v3 feedback loop. Keep discovery, classification,
+routing, and verification separate; use the CLI for every structured write.
 
 ## Quick Reference
 
 | Command | Purpose |
 |---|---|
-| `flowforge log create --kind feedback --for <card-id>` | Record each discovery |
-| `flowforge card create --type task/finding/requirement` | Create output cards |
-| `flowforge library import` / `library promote` | Route knowledge to library |
-| `flowforge structure add` | Index new requirements in STR |
-| `flowforge validate all` | Verify card state before closing turn |
+| `flowforge card init --type feature --title "..." --proposal <id>` | Create an implementation scope |
+| `flowforge card log <id> --kind bug --event "..."` | Record reproducible evidence |
+| `flowforge journal append --actor flowforge-feedback --message "..." --references <id>` | Record proposal feedback |
+| `flowforge card steps <id> --status blocked <n>` | Stop an affected step |
+| `flowforge validate card <id>` | Verify the card |
 
 ## Turn Loop
 
-Use one primary mode per turn.  Do not mix discovery, classification, and
-routing in a single step.
+1. Capture expected behavior, observed behavior, evidence, and affected FEATURE.
+2. Classify using `classification-rules.md`.
+3. Route a bug or accepted gap to an existing/new FEATURE; route reusable
+   knowledge to a FIND or DEC. Never invent a legacy card route.
+4. Record the result with `card log` and Proposal Journal.
+5. Validate the affected card and leave unresolved questions visible.
 
-```
-1. Receive discovery
-2. Classify (classification-rules.md)
-3. Route (this document)
-4. Record (log card)
-5. Verify card state
-```
+For a design or compatibility gap, stop with `card steps <id> --status
+blocked <n>`, record the blocker, and route it to `flowforge-design`. Do not
+implement an unresolved product decision.
 
-## Step 1 — Receive Discovery
+## Verification
 
-A discovery arrives as any of the following:
-
-- A failed test or check reported during task execution.
-- A behavior deviation noticed by the implementor.
-- A cognitive update: a new constraint, convention, or decision learned from
-  the codebase or from a human.
-- A stakeholder request or review comment that reveals a gap.
-- A code review finding from `flowforge-feedback` activation.
-
-Collect the minimum context needed for classification:
-
-- What was expected vs. what was observed.
-- Which task, requirement, or design card is relevant.
-- Whether the item is reproducible.
-
-Do not write a card yet.  Do not attempt to classify before the full discovery
-text has been read.
-
-## Step 2 — Classify
-
-Apply the decision tree in `classification-rules.md §Decision Tree`.  Every
-discovery must be assigned exactly one of the five types.  If it genuinely
-matches more than one type, pick the most actionable type first and record the
-ambiguity in the log card.
-
-The card type is set via the CLI `--type` flag when creating the card.
-
-## Step 3 — Route
-
-Routing is the mapping from type to card creation command and relation.
-
-### 3.1 bug → task card (not_ready)
-
-```bash
-flowforge card create \
-  --type task \
-  --title "<concise bug title>" \
-  --status not_ready \
-  --body "# <bug title>\n\n## Goal\nWhat the fix must achieve.\n\n## Inputs\n- Link to the source discovery or failed task.\n\n## Deliverables\n- Changed file(s) or configuration.\n- Updated test that verifies the fix.\n\n## Acceptance\n- The reproducing check passes after the change.\n\n## Out of Scope\n- Adjacent improvements not related to the root cause.\n\n## Read Before Work\n- <source card ID>" \
-  --links "<source-card-id>:records"
-```
-
-After creation, add the `requires` link from the new task to the relevant
-requirement or design card if not already set by the batch manifest.
-
-### 3.2 finding → finding card (draft)
-
-```bash
-flowforge card create \
-  --type finding \
-  --title "<finding title>" \
-  --status draft \
-  --body "# <finding title>\n\n## Summary\nOne-paragraph description of what was observed.\n\n## Source\n<where the finding came from: task, test, review>\n\n## Evidence\n- Concrete data points, log snippets, or test output.\n\n## Impact\nWhy this matters and what it might affect.\n\n## Open Questions\nWhat is still unknown." \
-  --links "<source-card-id>:records"
-```
-
-### 3.3 knowledge → library card (import / promote)
-
-```bash
-# Option A — import from scratch (new knowledge not in any proposal card)
-flowforge library import \
-  --type convention \
-  --title "<knowledge title>" \
-  --body "## Summary\n\n## Rule or Finding\n\n## Applies When\n\n## Source Evidence" \
-  --source-card "<source-card-id>"
-
-# Option B — promote an existing stable proposal card to library
-flowforge library promote "<proposal-card-id>"
-```
-
-The library card type must be one of: `convention`, `decision`, `module`,
-`finding`, `design`.  Do not create a library card without `--source-card` or
-`--links`.
-
-### 3.4 missing-requirement → requirement card (draft)
-
-```bash
-flowforge card create \
-  --type requirement \
-  --title "<requirement title>" \
-  --status draft \
-  --body "# <requirement title>\n\n## Summary\nWhat is missing and why it matters.\n\n## Source\n<discovery context>\n\n## Acceptance\n- Testable condition 1\n- Testable condition 2\n\n## Scope\nWhat is in scope and what is out of scope.\n\n## Open Questions\nNone (or list open questions)" \
-  --links "<source-card-id>:records"
-```
-
-After creation, add the requirement to the proposal STR index:
-
-```bash
-flowforge structure add "<STR-index-id>" "<new-requirement-id>"
-```
-
-### 3.5 design-flaw → requirement card (design change request, draft)
-
-```bash
-flowforge card create \
-  --type requirement \
-  --title "<design flaw: short title>" \
-  --status draft \
-  --body "# <design flaw title>\n\n## Summary\nWhat is wrong with the current design and why.\n\n## Source\n<affected design card ID>\n\n## Acceptance\n- The updated design must resolve the structural risk.\n- No new regression is introduced.\n\n## Scope\nWhat aspects of the design are affected.\n\n## Open Questions\nNone (or list open questions)" \
-  --links "<affected-design-card-id>:references"
-```
-
-Route the new requirement through the design SKILL to produce an updated design
-card before any implementation task is created.
-
-## Step 4 — Record (log card)
-
-Every meaningful discovery produces a log card.  The log is process evidence,
-not a replacement for requirement, design, or finding cards.
-
-```bash
-flowforge log create \
-  --kind feedback \
-  --title "<category>: <short description>" \
-  --for "<source-task-or-discovery-card-id>" \
-  --summary "<one-line summary of the discovery and its routing>"
-```
-
-`--for` links the log to the card that triggered the feedback.  Use `--kind
-feedback` so the log can be filtered in `context proposal` output.
-
-Log kinds and when to use them:
-
-| Kind | Use when |
-|------|----------|
-| `feedback` | All 5-type discoveries |
-| `progress` | Task state change (claim / done / block) |
-| `analysis` | Analysis task conclusion |
-| `decision` | Design decision recorded |
-
-## Step 5 — Verify Card State
-
-After routing, confirm the card network is consistent:
-
-```bash
-flowforge validate all
-```
-
-Required checks:
-
-1. The new card passes validation (outbound link, frontmatter, body).
-2. If a requirement was created, it is indexed in the proposal STR.
-3. If a task was created, it links to at least one requirement via `satisfies`
-   or `requires`.
-4. No dangling `@ref` placeholders remain in any card body.
-
-If validation fails, fix the card before moving to the next discovery.
-
-## Batch Mode
-
-When handling multiple discoveries from a single task execution, group them into
-a single batch manifest:
-
-```bash
-flowforge card batch /tmp/feedback-batch.yaml
-```
-
-Batch manifest rules:
-
-- Set `proposal` to the current proposal ID.
-- Group by type: put all bug tasks together, all findings together, etc.
-- Use `ref` for cross-references within the same batch.
-- The `indexes` relation on a requirement card automatically performs
-  `structure add`.
-
-## Evidence Checklist (end of turn)
-
-Before closing the feedback turn, confirm each of the following is present:
-
-- [ ] Every discovery has a card (task / finding / requirement / library card).
-- [ ] Every card has at least one typed outbound frontmatter link.
-- [ ] Every discovery has a log card with `--kind feedback`.
-- [ ] `flowforge validate all` passes with zero errors.
-- [ ] No wiki files or `02-library/` files were edited directly.
-
-If any item is unchecked, do not close the turn — fix it first.
+Run `flowforge validate card <id>`, then the relevant tests and
+`flowforge proposal inspect <proposal-id>`. Do not edit wiki or library files
+directly, and do not claim a check passed without running it.

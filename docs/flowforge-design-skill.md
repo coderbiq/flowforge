@@ -1,5 +1,7 @@
 # flowforge-design 正式草案
 
+> `historical` / 不可执行：本文保留 v2 设计演进背景。文中的旧类型、旧命令、路径和流程仅用于理解历史，不得复制执行，也不代表 current-v3 规范；当前规范以 [`proposal-v3/`](./proposal-v3/README.md) 为准。
+
 > 版本：draft-1
 >
 > 目标：把 `flowforge-design` 从“写设计文档”收敛成“驱动 proposal 卡片生长”的正式草案，明确它的触发边界、工作流、产物、CLI 前置能力和 reference 拆分方式。

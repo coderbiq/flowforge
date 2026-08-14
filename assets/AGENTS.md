@@ -19,13 +19,13 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 - Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
 - Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts
 - `-o json` for machine-readable output
-- `task`, `structure`, and `log create` are DEPRECATED; use FEATURE-based commands instead
+- Legacy task/requirement/log/structure commands are not current routes; use FEATURE, FIND, DEC, `card log`, `card steps`, and Proposal Journal.
 
 ### Skills
 | When | Skill |
 |------|-------|
 | Design / decompose proposal | `flowforge-design` |
-| Execute implementation task | `flowforge-implement` |
+| Execute a planned implementation Step | `flowforge-implement` |
 | Independently review a completed planned implementation | `flowforge-review` |
 | Report bug / finding / gap | `flowforge-feedback` |
 | Import docs / archive proposal | `flowforge-curate` |

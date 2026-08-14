@@ -69,11 +69,11 @@ func TestCardLinkAndUnlinkCommands(t *testing.T) {
 	linkCmd := newCardLinkCmd()
 	var linkOut bytes.Buffer
 	linkCmd.SetOut(&linkOut)
-	linkCmd.SetArgs([]string{"DEC-260613-01", "REQ-260613-01", "--relation", "references"})
+	linkCmd.SetArgs([]string{"DEC-260613-01", "FEAT-260613-01", "--relation", "references"})
 	if err := linkCmd.Execute(); err != nil {
 		t.Fatalf("card link failed: %v", err)
 	}
-	if !strings.Contains(linkOut.String(), "✓ Linked DEC-260613-01 -> REQ-260613-01 (references)") {
+	if !strings.Contains(linkOut.String(), "✓ Linked DEC-260613-01 -> FEAT-260613-01 (references)") {
 		t.Fatalf("unexpected link output:\n%s", linkOut.String())
 	}
 
@@ -81,18 +81,18 @@ func TestCardLinkAndUnlinkCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading linked card failed: %v", err)
 	}
-	if !hasLinkRelation(card, "REQ-260613-01", "references") {
+	if !hasLinkRelation(card, "FEAT-260613-01", "references") {
 		t.Fatalf("expected link to be written to card")
 	}
 
 	unlinkCmd := newCardUnlinkCmd()
 	var unlinkOut bytes.Buffer
 	unlinkCmd.SetOut(&unlinkOut)
-	unlinkCmd.SetArgs([]string{"DEC-260613-01", "REQ-260613-01", "--relation", "references"})
+	unlinkCmd.SetArgs([]string{"DEC-260613-01", "FEAT-260613-01", "--relation", "references"})
 	if err := unlinkCmd.Execute(); err != nil {
 		t.Fatalf("card unlink failed: %v", err)
 	}
-	if !strings.Contains(unlinkOut.String(), "✓ Unlinked DEC-260613-01 -> REQ-260613-01 (references)") {
+	if !strings.Contains(unlinkOut.String(), "✓ Unlinked DEC-260613-01 -> FEAT-260613-01 (references)") {
 		t.Fatalf("unexpected unlink output:\n%s", unlinkOut.String())
 	}
 
@@ -100,7 +100,7 @@ func TestCardLinkAndUnlinkCommands(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading unlinked card failed: %v", err)
 	}
-	if hasLinkRelation(card, "REQ-260613-01", "references") {
+	if hasLinkRelation(card, "FEAT-260613-01", "references") {
 		t.Fatalf("expected link to be removed from card")
 	}
 }
@@ -111,15 +111,15 @@ func TestCardCreateAndUpdateParseCommaSeparatedLinks(t *testing.T) {
 
 	createCmd := newCardCreateCmd()
 	createCmd.SetArgs([]string{
-		"--type", "design",
+		"--type", "feature",
 		"--title", "Comma linked design",
-		"--links", "REQ-260613-01:requires,DEC-260613-01:references",
+		"--links", "FEAT-260613-01:requires,DEC-260613-01:references",
 	})
 	if err := createCmd.Execute(); err != nil {
 		t.Fatalf("card create failed: %v", err)
 	}
 
-	cards, err := store.ListCardsByType(core.CardTypeDesign)
+	cards, err := store.ListCardsByType(core.CardTypeFeature)
 	if err != nil {
 		t.Fatalf("listing design cards failed: %v", err)
 	}
@@ -133,12 +133,12 @@ func TestCardCreateAndUpdateParseCommaSeparatedLinks(t *testing.T) {
 	if created == nil {
 		t.Fatal("expected created design card")
 	}
-	if !hasLinkRelation(created, "REQ-260613-01", "requires") || !hasLinkRelation(created, "DEC-260613-01", "references") {
+	if !hasLinkRelation(created, "FEAT-260613-01", "requires") || !hasLinkRelation(created, "DEC-260613-01", "references") {
 		t.Fatalf("created card links not parsed correctly: %#v", created.Links)
 	}
 
 	updateCmd := newCardUpdateCmd()
-	updateCmd.SetArgs([]string{created.ID, "--add-link", "TASK-260613-01:implements,LOG-260613-01:records"})
+	updateCmd.SetArgs([]string{created.ID, "--add-link", "FEAT-260613-01:implements,FEAT-260613-01:records"})
 	if err := updateCmd.Execute(); err != nil {
 		t.Fatalf("card update failed: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestCardCreateAndUpdateParseCommaSeparatedLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading updated card failed: %v", err)
 	}
-	if !hasLinkRelation(updated, "TASK-260613-01", "implements") || !hasLinkRelation(updated, "LOG-260613-01", "records") {
+	if !hasLinkRelation(updated, "FEAT-260613-01", "implements") || !hasLinkRelation(updated, "FEAT-260613-01", "records") {
 		t.Fatalf("updated card links not parsed correctly: %#v", updated.Links)
 	}
 }
@@ -157,7 +157,7 @@ func TestCardRelatedBacklinksDirection(t *testing.T) {
 	relatedCmd := newCardRelatedCmd()
 	var out bytes.Buffer
 	relatedCmd.SetOut(&out)
-	relatedCmd.SetArgs([]string{"REQ-260613-01", "--direction", "backlinks", "--relation", "references"})
+	relatedCmd.SetArgs([]string{"FEAT-260613-01", "--direction", "backlinks", "--relation", "references"})
 	if err := relatedCmd.Execute(); err != nil {
 		t.Fatalf("card related backlinks failed: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestCardRelatedBacklinksDirection(t *testing.T) {
 	if !strings.Contains(text, "DEC-260613-01") || !strings.Contains(text, "Link summary card") {
 		t.Fatalf("backlinks output missing dependent card:\n%s", text)
 	}
-	if strings.Contains(text, "TASK-260613-01") {
+	if strings.Contains(text, "FEAT-260613-02") {
 		t.Fatalf("backlinks output should respect relation filter:\n%s", text)
 	}
 }
@@ -187,8 +187,8 @@ func prepareCardCommandFixture(t *testing.T) string {
 
 	store := testCardStore(t, tmpDir)
 
-	req := core.NewCard(core.CardTypeRequirement, "Linked requirement")
-	req.ID = "REQ-260613-01"
+	req := core.NewCard(core.CardTypeFeature, "Linked requirement")
+	req.ID = "FEAT-260613-01"
 	req.Body = "# Requirement\n\nRequirement body paragraph.\n\n## Scope\n\n- First scope"
 	if _, err := store.CreateCard(req, "CR26061301"); err != nil {
 		t.Fatalf("creating requirement card failed: %v", err)
@@ -197,21 +197,21 @@ func prepareCardCommandFixture(t *testing.T) string {
 	dec := core.NewCard(core.CardTypeDecision, "Link summary card")
 	dec.ID = "DEC-260613-01"
 	dec.Body = "# Decision\n\nDecision body paragraph.\n\nSecond paragraph.\n\n## Acceptance\n\n- A"
-	dec.AddLink("REQ-260613-01", "references")
+	dec.AddLink("FEAT-260613-01", "references")
 	if _, err := store.CreateCard(dec, "CR26061301"); err != nil {
 		t.Fatalf("creating decision card failed: %v", err)
 	}
 
-	task := core.NewCard(core.CardTypeTask, "Other backlink")
-	task.ID = "TASK-260613-01"
+	task := core.NewCard(core.CardTypeFeature, "Other backlink")
+	task.ID = "FEAT-260613-02"
 	task.Body = "# Task\n\nTask body."
-	task.AddLink("REQ-260613-01", "implements")
+	task.AddLink("FEAT-260613-01", "implements")
 	if _, err := store.CreateCard(task, "CR26061301"); err != nil {
 		t.Fatalf("creating task card failed: %v", err)
 	}
 
-	log := core.NewCard(core.CardTypeLog, "Fixture log")
-	log.ID = "LOG-260613-01"
+	log := core.NewCard(core.CardTypeFeature, "Fixture log")
+	log.ID = "FEAT-260613-03"
 	log.Body = "# Summary\n\nFixture log."
 	if _, err := store.CreateCard(log, "CR26061301"); err != nil {
 		t.Fatalf("creating log card failed: %v", err)

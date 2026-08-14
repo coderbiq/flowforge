@@ -1,5 +1,7 @@
 # 提案管理设计
 
+> `historical` / 不可执行：本文保留 v2 proposal 管理设计作为背景资料。文中的命令、卡片类型、目录和迁移设想不得复制执行，也不代表 current-v3 行为；当前规范以 [`proposal-v3/`](./proposal-v3/README.md) 为准。
+
 > 目标：把 proposal 当作项目内部的工作单元管理。提案目录创建在当前项目的 `01-workspace/01-active/` 下，当前提案状态通过 sqlite 指针管理。
 
 ## 1. 设计目标

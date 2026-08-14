@@ -185,21 +185,11 @@ func validateCardID(id string, cardType CardType, result *ValidationResult) {
 	}
 
 	prefix := parts[0]
-	expectedPrefix := cardType.Prefix()
+	expectedPrefix := currentCardPrefix(cardType)
 	if expectedPrefix != "" && prefix != expectedPrefix {
 		result.AddError("id", fmt.Sprintf("prefix mismatch: expected %s for type %s, got %s", expectedPrefix, cardType, prefix))
 	}
 
-	if cardType == CardTypeTask {
-		if len(parts) < 3 {
-			result.AddError("id", "task ID must have at least 3 parts: TASK-{proposalId}-{type}-{sequence}")
-		} else if len(parts) >= 3 {
-			taskType := parts[2]
-			if !isValidTaskType(taskType) && len(taskType) == 1 {
-				result.AddError("id", fmt.Sprintf("invalid task type letter: %s (expected a/i/t/d/f/r/c)", taskType))
-			}
-		}
-	}
 }
 
 func IsValidRelation(relation string) bool {
@@ -231,19 +221,6 @@ func IsValidRelation(relation string) bool {
 
 func isValidRelation(relation string) bool {
 	return IsValidRelation(relation)
-}
-
-func isValidTaskType(taskType string) bool {
-	validTypes := map[string]bool{
-		"a": true,
-		"i": true,
-		"t": true,
-		"d": true,
-		"f": true,
-		"r": true,
-		"c": true,
-	}
-	return validTypes[taskType]
 }
 
 func ValidateCardFile(filePath string) *ValidationResult {
@@ -290,21 +267,6 @@ func ValidateCardFileInStore(filePath string, store *CardStore) *ValidationResul
 
 	if requiresOutboundLink(card) && len(card.Links) == 0 {
 		result.AddError("links", "at least one outbound frontmatter link is required")
-	}
-
-	if card.Type == CardTypeStructure && strings.HasPrefix(card.ID, "STR-") && strings.Contains(card.ID, "-REQ") {
-		for i, link := range card.Links {
-			if link.Relation != "indexes" {
-				continue
-			}
-			targetCard, err := store.ReadCard(link.Target)
-			if err != nil {
-				continue
-			}
-			if targetCard.Type != CardTypeRequirement && targetCard.Type != CardTypeStructure {
-				result.AddError(fmt.Sprintf("links[%d].target", i), fmt.Sprintf("proposal requirement index can only index requirement or structure cards, got %s", targetCard.Type))
-			}
-		}
 	}
 
 	validateComplexAnalysisReferences(card, store, result)

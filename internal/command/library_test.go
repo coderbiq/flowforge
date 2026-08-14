@@ -22,8 +22,8 @@ func TestLibrarySuggestRanksAndFiltersCards(t *testing.T) {
 	createProjectForTest(t, "default")
 	store := testCardStore(t, tmpDir)
 
-	focus := core.NewCard(core.CardTypeDesign, "Library search flow")
-	focus.ID = "DES-focus-1"
+	focus := core.NewCard(core.CardTypeFeature, "Library search flow")
+	focus.ID = "FEAT-focus-1"
 	focus.Status = core.CardStatusActive
 	focus.Tags = []string{"indexing", "search"}
 	focus.Domain = "library"
@@ -60,8 +60,8 @@ func TestLibrarySuggestRanksAndFiltersCards(t *testing.T) {
 		t.Fatalf("creating finding failed: %v", err)
 	}
 
-	deprecated := core.NewCard(core.CardTypeDesign, "Deprecated design")
-	deprecated.ID = "DES-lib-2"
+	deprecated := core.NewCard(core.CardTypeFeature, "Deprecated design")
+	deprecated.ID = "FEAT-lib-2"
 	deprecated.Status = core.CardStatusDeprecated
 	deprecated.Body = "search flow"
 	if _, err := store.CreateCard(deprecated, ""); err != nil {
@@ -71,7 +71,7 @@ func TestLibrarySuggestRanksAndFiltersCards(t *testing.T) {
 	cmd := newLibrarySuggestCmd()
 	var out bytes.Buffer
 	cmd.SetOut(&out)
-	cmd.SetArgs([]string{"--for", "DES-focus-1", "--relation", "constrains", "--limit", "3"})
+	cmd.SetArgs([]string{"--for", "FEAT-focus-1", "--relation", "constrains", "--limit", "3"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("library suggest failed: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestLibrarySuggestRanksAndFiltersCards(t *testing.T) {
 			t.Fatalf("library suggest output missing %q:\n%s", want, text)
 		}
 	}
-	if strings.Contains(text, "DES-lib-2") {
+	if strings.Contains(text, "FEAT-lib-2") {
 		t.Fatalf("expected deprecated card to be omitted:\n%s", text)
 	}
 	if strings.Contains(text, "This finding mentions search flow in the body only.") {
@@ -138,8 +138,8 @@ func TestLibraryFacetsClassifyAndSuggestByFacet(t *testing.T) {
 		t.Fatalf("creating controller rule failed: %v", err)
 	}
 
-	task := core.NewCard(core.CardTypeTask, "Implement customer service pagination")
-	task.ID = "TASK-focus-service-page"
+	task := core.NewCard(core.CardTypeFeature, "Implement customer service pagination")
+	task.ID = "FEAT-focus-service-page"
 	task.Status = core.CardStatusReady
 	task.Tags = []string{"layer:service"}
 	task.Body = "Implement customer page-query behavior in the service layer."
@@ -177,7 +177,7 @@ func TestLibraryFacetsClassifyAndSuggestByFacet(t *testing.T) {
 		"## Library Classification",
 		"| layer:service | tag | layer:service | 1 |",
 		"| scenario:page-query | text | page-query | 1 |",
-		"flowforge library suggest --for TASK-focus-service-page",
+		"flowforge library suggest --for FEAT-focus-service-page",
 		"--facet layer:service",
 	} {
 		if !strings.Contains(classifyText, want) {
@@ -327,6 +327,39 @@ func TestLibraryPromoteCopiesProposalCardToLibrary(t *testing.T) {
 	validateCmd := newValidateAllCmd()
 	if err := validateCmd.Execute(); err != nil {
 		t.Fatalf("validate all failed after library promote: %v", err)
+	}
+}
+
+func TestLibraryRejectsWorkspaceAndLegacyTypes(t *testing.T) {
+	tmpDir := t.TempDir()
+	restoreWorkingDir(t)
+	if err := runInit(tmpDir, true, "default"); err != nil {
+		t.Fatalf("runInit failed: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("chdir failed: %v", err)
+	}
+	createProjectForTest(t, "default")
+	proposalID := createProposalForTest(t, tmpDir, "Library boundary proposal")
+
+	for _, cardType := range []string{"proposal", "feature", "requirement", "design", "task", "log", "structure"} {
+		cmd := newLibraryImportCmd()
+		cmd.SetArgs([]string{"--type", cardType, "--title", "Rejected " + cardType})
+		if err := cmd.Execute(); err == nil {
+			t.Fatalf("library import unexpectedly accepted %s", cardType)
+		}
+	}
+
+	store := testCardStore(t, tmpDir)
+	feature := core.NewCard(core.CardTypeFeature, "Workspace feature")
+	feature.ID = "FEAT-" + proposalID + "-001"
+	if _, err := store.CreateCard(feature, proposalID); err != nil {
+		t.Fatalf("creating workspace feature: %v", err)
+	}
+	promote := newLibraryPromoteCmd()
+	promote.SetArgs([]string{feature.ID})
+	if err := promote.Execute(); err == nil {
+		t.Fatal("library promote unexpectedly accepted a FEATURE source")
 	}
 }
 

@@ -24,7 +24,7 @@ func TestCardCreateDefaultsToCurrentProposalForProposalScopedTypes(t *testing.T)
 	proposalID := createProposalForTest(t, tmpDir, "Default proposal")
 
 	cmd := newCardCreateCmd()
-	cmd.SetArgs([]string{"--type", "requirement", "--title", "Default proposal requirement"})
+	cmd.SetArgs([]string{"--type", "feature", "--title", "Default proposal feature", "--proposal", proposalID, "--links", "PROP-" + proposalID + ":references"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("card create failed: %v", err)
 	}
@@ -37,13 +37,13 @@ func TestCardCreateDefaultsToCurrentProposalForProposalScopedTypes(t *testing.T)
 
 	var requirement *core.Card
 	for _, card := range cards {
-		if card.Type == core.CardTypeRequirement && strings.Contains(card.Title, "Default proposal requirement") {
+		if card.Type == core.CardTypeFeature && strings.Contains(card.Title, "Default proposal feature") {
 			requirement = card
 			break
 		}
 	}
 	if requirement == nil {
-		t.Fatalf("expected requirement to be created under current proposal %s", proposalID)
+		t.Fatalf("expected feature to be created under current proposal %s", proposalID)
 	}
 	if requirement.Source != proposalID {
 		t.Fatalf("expected requirement source %s, got %q", proposalID, requirement.Source)
