@@ -1,0 +1,4 @@
+host=codex
+version=codex-v1
+digest=1f1ff7f85d6492842359602bc5671e275c7cd537925d673e8bb8a1ec5dde92ec
+files=flowforge-coordinator.toml,flowforge-design-analyst.toml,flowforge-executor.toml,flowforge-investigator.toml

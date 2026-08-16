@@ -26,6 +26,12 @@ func ApplyUpgrade(diff *DiffResult, newManifest *ProjectManifest, projectRoot st
 	}
 
 	for _, entry := range diff.Added {
+		if isDynamicUpgradeEntry(entry) {
+			// Host files are reconciled by sync from explicit v2 intent. An
+			// asset upgrade must never implicitly enable a host or recreate a
+			// dormant/disabled dynamic entry.
+			continue
+		}
 		if entry.Type == "agents_block" {
 			if err := applyAgentsBlockEntry(entry, projectRoot, assetsFS, backupDir); err != nil {
 				report.Error = fmt.Errorf("applying agents block: %w", err)
@@ -43,6 +49,11 @@ func ApplyUpgrade(diff *DiffResult, newManifest *ProjectManifest, projectRoot st
 	}
 
 	for _, entry := range diff.Updated {
+		if isDynamicUpgradeEntry(entry) {
+			// Renderer changes are applied by the host-aware sync path, which
+			// can preserve a modified/conflicting dynamic baseline.
+			continue
+		}
 		if entry.Type == "agents_block" {
 			if err := applyAgentsBlockEntry(entry, projectRoot, assetsFS, backupDir); err != nil {
 				report.Error = fmt.Errorf("updating agents block: %w", err)
@@ -62,6 +73,15 @@ func ApplyUpgrade(diff *DiffResult, newManifest *ProjectManifest, projectRoot st
 	report.Conflict = append(report.Conflict, diff.Conflict...)
 
 	return report
+}
+
+func isDynamicUpgradeEntry(entry FileEntry) bool {
+	switch entry.Type {
+	case "opencode_agent", "codex_agent", "orchestration_block":
+		return true
+	default:
+		return false
+	}
 }
 
 func applyAddedFile(entry FileEntry, projectRoot string, assetsFS fs.FS, backupDir string) error {
@@ -138,6 +158,16 @@ func backupFile(targetPath, backupDir string) error {
 	}
 
 	backupPath := filepath.Join(backupDir, filepath.Base(targetPath))
+	for suffix := 1; ; suffix++ {
+		_, statErr := os.Stat(backupPath)
+		if os.IsNotExist(statErr) {
+			break
+		}
+		if statErr != nil {
+			return fmt.Errorf("checking backup path: %w", statErr)
+		}
+		backupPath = filepath.Join(backupDir, fmt.Sprintf("%s.%d", filepath.Base(targetPath), suffix))
+	}
 	if err := os.MkdirAll(filepath.Dir(backupPath), 0755); err != nil {
 		return fmt.Errorf("creating backup dir: %w", err)
 	}

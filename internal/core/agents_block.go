@@ -144,6 +144,26 @@ func RemoveMarkedBlock(targetPath, startMarker, endMarker string) error {
 	return os.WriteFile(targetPath, result, 0644)
 }
 
+// RemoveMarkedBlockContent removes only the requested marker pair and keeps
+// every byte outside it. It is useful to validate a change before writing it.
+func RemoveMarkedBlockContent(existing []byte, startMarker, endMarker string) ([]byte, bool, error) {
+	start := bytes.Index(existing, []byte(startMarker))
+	end := bytes.Index(existing, []byte(endMarker))
+	if start < 0 && end < 0 {
+		return append([]byte(nil), existing...), false, nil
+	}
+	if start < 0 || end <= start {
+		return nil, false, fmt.Errorf("invalid marked block markers")
+	}
+	after := end + len(endMarker)
+	if after < len(existing) && existing[after] == '\n' {
+		after++
+	}
+	result := append([]byte{}, existing[:start]...)
+	result = append(result, existing[after:]...)
+	return result, true, nil
+}
+
 func createWithBlock(path string, content []byte) error {
 	var buf bytes.Buffer
 	buf.WriteString(agentsBlockStart)

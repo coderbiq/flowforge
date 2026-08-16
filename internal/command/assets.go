@@ -11,7 +11,7 @@ import (
 func applyAssetUpdates(projectRoot string, adopt bool) (*AssetUpdateReport, error) {
 	oldManifest, err := core.LoadProjectManifest(projectRoot)
 	if err != nil {
-		oldManifest = &core.ProjectManifest{}
+		return nil, fmt.Errorf("loading existing project manifest: %w", err)
 	}
 
 	newManifest, err := core.GenerateManifest(embeddedAssets, version.Version)
@@ -23,8 +23,14 @@ func applyAssetUpdates(projectRoot string, adopt bool) (*AssetUpdateReport, erro
 			newManifest.Files = append(newManifest.Files, entry)
 		}
 	}
+	newManifest.Mode = oldManifest.Mode
+	newManifest.HostIntent = oldManifest.HostIntent
+	newManifest.Renderer = oldManifest.Renderer
 	newManifest.DisabledHosts = append([]string(nil), oldManifest.DisabledHosts...)
 	newManifest.PendingHosts = append([]string(nil), oldManifest.PendingHosts...)
+	// Dynamic entries are owned by the host-aware sync lifecycle. Keep every
+	// registered entry, including dormant and disabled ones, in the generated
+	// manifest so an asset upgrade cannot enable, delete, or re-baseline it.
 
 	diff := core.CompareManifests(oldManifest, newManifest, projectRoot)
 	if adopt && len(diff.Conflict) > 0 {

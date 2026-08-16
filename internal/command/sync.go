@@ -27,11 +27,18 @@ const (
 type hostSet map[string]bool
 
 type syncOptions struct {
-	forced  []string
-	removed []string
-	dryRun  bool
-	adopt   bool
+	forced         []string
+	removed        []string
+	dryRun         bool
+	adopt          bool
+	explicitEnable bool
 }
+
+var (
+	renderOpenCode = orchestration.RenderOpenCodeOutput
+	renderCodex    = orchestration.RenderCodexOutput
+	saveManifest   = core.SaveManifestAtomic
+)
 
 func newSyncCmd() *cobra.Command {
 	var opts syncOptions
@@ -40,6 +47,9 @@ func newSyncCmd() *cobra.Command {
 		Short: "Synchronize FlowForge project facilities",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if cmd.Flags().Changed("host") || cmd.Flags().Changed("without-host") {
+				return fmt.Errorf("sync --host/--without-host are legacy flags; use `flowforge subagent enable --host <host>` or `flowforge subagent disable --host <host>`")
+			}
 			svc, err := currentConfigService()
 			if err != nil {
 				return fmt.Errorf("finding project root: %w", err)
@@ -48,57 +58,100 @@ func newSyncCmd() *cobra.Command {
 			return syncProject(cmd, svc.ProjectRoot(), opts)
 		},
 	}
-	cmd.Flags().StringSliceVar(&opts.forced, "host", nil, "Enable host facilities (opencode,codex)")
-	cmd.Flags().StringSliceVar(&opts.removed, "without-host", nil, "Disable and remove managed host facilities")
+	cmd.Flags().StringSliceVar(&opts.forced, "host", nil, "Legacy; use `subagent enable --host` (not accepted by sync)")
+	cmd.Flags().StringSliceVar(&opts.removed, "without-host", nil, "Legacy; use `subagent disable --host` (not accepted by sync)")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "Show changes without writing files")
 	cmd.Flags().BoolVar(&opts.adopt, "adopt", false, "Replace existing FlowForge-named agent files and manage them")
 	return cmd
 }
 
-func syncProject(cmd *cobra.Command, root string, opts syncOptions) error {
+func syncProject(cmd *cobra.Command, root string, opts syncOptions) (err error) {
 	manifest, err := core.LoadProjectManifest(root)
 	if err != nil {
 		return fmt.Errorf("loading project manifest: %w", err)
 	}
-	disabled := makeHostSet(manifest.DisabledHosts)
 	pending := makeHostSet(manifest.PendingHosts)
 	for _, host := range opts.forced {
 		if !validHost(host) {
 			return fmt.Errorf("unsupported host %q", host)
 		}
-		delete(disabled, host)
+		setHostIntent(manifest, host, core.HostEnabled)
 		delete(pending, host)
 	}
 	for _, host := range opts.removed {
 		if !validHost(host) {
 			return fmt.Errorf("unsupported host %q", host)
 		}
-		disabled[host] = true
+		setHostIntent(manifest, host, core.HostDisabled)
 		delete(pending, host)
 	}
-	hosts, err := detectHosts(root, manifest)
-	if err != nil {
-		return err
-	}
-	for _, host := range opts.forced {
-		hosts[host] = true
-	}
-	for host := range disabled {
-		delete(hosts, host)
-	}
-	for host := range pending {
-		if hostEvidenceExists(root, host) {
-			delete(pending, host)
-		} else {
-			delete(hosts, host)
-		}
+	hosts := enabledHostSet(manifest)
+	if len(opts.forced) > 0 {
+		// An explicit enable is scoped to exactly the hosts named by the
+		// invocation. Existing intent on another host is not an implicit
+		// request to render or reconcile that host.
+		hosts = makeHostSet(opts.forced)
 	}
 
+	policy := orchestration.DefaultPolicy()
+	desired := map[string]managedContent{}
+	rendererHosts := map[string]string{}
+	if hosts[core.HostOpenCode] {
+		output, renderErr := renderOpenCode(policy)
+		if renderErr != nil {
+			return fmt.Errorf("rendering opencode: %w", renderErr)
+		}
+		rendererHosts[core.HostOpenCode] = output.RendererVersion + ":" + output.PolicyDigest
+		for _, file := range output.Files {
+			desired[filepath.Join(".opencode", "agents", file.Source)] = managedContent{"generated/opencode/" + file.Source, "opencode_agent", file.Content}
+		}
+	}
+	if hosts[core.HostCodex] {
+		output, renderErr := renderCodex(policy)
+		if renderErr != nil {
+			return fmt.Errorf("rendering codex: %w", renderErr)
+		}
+		rendererHosts[core.HostCodex] = output.RendererVersion + ":" + output.PolicyDigest
+		for _, file := range output.Files {
+			desired[filepath.Join(".codex", "agents", file.Source)] = managedContent{"generated/codex/" + file.Source, "codex_agent", file.Content}
+		}
+	}
 	if opts.dryRun {
 		if err := previewAssetUpdates(cmd, root, manifest); err != nil {
 			return err
 		}
-	} else if report, err := applyAssetUpdates(root, opts.adopt); err != nil {
+		// Dry-run must execute the same host reconciliation planner as the real
+		// path. It deliberately skips asset application and the final manifest
+		// save, but still reports conflicts, additions, removals, and the
+		// orchestration-block plan.
+		available, failed, err := reconcileHostFiles(cmd, root, manifest, desired, opts)
+		if err != nil {
+			return err
+		}
+		if opts.explicitEnable && len(failed) > 0 {
+			return fmt.Errorf("explicit enable failed for host(s): %s", strings.Join(sortedHosts(failed), ", "))
+		}
+		if err := reconcileOrchestrationBlock(cmd, root, manifest, available, true); err != nil {
+			return err
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), "Dry run; no files were changed.")
+		return nil
+	}
+	snapshot, err := captureSyncSnapshot(root, manifest, desired)
+	if err != nil {
+		return err
+	}
+	committed := false
+	defer func() {
+		if committed || err == nil {
+			return
+		}
+		if rollbackErr := snapshot.restore(); rollbackErr != nil {
+			err = fmt.Errorf("%w (rollback failed: %v)", err, rollbackErr)
+		}
+	}()
+
+	if report, err := applyAssetUpdates(root, opts.adopt); err != nil {
 		return err
 	} else if manifest, err = core.LoadProjectManifest(root); err != nil {
 		return err
@@ -107,30 +160,21 @@ func syncProject(cmd *cobra.Command, root string, opts syncOptions) error {
 			fmt.Fprintf(cmd.ErrOrStderr(), "! conflict: %s -> %s (preserved)\n", entry.Source, entry.Target)
 		}
 	}
+	// Asset reconciliation may reload the manifest. Reapply this invocation's
+	// explicit intent after that reload; disk evidence remains irrelevant.
+	for _, host := range opts.forced {
+		setHostIntent(manifest, host, core.HostEnabled)
+	}
+	for _, host := range opts.removed {
+		setHostIntent(manifest, host, core.HostDisabled)
+	}
 
-	policy := orchestration.DefaultPolicy()
-	desired := map[string]managedContent{}
-	if hosts["opencode"] {
-		files, renderErr := orchestration.RenderOpenCode(policy)
-		if renderErr != nil {
-			return renderErr
-		}
-		for name, content := range files {
-			desired[filepath.Join(".opencode", "agents", name)] = managedContent{"generated/opencode/" + name, "opencode_agent", content}
-		}
-	}
-	if hosts["codex"] {
-		files, renderErr := orchestration.RenderCodex(policy)
-		if renderErr != nil {
-			return renderErr
-		}
-		for name, content := range files {
-			desired[filepath.Join(".codex", "agents", name)] = managedContent{"generated/codex/" + name, "codex_agent", content}
-		}
-	}
 	available, failed, err := reconcileHostFiles(cmd, root, manifest, desired, opts)
 	if err != nil {
 		return err
+	}
+	if opts.explicitEnable && len(failed) > 0 {
+		return fmt.Errorf("explicit enable failed for host(s): %s", strings.Join(sortedHosts(failed), ", "))
 	}
 	for host := range failed {
 		pending[host] = true
@@ -145,12 +189,15 @@ func syncProject(cmd *cobra.Command, root string, opts syncOptions) error {
 		fmt.Fprintln(cmd.OutOrStdout(), "Dry run; no files were changed.")
 		return nil
 	}
-	manifest.DisabledHosts = sortedHosts(disabled)
 	manifest.PendingHosts = sortedHosts(pending)
+	manifest.DisabledHosts = disabledHostList(manifest)
 	manifest.CLIVersion = version.Version
-	if err := manifest.Save(root); err != nil {
+	manifest.Renderer.Hosts = rendererHosts
+	manifest.Renderer.PolicyDigest = core.SHA256Hex([]byte(strings.Join(sortedRendererHosts(rendererHosts), "\n")))
+	if err := saveManifest(root, manifest); err != nil {
 		return err
 	}
+	committed = true
 	if len(available) == 0 {
 		fmt.Fprintln(cmd.OutOrStdout(), "No supported agent host enabled; base facilities synchronized. Run `flowforge sync` after configuring OpenCode or Codex.")
 	} else {
@@ -160,6 +207,133 @@ func syncProject(cmd *cobra.Command, root string, opts syncOptions) error {
 		}
 	}
 	return nil
+}
+
+func sortedRendererHosts(hosts map[string]string) []string {
+	keys := make([]string, 0, len(hosts))
+	for host := range hosts {
+		keys = append(keys, host+"="+hosts[host])
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+type syncFileSnapshot struct {
+	path   string
+	data   []byte
+	exists bool
+}
+
+type syncSnapshot struct {
+	files []syncFileSnapshot
+}
+
+func captureSyncSnapshot(root string, manifest *core.ProjectManifest, desired map[string]managedContent) (*syncSnapshot, error) {
+	agentsPath, err := syncProjectPath(root, "AGENTS.md")
+	if err != nil {
+		return nil, err
+	}
+	paths := map[string]bool{
+		filepath.Join(root, ".flowforge", core.ManifestFileName): true,
+		agentsPath: true,
+	}
+	for _, entry := range manifest.Files {
+		path, pathErr := syncProjectPath(root, entry.Target)
+		if pathErr != nil {
+			return nil, pathErr
+		}
+		paths[path] = true
+	}
+	generated, err := core.GenerateManifest(embeddedAssets, version.Version)
+	if err != nil {
+		return nil, fmt.Errorf("generating manifest snapshot: %w", err)
+	}
+	for _, entry := range generated.Files {
+		path, pathErr := syncProjectPath(root, entry.Target)
+		if pathErr != nil {
+			return nil, pathErr
+		}
+		paths[path] = true
+	}
+	for target := range desired {
+		path, pathErr := syncProjectPath(root, target)
+		if pathErr != nil {
+			return nil, pathErr
+		}
+		paths[path] = true
+	}
+	snapshot := &syncSnapshot{files: make([]syncFileSnapshot, 0, len(paths))}
+	for path := range paths {
+		data, readErr := os.ReadFile(path)
+		if readErr == nil {
+			snapshot.files = append(snapshot.files, syncFileSnapshot{path: path, data: append([]byte(nil), data...), exists: true})
+			continue
+		}
+		if !os.IsNotExist(readErr) {
+			return nil, fmt.Errorf("reading snapshot file %s: %w", path, readErr)
+		}
+		snapshot.files = append(snapshot.files, syncFileSnapshot{path: path})
+	}
+	return snapshot, nil
+}
+
+func syncProjectPath(root, target string) (string, error) {
+	path, err := core.ProjectPath(root, target)
+	if err != nil {
+		return "", fmt.Errorf("validating sync target %q: %w", target, err)
+	}
+	return path, nil
+}
+
+func (s *syncSnapshot) restore() error {
+	for _, file := range s.files {
+		if file.exists {
+			if err := os.MkdirAll(filepath.Dir(file.path), 0755); err != nil {
+				return fmt.Errorf("restoring directory for %s: %w", file.path, err)
+			}
+			if err := os.WriteFile(file.path, file.data, 0644); err != nil {
+				return fmt.Errorf("restoring %s: %w", file.path, err)
+			}
+			continue
+		}
+		if err := os.Remove(file.path); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("removing created file %s: %w", file.path, err)
+		}
+	}
+	return nil
+}
+
+func setHostIntent(manifest *core.ProjectManifest, host, intent string) {
+	if host == core.HostOpenCode {
+		manifest.HostIntent.OpenCode = intent
+	} else if host == core.HostCodex {
+		manifest.HostIntent.Codex = intent
+	}
+	if intent == core.HostEnabled {
+		manifest.Mode = core.ManifestModeSubagent
+	}
+}
+
+func enabledHostSet(manifest *core.ProjectManifest) hostSet {
+	hosts := hostSet{}
+	if manifest.Mode == core.ManifestModeSubagent && manifest.HostIntent.OpenCode == core.HostEnabled {
+		hosts[core.HostOpenCode] = true
+	}
+	if manifest.Mode == core.ManifestModeSubagent && manifest.HostIntent.Codex == core.HostEnabled {
+		hosts[core.HostCodex] = true
+	}
+	return hosts
+}
+
+func disabledHostList(manifest *core.ProjectManifest) []string {
+	disabled := hostSet{}
+	if manifest.HostIntent.OpenCode == core.HostDisabled {
+		disabled[core.HostOpenCode] = true
+	}
+	if manifest.HostIntent.Codex == core.HostDisabled {
+		disabled[core.HostCodex] = true
+	}
+	return sortedHosts(disabled)
 }
 
 type managedContent struct {
@@ -182,37 +356,14 @@ func makeHostSet(values []string) hostSet {
 
 func detectHosts(root string, manifest *core.ProjectManifest) (hostSet, error) {
 	hosts := hostSet{}
-	for _, entry := range manifest.Files {
-		switch entry.Type {
-		case "opencode_agent":
-			hosts["opencode"] = true
-		case "codex_agent":
-			hosts["codex"] = true
-		}
+	evidence, err := DetectHostEvidence(root, manifest)
+	if err != nil {
+		return nil, err
 	}
-	checks := []struct {
-		host      string
-		path      string
-		directory bool
-	}{
-		{"opencode", ".opencode", true},
-		{"opencode", "opencode.json", false},
-		{"opencode", "opencode.jsonc", false},
-		{"codex", ".codex", true},
-		{"codex", filepath.Join(".codex", "config.toml"), false},
-	}
-	for _, check := range checks {
-		info, err := os.Stat(filepath.Join(root, check.path))
-		if os.IsNotExist(err) {
-			continue
+	for _, item := range evidence {
+		if item.Detected {
+			hosts[item.Host] = true
 		}
-		if err != nil {
-			return nil, fmt.Errorf("checking %s host evidence %s: %w", check.host, check.path, err)
-		}
-		if check.directory != info.IsDir() {
-			return nil, fmt.Errorf("invalid %s host evidence %s", check.host, check.path)
-		}
-		hosts[check.host] = true
 	}
 	return hosts, nil
 }
@@ -290,7 +441,10 @@ func reconcileHostFiles(cmd *cobra.Command, root string, manifest *core.ProjectM
 	sort.Strings(targets)
 	for _, target := range targets {
 		item := desired[target]
-		path := filepath.Join(root, target)
+		path, pathErr := syncProjectPath(root, target)
+		if pathErr != nil {
+			return nil, nil, pathErr
+		}
 		data, readErr := os.ReadFile(path)
 		entry, managed := old[target]
 		modelPreserved := false
@@ -333,14 +487,20 @@ func reconcileHostFiles(cmd *cobra.Command, root string, manifest *core.ProjectM
 				}
 			}
 		}
-		kept = append(kept, core.FileEntry{Source: item.source, Target: target, SHA256: core.SHA256Hex(item.content), Type: item.kind})
+		kept = append(kept, core.FileEntry{Source: item.source, Target: target, SHA256: core.SHA256Hex(item.content), Type: item.kind, Host: hostForKind(item.kind)})
 		available[hostForKind(item.kind)] = true
 	}
 	for target, entry := range old {
 		if _, ok := desired[target]; ok {
 			continue
 		}
-		path := filepath.Join(root, target)
+		if _, err := core.ValidateManifestTarget(manifest, target); err != nil {
+			return nil, nil, fmt.Errorf("planning removal of %s: %w", target, err)
+		}
+		path, pathErr := syncProjectPath(root, target)
+		if pathErr != nil {
+			return nil, nil, pathErr
+		}
 		data, readErr := os.ReadFile(path)
 		if readErr != nil && !os.IsNotExist(readErr) {
 			return nil, nil, fmt.Errorf("reading %s: %w", target, readErr)
@@ -632,7 +792,10 @@ func reconcileOrchestrationBlock(cmd *cobra.Command, root string, manifest *core
 		}
 		filtered = append(filtered, entry)
 	}
-	path := filepath.Join(root, "AGENTS.md")
+	path, pathErr := syncProjectPath(root, "AGENTS.md")
+	if pathErr != nil {
+		return pathErr
+	}
 	file, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -662,10 +825,11 @@ func reconcileOrchestrationBlock(cmd *cobra.Command, root string, manifest *core
 	if baseFound {
 		merged = removeNestedOrchestration(merged)
 		if len(orchestrationContent) > 0 {
-			if len(merged) > 0 && merged[len(merged)-1] != '\n' {
-				merged = append(merged, '\n')
+			merged = bytes.TrimRight(merged, "\n")
+			if len(merged) > 0 {
+				merged = append(merged, []byte("\n\n")...)
 			}
-			merged = append(merged, []byte("\n"+orchestrationBlockStart+"\n")...)
+			merged = append(merged, []byte(orchestrationBlockStart+"\n")...)
 			merged = append(merged, orchestrationContent...)
 			if merged[len(merged)-1] != '\n' {
 				merged = append(merged, '\n')
@@ -684,6 +848,9 @@ func reconcileOrchestrationBlock(cmd *cobra.Command, root string, manifest *core
 			manifest.Files = filtered
 		}
 		return nil
+	}
+	if !bytes.Equal(file, merged) {
+		fmt.Fprintln(cmd.OutOrStdout(), "~ AGENTS.md")
 	}
 	if !dryRun {
 		if found {

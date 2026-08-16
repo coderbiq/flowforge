@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
 	"flowforge/internal/core"
+	"flowforge/internal/orchestration"
 )
 
 func TestSyncDetectsOpenCodeAndUpdatesRoutingBlock(t *testing.T) {
@@ -17,6 +19,9 @@ func TestSyncDetectsOpenCodeAndUpdatesRoutingBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	for _, name := range []string{"flowforge-coordinator.md", "flowforge-design-analyst.md", "flowforge-investigator.md", "flowforge-executor.md"} {
@@ -32,6 +37,106 @@ func TestSyncDetectsOpenCodeAndUpdatesRoutingBlock(t *testing.T) {
 		if !strings.Contains(string(agents), want) {
 			t.Fatalf("AGENTS missing %q", want)
 		}
+	}
+}
+
+func TestSyncRendererFailureLeavesProjectBytesUntouched(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(root, ".flowforge", core.ManifestFileName)
+	manifestBefore, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentsBefore, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := renderOpenCode
+	renderOpenCode = func(orchestration.Policy) (orchestration.RenderOutput, error) {
+		return orchestration.RenderOutput{}, fmt.Errorf("injected renderer failure")
+	}
+	t.Cleanup(func() { renderOpenCode = previous })
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{core.HostOpenCode}}); err == nil {
+		t.Fatal("expected renderer failure")
+	}
+	manifestAfter, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentsAfter, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(manifestBefore, manifestAfter) || !bytes.Equal(agentsBefore, agentsAfter) {
+		t.Fatal("renderer failure changed project bytes")
+	}
+}
+
+func TestSyncRejectsDynamicTargetThroughOutsideSymlink(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, ".opencode")); err != nil {
+		if os.IsNotExist(err) || strings.Contains(strings.ToLower(err.Error()), "not supported") {
+			t.Skipf("symlinks are not supported: %v", err)
+		}
+		t.Fatal(err)
+	}
+	manifest, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Mode = core.ManifestModeSubagent
+	manifest.HostIntent.OpenCode = core.HostEnabled
+	if err := manifest.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{}); err == nil {
+		t.Fatal("sync accepted a dynamic target escaping through a symlink")
+	}
+	if _, err := os.Stat(filepath.Join(outside, "agents")); !os.IsNotExist(err) {
+		t.Fatalf("sync wrote outside the project: %v", err)
+	}
+}
+
+func TestSyncManifestSaveFailureRollsBackHostAndAgents(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(root, ".flowforge", core.ManifestFileName)
+	manifestBefore, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentsBefore, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := saveManifest
+	saveManifest = func(string, *core.ProjectManifest) error { return fmt.Errorf("injected manifest save failure") }
+	t.Cleanup(func() { saveManifest = previous })
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{core.HostOpenCode}}); err == nil {
+		t.Fatal("expected manifest save failure")
+	}
+	manifestAfter, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	agentsAfter, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(manifestBefore, manifestAfter) || !bytes.Equal(agentsBefore, agentsAfter) {
+		t.Fatal("manifest save failure changed manifest or AGENTS")
+	}
+	if _, err := os.Stat(filepath.Join(root, ".opencode", "agents", "flowforge-executor.md")); !os.IsNotExist(err) {
+		t.Fatalf("manifest save failure left host file: %v", err)
 	}
 }
 
@@ -52,7 +157,7 @@ func TestSyncLeavesLegacyCardAndHistoryWikiBytesUntouched(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	for path, want := range map[string][]byte{legacyPath: legacy, historyPath: history} {
@@ -77,7 +182,7 @@ func TestSyncDetectsCodexAndIsIdempotent(t *testing.T) {
 	cmd := newSyncCmd()
 	var first bytes.Buffer
 	cmd.SetOut(&first)
-	if err := syncProject(cmd, root, syncOptions{}); err != nil {
+	if err := syncProject(cmd, root, syncOptions{forced: []string{"codex"}}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".codex", "agents", "flowforge-executor.toml")); err != nil {
@@ -94,7 +199,7 @@ func TestSyncDetectsCodexAndIsIdempotent(t *testing.T) {
 	}
 	var second bytes.Buffer
 	cmd.SetOut(&second)
-	if err := syncProject(cmd, root, syncOptions{}); err != nil {
+	if err := syncProject(cmd, root, syncOptions{forced: []string{"codex"}}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(second.String(), "~ .codex/agents") {
@@ -110,6 +215,9 @@ func TestSyncPreservesManagedOpenCodeModelDuringUpdate(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
+		t.Fatal(err)
+	}
 	target := filepath.Join(root, ".opencode", "agents", "flowforge-executor.md")
 	data, err := os.ReadFile(target)
 	if err != nil {
@@ -119,7 +227,7 @@ func TestSyncPreservesManagedOpenCodeModelDuringUpdate(t *testing.T) {
 	if err := os.WriteFile(target, data, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	data, err = os.ReadFile(target)
@@ -142,6 +250,9 @@ func TestSyncDoesNotFailOnMalformedOpenCodeFrontmatter(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
+		t.Fatal(err)
+	}
 	target := filepath.Join(root, ".opencode", "agents", "flowforge-design-analyst.md")
 	data, err := os.ReadFile(target)
 	if err != nil {
@@ -151,7 +262,7 @@ func TestSyncDoesNotFailOnMalformedOpenCodeFrontmatter(t *testing.T) {
 	if err := os.WriteFile(target, data, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatalf("malformed legacy frontmatter blocked sync: %v", err)
 	}
 	updated, err := os.ReadFile(target)
@@ -171,6 +282,9 @@ func TestSyncAdoptsGeneratedAgentMissingFromManifest(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
+		t.Fatal(err)
+	}
 	manifest, err := core.LoadProjectManifest(root)
 	if err != nil {
 		t.Fatal(err)
@@ -185,7 +299,7 @@ func TestSyncAdoptsGeneratedAgentMissingFromManifest(t *testing.T) {
 	if err := manifest.Save(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	manifest, err = core.LoadProjectManifest(root)
@@ -214,7 +328,7 @@ func TestSyncReportsHostEnforcement(t *testing.T) {
 	cmd := newSyncCmd()
 	var out bytes.Buffer
 	cmd.SetOut(&out)
-	if err := syncProject(cmd, root, syncOptions{}); err != nil {
+	if err := syncProject(cmd, root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{"Enforcement opencode:", "write_scope=soft", "external_sources=unsupported"} {
@@ -232,6 +346,9 @@ func TestSyncPreservesManagedCodexModelDuringUpdate(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"codex"}}); err != nil {
+		t.Fatal(err)
+	}
 	target := filepath.Join(root, ".codex", "agents", "flowforge-executor.toml")
 	data, err := os.ReadFile(target)
 	if err != nil {
@@ -241,7 +358,7 @@ func TestSyncPreservesManagedCodexModelDuringUpdate(t *testing.T) {
 	if err := os.WriteFile(target, data, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"codex"}}); err != nil {
 		t.Fatal(err)
 	}
 	data, err = os.ReadFile(target)
@@ -264,6 +381,9 @@ func TestSyncPreservesExplicitOpenCodePermissions(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
+		t.Fatal(err)
+	}
 	target := filepath.Join(root, ".opencode", "agents", "flowforge-investigator.md")
 	data, err := os.ReadFile(target)
 	if err != nil {
@@ -273,7 +393,7 @@ func TestSyncPreservesExplicitOpenCodePermissions(t *testing.T) {
 	if err := os.WriteFile(target, data, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	updated, err := os.ReadFile(target)
@@ -296,6 +416,9 @@ func TestSyncPreservesExplicitCodexPermissions(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"codex"}}); err != nil {
+		t.Fatal(err)
+	}
 	target := filepath.Join(root, ".codex", "agents", "flowforge-executor.toml")
 	data, err := os.ReadFile(target)
 	if err != nil {
@@ -305,7 +428,7 @@ func TestSyncPreservesExplicitCodexPermissions(t *testing.T) {
 	if err := os.WriteFile(target, data, 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"codex"}}); err != nil {
 		t.Fatal(err)
 	}
 	updated, err := os.ReadFile(target)
@@ -346,6 +469,13 @@ func TestSyncWithoutHostRemainsDisabled(t *testing.T) {
 	}
 	if strings.Contains(string(agents), orchestrationBlockStart) {
 		t.Fatal("routing block not removed")
+	}
+	manifest, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Mode != core.ManifestModeNonSubagent || manifest.HostIntent.OpenCode != core.HostDisabled || manifest.HostIntent.Codex != core.HostDisabled {
+		t.Fatalf("disabled sync changed v2 intent: mode=%s intent=%#v", manifest.Mode, manifest.HostIntent)
 	}
 }
 
@@ -451,12 +581,222 @@ func TestSyncDryRunDoesNotWrite(t *testing.T) {
 	}
 }
 
+func TestSyncFreshProjectDoesNotInferHostFromEvidence(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(root, ".opencode"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(root, ".flowforge", core.ManifestFileName)
+	before, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("host evidence changed the manifest")
+	}
+	if _, err := os.Stat(filepath.Join(root, ".opencode", "agents")); !os.IsNotExist(err) {
+		t.Fatalf("sync inferred opencode from evidence: %v", err)
+	}
+}
+
+func TestSyncLegacyHostFlagsDoNotMutateIntent(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(root, ".flowforge", core.ManifestFileName)
+	before, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := newSyncCmd()
+	cmd.SetArgs([]string{"--host", "opencode"})
+	if err := cmd.Execute(); err == nil {
+		t.Fatal("expected legacy flag migration error")
+	}
+	after, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("legacy sync flag changed intent")
+	}
+}
+
+func TestSyncEnabledIntentIsIdempotentWithoutHostEvidence(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Mode = core.ManifestModeSubagent
+	manifest.HostIntent.OpenCode = core.HostEnabled
+	if err := manifest.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	first, err := filesystemSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	second, err := filesystemSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(first, second) {
+		t.Fatal("enabled sync was not idempotent")
+	}
+}
+
+func filesystemSnapshot(root string) (map[string][]byte, error) {
+	snapshot := make(map[string][]byte)
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return err
+		}
+		snapshot[rel] = data
+		return nil
+	})
+	return snapshot, err
+}
+
+func TestExplicitEnableSupportsSingleAndDualHostsWithoutEvidence(t *testing.T) {
+	for _, hosts := range [][]string{{core.HostOpenCode}, {core.HostCodex}, {core.HostOpenCode, core.HostCodex}} {
+		t.Run(strings.Join(hosts, "-"), func(t *testing.T) {
+			root := t.TempDir()
+			if err := runInit(root, true, "default"); err != nil {
+				t.Fatal(err)
+			}
+			if err := syncProject(newSyncCmd(), root, syncOptions{forced: hosts, explicitEnable: true}); err != nil {
+				t.Fatal(err)
+			}
+			manifest, err := core.LoadProjectManifest(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, host := range hosts {
+				if hostIntent(manifest, host) != core.HostEnabled {
+					t.Fatalf("%s was not enabled", host)
+				}
+			}
+			if len(manifest.DynamicEntriesForHost(core.HostOpenCode)) == 0 && containsHost(hosts, core.HostOpenCode) {
+				t.Fatal("opencode dynamic entries were not registered")
+			}
+			if len(manifest.DynamicEntriesForHost(core.HostCodex)) == 0 && containsHost(hosts, core.HostCodex) {
+				t.Fatal("codex dynamic entries were not registered")
+			}
+		})
+	}
+}
+
+func TestExplicitEnableConflictKeepsIntentAndEntriesUnchanged(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, ".opencode", "agents", "flowforge-executor.md")
+	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("unmanaged"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(root, ".flowforge", core.ManifestFileName)
+	before, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{core.HostOpenCode}, explicitEnable: true}); err == nil {
+		t.Fatal("expected unmanaged conflict")
+	}
+	after, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("explicit conflict committed manifest intent or entries")
+	}
+	if data, err := os.ReadFile(target); err != nil || string(data) != "unmanaged" {
+		t.Fatalf("unmanaged file changed: %q, %v", data, err)
+	}
+}
+
+func TestExplicitEnableDoesNotReconcileUnlistedEnabledHost(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest.Mode = core.ManifestModeSubagent
+	manifest.HostIntent.Codex = core.HostEnabled
+	if err := manifest.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{core.HostOpenCode}, explicitEnable: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".codex", "agents")); !os.IsNotExist(err) {
+		t.Fatalf("unlisted codex host was reconciled: %v", err)
+	}
+	manifest, err = core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.HostIntent.Codex != core.HostEnabled {
+		t.Fatal("explicit opencode enable changed codex intent")
+	}
+}
+
+func containsHost(hosts []string, wanted string) bool {
+	for _, host := range hosts {
+		if host == wanted {
+			return true
+		}
+	}
+	return false
+}
+
 func TestSyncPreservesModifiedOrchestrationBlock(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".opencode"), 0755); err != nil {
 		t.Fatal(err)
 	}
 	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncProject(newSyncCmd(), root, syncOptions{forced: []string{"opencode"}}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(root, "AGENTS.md")

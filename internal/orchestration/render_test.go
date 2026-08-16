@@ -1,12 +1,186 @@
 package orchestration
 
 import (
+	"crypto/sha256"
+	"embed"
+	"fmt"
+	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/pelletier/go-toml/v2"
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed testdata/*.golden
+var renderGoldens embed.FS
+
+func TestRenderGoldensAndStableInventory(t *testing.T) {
+	tests := []struct {
+		name   string
+		render func(Policy) (RenderOutput, error)
+	}{
+		{"opencode", RenderOpenCodeOutput},
+		{"codex", RenderCodexOutput},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			policy := DefaultPolicy()
+			first, err := test.render(policy)
+			if err != nil {
+				t.Fatal(err)
+			}
+			second, err := test.render(policy)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if first.Host != test.name || first.RendererVersion == "" || first.PolicyDigest == "" {
+				t.Fatalf("incomplete renderer metadata: %+v", first)
+			}
+			if fmt.Sprintf("%v", first) != fmt.Sprintf("%v", second) {
+				t.Fatal("repeated render inventory differs")
+			}
+			for i := range first.Files {
+				if string(first.Files[i].Content) != string(second.Files[i].Content) {
+					t.Fatalf("repeated render differs for %s", first.Files[i].Source)
+				}
+				if first.Files[i].Host != first.Host || first.Files[i].Type != test.name+"_agent" {
+					t.Fatalf("unstable metadata: %+v", first.Files[i])
+				}
+			}
+			golden, err := renderGoldens.ReadFile(filepath.Join("testdata", test.name+".golden"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := parseGolden(t, string(golden))
+			if first.PolicyDigest != want["digest"] || first.RendererVersion != want["version"] {
+				t.Fatalf("metadata mismatch: got %s/%s want %s/%s", first.RendererVersion, first.PolicyDigest, want["version"], want["digest"])
+			}
+			if got := strings.Join(renderedSources(first.Files), ","); got != want["files"] {
+				t.Fatalf("files mismatch: got %s want %s", got, want["files"])
+			}
+		})
+	}
+}
+
+func parseGolden(t *testing.T, content string) map[string]string {
+	t.Helper()
+	result := map[string]string{}
+	for _, line := range strings.Split(strings.TrimSpace(content), "\n") {
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			t.Fatalf("invalid golden line %q", line)
+		}
+		result[parts[0]] = parts[1]
+	}
+	return result
+}
+
+func renderedSources(files []RenderedFile) []string {
+	result := make([]string, len(files))
+	for i, file := range files {
+		result[i] = file.Source
+	}
+	return result
+}
+
+func TestRenderCrossHostFormatsAndDigestsDiffer(t *testing.T) {
+	opencode, err := RenderOpenCodeOutput(DefaultPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	codex, err := RenderCodexOutput(DefaultPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opencode.PolicyDigest == codex.PolicyDigest {
+		t.Fatal("cross-host renderer digests must differ")
+	}
+	if strings.Contains(string(opencode.Files[0].Content), "sandbox_mode") || strings.Contains(string(codex.Files[0].Content), "permission:") {
+		t.Fatal("host-specific fields crossed renderer boundary")
+	}
+}
+
+func TestRenderRejectsInvalidPolicyWithoutOutput(t *testing.T) {
+	policy := DefaultPolicy()
+	policy.Roles[1].DefaultSkill = "unknown-skill"
+	if output, err := RenderOpenCodeOutput(policy); err == nil || output.Files != nil {
+		t.Fatalf("invalid OpenCode policy produced output: %+v, %v", output, err)
+	}
+	if output, err := RenderCodexOutput(policy); err == nil || output.Files != nil {
+		t.Fatalf("invalid Codex policy produced output: %+v, %v", output, err)
+	}
+}
+
+func TestRenderContentDigestsAreStable(t *testing.T) {
+	output, err := RenderOpenCodeOutput(DefaultPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, file := range output.Files {
+		if file.Source == "" || file.Host == "" || file.Type == "" || len(file.Content) == 0 {
+			t.Fatalf("incomplete rendered file: %+v", file)
+		}
+		hash := sha256.Sum256(file.Content)
+		if fmt.Sprintf("%x", hash) == "" {
+			t.Fatal("empty content digest")
+		}
+	}
+	if !sort.SliceIsSorted(output.Files, func(i, j int) bool { return output.Files[i].Source < output.Files[j].Source }) {
+		t.Fatal("rendered files are not sorted")
+	}
+}
+
+type RendererGolden struct {
+	Host            string
+	RendererVersion string
+	PolicyDigest    string
+	Files           []fixtureBaseline
+}
+
+type fixtureBaseline struct {
+	Path   string
+	Body   []byte
+	SHA256 string
+}
+
+func TestRendererGoldenFixtureSelfCheck(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		render func(Policy) (RenderOutput, error)
+	}{
+		{"opencode", RenderOpenCodeOutput},
+		{"codex", RenderCodexOutput},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			first, err := test.render(DefaultPolicy())
+			if err != nil {
+				t.Fatal(err)
+			}
+			second, err := test.render(DefaultPolicy())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if first.Host != test.name || first.RendererVersion == "" || first.PolicyDigest == "" || len(first.Files) == 0 {
+				t.Fatalf("invalid renderer golden: %+v", first)
+			}
+			if first.PolicyDigest != second.PolicyDigest || first.RendererVersion != second.RendererVersion || len(first.Files) != len(second.Files) {
+				t.Fatal("renderer golden metadata is not stable")
+			}
+			for i, file := range first.Files {
+				if file.Source != second.Files[i].Source || string(file.Content) != string(second.Files[i].Content) {
+					t.Fatalf("renderer golden changed for %s", file.Source)
+				}
+				hash := sha256.Sum256(file.Content)
+				baseline := fixtureBaseline{Path: file.Source, Body: append([]byte(nil), file.Content...), SHA256: fmt.Sprintf("%x", hash)}
+				if baseline.SHA256 == "" || len(baseline.Body) == 0 {
+					t.Fatalf("empty renderer baseline: %+v", baseline)
+				}
+			}
+		})
+	}
+}
 
 func TestRenderOpenCodeIncludesCompleteRoleContracts(t *testing.T) {
 	files, err := RenderOpenCode(DefaultPolicy())

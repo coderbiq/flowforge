@@ -167,7 +167,7 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 - `proposal inspect <id>` for auto-generated Feature Map and health checks
 - `journal append --actor <role> --message "..." [--references <card-id>] [--next "..."]` to record Proposal collaboration
 - `journal recent [--proposal <id>] [--limit <n>]` to resume from recent collaboration notes
-- `sync` detects OpenCode/Codex and reconciles Skills, subagents, routing rules, and the managed manifest
+- `sync` 按 manifest 的 host intent 和已登记 entries reconcile；host detection 仅供 `subagent status`，不会自动 enable
 - `--body 'content\nwith\nnewlines'` for inline multi-line content
 - Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
 - Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts
@@ -200,7 +200,7 @@ Installed hosts: codex, opencode
 - Delegation depth is one: every worker is dispatched directly by the Coordinator; workers never delegate or ask the user directly.
 - Use `flowforge-design-analyst` for framing, FEATURE decomposition, investigation planning, evidence synthesis, architecture, impact analysis, and replanning.
 - Use `flowforge-investigator` only for a ready registered investigation brief; it writes only the assigned FIND and returns structured blocked, inconclusive, conflict, or decision status.
-- Use `flowforge-executor` only after `context preflight` returns `allow` for a planned FEATURE Step and the user explicitly requested implementation.
+- Use `flowforge-executor` only after `context preflight` returns `allow` for a planned FEATURE Step and the user explicitly requested implementation. Subagent host enable/disable must remain explicit; `AGENTS.md` cleanup removes only the managed orchestration block and preserves other content.
 - Run `context risk-review` after implementation; when review is required but no Reviewer is installed, the primary agent performs the read-only conformance review.
 - Read `journal recent` before delegation. Proposal, FEATURE, DEC, FIND, Step, History, and Verification own durable facts; Journal owns analysis scheduling state and artifact references.
 - External sources require explicit authorization in the work-item brief; unavailable required access returns BLOCKED.

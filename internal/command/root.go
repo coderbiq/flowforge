@@ -50,6 +50,7 @@ through a CLI-first interface.`,
 	cmd.AddCommand(newContextCmd())
 	cmd.AddCommand(newValidateCmd())
 	cmd.AddCommand(newSyncCmd())
+	cmd.AddCommand(newSubagentCmd())
 	cmd.AddCommand(newConfigCmd())
 	cmd.AddCommand(newSourceCmd())
 	cmd.AddCommand(newUpgradeCmd())

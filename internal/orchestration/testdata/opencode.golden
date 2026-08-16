@@ -1,0 +1,4 @@
+host=opencode
+version=opencode-v1
+digest=fe47014e82dde333f0bfd975e2dc95179ba0afc9d0c73d85ade87b78d53dfb70
+files=flowforge-coordinator.md,flowforge-design-analyst.md,flowforge-executor.md,flowforge-investigator.md

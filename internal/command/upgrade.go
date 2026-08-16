@@ -84,7 +84,10 @@ After the CLI binary is upgraded, project facilities are synchronized
 				return fmt.Errorf("synchronizing project: cannot locate upgraded executable")
 			}
 
-			assetCmd := exec.Command(execPath, "sync")
+			// The child command is the project lifecycle boundary. Disable the
+			// global version checker here so an upgrade cannot start a second
+			// asynchronous check while reconciling manifest assets.
+			assetCmd := exec.Command(execPath, "--no-version-check", "sync")
 			assetCmd.Dir = projectRoot
 			assetCmd.Stdout = cmd.OutOrStdout()
 			assetCmd.Stderr = cmd.ErrOrStderr()
@@ -93,7 +96,7 @@ After the CLI binary is upgraded, project facilities are synchronized
 				return fmt.Errorf("synchronizing project: %w", aErr)
 			}
 
-			migrateCmd := exec.Command(execPath, "_run-migrations", "--from", result.OldVersion)
+			migrateCmd := exec.Command(execPath, "--no-version-check", "_run-migrations", "--from", result.OldVersion)
 			migrateCmd.Dir = projectRoot
 			migrateCmd.Stdout = cmd.OutOrStdout()
 			migrateCmd.Stderr = cmd.ErrOrStderr()

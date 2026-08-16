@@ -14,7 +14,7 @@ Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card
 - `journal append --actor <role> --message "..." [--references <card-id>] [--next "..."]` to record Proposal collaboration
 - `journal recent [--proposal <id>] [--limit <n>]` to resume from recent collaboration notes
 - With no Proposal, do not create a journal unless dispatching a subagent. Before the first dispatch run `journal start --title "..."`, then use `journal append/recent --journal <id>`. After creating a Proposal, run `journal bind <id> --proposal <id>` once and write only to the Proposal Journal.
-- `sync` detects OpenCode/Codex and reconciles Skills, subagents, routing rules, and the managed manifest
+- `sync` 按 manifest 的 host intent 和已登记 entries reconcile；host detection 仅供 `subagent status`，不会自动 enable
 - `--body 'content\nwith\nnewlines'` for inline multi-line content
 - Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
 - Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts

@@ -1,13 +1,41 @@
 package orchestration
 
 import (
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 )
 
 //go:embed roles/*.md
 var roleSources embed.FS
+
+const (
+	OpenCodeRendererVersion = "opencode-v1"
+	CodexRendererVersion    = "codex-v1"
+)
+
+// RenderedFile is the renderer-neutral inventory record. Content is kept
+// alongside source/host/type so callers cannot infer host metadata from a
+// filename or accidentally register one renderer's file as another's.
+type RenderedFile struct {
+	Source  string
+	Host    string
+	Type    string
+	Content []byte
+}
+
+// RenderOutput is a deterministic renderer result suitable for manifest
+// planning. Files are sorted by source and the digest is host-specific.
+type RenderOutput struct {
+	Host            string
+	RendererVersion string
+	PolicyDigest    string
+	Files           []RenderedFile
+}
 
 const sharedWorkflow = `## Shared Workflow
 
@@ -85,10 +113,22 @@ func rolePrompt(role Role) (string, error) {
 }
 
 func RenderOpenCode(policy Policy) (map[string][]byte, error) {
-	if err := policy.Validate(KnownManagedSkills()); err != nil {
+	output, err := renderOpenCode(policy)
+	if err != nil {
 		return nil, err
 	}
-	files := make(map[string][]byte)
+	files := make(map[string][]byte, len(output.Files))
+	for _, file := range output.Files {
+		files[file.Source] = file.Content
+	}
+	return files, nil
+}
+
+func renderOpenCode(policy Policy) (RenderOutput, error) {
+	if err := policy.Validate(KnownManagedSkills()); err != nil {
+		return RenderOutput{}, err
+	}
+	files := make([]RenderedFile, 0, len(policy.Roles))
 	enabled := make(map[string]bool)
 	for _, role := range policy.Roles {
 		enabled[role.ID] = role.Enabled
@@ -99,7 +139,7 @@ func RenderOpenCode(policy Policy) (map[string][]byte, error) {
 		}
 		prompt, err := rolePrompt(role)
 		if err != nil {
-			return nil, err
+			return RenderOutput{}, err
 		}
 		mode, edit, question := "subagent", "deny", "deny"
 		taskPermission := "  task: deny\n"
@@ -129,23 +169,35 @@ func RenderOpenCode(policy Policy) (map[string][]byte, error) {
 			bashPermission = "  bash:\n    \"*\": ask\n    \"git status*\": allow\n    \"git diff*\": allow\n"
 		}
 		content := fmt.Sprintf("---\ndescription: %q\nmode: %s\npermission:\n  edit: %s\n%s  question: %s\n  skill: allow\n%s---\n\n# FlowForge %s\n\n%s", "FlowForge "+role.DisplayName+" using Proposal artifacts, deterministic gates, and Journal handoffs.", mode, edit, taskPermission, question, bashPermission, role.DisplayName, prompt)
-		files["flowforge-"+role.ID+".md"] = []byte(content)
+		files = append(files, RenderedFile{Source: "flowforge-" + role.ID + ".md", Host: "opencode", Type: "opencode_agent", Content: []byte(content)})
+	}
+	return makeRenderOutput("opencode", OpenCodeRendererVersion, policy, files), nil
+}
+
+func RenderCodex(policy Policy) (map[string][]byte, error) {
+	output, err := renderCodex(policy)
+	if err != nil {
+		return nil, err
+	}
+	files := make(map[string][]byte, len(output.Files))
+	for _, file := range output.Files {
+		files[file.Source] = file.Content
 	}
 	return files, nil
 }
 
-func RenderCodex(policy Policy) (map[string][]byte, error) {
+func renderCodex(policy Policy) (RenderOutput, error) {
 	if err := policy.Validate(KnownManagedSkills()); err != nil {
-		return nil, err
+		return RenderOutput{}, err
 	}
-	files := make(map[string][]byte)
+	files := make([]RenderedFile, 0, len(policy.Roles))
 	for _, role := range policy.Roles {
 		if !role.Enabled {
 			continue
 		}
 		prompt, err := rolePrompt(role)
 		if err != nil {
-			return nil, err
+			return RenderOutput{}, err
 		}
 		sandbox, effort := "read-only", "medium"
 		if role.Kind == RoleKindExecutor || role.Kind == RoleKindAnalyst || role.Kind == RoleKindInvestigator {
@@ -156,9 +208,37 @@ func RenderCodex(policy Policy) (map[string][]byte, error) {
 		}
 		prompt = strings.ReplaceAll(prompt, `"""`, `\"\"\"`)
 		content := fmt.Sprintf("name = %q\ndescription = %q\nsandbox_mode = %q\nmodel_reasoning_effort = %q\ndeveloper_instructions = \"\"\"\n%s\n\"\"\"\n", "flowforge-"+role.ID, codexRoleDescription(role), sandbox, effort, prompt)
-		files["flowforge-"+role.ID+".toml"] = []byte(content)
+		files = append(files, RenderedFile{Source: "flowforge-" + role.ID + ".toml", Host: "codex", Type: "codex_agent", Content: []byte(content)})
 	}
-	return files, nil
+	return makeRenderOutput("codex", CodexRendererVersion, policy, files), nil
+}
+
+// RenderOpenCodeOutput returns the complete, sorted inventory and digest.
+func RenderOpenCodeOutput(policy Policy) (RenderOutput, error) { return renderOpenCode(policy) }
+
+// RenderCodexOutput returns the complete, sorted inventory and digest.
+func RenderCodexOutput(policy Policy) (RenderOutput, error) { return renderCodex(policy) }
+
+func makeRenderOutput(host, version string, policy Policy, files []RenderedFile) RenderOutput {
+	sort.Slice(files, func(i, j int) bool { return files[i].Source < files[j].Source })
+	return RenderOutput{Host: host, RendererVersion: version, PolicyDigest: rendererDigest(policy, host, version), Files: files}
+}
+
+// rendererDigest hashes the validated policy together with the renderer
+// identity. Including host/version makes cross-host hashes intentionally
+// incomparable while keeping repeated renders byte-for-byte stable.
+func rendererDigest(policy Policy, host, version string) string {
+	type digestInput struct {
+		Host    string
+		Version string
+		Policy  Policy
+	}
+	encoded, err := json.Marshal(digestInput{Host: host, Version: version, Policy: policy})
+	if err != nil {
+		return ""
+	}
+	hash := sha256.Sum256(encoded)
+	return hex.EncodeToString(hash[:])
 }
 
 func codexRoleDescription(role Role) string {

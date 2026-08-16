@@ -25,9 +25,21 @@ flowforge context feature --feature <feature-id> --step <n>
 flowforge card log <feature-id> --event "..."
 flowforge card steps <feature-id> --status done <n>
 flowforge proposal inspect <proposal-id>
+flowforge subagent enable --host opencode|codex
+flowforge subagent disable [--host opencode|codex]
+flowforge subagent status [--host opencode|codex]
+flowforge sync
 ```
 
 结构化操作使用 CLI；卡片正文由 Agent 直接编辑。`docs/proposal-v3/` 的 `implementation-plan.md` 仅是计划，不是实现事实。
+
+### Subagent 托管生命周期
+
+宿主托管必须显式授权：`subagent enable --host opencode` 或 `--host codex` 只为指定宿主设置 manifest v2 的 `host_intent: enabled`，成功后才渲染宿主文件并登记 dynamic entries。磁盘上的宿主目录或文件只是 `status` 的 evidence，不会自动 enable；`status` 始终只读。
+
+`subagent disable` 只处理 manifest 已登记的动态文件，修改过的登记文件也会先备份再删除，不以 hash 相同作为删除前提。备份位于项目 `.flowforge/backups/subagent-disable/<UTC timestamp[-n]>/`；项目 `uninstall` 使用独立的 `.flowforge/backups/uninstall/<UTC timestamp[-n]>/` 命名空间。
+
+disable/uninstall 只移除 FlowForge 登记的 AGENTS orchestration block，保留基础 FlowForge block、用户/其他工具内容及未登记文件。`sync` 按 manifest 的 host intent 和登记 entries reconcile，不根据 host detection 改变授权；`--dry-run` 与真实执行共用计划且不写入文件、manifest 或备份。
 
 ## 文档
 
@@ -38,6 +50,7 @@ flowforge proposal inspect <proposal-id>
 - [实施计划（计划）](docs/proposal-v3/implementation-plan.md)
 - [架构说明](docs/architecture.md)
 - [索引管理实现边界](docs/index-management.md)
+- [Subagent 生命周期](docs/subagent-lifecycle.md)
 
 其余 v2 文档仅作 `historical` 背景，不从当前入口导出。
 

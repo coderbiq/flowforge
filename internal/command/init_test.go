@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"flowforge/internal/config"
+	"flowforge/internal/core"
 
 	_ "modernc.org/sqlite"
 )
@@ -102,6 +103,23 @@ func TestRunInitCreatesInstallOnly(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(tmpDir, "AGENTS.md")); err != nil {
 		t.Fatalf("expected deployed AGENTS.md: %v", err)
+	}
+}
+
+func TestRunInitWritesV2NonSubagentManifest(t *testing.T) {
+	root := t.TempDir()
+	if err := runInit(root, true, "default"); err != nil {
+		t.Fatal(err)
+	}
+	manifest, err := core.LoadProjectManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Version != core.ManifestVersionV2 || manifest.Mode != core.ManifestModeNonSubagent {
+		t.Fatalf("unexpected init manifest: %#v", manifest)
+	}
+	if manifest.HostIntent.OpenCode != core.HostDisabled || manifest.HostIntent.Codex != core.HostDisabled {
+		t.Fatalf("init unexpectedly enabled a host: %#v", manifest.HostIntent)
 	}
 }
 
