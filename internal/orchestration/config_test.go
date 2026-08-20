@@ -24,7 +24,7 @@ func TestPolicyValidateRejectsInvalidTopologyAndReferences(t *testing.T) {
 				policy.Roles[0].Interactive = false
 				policy.Roles[0].Capabilities = []Capability{CapabilityRead}
 				policy.Roles[0].MayDelegate = nil
-				policy.Roles[0].DefaultSkill = "flowforge-design"
+				policy.Roles[0].DefaultSkill = "flowforge-align"
 			},
 			want: "exactly one coordinator",
 		},

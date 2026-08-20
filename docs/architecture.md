@@ -1,31 +1,60 @@
-# FlowForge v3 架构
+# FlowForge 架构设计 (v4)
 
-> 当前架构说明。v3 模型唯一规范见 [`proposal-v3/`](./proposal-v3/README.md)。
+## 1. 核心定位
 
-## 分层
+FlowForge 是专为工程级 AI 协作打造的**多级工作记忆（Multi-Tier Working Memory）与活文档合流（Living Docs Synthesis）中枢**。
+
+它坚决反对“形式主义的死板模板”与“限制开发活力的强状态机”，主张通过：
+1. **多级工作记忆体系**：让 Agent 和人类跨会话、跨天讨论不再遗忘；
+2. **敏捷工程方法论（Conversation-first + TDD）**：用 Grilling 对齐需求、用 Tracer Bullets 拆解极小切片、用自动化测试作为唯一质量门禁；
+3. **活文档持续合流（Living Docs Merge）**：让系统级领域知识随提案交付持续演进，永不腐烂。
+
+---
+
+## 2. 三层工作记忆架构
 
 ```text
-CLI
- ├─ card / proposal / context       结构化不变式与最小上下文
- ├─ project / init / upgrade         项目与 FlowForge 生命周期
- └─ library / index                 当前 v3 派生查询
-核心存储
- ├─ Markdown                         卡片事实来源
- └─ SQLite                           可重建的运行态与派生索引
-Agent
- └─ SKILL                            通过 CLI 调度，直接编辑已批准卡片正文
+┌─────────────────────────────────────────────────────────────┐
+│  Tier 1: 项目级全局记忆 (docs/CONTEXT.md)                    │
+│  - 全局统一术语表 (Ubiquitous Language)                      │
+│  - 核心架构约束与编码原则                                   │
+│  - 当前活跃提案索引                                         │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ 注入全局背景
+┌──────────────────────────────▼──────────────────────────────┐
+│  Tier 2: 提案级活笔记 (01-workspace/<proposal_id>/README.md) │
+│  - Objective: 核心目标 (1-2 句)                             │
+│  - Ubiquitous Language: 本提案专用术语                      │
+│  - Explored Facts: 代码/数据探查事实 (带 file:line)         │
+│  - Key Decisions: 共识与决策 (Why)                          │
+│  - Open Questions: 待对齐疑问                               │
+│  - Actionable Slices: 3-6 个 Tracer Bullet 切片与测试绑定   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ 提取切片最小上下文
+┌──────────────────────────────▼──────────────────────────────┐
+│  Tier 3: 任务级执行切片 (Slice Execution Context)           │
+│  - 当前 Slice 目标 + 涉及接缝 + 唯一测试命令                │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 卡片边界
+---
 
-当前类型为 PROP、FEATURE、CONV、DEC、MOD、FIND。PROP 只承载 Proposal control-plane metadata；STR 只作为其内部元数据，不是普通用户卡。普通 read/list/search/index 不返回 STR 或旧模型数据。
+## 3. 五大原子 Skill 协作流
 
-FEATURE 通过阶段和步骤承载完整交付生命周期。Implementation Plan 是计划，代码、测试和 Verification 才是实现事实。
+FlowForge 将工程流程解耦为 5 个职责专一的 Skill，严禁单一 Skill 越权或黑盒脑补：
 
-## 索引
+1. **`flowforge-align`**：通过启发式提问（Grilling）澄清边界、非目标与失败语义，维护提案活笔记；
+2. **`flowforge-explore`**：针对代码库与历史数据探查事实，将证据（`file:line`）回填活笔记；
+3. **`flowforge-plan`**：在达成共识后，将方案拆解为 3~6 个极小 Tracer Bullet 切片并绑定自动化测试；
+4. **`flowforge-implement`**：严格执行红-绿-重构（TDD）循环，测试通过即切片完成；
+5. **`flowforge-curate`**：提取核心决策为 ADR，将领域业务变更合流至 `docs/domains/<domain>/README.md`，归档提案。
 
-Markdown 是唯一事实来源；SQLite 保存 current project/proposal 指针、摘要、typed links 和搜索字段。索引可删除并由当前 v3 文件重建，不改写卡片正文。
+---
 
-## 明确不包含
+## 4. 活文档与 ADR 归档体系
 
-旧 task、structure、log create、requirement CLI 直接删除；不提供迁移承诺、UI 或历史 wiki 处理。历史说明必须标记 `historical`，不得成为当前入口。
+文档不再是孤岛式卡片，而是系统级的活资产：
+
+* `docs/architecture/decisions/`：记录全局架构决策（ADRs）；
+* `docs/domains/<domain>/README.md`：记录各领域当前的真实业务行为、术语与接口接缝；
+* `archive/<proposal_id>/`：封存历史提案工作过程。

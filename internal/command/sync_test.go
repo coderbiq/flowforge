@@ -825,7 +825,7 @@ func TestSyncPreservesModifiedStaticAssetManifestBaseline(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(root, ".agents", "skills", "flowforge-design", "SKILL.md")
+	target := filepath.Join(root, ".agents", "skills", "flowforge-align", "SKILL.md")
 	if err := os.WriteFile(target, []byte("user modification\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -834,7 +834,7 @@ func TestSyncPreservesModifiedStaticAssetManifestBaseline(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range manifest.Files {
-		if manifest.Files[i].Target == filepath.Join(".agents", "skills", "flowforge-design", "SKILL.md") {
+		if manifest.Files[i].Target == filepath.Join(".agents", "skills", "flowforge-align", "SKILL.md") {
 			manifest.Files[i].SHA256 = strings.Repeat("0", 64)
 		}
 	}
@@ -856,7 +856,7 @@ func TestSyncPreservesModifiedStaticAssetManifestBaseline(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, entry := range manifest.Files {
-		if entry.Target == filepath.Join(".agents", "skills", "flowforge-design", "SKILL.md") && entry.SHA256 != strings.Repeat("0", 64) {
+		if entry.Target == filepath.Join(".agents", "skills", "flowforge-align", "SKILL.md") && entry.SHA256 != strings.Repeat("0", 64) {
 			t.Fatalf("conflict advanced the manifest baseline to %s", entry.SHA256)
 		}
 	}
@@ -867,7 +867,7 @@ func TestSyncDoesNotAdoptUntrustedStaticAsset(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(root, ".agents", "skills", "flowforge-design", "SKILL.md")
+	target := filepath.Join(root, ".agents", "skills", "flowforge-align", "SKILL.md")
 	userData := []byte("user-owned skill\n")
 	if err := os.WriteFile(target, userData, 0644); err != nil {
 		t.Fatal(err)
@@ -878,7 +878,7 @@ func TestSyncDoesNotAdoptUntrustedStaticAsset(t *testing.T) {
 	}
 	filtered := manifest.Files[:0]
 	for _, entry := range manifest.Files {
-		if entry.Target != filepath.Join(".agents", "skills", "flowforge-design", "SKILL.md") {
+		if entry.Target != filepath.Join(".agents", "skills", "flowforge-align", "SKILL.md") {
 			filtered = append(filtered, entry)
 		}
 	}
@@ -901,7 +901,7 @@ func TestSyncDoesNotAdoptUntrustedStaticAsset(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, entry := range updated.Files {
-		if entry.Target == filepath.Join(".agents", "skills", "flowforge-design", "SKILL.md") {
+		if entry.Target == filepath.Join(".agents", "skills", "flowforge-align", "SKILL.md") {
 			t.Fatal("untrusted conflict advanced the manifest baseline")
 		}
 	}
@@ -912,7 +912,7 @@ func TestSyncFromSubdirectoryUsesProjectRootForConflicts(t *testing.T) {
 	if err := runInit(root, true, "default"); err != nil {
 		t.Fatal(err)
 	}
-	target := filepath.Join(root, ".agents", "skills", "flowforge-design", "SKILL.md")
+	target := filepath.Join(root, ".agents", "skills", "flowforge-align", "SKILL.md")
 	if err := os.WriteFile(target, []byte("user modification\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -921,7 +921,7 @@ func TestSyncFromSubdirectoryUsesProjectRootForConflicts(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := range manifest.Files {
-		if manifest.Files[i].Target == filepath.Join(".agents", "skills", "flowforge-design", "SKILL.md") {
+		if manifest.Files[i].Target == filepath.Join(".agents", "skills", "flowforge-align", "SKILL.md") {
 			manifest.Files[i].SHA256 = strings.Repeat("0", 64)
 		}
 	}

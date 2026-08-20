@@ -59,7 +59,7 @@ func newContextRiskReviewCmd() *cobra.Command {
 			r.Next = "continue FlowForge completion"
 		} else {
 			r.Decision = "review_required"
-			r.Next = "delegate reviewer with flowforge-review"
+			r.Next = "run independent review or verification"
 		}
 		return renderRisk(cmd, r)
 	}}

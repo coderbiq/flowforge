@@ -1,26 +1,42 @@
-# v3 知识系统
+# FlowForge 知识与记忆系统设计 (v4)
 
-> 当前规范。旧模型材料若被保留，只能标记为 `historical`，不作为当前入口或迁移契约。
+## 1. 为什么重构知识系统？
 
-## 知识单元
+在历史版本中，FlowForge 试图用复杂的卡片盒（Zettelkasten）模型维护大量细粒度 Markdown 卡片（REQ、STR、FEAT、CONV、DEC、FIND 等）。在实际工程中，这带来了严重的副作用：
+* **信息碎片化**：Agent 陷入海量卡片的读写，迷失主干目标；
+* **形式主义与死板模板**：填空式模板生成了大量空洞无物的占位符；
+* **文档腐烂**：提案结束后的卡片成为无人维护的孤岛。
 
-| 类型 | 用途 |
-|---|---|
-| PROP | Proposal control-plane metadata 和 Feature Map |
-| FEATURE | 一个功能的 Summary、Design、Plan、Verification、History |
-| CONV | 跨功能可执行约定 |
-| DEC | 跨功能决策 |
-| MOD | 模块知识 |
-| FIND | 发现与证据 |
+v4 将知识系统全面升级为**“工作记忆（Working Memory）+ 领域活文档（Living Docs）”**模型。
 
-STR 不是普通知识卡，仅可作为 Proposal control-plane metadata。REQ、DES、TASK、LOG 不是 v3 类型。
+---
 
-## 存储与查询
+## 2. 记忆与文档文件体系
 
-Markdown 卡片是事实来源；`.flowforge/cache/flowforge.sqlite` 只保存可重建的运行态和派生索引。普通卡片查询只扫描 current-v3 类型；PROP/STR metadata 由 Proposal 聚合逻辑读取，不进入普通卡片域。
+```text
+.
+├── docs/
+│   ├── CONTEXT.md                 # [Tier 1] 全局记忆：统一术语与核心约束
+│   ├── architecture/
+│   │   ├── overview.md            # 系统全景图
+│   │   └── decisions/             # 架构决策记录 (ADR-NNNN-xxx.md)
+│   └── domains/                   # 领域活文档库 (Living Domain Docs)
+│       ├── policy/README.md       # 保单领域现状与规则
+│       └── data-migration/README.md # 数据迁移管道与权威映射现状
+├── 01-workspace/                  # 活跃提案工作区 (Working Scratchpads)
+│   └── <proposal_id>/
+│       └── README.md              # [Tier 2] 提案活笔记 (目标/共识/事实/切片)
+└── archive/                       # 已完成提案归档库
+    └── <proposal_id>/README.md
+```
 
-结构化操作使用 `card link`、`card evolve`、`card log`、`card steps`；正文由 Agent 直接编辑。`proposal inspect` 提供 Feature Map 的机械状态视图。
+---
 
-## 边界
+## 3. 活文档合流标准（Synthesis & Merge）
 
-旧 task、structure、log create、requirement 入口直接删除。不迁移、不改写旧 wiki、旧 ID/links，不提供 UI。实施计划只表达未来工作，不能替代验证证据。
+当一个 Proposal 完成所有 Slice 交付并通过测试时，触发合流流程：
+
+1. **提取 ADR**：将提案中具有长期影响的技术决策提取为 `docs/architecture/decisions/` 下的新 ADR；
+2. **生成领域 Patch**：将本次提案修改的代码事实与业务规则，增量合并到 `docs/domains/<domain>/README.md`；
+3. **用户审查与确认**：向用户展示 Markdown Diff，确认后应用合流；
+4. **提案归档**：将提案工作目录移动至 `archive/`。

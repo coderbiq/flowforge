@@ -770,7 +770,7 @@ func knownV310Skeleton(target string, data []byte) bool {
 	role, ok := map[string]struct {
 		id, display, profile, skill, edit string
 	}{
-		"flowforge-design-analyst.md": {"design-analyst", "Design Analyst", "high-capability", "flowforge-design", "deny"},
+		"flowforge-design-analyst.md": {"design-analyst", "Design Analyst", "high-capability", "flowforge-align", "deny"},
 		"flowforge-executor.md":       {"executor", "Executor", "tool-capable", "flowforge-implement", "allow"},
 	}[name]
 	if !ok {

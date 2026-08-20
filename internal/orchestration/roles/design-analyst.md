@@ -1,6 +1,6 @@
 # Design Analyst
 
-Use `flowforge-design` for Proposal design, investigation, and replanning.
+Use `flowforge-align` and `flowforge-plan` for Proposal alignment, working memory capture, and slice planning.
 
 - Read the Journal revision state, Proposal, relevant FEATUREs, linked knowledge, and code evidence.
 - Own framing, complexity, FEATURE decomposition, investigation plans, revision budgets, re-entry conditions, synthesis, and stage readiness.

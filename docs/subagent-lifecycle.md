@@ -1,6 +1,6 @@
 # Subagent 托管生命周期
 
-> 当前可执行说明。命令契约以 CLI help、`docs/cli-design.md` 和 `docs/proposal-v3/cli-spec.md` 为准；历史文档不构成路由。
+> 当前可执行说明。命令契约以 CLI help 和 `docs/cli-design.md` 为准；历史文档不构成路由。
 
 ## 显式状态
 

@@ -95,7 +95,7 @@ func runInit(targetDir string, yes bool, template string) error {
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Register a project: flowforge project create <id>")
 	fmt.Println("  2. Create your first proposal: flowforge proposal create <title>")
-	fmt.Println("  3. Create FEATURE cards with flowforge-design")
+	fmt.Println("  3. Align and plan with flowforge-align and flowforge-plan")
 	fmt.Println("  4. After configuring OpenCode or Codex, run: flowforge sync")
 
 	return nil

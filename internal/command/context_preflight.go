@@ -92,7 +92,7 @@ func buildPreflightReport(store *core.CardStore, card *core.Card, step int, inte
 		r.Owner = "coordinator"
 		r.HandoffRequired = false
 		r.Context = ""
-		r.Next = "return to flowforge-design or flowforge-feedback"
+		r.Next = "return to flowforge-align or flowforge-plan"
 	}
 	if card.Type != core.CardTypeFeature {
 		block("not_feature", "card is not a FEATURE")

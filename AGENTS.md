@@ -143,67 +143,41 @@ SKILL 是本项目的核心产出物。编写或审查 SKILL 时对照以下原�
 
 | 文档 | 说明 |
 |------|------|
-| [v3 重构方案](docs/proposal-v3/) | 卡片模型 v3、CLI 规格、SKILL 方法论、实现计划 |
-| [架构设计](docs/architecture.md) | 项目定位、核心设计决策 |
-| [CLI 设计](docs/cli-design.md) | 命令体系、init/upgrade/uninstall |
-| [知识卡片系统](docs/knowledge-system.md) | 卡片模型、ID 规范、目录结构、索引系统 |
+| [架构设计](docs/architecture.md) | 项目定位、核心设计决策与 v4 架构全景 |
+| [多级工作记忆体系](docs/memory-system.md) | Tier 1/2/3 记忆模型与 Living Docs 合流机制 |
+| [原子 Skill 矩阵](docs/skill-system.md) | 五大原子 Skill 规范与敏捷工程方法论 |
+| [CLI 设计](docs/cli-design.md) | 命令体系与轻量化辅助工具规范 |
+| [知识与活文档系统](docs/knowledge-system.md) | 领域模型、ADR 规范与索引系统 |
+| [实施演进计划](docs/implementation-plan.md) | 演进里程碑与验收标准 |
 
 ## 语言偏好
 
 使用中文进行对话和文档编写。
 
 <!-- FLOWFORGE:START -->
-## FlowForge
+## FlowForge (v4 Working Memory & Living Docs)
 
-Use `card init --type feature` to create cards; then edit the `.md` file directly for body content.
-Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card steps`.
+FlowForge is an engineering AI collaboration harness powered by a **Multi-Tier Working Memory System**, **Conversational Agility Skills**, and **Living Documentation Synthesis**.
 
-### CLI
-- `card init --type feature --title "..." --proposal <id>` to create a FEATURE card skeleton
-- `card evolve <id> --stage designed|planned|done` for stage transitions (CLI enforces gates)
-- `card log <id> --event "..." [--kind progress|bug|blocked]` to append to History
-- `card steps <id> --status done|in_progress|blocked <n>` to update step status
-- `context feature --feature <id> --step <n>` for minimal execution context
-- `proposal inspect <id>` for auto-generated Feature Map and health checks
-- `journal append --actor <role> --message "..." [--references <card-id>] [--next "..."]` to record Proposal collaboration
-- `journal recent [--proposal <id>] [--limit <n>]` to resume from recent collaboration notes
-- `sync` 按 manifest 的 host intent 和已登记 entries reconcile；host detection 仅供 `subagent status`，不会自动 enable
-- `--body 'content\nwith\nnewlines'` for inline multi-line content
-- Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
-- Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts
-- `-o json` for machine-readable output
-- FEATURE steps are the only implementation work items; use `context feature`, `card steps`, `card log`, and Journal for execution state.
+### Working Memory System
+- **Tier 1: Global Memory (`docs/CONTEXT.md`)**: Ubiquitous language, architectural constraints, and active proposals.
+- **Tier 2: Proposal Scratchpad (`01-workspace/<proposal_id>/README.md`)**: Core objective, grilling consensus, explored facts, open questions, and actionable slices. Supports seamless cross-session recovery.
+- **Tier 3: Slice Context**: Dynamic, minimal context for executing a single Tracer Bullet work item.
 
 ### Skills
-| When | Skill |
-|------|-------|
-| Design / decompose proposal | `flowforge-design` |
-| Execute implementation task | `flowforge-implement` |
-| Independently review a completed planned implementation | `flowforge-review` |
-| Report bug / finding / gap | `flowforge-feedback` |
-| Import docs / archive proposal | `flowforge-curate` |
+| Phase | Skill | Role & Responsibility |
+|:---|:---|:---|
+| **Align** | `flowforge-align` | Conversational Grilling: clarify boundaries, challenge assumptions, capture consensus into Proposal Scratchpad |
+| **Explore** | `flowforge-explore` | Fact-Finding: investigate existing codebase/data nuances, inject evidence (`file:line`) into Scratchpad |
+| **Plan** | `flowforge-plan` | Decomposition: slice consensus into 3-6 minimal Tracer Bullets with mandatory test bindings |
+| **Implement** | `flowforge-implement` | TDD Delivery: Red-Green-Refactor cycle against bound automated tests |
+| **Diagnose** | `flowforge-diagnose` | Root-Cause Analysis: hypothesis-driven bug and regression diagnosis protocol |
+| **Review** | `flowforge-review` | Non-blocking Adversarial Review: architectural drift, security, and cognitive load reduction |
+| **Curate** | `flowforge-curate` | Living Docs Synthesis: extract ADRs, patch domain docs (`docs/domains/`), and archive completed proposals |
 
-### Subagent Orchestration
-
-When FlowForge host subagents are installed, the Coordinator is a low-cost execution scheduler and the only interactive/delegating role. The Design Analyst owns framing, investigation planning, synthesis, and readiness decisions. The Investigator executes one registered brief and writes only its assigned FIND.
-
-Before delegation, read structured Journal revision/readiness/re-entry state and tell the user what background action will run. Keep delegation one level deep: the Coordinator dispatches every worker directly, and workers never delegate or ask the user. External sources require explicit work-item authorization; unavailable required access returns `BLOCKED`.
-
-
-<!-- FLOWFORGE:ORCHESTRATION:START -->
-## FlowForge Subagents
-
-Installed hosts: codex, opencode
-
-- Use `flowforge-coordinator` as the primary FlowForge routing agent when your host supports selecting a project primary agent; FlowForge does not change the host default automatically.
-- The primary Coordinator is the only role that talks to the user and delegates. It is an execution scheduler: read structured analysis revision/readiness/re-entry state, show the user each background action, and dispatch only work already registered by the Design Analyst.
-- Delegation depth is one: every worker is dispatched directly by the Coordinator; workers never delegate or ask the user directly.
-- Use `flowforge-design-analyst` for framing, FEATURE decomposition, investigation planning, evidence synthesis, architecture, impact analysis, and replanning.
-- Use `flowforge-investigator` only for a ready registered investigation brief; it writes only the assigned FIND and returns structured blocked, inconclusive, conflict, or decision status.
-- Use `flowforge-executor` only after `context preflight` returns `allow` for a planned FEATURE Step and the user explicitly requested implementation. Subagent host enable/disable must remain explicit; `AGENTS.md` cleanup removes only the managed orchestration block and preserves other content.
-- Run `context risk-review` after implementation; when review is required but no Reviewer is installed, the primary agent performs the read-only conformance review.
-- Read `journal recent` before delegation. Proposal, FEATURE, DEC, FIND, Step, History, and Verification own durable facts; Journal owns analysis scheduling state and artifact references.
-- External sources require explicit authorization in the work-item brief; unavailable required access returns BLOCKED.
-- After worker completion, inspect artifact state and verification evidence, then append one concise Journal entry.
-<!-- FLOWFORGE:ORCHESTRATION:END -->
+### CLI Support
+- `flowforge memory init [--proposal <id>]` to initialize or refresh global/proposal working memory
+- `flowforge context slice [--proposal <id>] --slice <n>` to extract minimal context for a single slice
+- `flowforge curate diff [--proposal <id>]` to preview domain documentation diff before merge
+- `flowforge status` for lightweight progress visibility
 <!-- FLOWFORGE:END -->

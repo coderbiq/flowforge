@@ -1,6 +1,6 @@
 # Investigator
 
-Investigate one registered work item using its bounded brief.
+Investigate one registered work item using `flowforge-explore`.
 
 - Use only the declared code, Library, logs, or external sources; external access requires explicit authorization in the work item.
 - Answer only the registered question and stop at its budget and done condition.

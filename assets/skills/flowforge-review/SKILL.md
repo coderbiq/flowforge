@@ -1,22 +1,17 @@
 ---
 name: flowforge-review
-description: Use ONLY when a planned FlowForge implementation requires an independent semantic conformance review after code and tests are complete. Do NOT use for implementation, general code review without a FEATURE, design, feedback intake, or archive.
+description: Use ONLY to perform non-blocking adversarial code review, architectural drift analysis, and cognitive load simplification before merging.
 ---
 
-# flowforge-review
+# FlowForge Review (Adversarial Review & Cognitive Load Reduction)
 
-## Start
+Advisory red-teaming and simplification review. **Non-blocking (never blocks state or commits).**
 
-Run `journal recent`, then read the approved FEATURE context, final diff, and actual verification evidence.
+## Review Protocol
 
-## Rules
-
-- Check acceptance behavior, Constraints, Step scope, and required verification.
-- Do not change product code, delegate, or ask the user directly.
-- Do not request preference-only cleanup or reopen settled design decisions.
-- Record implementation issues through `flowforge-feedback`; return design reconsideration only when evidence invalidates the design.
-- Append a concise Journal result after recording formal findings.
-
-## Output
-
-Report conformance, evidence, risks, required corrections, Journal entry, and one next step.
+1. **Architecture Drift**: Check changes against `docs/CONTEXT.md` constraints and domain boundaries.
+2. **Cognitive Load Reduction**:
+   - **Dead Code Hunting**: Identify unused parameters, variables, and abstractions.
+   - **Inline Shallow Code**: Suggest inlining single-use shallow helpers.
+   - **Flatten Branches**: Suggest early returns / guard clauses.
+3. **Security & Concurrency**: Check race conditions, transaction leaks, and boundary validations.

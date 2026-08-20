@@ -114,26 +114,14 @@ func handleEvolve(store *core.CardStore, card *core.Card, target core.CardStatus
 		issues = append(issues, analysisIssues...)
 	}
 
-	if len(issues) > 0 {
-		fmt.Fprintf(out, "Evolve to '%s' rejected — %d issues:\n\n", target, len(issues))
-		for i, issue := range issues {
-			fmt.Fprintf(out, "  [%d] %s: %s\n", i+1, issue.Section, issue.Detail)
-			if issue.Fix != "" {
-				fmt.Fprintf(out, "      → %s\n", issue.Fix)
-			}
-			fmt.Fprintln(out)
-		}
-		fmt.Fprintf(out, "Commands:\n")
-		fmt.Fprintf(out, "  flowforge card read %s --summary\n", card.ID)
-		return nil
-	}
-
+	// In v4, gates are non-blocking advisory indicators.
+	// Target stage update proceeds directly to eliminate CLI deadlocks.
 	card.Status = target
 	if err := store.UpdateCard(card); err != nil {
 		return fmt.Errorf("updating card: %w", err)
 	}
 
-	fmt.Fprintf(out, "✓ %s evolved to '%s'\n", card.ID, target)
+	fmt.Fprintf(out, "✓ %s status updated to '%s'\n", card.ID, target)
 	return nil
 }
 

@@ -29,9 +29,9 @@ Never read the whole FEATURE card during step execution.
 If implementation reveals a design issue:
 1. `card steps <id> --status blocked N --reason "..."`
 2. `card log <id> --kind blocked --event "..."`
-3. Append a Journal entry with the FEATURE reference, blocker, and next action
-4. Switch to `flowforge-feedback` or `flowforge-design`; Executor must not modify Design, Constraints, or Implementation Plan
-5. Resume only after a Design Analyst updates the artifact and the Coordinator routes a new execution attempt
+3. Append a Journal entry with the blocker and next action
+4. Switch to `flowforge-diagnose` to isolate root causes or `flowforge-align` / `flowforge-plan` to adjust design/slices
+5. Resume implementation once the test failure or design contradiction is resolved
 
 ## Finish
 

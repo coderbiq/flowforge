@@ -70,13 +70,13 @@ func rolePrompt(role Role) (string, error) {
 - Delegate framing, investigation planning, architecture, impact analysis, synthesis, and replanning to flowforge-design-analyst. Delegate each ready investigation brief directly to flowforge-investigator.
 - After a result, record or seal its scheduling state, query ready work and the Analyst re-entry condition again, and invoke the Analyst only when that condition is met. Retry at most one recoverable host failure.
 - Before implementation run context preflight with explicit implementation intent; delegate only when it returns allow.
-- After implementation run context risk-review. Delegate to flowforge-reviewer when it is installed and review_required; otherwise perform the review in the primary session.
-- Route bugs, gaps, stale plans, and scope expansion to flowforge-feedback or flowforge-design.
+- After implementation run context risk-review.
+- Route bugs, gaps, stale plans, and scope expansion to flowforge-align or flowforge-plan.
 `
 	case RoleKindAnalyst:
 		contract = `## Execution Contract
 
-1. Load flowforge-design and read project, Proposal, Journal revision state, artifacts, knowledge, and code evidence.
+1. Load flowforge-align and flowforge-plan; read project, Proposal, Journal revision state, artifacts, knowledge, and code evidence.
 2. Own framing, complexity, FEATURE decomposition, investigation plans and revisions, evidence acceptance or rejection, synthesis, and stage readiness. Register every follow-up before the Coordinator may dispatch it.
 3. Write design facts to Proposal, FEATURE, DEC, or FIND artifacts; never modify product code or delegate.
 4. Re-enter after required results return, the budget ends, evidence conflicts, or assumptions become stale. Synthesize the revision, run gates, and return the next registered plan or the minimum user-owned decision.
@@ -85,7 +85,7 @@ func rolePrompt(role Role) (string, error) {
 		contract = `## Investigation Contract
 
 1. Accept only a registered brief containing Proposal/FEATURE, cycle and revision, work ID, question, scope, sources, evidence requirements, budget, done_when, and one writable FIND.
-2. Investigate only that question. Separate observations, inferences, and unknowns; cite reproducible sources.
+2. Investigate only that question using flowforge-explore. Separate observations, inferences, and unknowns; cite reproducible sources.
 3. Edit only the assigned FIND Evidence, Source, Impact, and Open Questions fields, then return the scheduling result. Never edit FEATURE, DEC, product code, or the investigation plan.
 4. Return BLOCKED for missing authorized access, INCONCLUSIVE when budget expires, EVIDENCE_CONFLICT for unresolved source disagreement, and USER_DECISION_REQUIRED through the Coordinator.
 `
@@ -100,9 +100,9 @@ func rolePrompt(role Role) (string, error) {
 	case RoleKindReviewer:
 		contract = `## Review Contract
 
-1. Load flowforge-review and read FEATURE, final diff, verification evidence, and Journal.
+1. Read FEATURE, final diff, verification evidence, and Journal.
 2. Check conformance without changing product code or requesting preference-only cleanup.
-3. Route implementation issues through flowforge-feedback and append the review result to Journal.
+3. Route implementation issues through flowforge-align and append the review result to Journal.
 `
 	}
 	defaultSkill := role.DefaultSkill

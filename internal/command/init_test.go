@@ -69,31 +69,21 @@ func TestRunInitCreatesInstallOnly(t *testing.T) {
 		t.Fatalf("expected no default home index, stat err=%v", err)
 	}
 
-	for _, skill := range []string{"flowforge-design", "flowforge-implement", "flowforge-review", "flowforge-feedback", "flowforge-curate"} {
+	for _, skill := range []string{"flowforge-align", "flowforge-explore", "flowforge-plan", "flowforge-implement", "flowforge-curate"} {
 		skillPath := filepath.Join(tmpDir, ".agents", "skills", skill, "SKILL.md")
 		if _, err := os.Stat(skillPath); err != nil {
 			t.Fatalf("expected deployed skill %s: %v", skill, err)
 		}
 	}
 
-	for _, skill := range []string{"flowforge-design", "flowforge-implement", "flowforge-review", "flowforge-feedback", "flowforge-curate"} {
+	for _, skill := range []string{"flowforge-align", "flowforge-explore", "flowforge-plan", "flowforge-implement", "flowforge-curate"} {
 		skillPath := filepath.Join(tmpDir, ".agents", "skills", skill, "SKILL.md")
 		content, err := os.ReadFile(skillPath)
 		if err != nil {
 			t.Fatalf("reading deployed skill %s: %v", skill, err)
 		}
-		if !strings.Contains(string(content), "journal recent") {
-			t.Fatalf("expected deployed skill %s to load Journal context", skill)
-		}
-	}
-
-	reviewContent, err := os.ReadFile(filepath.Join(tmpDir, ".agents", "skills", "flowforge-review", "SKILL.md"))
-	if err != nil {
-		t.Fatalf("reading deployed review skill: %v", err)
-	}
-	for _, want := range []string{"Do not change product code", "flowforge-feedback", "Journal result"} {
-		if !strings.Contains(string(reviewContent), want) {
-			t.Fatalf("deployed review skill missing %q:\n%s", want, reviewContent)
+		if len(content) == 0 {
+			t.Fatalf("expected deployed skill %s to not be empty", skill)
 		}
 	}
 

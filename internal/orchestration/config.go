@@ -110,7 +110,7 @@ func DefaultPolicy() Policy {
 				Enabled:         true,
 				Capabilities:    []Capability{CapabilityRead, CapabilityPlanAnalysis, CapabilityArtifactWrite, CapabilityExternalResearch},
 				ModelProfile:    ModelProfileHighCapability,
-				DefaultSkill:    "flowforge-design",
+				DefaultSkill:    "flowforge-align",
 				EntryConditions: []string{"proposal_exists"},
 				StopConditions:  []StopCondition{StopConditionUserDecision},
 			},
@@ -121,6 +121,7 @@ func DefaultPolicy() Policy {
 				Enabled:         true,
 				Capabilities:    []Capability{CapabilityRead, CapabilityEvidenceWrite, CapabilityExternalResearch},
 				ModelProfile:    ModelProfileToolCapableReadOnly,
+				DefaultSkill:    "flowforge-explore",
 				EntryConditions: []string{"analysis_work_item_ready", "investigation_brief_available"},
 				StopConditions:  []StopCondition{StopConditionPlanStale, StopConditionUserDecision},
 			},
@@ -142,7 +143,7 @@ func DefaultPolicy() Policy {
 				Enabled:         false,
 				Capabilities:    []Capability{CapabilityRead},
 				ModelProfile:    ModelProfileHighCapabilityReadOnly,
-				DefaultSkill:    "flowforge-review",
+				DefaultSkill:    "flowforge-curate",
 				EntryConditions: []string{"verification_complete", "risk_policy_requires_review"},
 			},
 		},
@@ -275,10 +276,12 @@ func isKnownCapability(capability Capability) bool {
 
 func KnownManagedSkills() []string {
 	skills := []string{
+		"flowforge-align",
 		"flowforge-curate",
-		"flowforge-design",
-		"flowforge-feedback",
+		"flowforge-diagnose",
+		"flowforge-explore",
 		"flowforge-implement",
+		"flowforge-plan",
 		"flowforge-review",
 	}
 	sort.Strings(skills)

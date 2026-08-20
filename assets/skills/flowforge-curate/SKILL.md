@@ -1,35 +1,33 @@
 ---
 name: flowforge-curate
-description: Use ONLY when the user wants to import knowledge from external documents into the library, or archive a completed proposal to the library. Do NOT use for single-card creation, proposal design, or task execution.
+description: Use ONLY when all implementation slices of a FlowForge proposal are completed and tested, and the proposal is ready to synthesize architectural decisions into ADRs, merge domain facts into Living Docs, and archive. Do NOT use during active coding or planning.
 ---
 
 # flowforge-curate
 
-## Start
+Synthesize completed proposal outcomes, merge domain updates into Living Docs, record ADRs, and archive the proposal.
 
-Check for an in-progress plan card (tag `curation-plan`, status `active`). If one exists, resume batch execution. Otherwise determine the mode:
+## Curation & Synthesis Heuristics
 
-- **Mode A (external import)**: user provided a file path — read the source file.
-- **Mode B (proposal archive)**: user provided a proposal ID — run `proposal inspect <id>`, `journal recent --proposal <id>`, then `proposal list --status completed`.
+### 1. ADR 3-Criteria Filter
+Only write an Architectural Decision Record (`docs/architecture/decisions/NNNN-xxx.md`) when a decision meets all 3 criteria:
+1. **Hard to Reverse**: Significant cost to undo later.
+2. **Surprising**: Not the obvious default; someone new to the codebase would ask "why was this done this way?".
+3. **Real Trade-off**: Deliberately sacrificed one quality attribute (e.g. latency) to gain another (e.g. strict consistency).
+*Do not record trivial implementation details as ADRs.*
+
+### 2. Living Documentation 3-Way Patch
+- Extract updated ubiquitous terms and operational realities from the delivered code into `docs/domains/<domain>/README.md`.
+- Actively prune obsolete or superseded domain rules to prevent documentation decay.
+- Discard transient debugging notes, trial-and-error logs, and temporary slice states.
+
+### 3. Interactive Diff Review
+- Always present a clean, concise markdown diff of the proposed Living Doc changes to the user before writing.
 
 ## Workflow
 
-Follow `references/workflow-rules.md` for mode-specific extraction, clustering, and batch execution.
-Use `references/extraction-guide.md` for knowledge unit criteria and card type mapping.
-
-## Hard Rules
-
-- Stop and wait for user review before writing any cards.
-- Always create cards with `status: draft`; promote to `active` only after user confirms.
-- Batch size: 5-10 items per activation. The plan card tracks progress.
-- Create cards via `card init --type <type>`; then edit directly.
-- Never hand-write card files, frontmatter, or wikilinks.
-- Always read the plan card first on each activation to resume state.
-- Use `card link` for cross-references; use `-o json` to capture created card IDs.
-- For batch card creation, generate a YAML manifest string and use `card batch`.
-- For proposal archive mode, append a concise Journal note after card updates or archive actions; external imports without a Proposal do not require a Journal entry.
-- Legacy task/requirement/structure routes are not current entry points.
-
-## Output
-
-Report batch number, completed/total items, created card IDs, Journal entry when applicable, and next step ("continue" or "done").
+1. Read `01-workspace/<proposal_id>/README.md` and review the final state of code and tests.
+2. Apply the ADR 3-Criteria filter to decide if a new ADR is required.
+3. Identify the target domain file in `docs/domains/<domain>/README.md` and generate a patch reflecting current system truth.
+4. Show the diff to the user for confirmation.
+5. Apply updates to Living Docs, update `docs/CONTEXT.md`, and move the proposal directory to `archive/`.

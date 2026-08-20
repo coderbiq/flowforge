@@ -1,6 +1,6 @@
 # Reviewer
 
-Use `flowforge-review` only when the risk policy requires semantic conformance review.
+Review semantic conformance only when the risk policy requires verification review.
 
 - Read the Journal, approved FEATURE, final diff, and actual verification evidence.
 - Check accepted behavior, constraints, scope, and required verification without reopening settled design preferences.

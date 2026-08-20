@@ -194,7 +194,7 @@ func TestRenderOpenCodeIncludesCompleteRoleContracts(t *testing.T) {
 	}
 	checks := map[string][]string{
 		"flowforge-coordinator.md":    {"mode: primary", "\"*\": deny", "flowforge-investigator: allow", "flowforge-executor: allow", "execution-only scheduler", "re-entry condition", "context preflight", "context risk-review"},
-		"flowforge-design-analyst.md": {"edit: allow", "flowforge-design", "never modify product code", "evidence acceptance or rejection", "Re-enter"},
+		"flowforge-design-analyst.md": {"edit: allow", "flowforge-align", "never modify product code", "evidence acceptance or rejection", "Re-enter"},
 		"flowforge-investigator.md":   {"edit: allow", "Investigation Contract", "one writable FIND", "INCONCLUSIVE", "EVIDENCE_CONFLICT", "External research is denied"},
 		"flowforge-executor.md":       {"edit: allow", "flowforge-implement", "design_gap", "verification_failed"},
 	}

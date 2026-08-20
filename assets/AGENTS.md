@@ -1,38 +1,30 @@
 <!-- FLOWFORGE:START -->
-## FlowForge
+## FlowForge (v4 Working Memory & Living Docs)
 
-Use `card init --type feature` to create cards; then edit the `.md` file directly for body content.
-Use CLI for structured operations: `card link`, `card evolve`, `card log`, `card steps`.
+FlowForge is an engineering AI collaboration harness powered by a **Multi-Tier Working Memory System**, **Conversational Agility Skills**, and **Living Documentation Synthesis**.
 
-### CLI
-- `card init --type feature --title "..." --proposal <id>` to create a FEATURE card skeleton
-- `card evolve <id> --stage designed|planned|done` for stage transitions (CLI enforces gates)
-- `card log <id> --event "..." [--kind progress|bug|blocked]` to append to History
-- `card steps <id> --status done|in_progress|blocked <n>` to update step status
-- `context feature --feature <id> --step <n>` for minimal execution context
-- `proposal inspect <id>` for auto-generated Feature Map and health checks
-- `journal append --actor <role> --message "..." [--references <card-id>] [--next "..."]` to record Proposal collaboration
-- `journal recent [--proposal <id>] [--limit <n>]` to resume from recent collaboration notes
-- With no Proposal, do not create a journal unless dispatching a subagent. Before the first dispatch run `journal start --title "..."`, then use `journal append/recent --journal <id>`. After creating a Proposal, run `journal bind <id> --proposal <id>` once and write only to the Proposal Journal.
-- `sync` 按 manifest 的 host intent 和已登记 entries reconcile；host detection 仅供 `subagent status`，不会自动 enable
-- `--body 'content\nwith\nnewlines'` for inline multi-line content
-- Use single quotes for --body and --manifest to protect backticks, $, ! from shell expansion
-- Never use shell redirects (`2>&1`, `<<`, `|`, `>`) with flowforge CLI — they trigger agent permission prompts
-- `-o json` for machine-readable output
-- Legacy task/requirement/log/structure commands are not current routes; use FEATURE, FIND, DEC, `card log`, `card steps`, and Proposal Journal.
+### Working Memory System
+- **Tier 1: Global Memory (`docs/CONTEXT.md`)**: Ubiquitous language, architectural constraints, and active proposals.
+- **Tier 2: Proposal Scratchpad (`01-workspace/<proposal_id>/README.md`)**: Core objective, grilling consensus, explored facts, open questions, and actionable slices. Supports seamless cross-session recovery.
+- **Tier 3: Slice Context**: Dynamic, minimal context for executing a single Tracer Bullet work item.
 
 ### Skills
-| When | Skill |
-|------|-------|
-| Design / decompose proposal | `flowforge-design` |
-| Execute a planned implementation Step | `flowforge-implement` |
-| Independently review a completed planned implementation | `flowforge-review` |
-| Report bug / finding / gap | `flowforge-feedback` |
-| Import docs / archive proposal | `flowforge-curate` |
+| Phase | Skill | Role & Responsibility |
+|:---|:---|:---|
+| **Align** | `flowforge-align` | Conversational Grilling: clarify boundaries, challenge assumptions, capture consensus into Proposal Scratchpad |
+| **Explore** | `flowforge-explore` | Fact-Finding: investigate existing codebase/data nuances, inject evidence (`file:line`) into Scratchpad |
+| **Plan** | `flowforge-plan` | Decomposition: slice consensus into 3-6 minimal Tracer Bullets with mandatory test bindings |
+| **Implement** | `flowforge-implement` | TDD Delivery: Red-Green-Refactor cycle against bound automated tests |
+| **Diagnose** | `flowforge-diagnose` | Root-Cause Analysis: hypothesis-driven bug and regression diagnosis protocol |
+| **Review** | `flowforge-review` | Non-blocking Adversarial Review: architectural drift, security, and cognitive load reduction |
+| **Curate** | `flowforge-curate` | Living Docs Synthesis: extract ADRs, patch domain docs (`docs/domains/`), and archive completed proposals |
+
+### CLI Support
+- `flowforge memory init [--proposal <id>]` to initialize or refresh global/proposal working memory
+- `flowforge context slice [--proposal <id>] --slice <n>` to extract minimal context for a single slice
+- `flowforge curate diff [--proposal <id>]` to preview domain documentation diff before merge
+- `flowforge status` for lightweight progress visibility
 
 ### Subagent Orchestration
-
-When FlowForge host subagents are installed, the Coordinator is a low-cost execution scheduler and the only interactive/delegating role. The Design Analyst owns framing, investigation planning, synthesis, and readiness decisions. The Investigator executes one registered brief and writes only its assigned FIND.
-
-Before delegation, select the Proposal Journal when one exists; otherwise start/reuse one temporary Handoff Journal. Read its recent state and tell the user what background action will run. Keep delegation one level deep: the Coordinator dispatches every worker directly, and workers never delegate or ask the user. External sources require explicit work-item authorization; unavailable required access returns `BLOCKED`.
+- Use subagents when delegating specialized tasks.
 <!-- FLOWFORGE:END -->
