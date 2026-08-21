@@ -1,37 +1,37 @@
 ---
 name: flowforge-plan
-description: Use ONLY when a FlowForge proposal has reached alignment consensus and needs to be decomposed into executable Tracer Bullet slices and TDD work items. Do NOT use for active code implementation or early-stage exploratory discussions.
+description: Use ONLY when the user has confirmed the alignment consensus ("looks good", "let's plan") and wants to decompose the proposal into actionable, test-driven slices. Do NOT use during initial exploration or TDD implementation.
 ---
 
-# flowforge-plan
+# flowforge-plan (Tracer Bullet Decomposition)
 
-Decompose aligned consensus into a series of minimal, end-to-end verifiable Tracer Bullet slices.
+Decompose settled alignment consensus into 3-6 minimal, end-to-end **Tracer Bullet slices** bound to automated tests.
 
-## Architecture & Decomposition Heuristics
+## ⛔ Prerequisites & Anti-Patterns
 
-### 1. Deep Modules vs Shallow Wrappers (John Ousterhout)
-- Strive for deep modules: simple interface hiding complex internal mechanisms.
-- Apply the **Deletion Test**: If removing this slice/module causes its internal complexity to leak across multiple files, it is a true module. If the complexity simply disappears, it is a shallow pass-through wrapper—eliminate or merge it.
+- **PREREQUISITE**: `flowforge-align` MUST be completed with user confirmation. If open questions or boundary ambiguities remain, return to `flowforge-align`.
+- **NO Pseudo-Code Overload**: Do not write pages of hypothetical function signatures or pseudo-code in slices.
+- **NO Big-Bang Steps**: Every slice must be executable in 15-30 minutes and independently verifiable.
 
-### 2. Seam Discipline & Testability (Michael Feathers)
-- Position seams at natural boundaries: pure business logic functions that accept explicit parameters and return values, rather than performing implicit I/O side effects.
-- One adapter is an assumption; two adapters make a real interface. Avoid premature abstraction.
+## Slicing Principles (Ousterhout & Kent Beck)
 
-### 3. Tracer Bullet & Fog of War (Wayfinder Protocol)
-- **Vertical Slices**: Each slice must cut end-to-end through necessary layers (15-30 min implementation). Slice 1 establishes the happy baseline path. Later slices add edge cases.
-- **Fog of War Management**: Keep future, unstarted slices at low resolution (`Not yet specified`). Do not over-specify future steps until earlier slices prove the architecture in code.
-- **Scale Organization**:
-  - **Lean (< 6 slices)**: List directly under `## 6. Actionable Slices` in `README.md`.
-  - **Multi-Module (> 6 slices)**: Group slices by phase/module (e.g. `### Phase 1: Reader (modules/01-reader.md)`).
+1. **Deep Modules**: Design minimal interfaces that hide internal complexity.
+2. **Tracer Bullets (Vertical Slices)**: Slice through from input to output across layers, not horizontal component-by-component layers.
+3. **Mandatory Test Binding**: Every single slice MUST declare a specific, runnable test command.
+4. **Fog of War (Wayfinder)**: Only detail immediate next 1-2 slices. Keep downstream slices as high-level titles.
 
-### 4. Mandatory Test Binding (No Pseudo-Code Bloat)
-- Every slice must define: **Behavior Goal**, **Seams / Files**, and an explicit **Verification Command** (`go test ...` / `pytest ...`).
-- Never write rigid pseudo-code in plans—let TDD drive the implementation signatures.
+## Output Format (Update in `01-workspace/<proposal_id>/README.md`)
 
-## Workflow
+```markdown
+## Actionable Slices
 
-1. Read `01-workspace/<proposal_id>/README.md` to review the objective, consensus, and facts.
-2. Apply deep module and deletion tests to carve out clean boundaries.
-3. Formulate 3-6 progressive Tracer Bullet slices with explicit test commands.
-4. Write the slice list into `01-workspace/<proposal_id>/README.md` under `## 6. Actionable Slices`.
-5. Prompt the user for a quick review before handing off to `flowforge-implement`.
+- [ ] **Slice 1: <Slice Title>**
+  - **Objective**: <One sentence defining observable behavior>
+  - **Seams / Code Files**: `<path/to/file.ext:line>`
+  - **Verification Command**: `<e.g., pytest tests/test_feature.py -k test_slice1 or go test ./... -run TestSlice1>`
+
+- [ ] **Slice 2: <Slice Title>**
+  - **Objective**: ...
+  - **Seams / Code Files**: ...
+  - **Verification Command**: ...
+```
