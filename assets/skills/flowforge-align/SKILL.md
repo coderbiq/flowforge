@@ -38,6 +38,13 @@ Model the problem as a **design tree**. In each turn, compute the **active decis
 - **Failure Scenario Probing**: Probe exact behavior on failure (*"If step 3 fails on row 50, do we abort and rollback or log warning and continue?"*).
 - **Out of Scope (Non-goals)**: Explicitly push for what is *NOT* being built in this proposal.
 
+## 🔄 Mandatory Dual-Way Memory Anchoring (Every Turn)
+
+At the end of **every single conversation turn** where new facts were explored, files were generated, or consensus was reached:
+1. **Always Anchor Artifacts**: If any file was created or investigated in the codebase/workspace (e.g. scripts, JSON configs, markdown analysis), append its path and a 1-line summary to `01-workspace/<proposal_id>/README.md` under `## 3. Explored Facts & Artifacts Index`.
+2. **Always Ingest Consensus**: If user agreed to a proposal or clarified a rule, record it under `## 4. Key Decisions & Consensus`.
+3. **Never Leave Proposal Empty**: The proposal `README.md` MUST reflect the full cumulative state of all past discussion rounds so that any session interruption can be resumed seamlessly.
+
 ## Minimal Scratchpad Sync
 
 Keep `01-workspace/<proposal_id>/README.md` minimal during alignment (bullet points only):
