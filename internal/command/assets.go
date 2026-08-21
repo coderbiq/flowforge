@@ -41,9 +41,7 @@ func applyAssetUpdates(projectRoot string, adopt bool) (*AssetUpdateReport, erro
 		adopted := make([]core.FileEntry, 0, len(diff.Conflict))
 		preserved := make([]core.FileEntry, 0, len(diff.Conflict))
 		for _, entry := range diff.Conflict {
-			// --adopt is bounded to files already identified by the trusted
-			// manifest. A newly appearing arbitrary target remains preserved.
-			if _, known := oldBySource[entry.Source]; known {
+			if _, ok := oldBySource[entry.Source]; ok {
 				adopted = append(adopted, entry)
 			} else {
 				preserved = append(preserved, entry)

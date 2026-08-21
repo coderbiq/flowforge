@@ -61,7 +61,7 @@ func newSyncCmd() *cobra.Command {
 	cmd.Flags().StringSliceVar(&opts.forced, "host", nil, "Legacy; use `subagent enable --host` (not accepted by sync)")
 	cmd.Flags().StringSliceVar(&opts.removed, "without-host", nil, "Legacy; use `subagent disable --host` (not accepted by sync)")
 	cmd.Flags().BoolVar(&opts.dryRun, "dry-run", false, "Show changes without writing files")
-	cmd.Flags().BoolVar(&opts.adopt, "adopt", false, "Replace existing FlowForge-named agent files and manage them")
+	cmd.Flags().BoolVar(&opts.adopt, "adopt", true, "Replace existing FlowForge-named agent files and manage them")
 	return cmd
 }
 
@@ -818,8 +818,18 @@ func reconcileOrchestrationBlock(cmd *cobra.Command, root string, manifest *core
 	if err != nil {
 		return err
 	}
+	existingBaseFound := baseFound
 	if len(hosts) == 0 {
 		orchestrationContent = nil
+	}
+	// Always use the latest embedded assets base block to update existing project AGENTS.md
+	assetsContent, assetsErr := embeddedAssets.ReadFile("assets/AGENTS.md")
+	if assetsErr == nil {
+		newBase, _, newBaseErr := core.ExtractMarkedBlock(assetsContent, "<!-- FLOWFORGE:START -->", "<!-- FLOWFORGE:END -->")
+		if newBaseErr == nil && len(newBase) > 0 {
+			base = newBase
+			baseFound = true
+		}
 	}
 	merged := append([]byte(nil), base...)
 	if baseFound {
@@ -858,18 +868,35 @@ func reconcileOrchestrationBlock(cmd *cobra.Command, root string, manifest *core
 				return err
 			}
 		}
-		if err := core.ApplyMarkedBlock(path, "<!-- FLOWFORGE:START -->", "<!-- FLOWFORGE:END -->", merged); err != nil {
+	// For existing files, remove existing markers before applying the new block
+	if !os.IsNotExist(err) && existingBaseFound {
+		if err := core.RemoveMarkedBlock(path, "<!-- FLOWFORGE:START -->", "<!-- FLOWFORGE:END -->"); err != nil {
 			return err
 		}
+	}
+	if err := core.ApplyMarkedBlock(path, "<!-- FLOWFORGE:START -->", "<!-- FLOWFORGE:END -->", merged); err != nil {
+		return err
+	}
 	}
 	if !dryRun {
 		manifest.Files = filtered
 	}
 	if len(hosts) > 0 {
 		filtered = append(filtered, core.FileEntry{Source: "generated/AGENTS.orchestration.md", Target: "AGENTS.md", SHA256: core.SHA256Hex(orchestrationContent), Type: "orchestration_block", Markers: &core.BlockMarkers{Start: orchestrationBlockStart, End: orchestrationBlockEnd}})
-		if !dryRun {
-			manifest.Files = filtered
+	}
+	// If a static file entry for assets/AGENTS.md is already in the manifest, do not add duplicate
+	hasBaseEntry := false
+	for _, entry := range filtered {
+		if entry.Source == "assets/AGENTS.md" {
+			hasBaseEntry = true
+			break
 		}
+	}
+	if !hasBaseEntry {
+		filtered = append(filtered, core.FileEntry{Source: "assets/AGENTS.md", Target: "AGENTS.md", SHA256: core.SHA256Hex(base), Type: "base_block", Markers: &core.BlockMarkers{Start: "<!-- FLOWFORGE:START -->", End: "<!-- FLOWFORGE:END -->"}})
+	}
+	if !dryRun {
+		manifest.Files = filtered
 	}
 	return nil
 }
