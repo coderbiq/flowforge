@@ -40,6 +40,9 @@ through a CLI-first interface.`,
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newInitCmd())
+	cmd.AddCommand(newMemoryCmd())
+	cmd.AddCommand(newStatusCmd())
+	cmd.AddCommand(newCurateCmd())
 	cmd.AddCommand(newProjectCmd())
 	cmd.AddCommand(newCardCmd())
 	cmd.AddCommand(newProposalCmd())

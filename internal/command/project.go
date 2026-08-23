@@ -337,12 +337,12 @@ func createProjectWikiRoot(wikiRoot string, projectID string, srcDirs []string) 
 	dirs := []string{
 		wikiRoot,
 		filepath.Join(wikiRoot, "01-workspace"),
+		filepath.Join(wikiRoot, "02-archive"),
 		filepath.Join(wikiRoot, "02-library"),
 		filepath.Join(wikiRoot, "02-library", "20-decisions"),
 		filepath.Join(wikiRoot, "02-library", "60-conventions"),
 		filepath.Join(wikiRoot, "02-library", "70-findings"),
 		filepath.Join(wikiRoot, "02-library", "80-modules"),
-		filepath.Join(wikiRoot, "03-proposal"),
 	}
 
 	for _, dir := range dirs {
@@ -360,9 +360,9 @@ func createProjectWikiRoot(wikiRoot string, projectID string, srcDirs []string) 
 
 func writeProjectHomeIndex(wikiRoot string, projectID string, srcDirs []string) error {
 	homeIndexPath := filepath.Join(wikiRoot, "00-FLOWFORGE-HOME.md")
-	proposalCmd := "`flowforge proposal create \"My Feature\"`"
-	featureCmd := "`flowforge card init --type feature --title \"My Feature\" --proposal <proposal-id>`"
-	progressCmd := "`flowforge context feature --feature <feature-id> --step <n>`"
+	proposalCmd := "`flowforge memory init --proposal <id>`"
+	sliceCmd := "`flowforge context slice --slice <n>`"
+	statusCmd := "`flowforge status`"
 
 	content := fmt.Sprintf(`---
 title: "FlowForge Knowledge Base"
@@ -374,16 +374,17 @@ Project: %s
 
 ## Structure
 
-- **01-workspace/** - All proposals (status tracked via PROP card frontmatter)
+- **01-workspace/** - Active proposal scratchpads & working memory
+- **02-archive/** - Completed & curated proposals
 - **02-library/** - Archived knowledge organized by type
-- **03-proposal/** - Proposal index cards
+- **docs/domains/** - Living domain specifications
 
 ## Getting Started
 
-1. Create a proposal: %s
-2. Add a FEATURE to the proposal: %s
-3. Track progress: %s
-`, projectID, proposalCmd, featureCmd, progressCmd)
+1. Initialize proposal working memory: %s
+2. Extract slice execution context: %s
+3. Track overall progress: %s
+`, projectID, proposalCmd, sliceCmd, statusCmd)
 
 	if len(srcDirs) > 0 {
 		content += "\n## Source Directories\n\n"

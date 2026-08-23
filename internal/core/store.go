@@ -38,6 +38,10 @@ func (s *CardStore) hasSync() bool {
 	return s.syncService != nil
 }
 
+func (s *CardStore) WikiRootDir() string {
+	return s.wikiRoot
+}
+
 func (s *CardStore) WorkspaceDir() string {
 	return filepath.Join(s.wikiRoot, "01-workspace")
 }

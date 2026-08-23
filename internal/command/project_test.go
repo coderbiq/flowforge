@@ -52,11 +52,11 @@ func TestProjectCreateBootstrapsDerivedWikiRoot(t *testing.T) {
 
 	expectedDirs := []string{
 		filepath.Join(tmpDir, "ff-wiki-frontend", "01-workspace"),
+		filepath.Join(tmpDir, "ff-wiki-frontend", "02-archive"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "20-decisions"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "60-conventions"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "70-findings"),
 		filepath.Join(tmpDir, "ff-wiki-frontend", "02-library", "80-modules"),
-		filepath.Join(tmpDir, "ff-wiki-frontend", "03-proposal"),
 	}
 	for _, dir := range expectedDirs {
 		info, err := os.Stat(dir)
@@ -92,7 +92,7 @@ func TestProjectCreateBootstrapsDerivedWikiRoot(t *testing.T) {
 			t.Fatalf("current home index contains legacy content %q:\n%s", forbidden, homeText)
 		}
 	}
-	for _, required := range []string{"card init --type feature", "context feature"} {
+	for _, required := range []string{"flowforge memory init", "flowforge context slice"} {
 		if !strings.Contains(homeText, required) {
 			t.Fatalf("current home index missing %q:\n%s", required, homeText)
 		}

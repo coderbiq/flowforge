@@ -186,27 +186,53 @@ func newProposalListCmd() *cobra.Command {
 			}
 			store := core.NewCardStore(wikiRoot)
 
-			proposalCards, err := store.ListCards(store.ProposalCardDir())
+			// Retrieve workspace proposals (v4) and legacy card proposals (v3 fallback)
+			proposals, err := store.ListWorkspaceProposals()
 			if err != nil {
-				return fmt.Errorf("reading proposal metadata: %w", err)
+				return fmt.Errorf("reading workspace proposals: %w", err)
 			}
-			var proposalIDs []string
-			for _, card := range proposalCards {
-				if card.Type == core.CardTypeProposal && card.Status == core.CardStatusActive && card.Source != "" {
-					proposalIDs = append(proposalIDs, card.Source)
+
+			seen := make(map[string]bool)
+			var activeProposals []core.WorkspaceProposal
+			for _, p := range proposals {
+				if p.Status == "active" {
+					activeProposals = append(activeProposals, p)
+					seen[p.ID] = true
 				}
 			}
-			sort.Strings(proposalIDs)
+
+			// Fallback: check legacy proposal card dir if any
+			legacyCards, _ := store.ListCards(store.ProposalCardDir())
+			for _, card := range legacyCards {
+				if card.Type == core.CardTypeProposal && card.Status == core.CardStatusActive && card.Source != "" {
+					if !seen[card.Source] {
+						activeProposals = append(activeProposals, core.WorkspaceProposal{
+							ID:     card.Source,
+							Title:  card.Title,
+							Status: "active",
+						})
+						seen[card.Source] = true
+					}
+				}
+			}
+
+			sort.Slice(activeProposals, func(i, j int) bool {
+				return activeProposals[i].ID < activeProposals[j].ID
+			})
 
 			out := cmd.OutOrStdout()
-			if len(proposalIDs) == 0 {
+			if len(activeProposals) == 0 {
 				fmt.Fprintln(out, "No active proposals.")
 				return nil
 			}
 
 			fmt.Fprintln(out, "Active proposals:")
-			for _, proposalID := range proposalIDs {
-				fmt.Fprintf(out, "- %s\n", proposalID)
+			for _, p := range activeProposals {
+				if p.Title != "" && p.Title != p.ID {
+					fmt.Fprintf(out, "- %s: %s\n", p.ID, p.Title)
+				} else {
+					fmt.Fprintf(out, "- %s\n", p.ID)
+				}
 			}
 			return nil
 		},
@@ -264,16 +290,11 @@ func newProposalArchiveCmd() *cobra.Command {
 
 			propCardID := "PROP-" + proposalID
 			propCard, err := store.ReadCard(propCardID)
-			if err != nil {
-				return fmt.Errorf("reading proposal root card: %w", err)
-			}
-			if propCard.Status != core.CardStatusActive {
-				return fmt.Errorf("proposal %s is not active (status: %s)", proposalID, propCard.Status)
-			}
-
-			propCard.Status = core.CardStatusCompleted
-			if err := store.UpdateCard(propCard); err != nil {
-				return fmt.Errorf("updating proposal status: %w", err)
+			if err == nil {
+				if propCard.Status == core.CardStatusActive {
+					propCard.Status = core.CardStatusCompleted
+					_ = store.UpdateCard(propCard)
+				}
 			}
 
 			if err := clearCurrentProposalIfMatches(runtimeStore, projectID, proposalID); err != nil {
@@ -283,7 +304,7 @@ func newProposalArchiveCmd() *cobra.Command {
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "✓ Proposal %s marked as completed\n", proposalID)
 			fmt.Fprintf(out, "Run 'proposal inspect %s' for final report.\n", proposalID)
-			fmt.Fprintf(out, "Run 'flowforge-curate' to extract reusable knowledge to library.\n")
+			fmt.Fprintf(out, "Run 'flowforge curate apply' to synthesize knowledge and extract ADRs.\n")
 			return nil
 		},
 	}
