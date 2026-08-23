@@ -62,12 +62,12 @@ func applyAgentsBlock(targetPath string, newBlock []byte) error {
 	}
 
 	content := string(existing)
-	startIdx := strings.Index(content, startMarker)
-	endIdx := strings.Index(content, endMarker)
+	firstStart := strings.Index(content, startMarker)
+	lastEnd := strings.LastIndex(content, endMarker)
 
-	if startIdx != -1 && endIdx != -1 && endIdx >= startIdx {
-		// Replace existing block
-		updated := content[:startIdx] + wrappedBlock + content[endIdx+len(endMarker):]
+	if firstStart != -1 && lastEnd != -1 && lastEnd >= firstStart {
+		// Cleanly replace entire FLOWFORGE block spanning from first start to last end
+		updated := strings.TrimRight(content[:firstStart], "\n") + "\n\n" + wrappedBlock + "\n"
 		return os.WriteFile(targetPath, []byte(updated), 0644)
 	}
 
