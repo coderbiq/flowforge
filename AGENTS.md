@@ -18,7 +18,7 @@
    - 使用 `flowforge frontier` 获取无阻塞就绪任务队列。
    - 使用 `flowforge check` 进行 DAG 依赖与循环死锁检查。
 3. **方法论原装集成**：
-   - 100% 采用 `mattpocock/skills`，不自造 prompt 敏捷规则。
+   - 采用成熟的敏捷工程方法论体系（`flowforge-*` 命名空间）。
 
 ## boundaries
 
@@ -29,16 +29,20 @@
 <!-- FLOWFORGE:START -->
 ## Agent skills
 
-When asked to work on a feature, bug, refactor, or complex task, invoke the appropriate skill:
+When asked to work on a feature, bug, refactor, or complex task in FlowForge, invoke the appropriate skill:
 
-| Phase | Skill | Role & Responsibility |
+| Phase / Intent | Skill | Role & Responsibility |
 |:---|:---|:---|
-| **Triage** | `/triage` | Categorize, prioritize and prepare tasks into crisp actionable briefs |
-| **Align** | `/grill-with-docs` | Relentless frontier grilling; inline sync with `CONTEXT.md` & `docs/adr/` |
-| **Spec** | `/to-spec` | Synthesize current consensus into unambiguous specification (`spec.md`) |
-| **Plan** | `/to-tickets` | Polymorphic vertical slicing with explicit DAG blocking edges (`issues/`) |
-| **Implement** | `/implement` | TDD delivery on pre-agreed seams; close out with dual-axis code review |
-| **Wayfinding** | `/wayfinder` | Fog-of-war decision mapping (`map.md`) for high-uncertainty efforts |
-| **Review** | `/code-review` | Dual-axis (Standards vs Spec) parallel sub-agent code inspection |
-| **Handoff** | `/handoff` | Compact session memory into cross-agent handoff artifact |
+| **Route & Guide** | `/flowforge-route` | Unsure which skill to use, or need meta-guidance on the entire workflow |
+| **Triage** | `/flowforge-triage` | Categorize incoming requests/bugs, check out-of-scope, create crisp brief |
+| **Align & Requirements** | `/flowforge-align` | Relentless frontier grilling; inline sync with `CONTEXT.md` & `docs/adr/` |
+| **Spec Synthesis** | `/flowforge-to-spec` | Synthesize consensus into unambiguous specification (`.scratch/<feature>/spec.md`) |
+| **Plan & Slicing** | `/flowforge-plan` | Vertical tracer-bullet slicing with explicit DAG blocking edges (`issues/`) |
+| **Implement & TDD** | `/flowforge-implement` | TDD delivery on pre-agreed seams; close out with dual-axis code review |
+| **Wayfinding** | `/flowforge-wayfinder` | Fog-of-war decision mapping (`map.md`) for high-uncertainty efforts |
+| **Dual-Axis Review** | `/flowforge-review` | Dual-axis (Standards vs Spec) parallel sub-agent code inspection |
+| **Session Handoff** | `/flowforge-handoff` | Compact session memory into cross-agent handoff artifact |
+| **Architecture Probe** | `/flowforge-codebase-design` | Deep module design scan and architectural surface analysis |
+| **Bug Diagnosis** | `/flowforge-diagnose` | Structured hypothesis-driven bug investigation |
+| **Deep Refactoring** | `/flowforge-improve-architecture` | Comprehensive codebase scan and progressive architecture refinement |
 <!-- FLOWFORGE:END -->
