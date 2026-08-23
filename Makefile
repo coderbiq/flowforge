@@ -15,11 +15,14 @@ LDFLAGS += -X flowforge/internal/version.injected=$(VERSION)
 dev:
 	rm -rf internal/command/assets
 	cp -R assets internal/command/assets
-	go build -ldflags="$(LDFLAGS)" -trimpath -o bin/flowforge ./cmd/flowforge
+	mkdir -p .tmp bin
+	GOTMPDIR=$$(pwd)/.tmp go build -ldflags="$(LDFLAGS)" -trimpath -o bin/flowforge ./cmd/flowforge
+	chmod +x bin/flowforge
+	rm -rf .tmp
 
 ## 运行测试
 test:
-	go test ./internal/...
+	GOPROXY=https://goproxy.cn,direct go test -v ./internal/...
 
 ## lint 检查
 lint:
@@ -38,7 +41,7 @@ release:
 
 ## 清理构建产物
 clean:
-	rm -rf bin/ dist/
+	rm -rf bin/ dist/ .tmp
 
 # ── 辅助 ──────────────────────────────────────────────
 

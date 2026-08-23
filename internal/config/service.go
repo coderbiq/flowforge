@@ -2,15 +2,13 @@ package config
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 )
 
 type ConfigService struct {
-	projectRoot  string
-	fileStore    *fileConfigStore
-	stateStore   *runtimeStateStore
-	sideEffects  *sideEffectRegistry
+	projectRoot string
+	fileStore   *fileConfigStore
+	sideEffects *sideEffectRegistry
 }
 
 func New(startDir string) (*ConfigService, error) {
@@ -19,30 +17,20 @@ func New(startDir string) (*ConfigService, error) {
 		return nil, fmt.Errorf("config service: %w", err)
 	}
 
-	dbPath := filepath.Join(fileStore.Config().CacheDir(fileStore.ProjectRoot()), "flowforge.sqlite")
-	stateStore, err := newRuntimeStateStore(dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("config service: %w", err)
-	}
-
 	return &ConfigService{
 		projectRoot: fileStore.ProjectRoot(),
 		fileStore:   fileStore,
-		stateStore:  stateStore,
 		sideEffects: newSideEffectRegistry(),
 	}, nil
 }
 
-func (s *ConfigService) ProjectRoot() string       { return s.projectRoot }
+func (s *ConfigService) ProjectRoot() string         { return s.projectRoot }
 func (s *ConfigService) FileStore() *fileConfigStore { return s.fileStore }
-func (s *ConfigService) StateStore() *runtimeStateStore { return s.stateStore }
 
 func (s *ConfigService) Get(key string) (string, error) {
 	switch {
 	case strings.HasPrefix(key, "project."):
 		return s.getProjectConfig(key)
-	case strings.HasPrefix(key, "runtime."):
-		return s.getRuntimeState(key)
 	case key == "version_check":
 		return fmt.Sprintf("%t", s.fileStore.Config().VersionCheck), nil
 	default:
@@ -55,10 +43,6 @@ func (s *ConfigService) Set(key, value string) error {
 	switch {
 	case strings.HasPrefix(key, "project."):
 		if err := s.setProjectConfig(key, value); err != nil {
-			return err
-		}
-	case strings.HasPrefix(key, "runtime."):
-		if err := s.setRuntimeState(key, value); err != nil {
 			return err
 		}
 	case key == "version_check":
@@ -78,14 +62,6 @@ func (s *ConfigService) List() (map[string]string, error) {
 		result[fmt.Sprintf("project.%s.wikiRoot", p.ID)] = p.WikiRoot
 		result[fmt.Sprintf("project.%s.srcDirs", p.ID)] = fmt.Sprintf("%v", p.SrcDirs)
 	}
-	if id, ok, _ := s.stateStore.CurrentProjectID(); ok {
-		result["runtime.currentProjectId"] = id
-	}
-	if id, ok, _ := s.stateStore.CurrentProjectID(); ok {
-		if pid, ok2, _ := s.stateStore.CurrentProposalID(id); ok2 {
-			result[fmt.Sprintf("runtime.currentProposalId.%s", id)] = pid
-		}
-	}
 	return result, nil
 }
 
@@ -101,32 +77,12 @@ func (s *ConfigService) ProjectByID(id string) (ProjectConfig, error) {
 	return p, nil
 }
 
-func (s *ConfigService) WikiRoot(projectID string) (string, error) {
-	return s.fileStore.Config().WikiRootForProject(s.projectRoot, projectID)
-}
-
-func (s *ConfigService) CurrentProjectID() (string, bool, error) {
-	return s.stateStore.CurrentProjectID()
-}
-
-func (s *ConfigService) SetCurrentProjectID(id string) error {
-	return s.stateStore.SetCurrentProjectID(id)
-}
-
-func (s *ConfigService) CurrentProposalID(projectID string) (string, bool, error) {
-	return s.stateStore.CurrentProposalID(projectID)
-}
-
-func (s *ConfigService) SetCurrentProposalID(projectID, proposalID string) error {
-	return s.stateStore.SetCurrentProposalID(projectID, proposalID)
-}
-
 func (s *ConfigService) CacheDir() string {
 	return s.fileStore.Config().CacheDir(s.projectRoot)
 }
 
 func (s *ConfigService) Close() error {
-	return s.stateStore.Close()
+	return nil
 }
 
 func (s *ConfigService) getProjectConfig(key string) (string, error) {
@@ -189,44 +145,4 @@ func (s *ConfigService) setVersionCheck(value string) error {
 	}
 	s.fileStore.Config().VersionCheck = enabled
 	return s.fileStore.Save()
-}
-
-func (s *ConfigService) getRuntimeState(key string) (string, error) {
-	key = strings.TrimPrefix(key, "runtime.")
-	switch {
-	case key == "currentProjectId":
-		id, ok, err := s.stateStore.CurrentProjectID()
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", fmt.Errorf("no current project set")
-		}
-		return id, nil
-	case strings.HasPrefix(key, "currentProposalId."):
-		projectID := strings.TrimPrefix(key, "currentProposalId.")
-		id, ok, err := s.stateStore.CurrentProposalID(projectID)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", fmt.Errorf("no current proposal set for project %s", projectID)
-		}
-		return id, nil
-	default:
-		return "", fmt.Errorf("unknown runtime state key: %s", key)
-	}
-}
-
-func (s *ConfigService) setRuntimeState(key, value string) error {
-	key = strings.TrimPrefix(key, "runtime.")
-	switch {
-	case key == "currentProjectId":
-		return s.stateStore.SetCurrentProjectID(value)
-	case strings.HasPrefix(key, "currentProposalId."):
-		projectID := strings.TrimPrefix(key, "currentProposalId.")
-		return s.stateStore.SetCurrentProposalID(projectID, value)
-	default:
-		return fmt.Errorf("unknown runtime state key: %s", key)
-	}
 }

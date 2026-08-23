@@ -3,11 +3,9 @@ package command
 import (
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/spf13/cobra"
 
-	"flowforge/internal/config"
 	"flowforge/internal/update"
 	"flowforge/internal/version"
 )
@@ -20,15 +18,7 @@ func newUpgradeCmd() *cobra.Command {
 		Use:   "upgrade",
 		Short: "Upgrade FlowForge CLI to the latest version",
 		Long: `Upgrade downloads and verifies the latest FlowForge binary,
-then atomically replaces the current installation.
-
-If a newer version is available, the binary is downloaded,
-verified with Ed25519 signature and SHA256 checksum, and
-installed atomatically. On failure, the previous version
-is automatically restored.
-
-After the CLI binary is upgraded, project facilities are synchronized
-(equivalent to running flowforge sync).`,
+then atomically replaces the current installation.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if dryRun {
 				manifest, err := update.DryRunUpgrade(version.Version)
@@ -45,9 +35,9 @@ After the CLI binary is upgraded, project facilities are synchronized
 				return nil
 			}
 
-			execPath, execErr := os.Executable()
+			_, execErr := os.Executable()
 			if execErr != nil {
-				execPath = ""
+				return fmt.Errorf("locating current executable: %w", execErr)
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Current version: %s\n", version.Version)
@@ -73,36 +63,6 @@ After the CLI binary is upgraded, project facilities are synchronized
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Upgraded from %s to %s\n",
 				result.OldVersion, result.NewVersion)
-
-			projectRoot, pErr := config.FindProjectRoot(".")
-			if pErr != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Skipping project synchronization: %v\n", pErr)
-				return nil
-			}
-
-			if execPath == "" {
-				return fmt.Errorf("synchronizing project: cannot locate upgraded executable")
-			}
-
-			// The child command is the project lifecycle boundary. Disable the
-			// global version checker here so an upgrade cannot start a second
-			// asynchronous check while reconciling manifest assets.
-			assetCmd := exec.Command(execPath, "--no-version-check", "sync")
-			assetCmd.Dir = projectRoot
-			assetCmd.Stdout = cmd.OutOrStdout()
-			assetCmd.Stderr = cmd.ErrOrStderr()
-			assetCmd.Stdin = cmd.InOrStdin()
-			if aErr := assetCmd.Run(); aErr != nil {
-				return fmt.Errorf("synchronizing project: %w", aErr)
-			}
-
-			migrateCmd := exec.Command(execPath, "--no-version-check", "_run-migrations", "--from", result.OldVersion)
-			migrateCmd.Dir = projectRoot
-			migrateCmd.Stdout = cmd.OutOrStdout()
-			migrateCmd.Stderr = cmd.ErrOrStderr()
-			if mErr := migrateCmd.Run(); mErr != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Migration: %v\n", mErr)
-			}
 
 			return nil
 		},

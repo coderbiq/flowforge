@@ -3,88 +3,93 @@ package command
 import (
 	"fmt"
 
-	"flowforge/internal/core"
 	"github.com/spf13/cobra"
+
+	"flowforge/internal/tracker"
+)
+
+var (
+	statusDir string
 )
 
 func newStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "Display project progress, active proposals, and slice status",
+		Short: "Display progress overview of all features and tickets in .scratch/",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			store, projectID, runtimeStore, err := currentProposalStoreWithState()
+			dir := statusDir
+			if dir == "" {
+				dir = ".scratch"
+			}
+
+			issues, err := tracker.DiscoverIssues(dir)
 			if err != nil {
-				return err
-			}
-			defer closeStateStore(runtimeStore)
-
-			out := cmd.OutOrStdout()
-			currentID, _, _ := runtimeStore.CurrentProposalID(projectID)
-
-			proposals, err := store.ListWorkspaceProposals()
-			if err != nil {
-				return fmt.Errorf("listing proposals: %w", err)
+				return fmt.Errorf("discovering issues: %w", err)
 			}
 
-			fmt.Fprintf(out, "Project: %s\n", projectID)
-			if currentID != "" {
-				fmt.Fprintf(out, "Active Working Context: %s\n", currentID)
-			}
-			fmt.Fprintln(out)
-
-			if len(proposals) == 0 {
-				fmt.Fprintln(out, "No active proposals in workspace.")
-				fmt.Fprintln(out, "Run 'flowforge memory init --proposal <id>' to create a new proposal.")
+			if len(issues) == 0 {
+				fmt.Println("No features or issues found in", dir)
 				return nil
 			}
 
-			fmt.Fprintln(out, "| Proposal ID | Title | Status | Mode | Slices Progress |")
-			fmt.Fprintln(out, "|---|---|---|---|---|")
+			g := tracker.BuildGraph(issues)
+			frontier := g.ComputeFrontier()
 
-			for _, p := range proposals {
-				slices, _ := core.ParseProposalSlices(p.Readme)
-				total := len(slices)
-				completed := 0
-				for _, s := range slices {
-					if s.Completed {
-						completed++
-					}
+			// Group by feature
+			byFeature := make(map[string][]*tracker.Issue)
+			for _, issue := range issues {
+				f := issue.Feature
+				if f == "" {
+					f = "(root)"
 				}
-
-				progressStr := "-"
-				if total > 0 {
-					progressStr = fmt.Sprintf("%d/%d completed", completed, total)
-				}
-
-				activeMarker := ""
-				if p.ID == currentID {
-					activeMarker = " *"
-				}
-
-				fmt.Fprintf(out, "| %s%s | %s | %s | %s | %s |\n",
-					p.ID, activeMarker, escapeTableCell(p.Title), p.Status, p.Mode, progressStr)
+				byFeature[f] = append(byFeature[f], issue)
 			}
 
-			// If current proposal has slices, display slice breakdown
-			if currentID != "" {
-				for _, p := range proposals {
-					if p.ID == currentID {
-						slices, _ := core.ParseProposalSlices(p.Readme)
-						if len(slices) > 0 {
-							fmt.Fprintf(out, "\n=== Slices Breakdown for %s ===\n", currentID)
-							for _, s := range slices {
-								statusIcon := "[ ]"
-								if s.Completed {
-									statusIcon = "[x]"
-								}
-								fmt.Fprintf(out, "%s %s: %s\n", statusIcon, s.Index, s.Title)
-								if s.TestCommand != "" {
-									fmt.Fprintf(out, "    Test: %s\n", s.TestCommand)
-								}
+			totalResolved := 0
+			for _, issue := range issues {
+				if issue.Status.IsTerminal() {
+					totalResolved++
+				}
+			}
+
+			pct := 0
+			if len(issues) > 0 {
+				pct = (totalResolved * 100) / len(issues)
+			}
+
+			fmt.Printf("FlowForge Local Tracker Status: %d/%d resolved (%d%%)\n", totalResolved, len(issues), pct)
+			fmt.Printf("Frontier Ready: %d | In Progress: %d | Blocked: %d\n\n", len(frontier.Ready), len(frontier.Claimed), len(frontier.Blocked))
+
+			for feat, list := range byFeature {
+				resCount := 0
+				for _, it := range list {
+					if it.Status.IsTerminal() {
+						resCount++
+					}
+				}
+				fmt.Printf("• Feature: %s [%d/%d done]\n", feat, resCount, len(list))
+				for _, it := range list {
+					icon := "⚪"
+					if it.Status.IsTerminal() {
+						icon = "✅"
+					} else if it.Status == tracker.StatusClaimed {
+						icon = "⏳"
+					} else {
+						// check if ready or blocked
+						isReady := false
+						for _, r := range frontier.Ready {
+							if r.ID == it.ID && r.Feature == it.Feature {
+								isReady = true
+								break
 							}
 						}
-						break
+						if isReady {
+							icon = "🟢"
+						} else {
+							icon = "⛔"
+						}
 					}
+					fmt.Printf("    %s #%s %s (%s)\n", icon, it.ID, it.Title, it.Status)
 				}
 			}
 
@@ -92,5 +97,6 @@ func newStatusCmd() *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVarP(&statusDir, "dir", "d", ".scratch", "Directory to scan for issues")
 	return cmd
 }

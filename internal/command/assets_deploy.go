@@ -8,8 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-
-	"flowforge/internal/core"
+	"strings"
 )
 
 func deployManagedAssets(targetDir string) error {
@@ -19,23 +18,25 @@ func deployManagedAssets(targetDir string) error {
 	}
 	defer cleanup()
 
-	if err := copyDir(filepath.Join(assetsDir, "skills"), filepath.Join(targetDir, ".agents", "skills"), false); err != nil {
+	// Deploy skills into .agents/skills/
+	if err := copyDir(filepath.Join(assetsDir, "skills"), filepath.Join(targetDir, ".agents", "skills"), true); err != nil {
 		return fmt.Errorf("deploying skills: %w", err)
 	}
 
-	if err := copyDir(filepath.Join(assetsDir, "templates"), filepath.Join(targetDir, ".flowforge", "templates"), false); err != nil {
-		return fmt.Errorf("deploying templates: %w", err)
+	// Deploy agent documentation rules into docs/agents/
+	if err := copyDir(filepath.Join(assetsDir, "agents"), filepath.Join(targetDir, "docs", "agents"), true); err != nil {
+		return fmt.Errorf("deploying agent rules: %w", err)
 	}
 
+	// Deploy or merge AGENTS.md
 	agentRules := filepath.Join(assetsDir, "AGENTS.md")
 	if _, err := os.Stat(agentRules); err == nil {
 		content, err := os.ReadFile(agentRules)
 		if err != nil {
 			return fmt.Errorf("reading AGENTS.md asset: %w", err)
 		}
-		content = core.StripBlockMarkers(content)
 		targetPath := filepath.Join(targetDir, "AGENTS.md")
-		if err := core.ApplyAgentsBlock(targetPath, content); err != nil {
+		if err := applyAgentsBlock(targetPath, content); err != nil {
 			return fmt.Errorf("applying AGENTS.md: %w", err)
 		}
 	} else if !os.IsNotExist(err) {
@@ -45,9 +46,42 @@ func deployManagedAssets(targetDir string) error {
 	return nil
 }
 
-// locateAssetsDir returns the path to the assets directory and a cleanup function.
-// It first tries to extract assets from the embedded filesystem (for standalone binaries).
-// If that fails, it falls back to filesystem-based lookup (for development).
+func applyAgentsBlock(targetPath string, newBlock []byte) error {
+	const startMarker = "<!-- FLOWFORGE:START -->"
+	const endMarker = "<!-- FLOWFORGE:END -->"
+
+	blockStr := strings.TrimSpace(string(newBlock))
+	wrappedBlock := fmt.Sprintf("%s\n%s\n%s", startMarker, blockStr, endMarker)
+
+	existing, err := os.ReadFile(targetPath)
+	if os.IsNotExist(err) {
+		return os.WriteFile(targetPath, []byte(wrappedBlock+"\n"), 0644)
+	}
+	if err != nil {
+		return err
+	}
+
+	content := string(existing)
+	startIdx := strings.Index(content, startMarker)
+	endIdx := strings.Index(content, endMarker)
+
+	if startIdx != -1 && endIdx != -1 && endIdx >= startIdx {
+		// Replace existing block
+		updated := content[:startIdx] + wrappedBlock + content[endIdx+len(endMarker):]
+		return os.WriteFile(targetPath, []byte(updated), 0644)
+	}
+
+	// Append block to end of file
+	separator := "\n\n"
+	if strings.HasSuffix(content, "\n\n") {
+		separator = ""
+	} else if strings.HasSuffix(content, "\n") {
+		separator = "\n"
+	}
+	updated := content + separator + wrappedBlock + "\n"
+	return os.WriteFile(targetPath, []byte(updated), 0644)
+}
+
 func locateAssetsDir() (string, func(), error) {
 	noop := func() {}
 
@@ -85,11 +119,13 @@ func locateAssetsDir() (string, func(), error) {
 	return "", noop, fmt.Errorf("flowforge assets not found; expected assets next to the executable or in the source checkout")
 }
 
-// extractEmbeddedAssets extracts the embedded assets filesystem to a temporary directory.
 func extractEmbeddedAssets() (string, error) {
-	tmpDir, err := os.MkdirTemp("", "flowforge-assets-")
+	tmpDir, err := os.MkdirTemp(".tmp", "flowforge-assets-")
 	if err != nil {
-		return "", fmt.Errorf("creating temp dir for embedded assets: %w", err)
+		tmpDir, err = os.MkdirTemp("", "flowforge-assets-")
+		if err != nil {
+			return "", fmt.Errorf("creating temp dir for embedded assets: %w", err)
+		}
 	}
 
 	if err := fs.WalkDir(embeddedAssets, "assets", func(path string, d fs.DirEntry, err error) error {

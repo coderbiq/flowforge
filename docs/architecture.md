@@ -1,99 +1,71 @@
-# FlowForge 架构设计 (v4)
+# FlowForge 架构设计
 
-## 1. 核心定位
-
-FlowForge 是专为工程级 AI 协作打造的**多级工作记忆（Multi-Tier Working Memory）与活文档合流（Living Docs Synthesis）中枢**。
-
-它坚决反对“形式主义的死板模板”与“限制开发活力的强状态机”，主张通过：
-1. **前置复杂度分诊与分流（Complexity Triage & Dynamic Routing）**：杜绝一刀切，根据任务规模（Bug / Feature / Refactor / Greenfield）自动路由到最匹配的工作流；
-2. **多级工作记忆体系（Multi-Tier Working Memory）**：支持单文件 Flat 模式与多层 Hierarchical 模式，让 Agent 和人类跨会话、跨天讨论不再遗忘，并为轻量模型提供确定的物理锚点；
-3. **敏捷工程方法论（Conversation-first + Expand-Contract + TDD）**：用 Grilling 对齐需求、用 Tracer Bullets 穿透业务特性、用 Expand-Contract 批次治理大面积重构、用自动化测试作为唯一质量门禁；
-4. **活文档持续合流（Living Docs Merge）**：让系统级领域知识随提案交付持续演进，永不腐烂。
+> 定位：**Local-First Issue Tracker & DAG Engine for mattpocock/skills**
 
 ---
 
-## 2. 三层工作记忆架构
+## 1. 核心设计原则
 
-```text
+1. **文件负责内容（零摩擦，零 CLI 阻塞）**：
+   - Agent 100% 原生直接读写 Markdown 文件。
+   - 创建/编辑 Spec、Ticket、Map 全走文件系统工具（`write` / `read` / `edit`）。
+   - 彻底废弃通过 CLI 传递多行大文本的 API 设计，杜绝 shell 转义、引号阻塞等历史问题。
+
+2. **CLI 负责图计算（高确定性）**：
+   - FlowForge Go CLI 仅作为极轻量的辅助计算器与图校验器。
+   - `flowforge frontier`：秒级计算无阻塞就绪 Ticket 队列，防止大模型算拓扑排序时产生幻觉。
+   - `flowforge check`：校验 DAG 依赖图合法性，执行环检测（Cycle Detection）与悬空依赖排查。
+
+3. **方法论原汁原味**：
+   - 全量接入 `mattpocock/skills`（18 个标准 Skill），涵盖 User-invoked 编排与 Model-invoked 纪律原语。
+   - 废弃自造的卡片体系与多级工作记忆，统一使用 `CONTEXT.md`、`docs/adr/` 与 `.scratch/`。
+
+---
+
+## 2. 系统全景
+
+```
 ┌─────────────────────────────────────────────────────────────┐
-│  Tier 1: 项目级全局记忆 (docs/CONTEXT.md)                    │
-│  - 全局统一术语表 (Ubiquitous Language)                      │
-│  - 核心架构约束与编码原则                                   │
-│  - 当前活跃提案索引                                         │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ 注入全局背景
-┌──────────────────────────────▼──────────────────────────────┐
-│  Tier 2: 提案级活笔记 (01-workspace/<proposal_id>/)          │
-│  - Flat 模式: README.md (单文件承载目标、决策、切片)         │
-│  - Hierarchical 模式:                                       │
-│      README.md (总控大纲与架构拓扑)                          │
-│      modules/<module>.md (子模块物理规格、接口与迁移表)      │
-│      references/ (长篇调研与源码行级事实)                   │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ 提取切片最小上下文
-┌──────────────────────────────▼──────────────────────────────┐
-│  Tier 3: 任务级执行切片 (Slice Execution Context)           │
-│  - 当前 Slice 目标 + 涉及接缝 (Seams) + 唯一测试命令        │
+│                    mattpocock/skills                         │
+│  (方法论大脑: triage, grill-with-docs, to-spec, to-tickets, │
+│   implement, tdd, code-review, wayfinder, handoff...)       │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ 依赖/读写 Markdown
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│             本地 Markdown 文件 (.scratch/ & CONTEXT.md)     │
+│  .scratch/<feature>/spec.md                                 │
+│  .scratch/<feature>/issues/<NN>-<slug>.md                   │
+│  .scratch/<effort>/map.md                                   │
+└───────────────────────────▲─────────────────────────────────┘
+                            │
+                            │ 扫描 & 拓扑计算
+┌───────────────────────────┴─────────────────────────────────┐
+│                 FlowForge Go CLI 引擎                       │
+│  flowforge init       ──▶ 一键铺设 skills 与 docs/agents/   │
+│  flowforge frontier   ──▶ 毫秒级计算就绪队列 (无阻塞任务)   │
+│  flowforge check      ──▶ DAG 环检测与死锁排查              │
+│  flowforge status     ──▶ 全局任务状态汇总                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. 八大原子 Skill 协作流
+## 3. 项目结构
 
-FlowForge 将工程流程解耦为 8 个职责专一的 Skill，严禁单一 Skill 越权或黑盒脑补：
-
-```text
-                               ┌──────────────────────────────────────────────┐
-                               │             User Prompt / Task               │
-                               └──────────────────────┬───────────────────────┘
-                                                      │
-                                                      ▼
-                                       ┌──────────────────────────────┐
-                                       │       flowforge-triage       │ (复杂度分诊与路由)
-                                       └──────────────┬───────────────┘
-                                                      │
-               ┌──────────────────────┬───────────────┴───────────────┬──────────────────────┐
-               │ [Level 1: Patch/Bug] │ [Level 2: Feature]            │ [Level 3: Refactor]  │ [Level 4: Greenfield/Fog]
-               ▼                      ▼                               ▼                      ▼
-        flowforge-diagnose     flowforge-align                 flowforge-align        flowforge-wayfinder
-               │                      │ (Flat Mode)                   │ (Hierarchical Mode)  │ (绘制决策探索地图)
-               │                      │                               │                      │
-               ▼                      ▼                               ▼                      ▼
-        flowforge-plan         flowforge-plan                  flowforge-plan         Decision Tickets / Spikes
-        (Minimal TDD)          (Tracer Bullets)               (Expand-Contract Batches)      │
-               │                      │                               │                      │
-               └──────────────────────┴───────────────┬───────────────┴──────────────────────┘
-                                                      │
-                                                      ▼
-                                             flowforge-implement
-                                         (Seam-Bound Red-Green TDD)
-                                                      │
-                                                      ▼
-                                              flowforge-review
-                                           (Adversarial Invariants)
-                                                      │
-                                                      ▼
-                                              flowforge-curate
-                                         (Living Docs & ADR Synthesis)
 ```
-
-1. **`flowforge-triage`**：复杂度评估与门禁分诊，将任务按影响面和不确定性路由到最适合的工作流；
-2. **`flowforge-align`**：领域建模与 Grilling 烤问，在 Flat 或 Hierarchical 模式下建立清晰的边界共识；
-3. **`flowforge-wayfinder`**：高迷雾场景下的决策航标，维护决策图（`MAP.md`）推进探索前沿；
-4. **`flowforge-explore`**：针对代码库探查事实，将证据（`file:line`）注入工作记忆；
-5. **`flowforge-plan`**：多态切片规划（业务特性拆解为 Tracer Bullets，跨模块重构采用 Expand-Contract 批次）；
-6. **`flowforge-implement`**：严格绑定 Seam 接口执行红-绿-重构（TDD）循环；
-7. **`flowforge-diagnose`**：假说驱动的缺陷隔离与根因分析；
-8. **`flowforge-review`**：对抗性审查，拦截架构漂移与认知负荷膨胀；
-9. **`flowforge-curate`**：提取核心决策为 ADR，将领域业务变更合流至 `docs/domains/<domain>/README.md`，归档提案。
-
----
-
-## 4. 活文档与 ADR 归档体系
-
-文档不再是孤岛式卡片，而是系统级的活资产：
-
-* `docs/architecture/decisions/`：记录全局架构决策（ADRs）；
-* `docs/domains/<domain>/README.md`：记录各领域当前的真实业务行为、术语与接口接缝；
-* `archive/<proposal_id>/`：封存历史提案工作过程。
+flowforge/
+├── cmd/flowforge/           ← CLI 入口 (package main)
+├── internal/
+│   ├── command/             ← Cobra 命令实现 (init, frontier, check, status, version, upgrade)
+│   ├── config/              ← 配置加载与项目根定位
+│   ├── tracker/             ← 核心 DAG/Frontier 计算引擎与 Markdown 解析器
+│   ├── update/              ← 自更新引擎
+│   └── version/             ← 版本注入
+├── assets/                  ← 部署制品
+│   ├── AGENTS.md            ← mattpocock 标准 Agent 指引
+│   ├── agents/              ← issue-tracker, domain, triage-labels 规则模板
+│   └── skills/              ← 18 个 mattpocock 官方 Skill
+├── docs/                    ← 架构与设计文档
+└── tests/                   ← 集成测试
+```

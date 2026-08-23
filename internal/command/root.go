@@ -1,125 +1,28 @@
 package command
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
-	"flowforge/internal/state"
-	"flowforge/internal/update"
-	"flowforge/internal/version"
 )
 
-var cfgFile string
-var noVersionCheck bool
-
+// NewRootCmd creates the root Cobra command for FlowForge.
 func NewRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "flowforge",
-		Short: "FlowForge — AI-assisted software design & delivery toolkit",
-		Long: `FlowForge is a workflow toolkit for AI-assisted software design and delivery.
-It provides card-based knowledge management, task orchestration, and context aggregation
-through a CLI-first interface.`,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return initConfig(cmd)
-		},
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Short: "FlowForge: Local-first issue tracker and DAG engine for mattpocock skills",
+		Long: `FlowForge provides deterministic DAG dependency calculation,
+frontier task queue extraction, and local-first issue tracking
+for the mattpocock agile skills methodology.`,
+		SilenceUsage: true,
 	}
 
-	cmd.PersistentFlags().StringVar(&cfgFile, "config", "",
-		"config file (default: $HOME/.flowforge/config.yaml)")
-	cmd.PersistentFlags().StringP("output", "o", "text",
-		"output format: text, json")
-	cmd.PersistentFlags().BoolVar(&noVersionCheck, "no-version-check", false,
-		"skip automatic version check")
-
-	cmd.AddCommand(newVersionCmd())
-	cmd.AddCommand(newInitCmd())
-	cmd.AddCommand(newMemoryCmd())
-	cmd.AddCommand(newStatusCmd())
-	cmd.AddCommand(newCurateCmd())
-	cmd.AddCommand(newProjectCmd())
-	cmd.AddCommand(newCardCmd())
-	cmd.AddCommand(newProposalCmd())
-	cmd.AddCommand(newJournalCmd())
-	cmd.AddCommand(newAnalysisCmd())
-	cmd.AddCommand(newIndexCmd())
-	cmd.AddCommand(newLibraryCmd())
-	cmd.AddCommand(newContextCmd())
-	cmd.AddCommand(newValidateCmd())
-	cmd.AddCommand(newSyncCmd())
-	cmd.AddCommand(newSubagentCmd())
-	cmd.AddCommand(newConfigCmd())
-	cmd.AddCommand(newSourceCmd())
-	cmd.AddCommand(newUpgradeCmd())
-	cmd.AddCommand(newUninstallCmd())
-	cmd.AddCommand(newMigrateCmd())
-	cmd.AddCommand(newRunMigrationsCmd())
+	cmd.AddCommand(
+		newInitCmd(),
+		newFrontierCmd(),
+		newCheckCmd(),
+		newStatusCmd(),
+		newVersionCmd(),
+		newUpgradeCmd(),
+	)
 
 	return cmd
-}
-
-func initConfig(cmd *cobra.Command) error {
-	viper.SetConfigType("yaml")
-
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("finding home dir: %w", err)
-		}
-		viper.AddConfigPath(home + "/.flowforge")
-		viper.AddConfigPath(".")
-		viper.SetConfigName("config")
-	}
-
-	viper.SetEnvPrefix("FLOWFORGE")
-	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_", ".", "_"))
-	viper.AutomaticEnv()
-
-	if err := viper.BindPFlags(cmd.Flags()); err != nil {
-		return err
-	}
-	if err := viper.BindPFlags(cmd.PersistentFlags()); err != nil {
-		return err
-	}
-
-	_ = viper.ReadInConfig()
-
-	if noVersionCheck || cmd.Name() == "version" {
-		return nil
-	}
-
-	if !viper.GetBool("version_check") && viper.IsSet("version_check") {
-		return nil
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil
-	}
-
-	dbPath := filepath.Join(home, ".flowforge", "cache", "flowforge.sqlite")
-	store, err := state.Open(dbPath)
-	if err != nil {
-		return nil
-	}
-
-	if err := store.EnsureSchema(); err != nil {
-		store.Close()
-		return nil
-	}
-
-	checker := update.NewVersionChecker(version.Version, store)
-	checker.CheckAsync(func(msg string) {
-		fmt.Fprintf(cmd.ErrOrStderr(), "\n%s\n", msg)
-	})
-
-	return nil
 }
