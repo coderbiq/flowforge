@@ -88,10 +88,12 @@ flowforge project create myproject --wiki-root ff-wiki --src-dir .
 
 | SKILL | 阶段 | 职责与触发时机 |
 |---|---|---|
-| `flowforge-align` | **对齐 (Align)** | 深挖需求真实意图，挑战假设，澄清边界，维护 Proposal 活笔记 |
+| `flowforge-triage` | **分诊 (Triage)** | 任务入口第一道门禁，评估影响半径与不确定性，路由至匹配工作流 |
+| `flowforge-align` | **对齐 (Align)** | 深挖需求真实意图，挑战假设，澄清边界，自适应维护 Flat/Hierarchical 活笔记 |
+| `flowforge-wayfinder` | **航标 (Wayfinder)** | 应对高迷雾/未知探索，绘制决策图 (`MAP.md`) 并推进决策前沿 |
 | `flowforge-explore` | **探索 (Explore)** | 针对具体疑点探查代码库，回填带有 `path:line` 的权威事实链 |
-| `flowforge-plan` | **计划 (Plan)** | 将讨论共识拆解为 3~6 个极简 Tracer Bullet 切片，强制绑定测试 |
-| `flowforge-implement` | **实现 (Implement)** | 专注于单切片 TDD 交付（编写测试 → 最小实现 → 绿灯重构） |
+| `flowforge-plan` | **计划 (Plan)** | 多态切片拆解：业务特性拆为 Tracer Bullets，跨模块重构拆为 Expand-Contract 批次 |
+| `flowforge-implement` | **实现 (Implement)** | 专注于单切片 TDD 交付（绑定 Seam 接口：编写测试 → 最小实现 → 绿灯重构） |
 | `flowforge-diagnose` | **诊断 (Diagnose)** | 假设驱动排错协议（提出假设 → 最小复现 → 状态跃迁追踪 → 根因修复） |
 | `flowforge-review` | **审查 (Review)** | 非阻断式红队审查（架构漂移检测 + 认知负荷削减建议 + 并发安全） |
 | `flowforge-curate` | **合流 (Curate)** | 提取核心架构决策（ADR），将业务演进 Patch 增量合流至领域活文档 |

@@ -11,9 +11,11 @@ FlowForge is an engineering AI collaboration harness powered by a **Multi-Tier W
 ### Skills
 | Phase | Skill | Role & Responsibility |
 |:---|:---|:---|
-| **Align** | `flowforge-align` | Conversational Grilling: clarify boundaries, challenge assumptions, capture consensus into Proposal Scratchpad |
+| **Triage** | `flowforge-triage` | Complexity Classification: evaluate task footprint, uncertainty & route to appropriate workflow |
+| **Align** | `flowforge-align` | Conversational Grilling: clarify boundaries, domain modeling, capture consensus (Flat vs Hierarchical Mode) |
+| **Wayfinder** | `flowforge-wayfinder` | Fog-of-War Map: build decision graph (`MAP.md`) & advance decision frontier for high-uncertainty forks |
 | **Explore** | `flowforge-explore` | Fact-Finding: investigate existing codebase/data nuances, inject evidence (`file:line`) into Scratchpad |
-| **Plan** | `flowforge-plan` | Decomposition: slice consensus into 3-6 minimal Tracer Bullets with mandatory test bindings |
+| **Plan** | `flowforge-plan` | Polymorphic Decomposition: Tracer Bullets (features) vs Expand-Contract Batches (wide refactorings) |
 | **Implement** | `flowforge-implement` | TDD Delivery: Red-Green-Refactor cycle against bound automated tests |
 | **Diagnose** | `flowforge-diagnose` | Root-Cause Analysis: hypothesis-driven bug and regression diagnosis protocol |
 | **Review** | `flowforge-review` | Non-blocking Adversarial Review: architectural drift, security, and cognitive load reduction |

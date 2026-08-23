@@ -1,6 +1,6 @@
 ---
 name: flowforge-align
-description: Use ONLY when discussing requirements, exploring new features, challenging assumptions, or resuming a multi-day proposal discussion in FlowForge. Engages in conversational grilling, boundary clarification, and maintains the proposal living scratchpad. Do NOT use for code implementation, test running, or final documentation curation.
+description: Use ONLY when discussing requirements, exploring new features, challenging assumptions, or resuming a multi-day proposal discussion in FlowForge. Engages in conversational grilling, boundary clarification, domain modeling, and maintains working memory (Flat or Hierarchical Mode). Do NOT use for code implementation, test running, or final documentation curation.
 ---
 
 # flowforge-align (Conversational Grilling & Alignment)
@@ -32,26 +32,35 @@ Model the problem as a **design tree**. In each turn, compute the **active decis
 
 **Then STOP and wait for the user's answers.**
 
-## Active DDD Challenges (Eric Evans)
+## Active DDD & Seam Challenges
 
-- **Glossary Conflicts**: If the user uses vague/conflicting terms against `docs/CONTEXT.md`, challenge immediately (*"You said 'account', do you mean 'Customer' or 'User'?"*).
-- **Failure Scenario Probing**: Probe exact behavior on failure (*"If step 3 fails on row 50, do we abort and rollback or log warning and continue?"*).
+- **Domain Glossary Conflicts**: If user uses vague/conflicting terms against `docs/CONTEXT.md`, challenge immediately (*"You said 'account', do you mean 'Customer' or 'User'?"*).
+- **Physical Seam Boundaries**: For refactoring/new modules, clarify where the seam lies (*"Will `module-a` call `module-b` directly, or via a newly extracted SPI in `contracts/`?"*).
 - **Out of Scope (Non-goals)**: Explicitly push for what is *NOT* being built in this proposal.
 
-## 🔄 Mandatory Dual-Way Memory Anchoring (Every Turn)
+## Working Memory Modes: Flat vs. Hierarchical
 
-At the end of **every single conversation turn** where new facts were explored, files were generated, or consensus was reached:
-1. **Always Anchor Artifacts**: If any file was created or investigated in the codebase/workspace (e.g. scripts, JSON configs, markdown analysis), append its path and a 1-line summary to `01-workspace/<proposal_id>/README.md` under `## 3. Explored Facts & Artifacts Index`.
-2. **Always Ingest Consensus**: If user agreed to a proposal or clarified a rule, record it under `## 4. Key Decisions & Consensus`.
-3. **Never Leave Proposal Empty**: The proposal `README.md` MUST reflect the full cumulative state of all past discussion rounds so that any session interruption can be resumed seamlessly.
+Choose mode based on task complexity (from `flowforge-triage`):
 
-## Minimal Scratchpad Sync
-
-Keep `01-workspace/<proposal_id>/README.md` minimal during alignment (bullet points only):
+### Mode A: Flat Mode (Level 2 Vertical Feature)
+Store in single file `01-workspace/<proposal_id>/README.md`:
 - `## 1. Objective`: 1-2 sentences.
 - `## 2. Ubiquitous Language`: Clarified terms table.
 - `## 3. Explored Facts`: Direct `path:line` pointers found by explore.
-- `## 4. Key Decisions`: Confirmed decisions so far.
+- `## 4. Key Decisions & Consensus`: Confirmed decisions so far.
 - `## 5. Open Questions`: Current frontier.
 
-*Do NOT write detailed module specs or slice execution steps until `flowforge-plan`.*
+### Mode B: Hierarchical Mode (Level 3 Refactor / Level 4 Greenfield)
+When touching $\ge 2$ modules, maintain top-level master `README.md` and module specs:
+- `01-workspace/<proposal_id>/README.md`: Overall objective, topology diagram, global invariants, and module index.
+- `01-workspace/<proposal_id>/modules/<module>.md`:
+  - **Module Purpose & Seams**: Exact public interfaces and visibility rules (`internal` vs `public`).
+  - **Physical Move Matrix (for Refactor)**: `SourceClass.kt -> TargetClass.kt` mapping.
+  - **Dependency Changes**: Gradle/Maven/Package manifest modifications.
+
+## 🔄 Mandatory Dual-Way Memory Anchoring (Every Turn)
+
+At the end of **every conversation turn**:
+1. **Anchor Artifacts**: If any file was created or investigated in the workspace, append its path and a 1-line summary to `README.md` under `## 3. Explored Facts & Artifacts Index`.
+2. **Ingest Consensus**: Record confirmed decisions under `## 4. Key Decisions & Consensus`.
+3. **Keep Resume-Ready**: The working memory must reflect the cumulative state so any subsequent agent session can resume seamlessly.
