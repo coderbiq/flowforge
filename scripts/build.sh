@@ -56,9 +56,11 @@ build_all() {
         rm -rf internal/command/assets
         cp -R assets internal/command/assets
 
-        GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 \
+        mkdir -p .tmp
+        GOPROXY=https://goproxy.cn,direct GOTMPDIR=$(pwd)/.tmp GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 \
             go build -ldflags="$LDFLAGS" -trimpath \
             -o "${package_dir}/${bin_name}" ./cmd/flowforge
+        rm -rf .tmp
 
         if [ "$goos" = "windows" ]; then
             (cd "$package_dir" && zip -r "${out}/${archive_name}" "${bin_name}" >/dev/null)
