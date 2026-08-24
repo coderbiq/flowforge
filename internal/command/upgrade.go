@@ -64,6 +64,15 @@ then atomically replaces the current installation.`,
 			fmt.Fprintf(cmd.OutOrStdout(), "Upgraded from %s to %s\n",
 				result.OldVersion, result.NewVersion)
 
+			// Automatically synchronize managed assets in the current project if applicable
+			if isProjectDirectory(".") {
+				if err := deployManagedAssets("."); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to synchronize project assets: %v\n", err)
+				} else {
+					fmt.Fprintln(cmd.OutOrStdout(), "✓ Project skills and agent rules updated to latest version.")
+				}
+			}
+
 			return nil
 		},
 	}

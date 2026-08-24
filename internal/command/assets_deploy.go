@@ -174,6 +174,22 @@ func isAssetsDir(path string) bool {
 	return true
 }
 
+func isProjectDirectory(dir string) bool {
+	indicators := []string{
+		".scratch",
+		".agents/skills",
+		"docs/agents",
+		"AGENTS.md",
+		".flowforge",
+	}
+	for _, ind := range indicators {
+		if _, err := os.Stat(filepath.Join(dir, ind)); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 func copyDir(srcDir, dstDir string, overwrite bool) error {
 	info, err := os.Stat(srcDir)
 	if os.IsNotExist(err) {

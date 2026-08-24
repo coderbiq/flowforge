@@ -14,10 +14,11 @@ var (
 
 func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "init [path]",
-		Short: "Initialize FlowForge local tracker and deploy mattpocock skills",
-		Long: `Initializes the local-first issue tracker environment in the target repository.
-Deploys mattpocock engineering/productivity skills into .agents/skills/,
+		Use:     "init [path]",
+		Aliases: []string{"sync"},
+		Short:   "Initialize or sync FlowForge local tracker and mattpocock skills",
+		Long: `Initializes or synchronizes the local-first issue tracker environment in the target repository.
+Deploys or updates mattpocock engineering/productivity skills into .agents/skills/,
 sets up docs/agents/ rules, and creates .scratch/ for issue tracking.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
