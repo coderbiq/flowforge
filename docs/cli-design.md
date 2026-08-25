@@ -1,44 +1,59 @@
-# FlowForge CLI 设计规范
+# FlowForge CLI 行为与策略
 
-FlowForge CLI 是一个专为 `mattpocock/skills` 设计的轻量级辅助计算器。它严格遵循 **"文件负责内容，CLI 负责图计算"** 的原则。
+CLI 是 Markdown 工作流的确定性投影器，不是内容管理 API。所有需求、设计、ticket 和 evidence 都由文件工具直接编辑。
 
----
+## 目录解析
 
-## 1. 核心命令集
+`.flowforge/config.yaml` 的 `docs_dir` 指定文档根目录，默认为 `docs`，支持相对项目根目录和绝对路径。`check`、`frontier`、`status` 从当前目录向上定位项目配置；显式 `--dir` 则直接使用调用者给出的 proposals 路径。损坏的项目配置必须报错。
 
-### `flowforge init [path]`
-一键初始化目标项目：
-- 创建 `.flowforge/config.yaml` 配置文件（支持自定义 `docs_dir`，默认为 `docs`）
-- 部署 `<docs_dir>/agents/issue-tracker.md`、`<docs_dir>/agents/domain.md`、`<docs_dir>/agents/triage-labels.md`
-- 部署 `assets/skills/` 下的 FlowForge Skill 套件至 `.agents/skills/`
-- 创建 `<docs_dir>/CONTEXT.md` 模板与 `<docs_dir>/proposals/`、`<docs_dir>/adr/` 目录结构
-- 注入 `AGENTS.md` 中的 skills 配置块
+`flowforge init [path]` 创建配置、`<docs_dir>/CONTEXT.md`、`adr/` 和 `proposals/`，部署 `<docs_dir>/agents/`、`.agents/skills/` 并维护 `AGENTS.md` 中的受管区块。已有配置始终保留；`--force` 只强制刷新受管资产。
 
-### `flowforge config <get|set|list>`
-读取和修改项目级 FlowForge 配置（如 `docs_dir`）。
+## Artifact Catalog
 
-### `flowforge frontier [--dir <proposals_dir>] [--json] [--quiet]`
-扫描提案目录（默认为 `<docs_dir>/proposals/`）下的所有 issues，计算 DAG 依赖图，输出当前无阻塞且未被认领的就绪任务。
-- `--json`: 输出结构化 JSON 格式
-- `--quiet` (`-q`): 仅输出就绪任务的文件路径，便于脚本/Agent 直接读取
+Catalog 扫描 proposals 下 Markdown，区分 requirement、design、spec、ticket、evidence、research 和 map。只有 `issues/*.md` 中的 ticket 能进入 DAG；旧 v5 ticket 没有 schema envelope 时仍兼容并产生 legacy warning。
 
-### `flowforge check [--dir <proposals_dir>]`
-静态检查当前依赖图的健康状态：
-- 循环依赖检测（Cycle Detection）
-- 悬空依赖检测（Dangling Dependency，引用的前置 Ticket 不存在）
-- 自依赖检测（Self Dependency）
+确定性诊断覆盖：
 
-### `flowforge status [--dir <proposals_dir>]`
-汇总当前所有 Feature 和 Wayfinder 项目的完成度、阻塞任务数与就绪任务数。
+- role 与物理位置冲突、无效或未来 schema；
+- 重复 identity、缺失 authority、消费 revision 过旧或超前；
+- 机器依赖缺少人类语义链接，或链接未记录 consumption；
+- open item 缺少精确 scope/anchor，waiver 过宽、无效或过期；
+- closed ticket 缺少非空 `Completion evidence`。
 
-### `flowforge version` & `flowforge upgrade`
-- `flowforge version`: 输出当前版本与构建元数据
-- `flowforge upgrade`: 自更新至最新 GitHub Release 版本
+## `flowforge check`
 
----
+```bash
+flowforge check [--dir <path>] [--json] [--strict]
+```
 
-## 2. 设计铁律
+检查循环依赖、悬空依赖、自依赖和 Catalog 诊断。默认 warning 与 gap 保持可见但不让 check 失败，blocker 始终失败；`--strict` 让未豁免 warning/gap 也失败。JSON 输出包含 issue/artifact 数量、DAG 结果和完整 diagnostics。
 
-1. **零内容 API**：禁止提供 `issue create --body "..."` 等需要通过命令行传长文本的接口。所有工件内容的创建与编辑由 Agent 直接通过 `write`/`edit` 工具操作 Markdown 文件。
-2. **Token 精简**：CLI 默认输出必须精炼，避免大模型读取命令行输出消耗过多上下文。
-3. **确定性优先**：所有拓扑排序、环检测由 Go 内部编译级算法完成，彻底避免大模型在纯文本上下文中的拓扑推导幻觉。
+## `flowforge frontier`
+
+```bash
+flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
+```
+
+先计算 DAG 的无阻塞 open ticket，再按内容诊断投影：
+
+- clean ticket 默认输出；
+- warning ticket 默认输出并保留诊断；
+- gap ticket 默认排除，`--include-gaps` 可显式包含；
+- blocker ticket 始终排除；
+- `--strict` 只输出 clean ticket，并优先于 `--include-gaps`。
+
+`--quiet` 只把可执行路径写到 stdout，诊断写到 stderr；`--json` 保留 clean、warning、gap、claimed、blocked 分组，适合 Agent 或自动化消费。
+
+## 其他命令
+
+- `flowforge status [--dir <path>]`：按 feature 汇总 ticket 生命周期和 DAG 状态。
+- `flowforge config get|set|list`：读取或修改 `docs_dir`、version check 及兼容项目配置。
+- `flowforge upgrade`：更新 CLI；已经是相同版本时仍同步当前项目的受管资产，降级返回独立错误。
+- `flowforge version`：显示构建注入版本。
+
+## 稳定边界
+
+- CLI 不提供通过参数传递长正文的 create/update 接口。
+- 图计算和诊断是确定性的；需求或设计充分性仍由对应 Skill 负责。
+- warning、gap、blocker 不写回 readiness 状态。
+- waiver 必须匹配一个诊断和精确目标并记录理由；`*` 式全局跳过无效。

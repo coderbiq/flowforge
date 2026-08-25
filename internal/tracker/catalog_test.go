@@ -150,6 +150,39 @@ func TestArtifactRoleLocationMatrix(t *testing.T) {
 	}
 }
 
+func TestClosedTicketRequiresObservableCompletionEvidence(t *testing.T) {
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	missing := filepath.Join(issues, "01-missing.md")
+	empty := filepath.Join(issues, "02-empty.md")
+	present := filepath.Join(issues, "03-present.md")
+	for path, body := range map[string]string{
+		missing: "# 01: Missing\n\n**Blocked by:** None\n**Status:** closed\n\n## Changes\n\nDone.\n",
+		empty:   "# 02: Empty\n\n**Blocked by:** None\n**Status:** closed\n\n## Completion evidence\n\n## Notes\n\nNone.\n",
+		present: "# 03: Present\n\n**Blocked by:** None\n**Status:** closed\n\n## Completion evidence\n\n- Verification: `go test ./...` passed.\n",
+	} {
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertDiagnostic(t, catalog.Diagnostics, tracker.DiagnosticMissingEvidence, missing)
+	assertDiagnostic(t, catalog.Diagnostics, tracker.DiagnosticMissingEvidence, empty)
+	for _, diagnostic := range catalog.Diagnostics {
+		if diagnostic.Code == tracker.DiagnosticMissingEvidence && diagnostic.Artifact == present {
+			t.Fatalf("ticket with observable evidence was rejected: %#v", diagnostic)
+		}
+	}
+}
+
 func TestRepositoryAndTangramProposalLayouts(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
 	flowforge, err := tracker.DiscoverArtifacts(filepath.Join(repoRoot, "docs", "proposals"))

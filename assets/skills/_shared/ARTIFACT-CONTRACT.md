@@ -21,6 +21,8 @@ Only `issues/*.md` can be executable. New physical artifacts use schema v1 under
 
 Downstream artifacts summarize only the locally needed meaning and link to upstream authority. They do not copy rationale or settled decisions. A semantic consumer records the authority revision it reviewed.
 
+A closed ticket carries a non-empty `Completion evidence` section, either inline proof or a semantic link to promoted evidence. Catalog reports absence as `missing-completion-evidence`; strict policy rejects it. Evidence quality remains an Implement/Review judgement rather than a persisted readiness state.
+
 A ticket states, in this order near its title so legacy parsers can read it:
 
 ```markdown
@@ -43,4 +45,3 @@ An `open_items` entry names one unresolved fact, explanation anchor, severity, a
 ## Information value
 
 Every retained statement contributes a fact, requirement, decision, constraint, action, verification method, unknown, or evidence. Delete template filler, implementation commonplaces, exploration that changed no decision, repeated upstream prose, and synonymous headings. Keep `MUST NOT` only for a concrete failure path and place the positive target behavior beside it.
-

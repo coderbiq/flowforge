@@ -54,6 +54,37 @@ func TestCheckJSONIncludesCatalogWhenThereAreNoTickets(t *testing.T) {
 	}
 }
 
+func TestCheckReportsClosedTicketWithoutCompletionEvidence(t *testing.T) {
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ticket := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n# 01: Closed too early\n\n**Blocked by:** None\n**Status:** closed\n"
+	if err := os.WriteFile(filepath.Join(issues, "01-closed.md"), []byte(ticket), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := newCheckCmd()
+	checkDir, checkJSON, checkStrict = root, true, false
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatal(err)
+	}
+	if output := stdout.String(); !strings.Contains(output, `"code": "missing-completion-evidence"`) {
+		t.Fatalf("check omitted completion evidence diagnostic: %s", output)
+	}
+
+	strict := newCheckCmd()
+	checkDir, checkJSON, checkStrict = root, false, true
+	strict.SetOut(&bytes.Buffer{})
+	strict.SetErr(&bytes.Buffer{})
+	if err := strict.RunE(strict, nil); err == nil {
+		t.Fatal("strict check must reject a closed ticket without completion evidence")
+	}
+}
+
 func TestFrontierPolicyNeverOverridesBlocker(t *testing.T) {
 	frontierStrict, frontierIncludeGaps = false, true
 	if err := catalogPolicyError([]tracker.Diagnostic{{Severity: tracker.SeverityBlocker}}, false); err == nil {

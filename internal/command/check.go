@@ -20,10 +20,11 @@ func newCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Validate issue dependency graph for cycles, deadlocks, and dangling links",
-		Long: `Scans proposal issues, constructs the dependency DAG, and detects:
+		Long: `Scans proposal artifacts, constructs the ticket dependency DAG, and detects:
 1. Circular dependencies (deadlocks)
 2. Dangling references (blocked by non-existent tickets)
-3. Self-dependencies`,
+3. Self-dependencies
+4. Artifact metadata, authority, semantic-link, waiver, scoped-gap, and completion-evidence diagnostics`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := checkDir
 			if dir == "" {

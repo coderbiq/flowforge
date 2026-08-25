@@ -21,6 +21,8 @@ Apply production Implement, TDD, Review, and Handoff instructions to each exact 
 
 For every case, `Status: closed` is written only after delivered behavior, observed command results, both review axes, authority-owned finding dispositions, deviations, and an implementation reference exist. A Specification finding for missing required behavior remains open until corrected or explicitly rescoped/waived by its authority owner; a nonblocking follow-up alone cannot close it. Without observable verification evidence the status remains open, regardless of checked boxes.
 
+The deterministic backstop is covered by `TestClosedTicketRequiresObservableCompletionEvidence` and `TestCheckReportsClosedTicketWithoutCompletionEvidence`: normal policy preserves the diagnostic as a warning, while `flowforge check --strict` rejects the closed ticket. This detects an invalid close without adding or rewriting a readiness state; semantic evidence quality remains the Implement/Review responsibility.
+
 ## Working-tree review fixture
 
 Given fixed point `HEAD`, production Review captures `git diff HEAD` plus the explicit untracked-file list/content, supplies that identical change set and the linked effective specification to both independent axes, and returns findings to Implement without writing evidence or status.

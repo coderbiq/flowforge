@@ -25,8 +25,8 @@ func newFrontierCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "frontier",
 		Short: "Compute unblocked, ready-to-execute tickets from proposals",
-		Long: `Scans proposal directories for issues and tickets, evaluates DAG dependencies,
-and outputs the exact list of unblocked, executable tasks.`,
+		Long: `Scans proposal artifacts, evaluates ticket DAG dependencies and content diagnostics,
+then projects clean, warning, gap, claimed, and blocked executable work.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := frontierDir
 			if dir == "" {

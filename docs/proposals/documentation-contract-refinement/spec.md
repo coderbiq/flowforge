@@ -19,7 +19,7 @@ This document is the current requirements authority and navigation entry point. 
 
 FlowForge v5 has a valuable overall workflow: skills help people clarify a problem and design a solution, Markdown files preserve the resulting artifacts, and the CLI deterministically calculates an executable path through ticket blocking edges with `check` and `frontier`. Its use of explicit `MUST` and `MUST NOT` constraints is also valuable.
 
-However, v5 does not currently guarantee the complete engineering memory previously represented across v1-v4: what the requirement is, why it matters, what solution was selected, and exactly what each task must accomplish. A ticket can be DAG-ready while still requiring an execution model to rediscover code, recover design intent, or make architecture decisions.
+Before this refinement, v5 did not guarantee the complete engineering memory previously represented across v1-v4: what the requirement is, why it matters, what solution was selected, and exactly what each task must accomplish. A ticket could be DAG-ready while still requiring an execution model to rediscover code, recover design intent, or make architecture decisions.
 
 Restoring the old document formats unchanged is not acceptable. v1-v4 artifacts often contained repeated restatements, template-filling prose, vague actions, implementation commonplaces, and content that was difficult for humans to scan. The desired outcome is therefore not “more documentation.” It is complete coverage with high information value.
 
@@ -231,17 +231,13 @@ The approved coordinated changes to the requirement-to-delivery Skill system are
 6. Logical artifact roles are stable, while physical packaging adapts to feature complexity.
 7. Requirement alignment, solution design, and execution planning have distinct owners.
 
-### Open design questions
+### Implemented decisions
 
-- The threshold for splitting logical artifact roles into separate files for complex features.
-- The final filenames and directory layout.
-- The minimum ticket execution state vocabulary.
-- Which deterministic defects block the default frontier and which only warn.
-- The exact override and waiver interface.
-- Whether a strict readiness profile is a CLI mode, project policy, ticket profile, or combination.
-- The metadata representation for stable semantic identity and traceability.
-- How existing v5 proposals migrate or degrade gracefully.
-- How information-value review is divided between skills, human review, and optional heuristics.
-- The exact highest testing seam for the refinement.
-
-These questions are intentionally preserved as unresolved. This baseline must not be treated as approval of a concrete implementation design.
+- Artifact roles stay logical and use adaptive packaging: compact ticket by default, promotion for independent consumption, review, lifecycle, or readability.
+- `<docs_dir>/proposals/<feature>/issues/*.md` is the only executable location; requirement, design, spec, evidence, research, and map remain non-executable.
+- Ticket lifecycle retains the compatible human `Status` vocabulary. Requirement/design readiness is never persisted.
+- Default policy exposes warnings, excludes gaps from frontier, and blocks blockers. `--strict`, `--include-gaps`, and exact reasoned waivers express caller policy without mutating documents.
+- Schema v1 supplies semantic identity, revision, areas, consumption, open items, and waivers while prose and semantic links remain the human interface.
+- Existing v5 tickets degrade compatibly with visible legacy diagnostics.
+- Skills own semantic completeness and information-value review; CLI owns deterministic structure, traceability, evidence-presence diagnostics, and DAG projection.
+- Tests run at tracker behavior, command policy, packaged-asset pointer, real filesystem, and end-to-end Skill scenario seams.

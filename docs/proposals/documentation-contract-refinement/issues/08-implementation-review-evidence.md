@@ -36,3 +36,4 @@ Implement, TDD, Review, and Handoff Skills; inline and promoted evidence example
 - TDD reuses current pre-agreed seams and returns absent/conflicting/moved seams as design gaps; Handoff transports authority/evidence links plus context delta.
 - Review accepts committed or working-tree scope from a resolvable fixed point, evaluates Standards and effective Specification independently, and never writes evidence or closes tickets.
 - [Implementation, Review, and Evidence Production Validation v0.1](../implementation-production-validation-v0.1.md) covers stale authority, design return, factual correction, inline/promoted evidence, reasoned dispositions, and the no-evidence/no-close invariant with exact prompts and preserved evidence shapes.
+- Catalog emits `missing-completion-evidence` for a closed ticket without a non-empty `Completion evidence` section; tracker and command tests prove normal warning projection and `check --strict` rejection.

@@ -29,7 +29,9 @@ See the authoritative [documentation outcome](../spec.md#documentation-contract-
 - `801432b` — high-information Plan tickets.
 - `112131d` — optional spec navigation.
 - `6fa1ea2` — implementation/review evidence closeout.
+- `b244246` — configurable documentation roots and upgrade-time managed-asset synchronization.
 - Ticket 10 change set — end-to-end proof, migration guide, and this promoted evidence.
+- Final completeness audit change set — deterministic missing-evidence diagnosis, Catalog responsibility split, and current README/docs.
 
 ## Actual verification results
 
@@ -41,10 +43,14 @@ See the authoritative [documentation outcome](../spec.md#documentation-contract-
 - Complex Plan fixture: `Checked 4`; migrations `#02/#03` ready; contract `#04` blocked until both.
 - Real Tangram backend proposal: `Checked 11`; healthy legacy DAG; `spec.md` excluded; ready `07/08/09` and integration `11` blocked.
 - This proposal: `Checked 10`; healthy DAG; after evidence write and ticket close, frontier reports all tasks resolved.
+- Completion backstop: tracker tests distinguish missing, empty, and populated completion evidence; command tests prove normal warning projection and strict-policy rejection.
+- Clean committed `b244246` archive: `make dev` and `go test ./internal/...` passed without working-tree files.
 
 ## Review dispositions
 
 Every production ticket received separate Standards and Specification review before commit. Material findings were corrected and re-reviewed. Ticket 10 review rejected assertion-only end-to-end claims and the non-compact simple fixture; both were replaced with the actual compact run and this real proposal execution record. Final Ticket 10 and proposal-wide re-reviews passed before closeout commit.
+
+The final real-design audit initially found two gaps on independent axes: Catalog carried divergent discovery/semantic responsibilities, and closed-ticket evidence presence had no deterministic check. The implementation split semantic diagnostics into its own module, added `missing-completion-evidence` with tracker and command coverage, and updated production/user documentation. Both axes passed re-review.
 
 ## Deviations
 
