@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>THROWAWAY — Solution design scenario validation</title>
+  <style>
+    :root{color-scheme:dark;--bg:#101419;--panel:#191f27;--line:#374250;--ink:#e8edf3;--muted:#9daab8;--blue:#79aaff;--green:#68d391;--amber:#f0bd61;--red:#ee7777}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}header{padding:18px 22px;border-bottom:1px solid var(--line)}h1{font-size:21px;margin:0 0 4px}h2{font-size:16px;margin-top:0}.muted{color:var(--muted)}.warn{color:var(--amber)}.good{color:var(--green)}.bad{color:var(--red)}
+    .layout{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 84px)}aside,main{padding:18px;min-width:0}aside{border-right:1px solid var(--line)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px;margin-bottom:13px}button{background:#232c37;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:3px;cursor:pointer}button:hover,button.active{border-color:var(--blue)}button.primary{background:#245086}button:disabled{opacity:.4}.step{padding:8px;border-left:3px solid var(--line);margin:5px 0}.step.current{border-color:var(--blue);background:#1b2837}.step.done{border-color:var(--green)}pre{background:#0b0e12;border:1px solid #29313b;border-radius:7px;padding:13px;white-space:pre-wrap;max-height:45vh;overflow:auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}a{color:#a9c9ff}@media(max-width:820px){.layout,.grid{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}}
+  </style>
+</head>
+<body>
+<header><h1>Solution-design 场景验证 <span class="warn">— THROWAWAY v2</span></h1><div class="muted">问题：什么时候跳过 Skill，什么时候允许部分 planning，而不依赖 design-ready 状态？</div></header>
+<div class="layout"><aside>
+  <div class="panel"><h2>场景</h2><button id="simple" onclick="choose('simple')">简单功能</button><button id="complex" onclick="choose('complex')">复杂重构</button></div>
+  <div class="panel"><h2 id="title"></h2><p id="prompt" class="muted"></p><button class="primary" id="next" onclick="advance()">推进</button><button onclick="overrideAffected()">显式 override</button><button onclick="reset()">重置</button></div>
+  <div class="panel"><h2>样例工件</h2><p><a href="scenario-fixtures/simple-frontier-warning-count.example.md">简单 compact ticket</a></p><p><a href="scenario-fixtures/tangram-backend-design.example.md">复杂 design hub</a></p><p><a href="scenario-validation-v0.2.md">验证报告</a></p></div>
+</aside><main>
+  <div class="grid"><section class="panel"><h2>交互</h2><div id="steps"></div></section><section class="panel"><h2>当前判定</h2><div id="verdict"></div></section></div>
+  <section class="panel"><h2>完整派生状态</h2><pre id="state"></pre></section>
+</main></div>
+<script>
+const cases={
+ simple:{title:'简单功能：frontier 文本显示 warning 数量',prompt:'使用既有 renderer seam；不改变 module responsibility、interface、DAG 或 JSON。',steps:[
+  {skill:'route',action:'检查 design invocation signals',effect:s=>{s.signals={responsibility:false,newSeam:false,changedCollaboration:false,alternatives:false,migration:false,verificationUnknown:false};s.recommendation='skip solution-design';}},
+  {skill:'compact alignment',action:'确认 text-only、zero-warning 和 JSON compatibility',effect:s=>{s.requirement='observable and settled';}},
+  {skill:'plan',action:'发布一个含 design increment 的 compact ticket',effect:s=>{s.artifacts=['simple-frontier-warning-count.example.md'];s.frontier.ready=['warning-count ticket'];}},
+  {skill:'implement',action:'在既有 output seam 内部执行 TDD + review',effect:s=>{s.executionOwner='implement';s.evidence='pending execution';}}
+ ]},
+ complex:{title:'复杂重构：Tangram 后端责任与 composition',prompt:'跨 contracts、domain、adapters 和 application；多个 seam、迁移与验证决定。',steps:[
+  {skill:'route',action:'检测 changed collaboration / responsibility',effect:s=>{s.signals={responsibility:true,newSeam:true,changedCollaboration:true,alternatives:true,migration:true,verificationUnknown:true};s.recommendation='invoke solution-design';}},
+  {skill:'solution-design',action:'建立 module responsibility、四条 seam 与 migration shape',effect:s=>{s.artifacts=['tangram-backend-design.example.md'];s.coverage={moduleResponsibilities:'pass',ownership:'pass',migration:'pass',verification:'warning'};}},
+  {skill:'solution-design',action:'保留 Agent interface open question，限定 affected scope',effect:s=>{s.questions={'agent-application-composition-interface':{status:'open',affects:['agent-composition','application-agent-migration']},'focused-gradle-verification':{status:'open-warning',affects:['all implementation paths']}};}},
+  {skill:'plan coverage',action:'允许 unaffected tracer paths 进入 planning',effect:s=>{s.frontier.ready=['rpc-routing','trigger-lifecycle','configured-web-construction'];s.frontier.blocked=['agent-composition','application-agent-migration'];s.frontier.warnings=['exact Gradle commands unconfirmed'];s.recommendation='partial planning';}}
+ ]}
+};
+let mode='simple',model;
+function fresh(){return{mode,step:0,signals:{},artifacts:[],coverage:{},questions:{},frontier:{ready:[],blocked:[],warnings:[]},overrides:[],recommendation:'inspect request'}}
+function choose(x){mode=x;model=fresh();render()}function reset(){model=fresh();render()}
+function advance(){const c=cases[mode];if(model.step>=c.steps.length)return;const x=c.steps[model.step];x.effect(model);model.step++;render()}
+function overrideAffected(){if(mode==='complex'){model.overrides=['agent-composition: interface question retained'];model.frontier.ready=[...new Set([...model.frontier.ready,'agent-composition (override)','application-agent-migration (override)'])];model.recommendation='partial planning with visible override'}else{model.overrides=['not applicable: no unready work']};render()}
+function render(){const c=cases[mode];document.getElementById('title').textContent=c.title;document.getElementById('prompt').textContent=c.prompt;document.getElementById('simple').classList.toggle('active',mode==='simple');document.getElementById('complex').classList.toggle('active',mode==='complex');document.getElementById('next').disabled=model.step>=c.steps.length;document.getElementById('steps').innerHTML=c.steps.map((x,i)=>`<div class="step ${i<model.step?'done':i===model.step?'current':''}"><b>${x.skill}</b><br>${x.action}</div>`).join('');document.getElementById('verdict').innerHTML=`<p><b>Recommendation</b><br>${model.recommendation}</p><p><b>Key property</b><br>${mode==='simple'?'完整性通过 compact ticket 获得，不创建 design 空壳。':'coverage 按 scope 计算；一个 open question 不阻塞所有 planning。'}</p><p class="${model.overrides.length?'warn':'muted'}">${model.overrides.length?'Override 保留风险，没有修改 question status。':'尚未使用 override。'}</p>`;document.getElementById('state').textContent=JSON.stringify(model,null,2)}
+model=fresh();render();
+</script>
+</body></html>

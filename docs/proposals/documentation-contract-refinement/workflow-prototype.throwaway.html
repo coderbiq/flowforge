@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>THROWAWAY — FlowForge requirement workflow prototype</title>
+  <style>
+    :root { color-scheme: dark; --bg:#101317; --panel:#191e25; --line:#35404c; --ink:#e8edf2; --muted:#9eabb8; --good:#69d391; --warn:#f0bf61; --bad:#ef7777; --accent:#77a9ff; }
+    * { box-sizing:border-box }
+    body { margin:0; font:15px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--ink) }
+    header { padding:20px 24px; border-bottom:1px solid var(--line); background:#131820 }
+    h1,h2,h3,p { margin-top:0 }
+    h1 { font-size:21px; margin-bottom:4px }
+    h2 { font-size:16px }
+    .warning { color:var(--warn) }
+    .layout { display:grid; grid-template-columns:minmax(280px,380px) 1fr; min-height:calc(100vh - 90px) }
+    aside,main { padding:20px; min-width:0 }
+    aside { border-right:1px solid var(--line) }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:16px; margin-bottom:14px }
+    button { border:1px solid var(--line); background:#222a34; color:var(--ink); border-radius:6px; padding:8px 11px; cursor:pointer; margin:3px 3px 3px 0 }
+    button:hover { border-color:var(--accent) }
+    button.primary { background:#214678; border-color:#356eb8 }
+    button:disabled { opacity:.4; cursor:not-allowed }
+    .tabs button.active { border-color:var(--accent); color:#fff }
+    .pill { display:inline-block; border:1px solid var(--line); border-radius:99px; padding:2px 8px; margin:2px; color:var(--muted) }
+    .good { color:var(--good) }.warn { color:var(--warn) }.bad { color:var(--bad) }.muted { color:var(--muted) }
+    ol.timeline { padding-left:22px }
+    ol.timeline li { padding:7px 8px; margin:4px 0; border-left:3px solid var(--line) }
+    ol.timeline li.current { border-color:var(--accent); background:#1b2634 }
+    ol.timeline li.done { border-color:var(--good) }
+    code { color:#bed4ff }
+    pre { white-space:pre-wrap; word-break:break-word; background:#0c0f13; padding:14px; border-radius:7px; border:1px solid #29313a; max-height:62vh; overflow:auto }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px }
+    ul { padding-left:20px }
+    @media(max-width:850px){.layout{grid-template-columns:1fr} aside{border-right:0;border-bottom:1px solid var(--line)}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FlowForge 需求推进原型 <span class="warning">— THROWAWAY</span></h1>
+    <p class="muted">设计问题：简单与复杂需求是否能用同一组原则推进，同时避免信息缺失、文档废话和状态门禁卡死？</p>
+  </header>
+  <div class="layout">
+    <aside>
+      <div class="panel tabs">
+        <h2>引导流程</h2>
+        <button id="simpleTab" onclick="selectScenario('simple')">简单需求</button>
+        <button id="complexTab" onclick="selectScenario('complex')">复杂重构</button>
+        <button id="freeTab" onclick="selectScenario('free')">自由模式</button>
+      </div>
+      <div class="panel">
+        <h2 id="scenarioTitle"></h2>
+        <p id="scenarioPrompt" class="muted"></p>
+        <div id="controls"></div>
+      </div>
+      <div class="panel">
+        <h2>原型要验证的原则</h2>
+        <ul>
+          <li>Skill 由未决问题触发，不由固定状态触发。</li>
+          <li>工件只在产生新权威信息时创建。</li>
+          <li>DAG blocker 决定执行顺序；内容诊断默认只告警。</li>
+          <li>就绪性动态计算、解释清楚、允许显式跳过。</li>
+          <li>正文展示语义；机器 ID 隐藏在 metadata。</li>
+        </ul>
+      </div>
+    </aside>
+    <main>
+      <div class="grid">
+        <section class="panel">
+          <h2>推进过程</h2>
+          <ol id="timeline" class="timeline"></ol>
+        </section>
+        <section class="panel">
+          <h2>当前解释</h2>
+          <div id="explanation"></div>
+        </section>
+      </div>
+      <section class="panel">
+        <h2>完整状态（每次操作后刷新）</h2>
+        <pre id="state"></pre>
+      </section>
+    </main>
+  </div>
+<script>
+const scenarios = {
+  simple: {
+    title: '简单需求：frontier 不应返回 spec.md',
+    prompt: '用户报告一个目标明确、局部、可直接验证的行为缺陷。观察流程能否避免制造 requirements.md + design.md 等空壳文档。',
+    steps: [
+      {skill:'flowforge-route', action:'识别为局部行为修正', output:'不创建工件；选择轻量路径', why:'意图和影响范围清楚，不需要完整 alignment。'},
+      {skill:'flowforge-diagnose', action:'复现并定位 parser 将 spec 当作 ticket', output:'proposal/notes.md 中的一条可恢复事实，或直接进入 ticket 上下文', why:'先取得问题证据，避免猜测修复。'},
+      {skill:'flowforge-plan', action:'形成一个 tracer ticket', output:'issues/01-exclude-non-ticket-artifacts.md', why:'只有一个用户可观察增量，不拆需求/设计空文档。'},
+      {skill:'flowforge-tdd', action:'以失败 parser/frontier 测试驱动修复', output:'代码与测试；ticket 保持短小', why:'最高稳定 seam 是 tracker parser 到 frontier 行为。'},
+      {skill:'flowforge-review', action:'核对 spec 行为与仓库规范', output:'evidence/01.md 或 ticket completion evidence', why:'关闭前保存命令和结果，而非只勾 checkbox。'}
+    ]
+  },
+  complex: {
+    title: '复杂需求：跨模块后端架构重构',
+    prompt: '用户要求重构 contracts、domain、adapter 与 application 的责任。观察设计未知项如何关闭、工件如何渐进展开、任务如何进入 DAG。',
+    steps: [
+      {skill:'flowforge-route', action:'识别为高不确定、跨模块重构', output:'不创建工件；选择复杂路径', why:'路由只选择方法，不重复需求内容。'},
+      {skill:'flowforge-align', action:'澄清问题、目标、范围、场景与验收', output:'requirements.md', why:'需求真相独立于实现方案；未知项保持显式。'},
+      {skill:'flowforge-domain-modeling', action:'统一 module/interface/seam 词汇和长期约束', output:'CONTEXT.md 更新；必要 ADR', why:'只保存跨 feature 有长期价值的知识。'},
+      {skill:'flowforge-research + codebase-design', action:'收集物理证据并设计责任与 seams', output:'design.md；复杂时 design/*.md', why:'方案记录 owner/provider/consumer/composition owner、迁移和验证策略。'},
+      {skill:'flowforge-prototype（按需）', action:'验证最不确定的接口或状态模型', output:'throwaway 原型 + design verdict', why:'只有真实设计问题需要实验时才触发。'},
+      {skill:'flowforge-to-spec', action:'压缩已决需求与设计，不补造决定', output:'可审阅的 feature baseline', why:'同一事实仍只有一个权威位置。'},
+      {skill:'flowforge-plan', action:'切成 execution-ready tracer tickets 与 blocking edges', output:'issues/*.md', why:'每票引用语义设计标题，机器 metadata 保存稳定关联。'},
+      {skill:'flowforge check/frontier', action:'计算图并显示内容风险', output:'Ready / Ready with warnings / Blocked', why:'DAG 是硬事实；质量诊断不成为脆弱状态机。'},
+      {skill:'flowforge-implement', action:'执行 frontier；遇到设计缺口则回流', output:'实现、测试、偏差或新设计问题', why:'执行者不得静默决定会改变架构的事项。'},
+      {skill:'flowforge-review', action:'标准与方案双轴审阅并验证完成', output:'evidence/*.md；关闭或补票', why:'完成由证据支撑，原 ticket 不被日志污染。'}
+    ]
+  }
+};
+
+let model = {};
+function baseModel(kind){
+  const scenario = kind === 'free' ? scenarios.complex : scenarios[kind];
+  return {
+    mode:kind,
+    step:0,
+    phase:'intake',
+    activeSkill:null,
+    artifacts:[],
+    decisions:[],
+    unknowns:kind === 'simple' ? [] : ['composition seam 未决定','迁移顺序未决定'],
+    dag:{ready:[], warnings:[], blocked:[]},
+    diagnostics:[],
+    overrides:[],
+    history:[],
+    scenario
+  };
+}
+function selectScenario(kind){ model=baseModel(kind); render(); }
+function advance(){
+  const steps=model.scenario.steps;
+  if(model.step>=steps.length)return;
+  const s=steps[model.step];
+  model.activeSkill=s.skill;
+  model.history.push(`${s.skill}: ${s.action}`);
+  if(s.output && !s.output.startsWith('不创建')) model.artifacts.push(s.output);
+  if(model.mode!=='simple' && model.step===3){model.unknowns=[];model.decisions.push('module 责任与 composition seam 已确定');}
+  if(s.skill.includes('plan')){
+    model.dag.ready=model.mode==='simple'?['01 exclude non-ticket artifacts']:['01 contract seam','02 trigger lifecycle'];
+    model.dag.warnings=model.mode==='simple'?[]:['02 缺少可在当前环境运行的集成命令'];
+    model.dag.blocked=model.mode==='simple'?[]:['03 application composition ← 01','04 integration proof ← 01,02,03'];
+  }
+  model.step++;
+  model.phase=model.step>=steps.length?'reviewed':s.skill;
+  render();
+}
+function injectWarning(){
+  if(!model.diagnostics.includes('verification-command-missing')) model.diagnostics.push('verification-command-missing');
+  if(!model.dag.warnings.includes('当前 ticket 没有精确验证命令')) model.dag.warnings.push('当前 ticket 没有精确验证命令');
+  render();
+}
+function overrideWarning(){
+  if(!model.overrides.includes('verification-command-missing: 当前环境只能做静态验证')) model.overrides.push('verification-command-missing: 当前环境只能做静态验证');
+  render();
+}
+function reset(){model=baseModel(model.mode);render();}
+function render(){
+  const s=model.scenario;
+  document.getElementById('scenarioTitle').textContent=s.title+(model.mode==='free'?'（自由操作）':'');
+  document.getElementById('scenarioPrompt').textContent=s.prompt;
+  ['simple','complex','free'].forEach(x=>document.getElementById(x+'Tab').classList.toggle('active',model.mode===x));
+  document.getElementById('controls').innerHTML=`<button class="primary" onclick="advance()" ${model.step>=s.steps.length?'disabled':''}>推进下一步</button><button onclick="injectWarning()">注入质量警告</button><button onclick="overrideWarning()">带理由跳过</button><button onclick="reset()">重置</button>`;
+  document.getElementById('timeline').innerHTML=s.steps.map((x,i)=>`<li class="${i<model.step?'done':i===model.step?'current':''}"><strong>${x.skill}</strong><br>${x.action}<br><span class="muted">产出：${x.output}</span></li>`).join('');
+  const current=model.step?s.steps[model.step-1]:null;
+  document.getElementById('explanation').innerHTML=current?`<p><span class="pill">${current.skill}</span></p><p>${current.why}</p><p><strong>状态不是手工流转：</strong>当前 phase 只是界面解释；可执行性由 blockers、未知项和动态诊断计算。</p>`:`<p>从用户原始需求开始。点击“推进下一步”观察 Skill 为什么触发，以及何时创建工件。</p>`;
+  const visible={...model}; delete visible.scenario;
+  document.getElementById('state').textContent=JSON.stringify(visible,null,2);
+}
+selectScenario('simple');
+</script>
+</body>
+</html>

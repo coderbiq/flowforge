@@ -27,14 +27,24 @@ func ParseIssueFile(filePath string) (*Issue, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read issue file: %w", err)
 	}
+	return parseIssueData(filePath, data)
+}
 
+func parseIssueData(filePath string, data []byte) (*Issue, error) {
 	info, err := os.Stat(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("stat issue file: %w", err)
 	}
 
 	baseName := filepath.Base(filePath)
-	featureDir := filepath.Base(filepath.Dir(filepath.Dir(filePath)))
+	featureDir := ""
+	if baseName == "spec.md" || baseName == "map.md" {
+		featureDir = filepath.Base(filepath.Dir(filePath))
+	} else if filepath.Base(filepath.Dir(filePath)) == "issues" {
+		featureDir = filepath.Base(filepath.Dir(filepath.Dir(filePath)))
+	} else {
+		featureDir = filepath.Base(filepath.Dir(filePath))
+	}
 	if featureDir == "." || featureDir == "/" {
 		featureDir = ""
 	}
@@ -60,7 +70,8 @@ func ParseIssueFile(filePath string) (*Issue, error) {
 		ModTime:   info.ModTime(),
 	}
 
-	scanner := bufio.NewScanner(bytes.NewReader(data))
+	_, body, _ := splitFrontmatter(data)
+	scanner := bufio.NewScanner(bytes.NewReader(body))
 	var bodyLines []string
 	inHeader := true
 
@@ -134,34 +145,32 @@ func ParseIssueFile(filePath string) (*Issue, error) {
 	return issue, nil
 }
 
-// DiscoverIssues scans a root directory (e.g. .scratch/) for all issues.
+func splitFrontmatter(data []byte) (frontmatter, body []byte, ok bool) {
+	normalized := bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+	if !bytes.HasPrefix(normalized, []byte("---\n")) {
+		return nil, data, false
+	}
+	rest := normalized[len("---\n"):]
+	end := bytes.Index(rest, []byte("\n---\n"))
+	delimiterLength := len("\n---\n")
+	if end < 0 && bytes.HasSuffix(rest, []byte("\n---")) {
+		end = len(rest) - len("\n---")
+		delimiterLength = len("\n---")
+	}
+	if end < 0 {
+		return nil, data, false
+	}
+	after := end + delimiterLength
+	return rest[:end], rest[after:], true
+}
+
+// DiscoverIssues scans a root directory (e.g. docs/proposals/) for all issues.
 func DiscoverIssues(root string) ([]*Issue, error) {
-	var issues []*Issue
-
-	if _, err := os.Stat(root); os.IsNotExist(err) {
-		return issues, nil
-	}
-
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		// Match any .md inside an issues/ directory or named spec.md
-		if strings.HasSuffix(path, ".md") && (strings.Contains(path, "issues/") || strings.HasSuffix(path, "spec.md")) {
-			issue, parseErr := ParseIssueFile(path)
-			if parseErr == nil && issue != nil {
-				issues = append(issues, issue)
-			}
-		}
-		return nil
-	})
-
+	catalog, err := DiscoverArtifacts(root)
 	if err != nil {
-		return nil, fmt.Errorf("walk issues: %w", err)
+		return nil, err
 	}
+	issues := catalog.ExecutableTickets()
 
 	sort.Slice(issues, func(i, j int) bool {
 		if issues[i].Feature != issues[j].Feature {
