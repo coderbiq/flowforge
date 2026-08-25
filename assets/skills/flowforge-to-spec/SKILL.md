@@ -1,12 +1,14 @@
 ---
 name: flowforge-to-spec
-description: "Turn the current conversation into a spec and publish it to the project issue tracker: no interview, just synthesis of what you've already discussed."
+description: "Turn the current conversation into a spec and publish it to the local wiki: no interview, just synthesis of what you've already discussed."
 disable-model-invocation: true
 ---
 
+When synthesizing navigation, use the contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value).
+
 This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
 
-The issue tracker and triage label vocabulary should have been provided to you. If not, tell the user to run `/flowforge-setup`.
+The spec will be published to the local markdown wiki at `<docs_dir>/proposals/<feature-slug>/spec.md` (default: `docs/proposals/<feature-slug>/spec.md`).
 
 ## Process
 
@@ -16,7 +18,7 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 Check with the user that these seams match their expectations.
 
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. Write the spec using the template below, then write it directly to `<docs_dir>/proposals/<feature-slug>/spec.md`.
 
 <spec-template>
 

@@ -1,32 +1,3 @@
-# FlowForge Agent 配置
-
-> 本文档约束 Agent 如何在 FlowForge 本地优先 Issue Tracker & DAG 引擎体系下协作。
-
-## Commands
-
-- Build (当前平台): `make dev` 或 `go build -trimpath -o bin/flowforge ./cmd/flowforge`
-- Build (所有平台): `make build` 或 `./scripts/build.sh <version> all`
-- Test: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`
-- Lint: `golangci-lint run ./...`
-
-## 核心设计原则
-
-1. **文件负责内容（零摩擦）**：
-   - 所有 Spec、Ticket、Map 均直接通过 Markdown 文件读写（`.scratch/`）。
-   - 严禁设计通过 CLI 传大文本长文本的 API。
-2. **CLI 负责图计算（高确定性）**：
-   - 使用 `flowforge frontier` 获取无阻塞就绪任务队列。
-   - 使用 `flowforge check` 进行 DAG 依赖与循环死锁检查。
-3. **方法论原装集成**：
-   - 采用成熟的敏捷工程方法论体系（`flowforge-*` 命名空间）。
-
-## boundaries
-
-- ✅ **Always**: 直接使用文件工具操作 `.scratch/` 下的 Markdown；使用 `flowforge frontier` 校验执行顺序；变更后运行 `go test ./internal/...`
-- ⚠️ **Ask first**: 修改 Issue Schema 头规范、变更 CLI 接口签名
-- 🚫 **Never**: 引入通过 CLI 传长文本的接口；在 `assets/` 中放不部署的内容
-
-<!-- FLOWFORGE:START -->
 ## Agent skills
 
 When asked to work on a feature, bug, refactor, or complex task in FlowForge, invoke the appropriate skill:
@@ -36,7 +7,7 @@ When asked to work on a feature, bug, refactor, or complex task in FlowForge, in
 | **Route & Guide** | `/flowforge-route` | Unsure which skill to use, or need meta-guidance on the entire workflow |
 | **Triage** | `/flowforge-triage` | Categorize incoming requests/bugs, check out-of-scope, create crisp brief |
 | **Align & Requirements** | `/flowforge-align` | Relentless frontier grilling; inline sync with `CONTEXT.md` & `docs/adr/` |
-| **Spec Synthesis** | `/flowforge-to-spec` | Synthesize consensus into unambiguous specification (`.scratch/<feature>/spec.md`) |
+| **Spec Synthesis** | `/flowforge-to-spec` | Synthesize consensus into unambiguous specification (`<docs_dir>/proposals/<feature>/spec.md`) |
 | **Plan & Slicing** | `/flowforge-plan` | Vertical tracer-bullet slicing with explicit DAG blocking edges (`issues/`) |
 | **Implement & TDD** | `/flowforge-implement` | TDD delivery on pre-agreed seams; close out with dual-axis code review |
 | **Wayfinding** | `/flowforge-wayfinder` | Fog-of-war decision mapping (`map.md`) for high-uncertainty efforts |
@@ -45,4 +16,3 @@ When asked to work on a feature, bug, refactor, or complex task in FlowForge, in
 | **Architecture Probe** | `/flowforge-codebase-design` | Deep module design scan and architectural surface analysis |
 | **Bug Diagnosis** | `/flowforge-diagnose` | Structured hypothesis-driven bug investigation |
 | **Deep Refactoring** | `/flowforge-improve-architecture` | Comprehensive codebase scan and progressive architecture refinement |
-<!-- FLOWFORGE:END -->

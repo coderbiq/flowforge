@@ -2,7 +2,7 @@
 
 **Blocked by:** None
 
-**Status:** open
+**Status:** closed
 
 **What to build:** Every production Skill that authors or consumes proposal artifacts reaches one deployed, versioned contract reference, and packaging tests fail when a Skill pointer is missing.
 
@@ -29,3 +29,11 @@ Skill assets, deployment/upgrade manifest, shared references, asset deployment t
 
 - A clean generated/deployed Skill tree contains every referenced resource and no broken relative pointer.
 - `go test ./internal/command/... ./internal/update/...`
+
+## Completion evidence
+
+- Added one deployed `ARTIFACT-CONTRACT.md` authority with role, packaging, hand-off, diagnostic, and information-value branches.
+- Every production Skill that authors or consumes proposal artifacts points only to its required anchors; Wayfinder is included.
+- Restored all previously broken packaged references, including writing mechanics, prototype branches, deep-module/domain/TDD/triage/teach resources, and wizard template.
+- Deployment tests enforce the required Skill→anchor manifest and resolve every relative file and heading anchor in both source and clean deployed layouts.
+- `make dev`, `go test ./internal/command/... ./internal/update/...`, `git diff --check`, and repeated Standards/Spec review passed; source and embedded Skill trees are synchronized.

@@ -4,6 +4,8 @@ description: Plan a huge chunk of work (more than one agent session can hold) as
 disable-model-invocation: true
 ---
 
+When a decision map publishes proposal tickets, use the contract's [packaging](../_shared/ARTIFACT-CONTRACT.md#packaging) and [hand-off rules](../_shared/ARTIFACT-CONTRACT.md#hand-offs).
+
 A loose idea has arrived, too big for one agent session, and wrapped in fog: the way from here to the **destination** isn't visible yet. Wayfinding is about finding that way, not charging at the destination. This skill charts the way as a **shared map** on the repo's issue tracker, then works its **decision tickets** (questions whose resolution is a decision, not slices of a build to execute) one at a time until the route is clear.
 
 The destination varies per effort, and naming it is the first act of charting: it shapes every ticket. It might be a spec to hand off and iterate on, a decision to lock before planning starts, or a change made in place like a data-structure migration. The map is domain-agnostic: engineering work, course content, whatever fits the shape.
@@ -18,11 +20,11 @@ Every map and ticket is an issue, so it has a **name**: its title. In everything
 
 ## The Map
 
-The map is a single issue on this repo's issue tracker, labelled `wayfinder:map`, the canonical artifact. Its tickets are child issues of the map.
+The map is a single markdown file under `<docs_dir>/proposals/<feature-slug>/map.md` (default: `docs/proposals/<feature-slug>/map.md`). Its tickets are individual markdown files in `<docs_dir>/proposals/<feature-slug>/issues/`.
 
 The map is an **index**, not a store. It lists the decisions made and points at the tickets that hold their detail; a decision lives in exactly one place, its ticket, so the map never restates it, only gists it and links.
 
-**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** The issue tracker should have been provided to you. If not, tell the user to run `/flowforge-setup`. Consult the tracker doc's "Wayfinding operations" section for how _this_ repo expresses them. If no tracker has been provided, default to the local-markdown tracker.
+**Where the map, its child tickets, blocking, and frontier queries physically live:** All live in the proposal directory and are computed via `flowforge frontier` and `flowforge check`.
 
 ### The map body
 

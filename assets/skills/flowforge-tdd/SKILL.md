@@ -3,6 +3,8 @@ name: flowforge-tdd
 description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
 ---
 
+When tests implement a proposal ticket, use the contract's [hand-off verification](../_shared/ARTIFACT-CONTRACT.md#hand-offs) and [diagnostic boundaries](../_shared/ARTIFACT-CONTRACT.md#diagnostics).
+
 # Test-Driven Development
 
 TDD is the red → green loop. This skill is the reference that makes that loop produce tests worth keeping: what a good test is, where tests go, the anti-patterns, and the rules of the loop. Every section applies on every cycle: consult them before and during the loop, not after.

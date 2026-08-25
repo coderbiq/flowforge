@@ -4,6 +4,8 @@ description: Ask which skill or flow fits your situation. A router over the skil
 disable-model-invocation: true
 ---
 
+When routing work that creates or consumes proposal artifacts, use the contract's [authority role boundaries](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority).
+
 # Ask Matt
 
 You don't remember every skill, so ask.
@@ -20,7 +22,7 @@ The route most work travels. You have an idea and want it built.
    - **`/flowforge-prototype`** to answer the question with throwaway code,
    - **`/flowforge-handoff`** back what you learned, and reference it from the original idea thread.
 3. **Branch: is this a multi-session build?**
-   - **Yes** → **`/flowforge-to-spec`** (turn the thread into a spec), then **`/flowforge-plan`** to split it into tracer-bullet tickets, each declaring its **blocking edges**. On a local tracker that's one file per ticket under `.scratch/<feature>/issues/`, worked blockers-first by hand; on a real tracker the edges become native blocking links, so any ticket whose blockers are done can be grabbed: kick off **`/flowforge-implement`** per ticket, **`/clear`ing context between each one**. Each ticket is self-contained, so the last one's context is disposable.
+   - **Yes** → **`/flowforge-to-spec`** (turn the thread into a spec), then **`/flowforge-plan`** to split it into tracer-bullet tickets, each declaring its **blocking edges**. On the local wiki tracker that's one file per ticket under `<docs_dir>/proposals/<feature>/issues/`, worked blockers-first via `flowforge frontier`: kick off **`/flowforge-implement`** per ticket, **`/clear`ing context between each one**. Each ticket is self-contained, so the last one's context is disposable.
    - **No** → **`/flowforge-implement`** right here, in the same context window.
 
    Either way, **`/flowforge-implement`** builds each issue by driving **`/flowforge-tdd`** internally (one red-green slice at a time), then closes out by running **`/flowforge-review`**, a two-axis review (Standards + Spec) of the diff, before committing. Reach for **`/flowforge-tdd`** on its own when you just want to build a concrete behaviour test-first without a full spec, and **`/flowforge-review`** on its own whenever you want to review a branch or PR against a fixed point.

@@ -5,6 +5,8 @@ argument-hint: "What will the next session be used for?"
 disable-model-invocation: true
 ---
 
+When linking durable authorities from temporary session context, use the contract's [hand-off rules](../_shared/ARTIFACT-CONTRACT.md#hand-offs).
+
 Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS - not the current workspace.
 
 Include a "suggested skills" section in the document, naming which skills the next agent should call the Skill tool for.
