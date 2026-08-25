@@ -12,7 +12,7 @@
 ## 核心设计原则
 
 1. **文件负责内容（零摩擦）**：
-   - 所有 Spec、Ticket、Map 均直接通过 Markdown 文件读写（`.scratch/`）。
+   - 所有 Spec、Ticket、Map 均直接通过 Markdown 文件读写（`<docs_dir>/proposals/`）。
    - 严禁设计通过 CLI 传大文本长文本的 API。
 2. **CLI 负责图计算（高确定性）**：
    - 使用 `flowforge frontier` 获取无阻塞就绪任务队列。
@@ -22,7 +22,7 @@
 
 ## boundaries
 
-- ✅ **Always**: 直接使用文件工具操作 `.scratch/` 下的 Markdown；使用 `flowforge frontier` 校验执行顺序；变更后运行 `go test ./internal/...`
+- ✅ **Always**: 直接使用文件工具操作 `<docs_dir>/proposals/` 下的 Markdown；使用 `flowforge frontier` 校验执行顺序；变更后运行 `go test ./internal/...`
 - ⚠️ **Ask first**: 修改 Issue Schema 头规范、变更 CLI 接口签名
 - 🚫 **Never**: 引入通过 CLI 传长文本的接口；在 `assets/` 中放不部署的内容
 
@@ -35,8 +35,9 @@ When asked to work on a feature, bug, refactor, or complex task in FlowForge, in
 |:---|:---|:---|
 | **Route & Guide** | `/flowforge-route` | Unsure which skill to use, or need meta-guidance on the entire workflow |
 | **Triage** | `/flowforge-triage` | Categorize incoming requests/bugs, check out-of-scope, create crisp brief |
-| **Align & Requirements** | `/flowforge-align` | Relentless frontier grilling; inline sync with `CONTEXT.md` & `docs/adr/` |
-| **Spec Synthesis** | `/flowforge-to-spec` | Synthesize consensus into unambiguous specification (`.scratch/<feature>/spec.md`) |
+| **Align & Requirements** | `/flowforge-align` | When requirement outcomes, scope, scenarios, constraints, or terms are unsettled, persist accepted facts and hand design decisions to Solution Design |
+| **Solution Design** | `/flowforge-solution-design` | Own module responsibilities, interfaces, seams, flows, migration, and verification strategy after requirements settle |
+| **Spec Synthesis** | `/flowforge-to-spec` | Synthesize consensus into unambiguous specification (`<docs_dir>/proposals/<feature>/spec.md`) |
 | **Plan & Slicing** | `/flowforge-plan` | Vertical tracer-bullet slicing with explicit DAG blocking edges (`issues/`) |
 | **Implement & TDD** | `/flowforge-implement` | TDD delivery on pre-agreed seams; close out with dual-axis code review |
 | **Wayfinding** | `/flowforge-wayfinder` | Fog-of-war decision mapping (`map.md`) for high-uncertainty efforts |

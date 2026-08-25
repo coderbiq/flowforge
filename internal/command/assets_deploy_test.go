@@ -27,7 +27,7 @@ func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 	t.Helper()
 	required := map[string][]string{
 		"flowforge-align":     {"roles-and-authority", "hand-offs", "information-value"},
-		"flowforge-route":     {"roles-and-authority"},
+		"flowforge-route":     {"roles-and-authority", "hand-offs"},
 		"flowforge-to-spec":   {"roles-and-authority", "hand-offs", "information-value"},
 		"flowforge-plan":      {"packaging", "hand-offs", "information-value"},
 		"flowforge-wayfinder": {"packaging", "hand-offs"},

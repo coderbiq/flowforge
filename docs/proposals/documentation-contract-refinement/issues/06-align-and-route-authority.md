@@ -2,7 +2,7 @@
 
 **Blocked by:** 04
 
-**Status:** open
+**Status:** closed
 
 **What to build:** Incoming work is routed by semantic need, and alignment persists concise requirement authority before handing cross-module design questions to solution design.
 
@@ -29,3 +29,11 @@ Align, Route, and domain-modeling pointers; requirement artifact examples; compa
 - Simple and complex interaction fixtures reach the intended Skill without empty ceremonial artifacts.
 - Requirement-changing unknowns return to Align; design-only open items stay with solution design.
 - Packaged Skill reference tests pass.
+
+## Completion evidence
+
+- Production Align owns requirement authority, persists accepted facts incrementally, and hands module/interface/seam decisions to Solution Design.
+- Production Route selects one semantic owner, supports compact existing-seam work, and creates no readiness or workflow-state artifact.
+- Four exact-prompt routing cases and forbidden-behavior checks are recorded in [Align and Route Production Validation v0.1](../align-route-production-validation-v0.1.md).
+- Standards and Spec re-reviews both passed after correcting pointer triggers, balanced deployment markers, and evidence scope.
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...` and `git diff --check` pass.
