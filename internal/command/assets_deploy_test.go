@@ -35,6 +35,7 @@ func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 		"flowforge-tdd":       {"hand-offs", "diagnostics"},
 		"flowforge-review":    {"roles-and-authority", "information-value"},
 		"flowforge-handoff":   {"hand-offs"},
+		"flowforge-solution-design": {"roles-and-authority", "packaging", "hand-offs", "diagnostics", "information-value"},
 	}
 	for skill, anchors := range required {
 		data, err := os.ReadFile(filepath.Join(root, skill, "SKILL.md"))
