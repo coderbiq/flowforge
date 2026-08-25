@@ -1,0 +1,39 @@
+---
+flowforge:
+  schema: 1
+  role: ticket
+  consumes:
+    requirements:
+      provider-behavior: 2
+    design:
+      provider-composition-seam: 4
+---
+# 04: Remove legacy provider construction
+
+**Blocked by:** 02, 03
+**Status:** open
+
+## Delivery
+
+All provider selection flows through application composition and the legacy entry point is absent.
+
+## Design context
+
+The compatibility path defined by the [provider composition seam](../design.md#provider-composition-seam) can close after [CLI migration](02-migrate-cli.example) and [server migration](03-migrate-server.example), while preserving the required [provider behavior](../requirements.md#provider-behavior).
+
+## Touch points
+
+Legacy web construction entry point and repository call sites.
+
+## Changes
+
+1. Remove the legacy entry point and compatibility adapter.
+2. Remove remaining legacy references.
+
+## Constraints
+
+Concrete provider construction remains encapsulated by the web adapter.
+
+## Done and verify
+
+Repository search finds no legacy callers and all provider behavior tests pass; run `go test ./internal/...` and `rg "legacy provider constructor" .` expecting no matches.

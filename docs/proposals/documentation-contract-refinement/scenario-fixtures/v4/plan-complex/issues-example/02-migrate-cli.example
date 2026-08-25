@@ -1,0 +1,38 @@
+---
+flowforge:
+  schema: 1
+  role: ticket
+  consumes:
+    requirements:
+      provider-behavior: 2
+    design:
+      provider-composition-seam: 4
+---
+# 02: Migrate CLI composition
+
+**Blocked by:** 01
+**Status:** open
+
+## Delivery
+
+CLI startup obtains its configured provider through application composition.
+
+## Design context
+
+This consumer preserves [provider behavior](../requirements.md#provider-behavior) while adopting the selection interface introduced by [application provider selection](01-expand-composition.example) under the approved [provider composition seam](../design.md#provider-composition-seam).
+
+## Touch points
+
+CLI composition root and startup behavior tests.
+
+## Changes
+
+1. Replace direct web construction with application selection.
+
+## Constraints
+
+Missing-configuration behavior remains unchanged.
+
+## Done and verify
+
+CLI startup selects the same provider for configured and missing-configuration cases; run `go test ./internal/command/...`.

@@ -2,7 +2,7 @@
 
 **Blocked by:** 05, 06
 
-**Status:** open
+**Status:** closed
 
 **What to build:** Plan publishes one independently verifiable increment per ticket with genuine DAG edges, locally sufficient design context, ordered decided changes, scoped constraints, and paired completion/verification evidence requirements.
 
@@ -29,3 +29,10 @@ Plan Skill instructions, ticket template/reference, semantic dependency metadata
 - Simple work remains one compact ticket; complex work produces linked tracer tickets with valid blocking edges.
 - Information-value review can delete no retained paragraph without losing a required semantic category.
 - `go run ./cmd/flowforge check --dir docs/proposals`
+
+## Completion evidence
+
+- Production Plan emits schema v1 tickets with Delivery, Design context, human-visible blockers, Touch points, ordered Changes, scoped Constraints, and paired Done and verify semantics.
+- The Skill returns hidden responsibility/interface/seam/flow/order choices to Solution Design and handles inseparable wide refactors as expand–migrate–contract DAGs.
+- [Plan Production Validation v0.1](../plan-production-validation-v0.1.md) links the exact compact and complex-DAG ticket outputs, reproduction commands/results, and design-gap fixture.
+- `flowforge check` and `flowforge frontier` are mandatory post-publication projections; warnings and overrides remain explicit rather than becoming readiness state.

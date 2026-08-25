@@ -1,0 +1,39 @@
+---
+flowforge:
+  schema: 1
+  role: ticket
+  consumes:
+    requirements:
+      provider-behavior: 2
+    design:
+      provider-composition-seam: 4
+---
+# 01: Add application provider selection
+
+**Blocked by:** None
+**Status:** closed
+
+## Delivery
+
+Application composition can select a configured provider while existing web construction remains compatible.
+
+## Design context
+
+Under the required [provider behavior](../requirements.md#provider-behavior), selection belongs to application composition and concrete construction remains in the web adapter. See [provider composition ownership](../design.md#provider-composition-seam).
+
+## Touch points
+
+Application composition interface and web provider adapter.
+
+## Changes
+
+1. Add the selection interface beside the legacy construction path.
+2. Adapt web construction to both paths during migration.
+
+## Constraints
+
+The legacy path remains functional until all consumers migrate.
+
+## Done and verify
+
+Both paths construct equivalent providers; run `go test ./internal/...`.

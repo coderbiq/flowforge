@@ -1,79 +1,53 @@
 ---
 name: flowforge-plan
-description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to the local markdown wiki under proposals.
+description: Convert settled requirement and solution-design authority into independently verifiable tracer tickets with genuine DAG edges. Use when implementation increments and execution order need to be published.
 disable-model-invocation: true
 ---
 
-When publishing or revising tickets, use the contract's [packaging](../_shared/ARTIFACT-CONTRACT.md#packaging), [hand-off](../_shared/ARTIFACT-CONTRACT.md#hand-offs), and [information-value](../_shared/ARTIFACT-CONTRACT.md#information-value) branches.
+# Plan tracer tickets
 
-# To Tickets
-
-Break a plan, spec, or conversation into a set of **tickets**: tracer-bullet vertical slices, each declaring the tickets that **block** it.
+Use the shared contract's [packaging](../_shared/ARTIFACT-CONTRACT.md#packaging), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value). Read [schema v1](../_shared/SCHEMA-V1.md) when publishing ticket metadata.
 
 ## Process
 
-### 1. Gather context
+### 1. Resolve effective authority
 
-Work from whatever is already in the conversation context. If the user passes a reference (a spec path, a proposal name) as an argument, fetch it and read its full content.
+Read the current requirement and solution-design authorities, including their scoped open items and consumed revisions. Plan only areas with settled requirement behavior, responsibility, interfaces, seams, flow/order, migration, and a feasible verification strategy.
 
-### 2. Explore the codebase (optional)
+Inspect the codebase when stable touch points or existing seams are not already known. A planning action that selects or moves a responsibility, interface, seam, information flow, or ordering returns to `flowforge-solution-design` instead of becoming a ticket step.
 
-If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
+### 2. Draft tracer increments
 
-Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
+Each ticket delivers one narrow, end-to-end behavior that can be verified independently in one fresh context. Use only blocking edges that genuinely prevent the increment from starting.
 
-### 3. Draft vertical slices
+For a wide mechanical refactor that cannot land vertically, use expand–migrate–contract: add the compatible form, migrate green batches, then remove the old form after every batch. Keep independent migrations parallel in the DAG.
 
-Break the work into **tracer bullet** tickets.
+Present each proposed title, Delivery, and Blocked by relationship for approval. Revise the graph until those three facts are accepted.
 
-<vertical-slice-rules>
+### 3. Publish execution contracts
 
-- Each slice cuts a narrow but COMPLETE path through every layer (schema, API, UI, tests): vertical, NOT a horizontal slice of one layer
-- A completed slice is demoable or verifiable on its own
-- Each slice is sized to fit in a single fresh context window
-- Any prefactoring should be done first
+Write one schema v1 `role: ticket` file per increment under `<docs_dir>/proposals/<feature>/issues/`. Record reviewed authority revisions in `consumes`; make human-readable semantic links the reading interface. Immediately after the title, retain legacy-compatible fields in this order:
 
-</vertical-slice-rules>
+```markdown
+**Blocked by:** None
+**Status:** open
+```
 
-Give each ticket its **blocking edges**: the other tickets that must complete before it can start. A ticket with no blockers can start immediately.
+Then write only the semantic roles that carry information:
 
-**Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change (rename a column, retype a shared symbol) whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket; green is promised only there.
+- **Delivery:** the single observable increment, stated once.
+- **Design context:** a locally sufficient design summary plus semantic authority links.
+- **Touch points:** stable seams, modules, paths, or symbols needed to locate the work.
+- **Changes:** ordered, already-decided actions.
+- **Constraints:** ticket-specific or easy-to-violate invariants, linked upstream when shared.
+- **Done and verify:** pair each observable completion condition with an exact command or feasible observation method.
 
-### 4. Quiz the user
+Keep `Blocked by` human-visible even when metadata carries consumption. Omit empty roles; do not impose word counts or repeat upstream rationale. A small existing-seam change stays one compact ticket when splitting would add no independent delivery or real edge.
 
-Present the proposed breakdown as a numbered list. For each ticket, show:
+### 4. Validate the published graph
 
-- **Title**: short descriptive name
-- **Blocked by**: which other tickets (if any) must complete first
-- **What it delivers**: the end-to-end behaviour this ticket makes work
+Run `flowforge check --dir <docs_dir>/proposals` and `flowforge frontier --dir <docs_dir>/proposals`. Correct cycles, dangling edges, blockers, and gaps. Explain retained warnings and any exact waiver or explicit gap override; do not persist a readiness phase or rewrite status merely to make work appear executable.
 
-Ask the user:
+## Completion
 
-- Does the granularity feel right? (too coarse / too fine)
-- Are the blocking edges correct: does each ticket only depend on tickets that genuinely gate it?
-- Should any tickets be merged or split further?
-
-Iterate until the user approves the breakdown.
-
-### 5. Publish tickets to the proposal directory
-
-Write one file per ticket under `<docs_dir>/proposals/<feature-slug>/issues/<NN>-<slug>.md` (default: `docs/proposals/<feature-slug>/issues/<NN>-<slug>.md`), numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below: one ticket per file, never a single combined file.
-
-Work the **frontier**: run `flowforge frontier` to find any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
-
-<local-ticket-template>
-
-# <NN>: <Ticket title>
-
-**What to build:** the end-to-end behaviour this ticket makes work, from the user's perspective, not a layer-by-layer implementation list.
-
-**Blocked by:** the numbers/titles of the tickets that gate this one, or "None (can start immediately)".
-
-**Status:** ready-for-agent
-
-- [ ] Acceptance criterion 1
-- [ ] Acceptance criterion 2
-
-</local-ticket-template>
-
-Avoid specific file paths or code snippets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
+Return created ticket links, the approved DAG, consumed authority revisions, diagnostics and dispositions, and the current frontier. Every ticket is independently verifiable, locally sufficient, free of hidden design choices, and small enough for one fresh context.

@@ -1,0 +1,38 @@
+---
+flowforge:
+  schema: 1
+  role: ticket
+  consumes:
+    requirements:
+      provider-behavior: 2
+    design:
+      provider-composition-seam: 4
+---
+# 03: Migrate server composition
+
+**Blocked by:** 01
+**Status:** open
+
+## Delivery
+
+Server startup obtains its configured provider through application composition.
+
+## Design context
+
+This consumer preserves [provider behavior](../requirements.md#provider-behavior) while adopting the selection interface introduced by [application provider selection](01-expand-composition.example) under the approved [provider composition seam](../design.md#provider-composition-seam).
+
+## Touch points
+
+Server composition root and startup behavior tests.
+
+## Changes
+
+1. Replace direct web construction with application selection.
+
+## Constraints
+
+Provider lifecycle and shutdown ordering remain unchanged.
+
+## Done and verify
+
+Server startup and shutdown preserve provider behavior; run `go test ./internal/...`.

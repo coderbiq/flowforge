@@ -1,0 +1,39 @@
+---
+flowforge:
+  schema: 1
+  role: ticket
+  consumes:
+    requirements:
+      warning-count-behavior: 2
+    design:
+      parser-result-seam: 3
+---
+# 01: Expose parser warning count
+
+**Blocked by:** None
+**Status:** open
+
+## Delivery
+
+Parser diagnostics report the number of warnings without changing existing diagnostic entries.
+
+## Design context
+
+The [warning-count behavior](../requirements.md#warning-count-behavior) extends the approved [parser result ownership](../design.md#parser-result-seam).
+
+## Touch points
+
+Parser result type and its diagnostics behavior tests.
+
+## Changes
+
+1. Add the derived warning count to the existing result.
+2. Project the count beside current diagnostics.
+
+## Constraints
+
+Existing diagnostic ordering and contents remain unchanged.
+
+## Done and verify
+
+The parser result exposes the count and existing diagnostics remain stable; run `go test ./internal/tracker/...`.
