@@ -385,4 +385,4 @@ This order establishes deterministic substrate before Skills emit new metadata, 
 
 ## Next work
 
-The interfaces and sequence are sufficiently defined to create tracer-bullet implementation tickets after one final dual-axis design review of the proposal artifacts.
+Tickets 01–10 implemented this sequence. Continue through the production Skills and [incremental adoption guide](incremental-adoption-v0.1.md); use [end-to-end evidence](evidence/end-to-end.md) as the verified baseline.

@@ -6,6 +6,7 @@ flowforge:
   revision: 1
 ---
 
+<a id="artifact-catalog"></a>
 # Artifact Catalog Interface v0.1
 
 **Date:** 2026-08-25  

@@ -1,7 +1,7 @@
 # Minimal Physical Markdown Schema v0.1
 
 **Date:** 2026-08-25  
-**Status:** Approved design baseline; parser and production Skills not yet implemented  
+**Status:** Implemented by tickets 01–04; end-to-end verified
 **Scope:** Physical representation of FlowForge artifact roles and machine traceability
 
 ## Purpose

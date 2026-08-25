@@ -2,7 +2,7 @@
 
 **Blocked by:** 03, 08, 09
 
-**Status:** open
+**Status:** closed
 
 **What to build:** Maintainers can run documented simple and Tangram-style complex scenarios showing adaptive artifacts, deterministic execution order, scoped diagnostics/overrides, legacy compatibility, and evidence-backed completion.
 
@@ -31,3 +31,12 @@ End-to-end fixtures, Tangram compatibility sample, migration guidance, CLI and S
 - Tangram still projects 11 executable legacy tickets and excludes `spec.md`.
 - `go test ./internal/...`
 - `git diff --check`
+
+## Completion evidence
+
+- [End-to-End Production Validation v0.1](../end-to-end-production-validation-v0.1.md) links one actual compact run and this proposal's actual ten-ticket complex run, mapping all 12 coordination cases to evidence.
+- Focused diagnostic tests pass for warnings, scoped gap override, strict precedence, non-overridable blockers, exact waivers, invalid blanket waivers, and stale-waiver detection.
+- The real Tangram backend proposal reports a healthy 11-ticket legacy DAG; its `spec.md` remains non-executable and frontier projects ready `07/08/09` with `11` blocked.
+- [Incremental Adoption Guide v0.1](../incremental-adoption-v0.1.md) preserves local Markdown, legacy tickets, and default v5 execution while introducing schema/revisions/strict policy only where adopted.
+- Every packaged Skill pointer resolves; full internal tests, proposal checks, frontier projection, and whitespace validation pass.
+- Promoted [end-to-end evidence](../evidence/end-to-end.md) records delivered behavior, implementation commits, actual command results, review dispositions, deviations, and the resolved final frontier.

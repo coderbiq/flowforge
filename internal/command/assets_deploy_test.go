@@ -23,18 +23,32 @@ func TestPackagedSkillPointersResolve(t *testing.T) {
 	assertRequiredArtifactContractPointers(t, filepath.Join(target, ".agents", "skills"))
 }
 
+func TestAgentRulesDescribeOptionalSpecNavigation(t *testing.T) {
+	agentRules, err := os.ReadFile(filepath.Join("..", "..", "assets", "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(agentRules)
+	if !strings.Contains(content, "optional non-authoritative navigation; skip compact work") {
+		t.Fatal("AGENTS.md must trigger optional spec navigation without making it authority")
+	}
+	if strings.Contains(content, "Synthesize consensus into unambiguous specification") {
+		t.Fatal("stale authoritative To-Spec pointer returned")
+	}
+}
+
 func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 	t.Helper()
 	required := map[string][]string{
-		"flowforge-align":     {"roles-and-authority", "hand-offs", "information-value"},
-		"flowforge-route":     {"roles-and-authority", "hand-offs"},
-		"flowforge-to-spec":   {"roles-and-authority", "hand-offs", "information-value"},
-		"flowforge-plan":      {"packaging", "hand-offs", "information-value"},
-		"flowforge-wayfinder": {"packaging", "hand-offs"},
-		"flowforge-implement": {"hand-offs", "diagnostics"},
-		"flowforge-tdd":       {"hand-offs", "diagnostics"},
-		"flowforge-review":    {"roles-and-authority", "information-value"},
-		"flowforge-handoff":   {"hand-offs"},
+		"flowforge-align":           {"roles-and-authority", "hand-offs", "information-value"},
+		"flowforge-route":           {"roles-and-authority", "hand-offs"},
+		"flowforge-to-spec":         {"roles-and-authority", "hand-offs", "information-value"},
+		"flowforge-plan":            {"packaging", "hand-offs", "information-value"},
+		"flowforge-wayfinder":       {"packaging", "hand-offs"},
+		"flowforge-implement":       {"hand-offs", "diagnostics"},
+		"flowforge-tdd":             {"hand-offs", "diagnostics"},
+		"flowforge-review":          {"roles-and-authority", "information-value"},
+		"flowforge-handoff":         {"hand-offs"},
 		"flowforge-solution-design": {"roles-and-authority", "packaging", "hand-offs", "diagnostics", "information-value"},
 	}
 	for skill, anchors := range required {

@@ -1,8 +1,8 @@
 # `flowforge-solution-design` Interface Design v0.2
 
 **Date:** 2026-08-25  
-**Status:** Approved and scenario-validated interface baseline; production Skill designed but not implemented  
-**Authority:** Defines the responsibility and external interface of the proposed `flowforge-solution-design` Skill
+**Status:** Implemented by ticket 05; production validation passed
+**Authority:** Defines the responsibility and external interface of the production `flowforge-solution-design` Skill
 
 ## Purpose
 

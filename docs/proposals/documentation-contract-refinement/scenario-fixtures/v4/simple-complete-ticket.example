@@ -1,0 +1,39 @@
+# 01: Repair optional-spec execution navigation
+
+**Blocked by:** None
+**Status:** closed
+
+## Why and delivery
+
+The generated optional spec must navigate to the executable ticket after its fixture is materialized in production layout. The existing link targeted the source-only `issues-example/*.example` path and broke after deployment.
+
+## Design increment
+
+Reuse the existing relative Markdown-link seam. The production overview points to `issues/01-warning-count.md`; no requirement, design, or separate evidence authority is needed.
+
+## Touch points
+
+Optional-spec example and its production validation procedure.
+
+## Changes
+
+1. Point execution navigation at the materialized ticket path.
+2. Verify the target after fixture transformation.
+3. Remove the empty Remaining gaps role found during review.
+
+## Constraints
+
+The spec remains non-executable and deleting it must leave ticket consumption and frontier unchanged.
+
+## Done and verify
+
+Materialize the fixture, confirm `test -f issues/01-warning-count.md`, resolve the link from `spec.md`, then run `flowforge check` and `flowforge frontier` before and after deleting only the spec.
+
+## Completion evidence
+
+- Delivered: the production overview resolves `issues/01-warning-count.md`; empty gap filler is absent.
+- Observed: link target existed; before/after each reported `Checked 1`, healthy DAG, ready `#01`.
+- Standards review: broken production link and empty-role findings corrected; re-review PASS.
+- Specification review: broken execution-navigation finding corrected; re-review PASS.
+- Deviations: none; this reused the approved Markdown-link seam.
+- Implementation: commit `112131d` (`feat: make spec synthesis optional navigation`).

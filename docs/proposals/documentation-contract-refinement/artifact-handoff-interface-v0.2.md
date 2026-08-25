@@ -1,7 +1,7 @@
 # Artifact Hand-off Interface v0.2
 
 **Date:** 2026-08-25  
-**Status:** Approved and scenario-validated interface baseline; schemas and production Skills not yet implemented  
+**Status:** Implemented by tickets 01–10; end-to-end verified
 **Scope:** Requirement → Solution design → Ticket → Evidence
 
 ## Purpose

@@ -6,11 +6,12 @@ flowforge:
   revision: 2
 ---
 
+<a id="documentation-contract-refinement"></a>
 # FlowForge Documentation Contract Refinement
 
 **Version:** 0.2 approved design baseline  
 **Date:** 2026-08-25  
-**Status:** Approved and scenario-validated; ready for implementation planning
+**Status:** Implemented by tickets 01–10; verified by [end-to-end evidence](evidence/end-to-end.md)
 
 This document is the current requirements authority and navigation entry point. Detailed interface documents own their respective design contracts; historical pre-validation baselines live under `history/`.
 
