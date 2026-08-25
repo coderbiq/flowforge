@@ -1,0 +1,34 @@
+---
+flowforge:
+  schema: 1
+  role: evidence
+  id: provider-integration-evidence
+  revision: 1
+  consumes:
+    requirements:
+      provider-behavior: 2
+    design:
+      provider-composition-seam: 4
+---
+# Provider integration evidence
+
+This evidence is promoted because CLI and server tickets share one multi-command integration proof.
+
+## Delivered behavior
+
+CLI and server composition select providers through Application while concrete construction remains in Web.
+
+## Verification results
+
+- `go test ./internal/command/...`: passed CLI configured and missing-configuration behavior.
+- `go test ./internal/server/...`: passed server lifecycle and shutdown ordering.
+- `go test ./internal/...`: passed the integrated repository suite.
+
+## Review dispositions
+
+- Standards: one duplicated adapter finding corrected; re-review passed.
+- Specification: one legacy-caller finding became blocking follow-up ticket `04`; integration close waits for it.
+
+## Deviations and implementation
+
+No authority deviation. Commits `example-cli-migration` and `example-server-migration`; contract removal is tracked separately.

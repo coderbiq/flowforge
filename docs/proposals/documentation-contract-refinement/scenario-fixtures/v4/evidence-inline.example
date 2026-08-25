@@ -1,0 +1,13 @@
+# 01: Expose parser warning count
+
+**Blocked by:** None
+**Status:** closed
+
+## Completion evidence
+
+- Delivered: parser results expose warning count while diagnostic contents and order remain unchanged.
+- Verification: `go test ./internal/tracker/...` passed, including warning-count and diagnostic-stability behavior cases.
+- Standards review: PASS; no findings.
+- Specification review: one stale command-path finding corrected before close; re-review PASS.
+- Deviations: none from consumed requirement/design meaning. The test package path was a factual ticket correction, not a seam change.
+- Implementation: commit `example-warning-count`.
