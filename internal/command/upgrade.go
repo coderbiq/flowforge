@@ -1,11 +1,13 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
+	"flowforge/internal/config"
 	"flowforge/internal/update"
 	"flowforge/internal/version"
 )
@@ -58,20 +60,18 @@ then atomically replaces the current installation.`,
 			}
 
 			if err != nil {
+				if errors.Is(err, update.ErrAlreadyUpToDate) {
+					fmt.Fprintf(cmd.OutOrStdout(), "Already up to date (%s).\n", version.Version)
+					syncProjectAssets(cmd, "✓ Project skills and agent rules synchronized.")
+					return nil
+				}
 				return err
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Upgraded from %s to %s\n",
 				result.OldVersion, result.NewVersion)
 
-			// Automatically synchronize managed assets in the current project if applicable
-			if isProjectDirectory(".") {
-				if err := deployManagedAssets("."); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to synchronize project assets: %v\n", err)
-				} else {
-					fmt.Fprintln(cmd.OutOrStdout(), "✓ Project skills and agent rules updated to latest version.")
-				}
-			}
+			syncProjectAssets(cmd, "✓ Project skills and agent rules updated to latest version.")
 
 			return nil
 		},
@@ -83,4 +83,24 @@ then atomically replaces the current installation.`,
 		"show available upgrade without installing")
 
 	return cmd
+}
+
+func syncProjectAssets(cmd *cobra.Command, successMessage string) {
+	projectRoot, err := config.FindProjectRoot(".")
+	if err != nil {
+		if !isProjectDirectory(".") {
+			return
+		}
+		projectRoot = "."
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to load project configuration: %v\n", err)
+		return
+	}
+	if err := deployManagedAssets(projectRoot, cfg.DocsRoot(projectRoot)); err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to synchronize project assets: %v\n", err)
+		return
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), successMessage)
 }

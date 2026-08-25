@@ -17,9 +17,10 @@ const (
 type Config struct {
 	Version          string                  `yaml:"version" mapstructure:"version"`
 	VersionCheck     bool                    `yaml:"version_check" mapstructure:"version_check"`
-	Projects         []ProjectConfig         `yaml:"projects" mapstructure:"projects"`
-	Wiki             WikiConfig              `yaml:"wiki" mapstructure:"wiki"`
-	KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources" mapstructure:"knowledge_sources"`
+	DocsDir          string                  `yaml:"docs_dir,omitempty" mapstructure:"docs_dir"`
+	Projects         []ProjectConfig         `yaml:"projects,omitempty" mapstructure:"projects"`
+	Wiki             WikiConfig              `yaml:"wiki,omitempty" mapstructure:"wiki"`
+	KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty" mapstructure:"knowledge_sources"`
 }
 
 type ProjectConfig struct {
@@ -42,8 +43,9 @@ type KnowledgeSourceConfig struct {
 }
 
 var defaultConfig = Config{
-	Version:      "2.0.0",
+	Version:      "5.0.0",
 	VersionCheck: true,
+	DocsDir:      "docs",
 	Wiki: WikiConfig{
 		Root: "ff-wiki",
 	},
@@ -65,14 +67,18 @@ func (c *Config) Save(projectRoot string) error {
 	type fileConfig struct {
 		Version          string                  `yaml:"version"`
 		VersionCheck     bool                    `yaml:"version_check"`
-		Projects         []ProjectConfig         `yaml:"projects"`
+		DocsDir          string                  `yaml:"docs_dir,omitempty"`
+		Projects         []ProjectConfig         `yaml:"projects,omitempty"`
+		Wiki             WikiConfig              `yaml:"wiki,omitempty"`
 		KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty"`
 	}
 
 	payload := fileConfig{
 		Version:          c.Version,
 		VersionCheck:     c.VersionCheck,
+		DocsDir:          c.DocsDir,
 		Projects:         c.Projects,
+		Wiki:             c.Wiki,
 		KnowledgeSources: c.KnowledgeSources,
 	}
 
@@ -95,7 +101,10 @@ func (c *Config) Save(projectRoot string) error {
 }
 
 func FindProjectRoot(startDir string) (string, error) {
-	dir := startDir
+	dir, err := filepath.Abs(startDir)
+	if err != nil {
+		return "", fmt.Errorf("resolving start directory: %w", err)
+	}
 	for {
 		configPath := filepath.Join(dir, ConfigDirName, ConfigFileName)
 		if _, err := os.Stat(configPath); err == nil {
@@ -117,6 +126,7 @@ func Load(projectRoot string) (*Config, error) {
 
 	v.SetDefault("version", defaultConfig.Version)
 	v.SetDefault("version_check", defaultConfig.VersionCheck)
+	v.SetDefault("docs_dir", defaultConfig.DocsDir)
 	v.SetDefault("projects", defaultConfig.Projects)
 	v.SetDefault("wiki.root", defaultConfig.Wiki.Root)
 	v.SetDefault("knowledge_sources", []KnowledgeSourceConfig{})
@@ -134,6 +144,34 @@ func Load(projectRoot string) (*Config, error) {
 		return nil, fmt.Errorf("unmarshaling config: %w", err)
 	}
 	return &cfg, nil
+}
+
+func (c *Config) DocsRoot(projectRoot string) string {
+	if c.DocsDir != "" {
+		if filepath.IsAbs(c.DocsDir) {
+			return c.DocsDir
+		}
+		return filepath.Join(projectRoot, c.DocsDir)
+	}
+	return filepath.Join(projectRoot, "docs")
+}
+
+func (c *Config) ProposalsDir(projectRoot string) string {
+	return filepath.Join(c.DocsRoot(projectRoot), "proposals")
+}
+
+func ResolveProposalsDir(startDir string) (string, error) {
+	projectRoot, err := FindProjectRoot(startDir)
+	if err != nil {
+		return filepath.Join(startDir, "docs", "proposals"), nil
+	}
+
+	cfg, err := Load(projectRoot)
+	if err != nil {
+		return "", fmt.Errorf("loading project configuration: %w", err)
+	}
+
+	return cfg.ProposalsDir(projectRoot), nil
 }
 
 func (c *Config) WikiRoot(projectRoot string) string {

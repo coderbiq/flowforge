@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"flowforge/internal/config"
 	"flowforge/internal/tracker"
 )
 
@@ -15,11 +16,15 @@ var (
 func newStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "Display progress overview of all features and tickets in .scratch/",
+		Short: "Display progress overview of all features and tickets in proposals",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := statusDir
 			if dir == "" {
-				dir = ".scratch"
+				var err error
+				dir, err = config.ResolveProposalsDir(".")
+				if err != nil {
+					return err
+				}
 			}
 
 			issues, err := tracker.DiscoverIssues(dir)
@@ -28,7 +33,7 @@ func newStatusCmd() *cobra.Command {
 			}
 
 			if len(issues) == 0 {
-				fmt.Println("No features or issues found in", dir)
+				cmd.Println("No features or issues found in", dir)
 				return nil
 			}
 
@@ -57,8 +62,8 @@ func newStatusCmd() *cobra.Command {
 				pct = (totalResolved * 100) / len(issues)
 			}
 
-			fmt.Printf("FlowForge Local Tracker Status: %d/%d resolved (%d%%)\n", totalResolved, len(issues), pct)
-			fmt.Printf("Frontier Ready: %d | In Progress: %d | Blocked: %d\n\n", len(frontier.Ready), len(frontier.Claimed), len(frontier.Blocked))
+			cmd.Printf("FlowForge Local Tracker Status: %d/%d resolved (%d%%)\n", totalResolved, len(issues), pct)
+			cmd.Printf("Frontier Ready: %d | In Progress: %d | Blocked: %d\n\n", len(frontier.Ready), len(frontier.Claimed), len(frontier.Blocked))
 
 			for feat, list := range byFeature {
 				resCount := 0
@@ -67,7 +72,7 @@ func newStatusCmd() *cobra.Command {
 						resCount++
 					}
 				}
-				fmt.Printf("• Feature: %s [%d/%d done]\n", feat, resCount, len(list))
+				cmd.Printf("• Feature: %s [%d/%d done]\n", feat, resCount, len(list))
 				for _, it := range list {
 					icon := "⚪"
 					if it.Status.IsTerminal() {
@@ -89,7 +94,7 @@ func newStatusCmd() *cobra.Command {
 							icon = "⛔"
 						}
 					}
-					fmt.Printf("    %s #%s %s (%s)\n", icon, it.ID, it.Title, it.Status)
+					cmd.Printf("    %s #%s %s (%s)\n", icon, it.ID, it.Title, it.Status)
 				}
 			}
 
@@ -97,6 +102,6 @@ func newStatusCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&statusDir, "dir", "d", ".scratch", "Directory to scan for issues")
+	cmd.Flags().StringVarP(&statusDir, "dir", "d", "", "Directory to scan for issues (default: <docs_dir>/proposals)")
 	return cmd
 }

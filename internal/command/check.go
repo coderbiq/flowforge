@@ -27,7 +27,11 @@ func newCheckCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := checkDir
 			if dir == "" {
-				dir = config.ResolveProposalsDir(".")
+				var err error
+				dir, err = config.ResolveProposalsDir(".")
+				if err != nil {
+					return err
+				}
 			}
 
 			catalog, err := tracker.DiscoverArtifacts(dir)
@@ -70,32 +74,32 @@ func newCheckCmd() *cobra.Command {
 				return nil
 			}
 
-			fmt.Printf("Checked %d issues in %s\n", len(issues), dir)
+			cmd.Printf("Checked %d issues in %s\n", len(issues), dir)
 			printDiagnostics(cmd, catalog.Diagnostics)
 
 			if isValid {
-				fmt.Println("✓ Dependency graph is healthy. No cycles or dangling references found.")
+				cmd.Println("✓ Dependency graph is healthy. No cycles or dangling references found.")
 				return nil
 			}
 
 			if result.HasCycles {
-				fmt.Println("\n❌ ERROR: Circular dependency detected:")
+				cmd.Println("\n❌ ERROR: Circular dependency detected:")
 				for i, cycle := range result.Cycles {
-					fmt.Printf("  Cycle #%d: %v\n", i+1, cycle)
+					cmd.Printf("  Cycle #%d: %v\n", i+1, cycle)
 				}
 			}
 
 			if len(result.Dangling) > 0 {
-				fmt.Println("\n⚠️ WARNING: Dangling references (blocked by non-existent tickets):")
+				cmd.Println("\n⚠️ WARNING: Dangling references (blocked by non-existent tickets):")
 				for _, d := range result.Dangling {
-					fmt.Printf("  Issue %s is blocked by missing #%s\n", d.IssueID, d.BlockerID)
+					cmd.Printf("  Issue %s is blocked by missing #%s\n", d.IssueID, d.BlockerID)
 				}
 			}
 
 			if len(result.SelfBlocked) > 0 {
-				fmt.Println("\n❌ ERROR: Self-dependency detected:")
+				cmd.Println("\n❌ ERROR: Self-dependency detected:")
 				for _, s := range result.SelfBlocked {
-					fmt.Printf("  Issue %s is blocked by itself\n", s)
+					cmd.Printf("  Issue %s is blocked by itself\n", s)
 				}
 			}
 

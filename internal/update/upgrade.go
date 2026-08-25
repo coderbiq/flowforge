@@ -29,6 +29,8 @@ func currentPlatform() string {
 	return fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
 }
 
+var ErrAlreadyUpToDate = fmt.Errorf("already up to date")
+
 type UpgradeResult struct {
 	OldVersion string
 	NewVersion string
@@ -91,8 +93,12 @@ func UpgradeToVersion(manifest *Manifest, currentVersion, targetVersion string) 
 		}
 	}
 
-	if CompareVersions(manifest.Version, currentVersion) <= 0 && targetVersion != currentVersion {
-		return nil, fmt.Errorf("target version %s is not newer than current version %s", manifest.Version, currentVersion)
+	comparison := CompareVersions(manifest.Version, currentVersion)
+	if comparison == 0 {
+		return nil, fmt.Errorf("%w: target version %s is not newer than current version %s", ErrAlreadyUpToDate, manifest.Version, currentVersion)
+	}
+	if comparison < 0 {
+		return nil, fmt.Errorf("target version %s is older than current version %s", manifest.Version, currentVersion)
 	}
 
 	platform := currentPlatform()

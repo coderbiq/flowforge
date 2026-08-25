@@ -11,20 +11,26 @@ import (
 	"strings"
 )
 
-func deployManagedAssets(targetDir string) error {
+func deployManagedAssets(targetDir string, docsRoot string) error {
 	assetsDir, cleanup, err := locateAssetsDir()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
+	if docsRoot == "" {
+		docsRoot = filepath.Join(targetDir, "docs")
+	} else if !filepath.IsAbs(docsRoot) {
+		docsRoot = filepath.Join(targetDir, docsRoot)
+	}
+
 	// Deploy skills into .agents/skills/
 	if err := copyDir(filepath.Join(assetsDir, "skills"), filepath.Join(targetDir, ".agents", "skills"), true); err != nil {
 		return fmt.Errorf("deploying skills: %w", err)
 	}
 
-	// Deploy agent documentation rules into docs/agents/
-	if err := copyDir(filepath.Join(assetsDir, "agents"), filepath.Join(targetDir, "docs", "agents"), true); err != nil {
+	// Deploy agent documentation rules into <docsRoot>/agents/.
+	if err := copyDir(filepath.Join(assetsDir, "agents"), filepath.Join(docsRoot, "agents"), true); err != nil {
 		return fmt.Errorf("deploying agent rules: %w", err)
 	}
 
@@ -176,7 +182,6 @@ func isAssetsDir(path string) bool {
 
 func isProjectDirectory(dir string) bool {
 	indicators := []string{
-		".scratch",
 		".agents/skills",
 		"docs/agents",
 		"AGENTS.md",

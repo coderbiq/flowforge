@@ -30,7 +30,11 @@ and outputs the exact list of unblocked, executable tasks.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := frontierDir
 			if dir == "" {
-				dir = config.ResolveProposalsDir(".")
+				var err error
+				dir, err = config.ResolveProposalsDir(".")
+				if err != nil {
+					return err
+				}
 			}
 
 			catalog, err := tracker.DiscoverArtifacts(dir)

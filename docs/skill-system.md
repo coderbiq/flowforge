@@ -33,6 +33,6 @@ FlowForge 全量采用 `mattpocock/skills` 的敏捷方法论规范。
 
 ## 2. 工件与流转规范
 
-1. **工件物理化**：所有 Spec 与 Ticket 物理存在于 `.scratch/<feature>/` 下的独立 Markdown 文件中。
-2. **知识当场建**：在 grilling 与 triage 过程中即刻将领域名词写入 `CONTEXT.md`，重要架构决策写入 `docs/adr/`，不再延后合流。
+1. **工件物理化**：所有 Spec 与 Ticket 物理存在于 `<docs_dir>/proposals/<feature>/` 下的独立 Markdown 文件中。
+2. **知识当场建**：在 grilling 与 triage 过程中即刻将领域名词写入 `<docs_dir>/CONTEXT.md`，重要架构决策写入 `<docs_dir>/adr/`，不再延后合流。
 3. **依赖图驱动**：切片通过 `Blocked by:` 建立 DAG，由 `flowforge frontier` 驱动执行。

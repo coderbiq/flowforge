@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -319,6 +320,24 @@ func TestE2E_SelfupdateApply_ReplacesBinaryCorrectly(t *testing.T) {
 
 	if bytes.HasPrefix(resultBytes, []byte{0x50, 0x4b}) {
 		t.Fatal("result binary starts with zip magic bytes — archive was NOT decompressed!")
+	}
+}
+
+func TestUpgradeToVersion_AlreadyUpToDate(t *testing.T) {
+	for _, current := range []string{"5.0.2", "v5.0.2"} {
+		manifest := &Manifest{Version: "v5.0.2"}
+		_, err := UpgradeToVersion(manifest, current, "v5.0.2")
+		if !errors.Is(err, ErrAlreadyUpToDate) {
+			t.Fatalf("current %q: expected ErrAlreadyUpToDate, got %v", current, err)
+		}
+	}
+}
+
+func TestUpgradeToVersion_RejectsDowngradeDistinctly(t *testing.T) {
+	manifest := &Manifest{Version: "v5.0.1"}
+	_, err := UpgradeToVersion(manifest, "v5.0.2", "v5.0.1")
+	if err == nil || errors.Is(err, ErrAlreadyUpToDate) {
+		t.Fatalf("expected distinct downgrade error, got %v", err)
 	}
 }
 

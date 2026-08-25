@@ -13,8 +13,8 @@ Most repos have a single context:
 
 ```
 /
-├── CONTEXT.md
-├── docs/
+├── <docs_dir>/
+│   ├── CONTEXT.md
 │   └── adr/
 │       ├── 0001-event-sourced-orders.md
 │       └── 0002-postgres-for-write-model.md
@@ -37,7 +37,7 @@ If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The ma
 │       └── docs/adr/
 ```
 
-Create files lazily: only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+Resolve `<docs_dir>` from `.flowforge/config.yaml` (default `docs`). Create files lazily: only when you have something to write. If no `<docs_dir>/CONTEXT.md` exists, create one when the first term is resolved. If no `<docs_dir>/adr/` exists, create it when the first ADR is needed.
 
 ## During the session
 

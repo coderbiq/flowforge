@@ -33,6 +33,11 @@ func (s *ConfigService) Get(key string) (string, error) {
 		return s.getProjectConfig(key)
 	case key == "version_check":
 		return fmt.Sprintf("%t", s.fileStore.Config().VersionCheck), nil
+	case key == "docs_dir" || key == "docsDir":
+		if s.fileStore.Config().DocsDir != "" {
+			return s.fileStore.Config().DocsDir, nil
+		}
+		return "docs", nil
 	default:
 		return "", fmt.Errorf("unknown config key: %s", key)
 	}
@@ -49,6 +54,14 @@ func (s *ConfigService) Set(key, value string) error {
 		if err := s.setVersionCheck(value); err != nil {
 			return err
 		}
+	case key == "docs_dir" || key == "docsDir":
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("docs_dir must not be empty")
+		}
+		s.fileStore.Config().DocsDir = value
+		if err := s.fileStore.Save(); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown config key: %s", key)
 	}
@@ -58,6 +71,11 @@ func (s *ConfigService) Set(key, value string) error {
 func (s *ConfigService) List() (map[string]string, error) {
 	result := make(map[string]string)
 	result["version_check"] = fmt.Sprintf("%t", s.fileStore.Config().VersionCheck)
+	docsDir := s.fileStore.Config().DocsDir
+	if docsDir == "" {
+		docsDir = "docs"
+	}
+	result["docs_dir"] = docsDir
 	for _, p := range s.fileStore.Config().Projects {
 		result[fmt.Sprintf("project.%s.wikiRoot", p.ID)] = p.WikiRoot
 		result[fmt.Sprintf("project.%s.srcDirs", p.ID)] = fmt.Sprintf("%v", p.SrcDirs)

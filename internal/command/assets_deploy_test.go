@@ -16,7 +16,7 @@ func TestPackagedSkillPointersResolve(t *testing.T) {
 	assertRequiredArtifactContractPointers(t, filepath.Join(repoRoot, "assets", "skills"))
 
 	target := t.TempDir()
-	if err := deployManagedAssets(target, "docs"); err != nil {
+	if err := deployManagedAssets(target, filepath.Join(target, "docs")); err != nil {
 		t.Fatal(err)
 	}
 	assertSkillPointersResolve(t, filepath.Join(target, ".agents", "skills"))
@@ -34,6 +34,20 @@ func TestAgentRulesDescribeOptionalSpecNavigation(t *testing.T) {
 	}
 	if strings.Contains(content, "Synthesize consensus into unambiguous specification") {
 		t.Fatal("stale authoritative To-Spec pointer returned")
+	}
+}
+
+func TestDeployManagedAssetsUsesAbsoluteDocsRoot(t *testing.T) {
+	projectRoot := t.TempDir()
+	docsRoot := filepath.Join(t.TempDir(), "wiki")
+	if err := deployManagedAssets(projectRoot, docsRoot); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(docsRoot, "agents", "issue-tracker.md")); err != nil {
+		t.Fatalf("agent rules were not deployed to configured docs root: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "docs", "agents", "issue-tracker.md")); !os.IsNotExist(err) {
+		t.Fatalf("default docs root was unexpectedly populated: %v", err)
 	}
 }
 

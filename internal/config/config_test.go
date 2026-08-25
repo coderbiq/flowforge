@@ -9,8 +9,15 @@ import (
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
 
-	if cfg.Version != "2.0.0" {
-		t.Errorf("expected version 2.0.0, got %s", cfg.Version)
+	if cfg.Version != "5.0.0" {
+		t.Errorf("expected version 5.0.0, got %s", cfg.Version)
+	}
+
+	if cfg.DocsDir != "docs" {
+		t.Errorf("expected default docs_dir docs, got %s", cfg.DocsDir)
+	}
+	if cfg.Wiki.Root != "ff-wiki" {
+		t.Errorf("expected legacy wiki root ff-wiki, got %s", cfg.Wiki.Root)
 	}
 
 	if len(cfg.Projects) != 0 {
@@ -67,7 +74,7 @@ func TestLoadConfigMissing(t *testing.T) {
 		t.Fatalf("expected no error for missing config, got: %v", err)
 	}
 
-	if cfg.Version != "2.0.0" {
+	if cfg.Version != "5.0.0" {
 		t.Errorf("expected default version, got %s", cfg.Version)
 	}
 
@@ -83,7 +90,7 @@ func TestFindProjectRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte("version: 2.0.0"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte("version: 5.0.0"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -182,5 +189,47 @@ func TestWikiRootForProject(t *testing.T) {
 
 	if _, err := cfg.WikiRootForProject("/project", "missing"); err == nil {
 		t.Fatalf("expected missing project to fail")
+	}
+}
+
+func TestResolveProposalsDir(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	configContent := `version: "5.0.0"
+docs_dir: "my-docs"
+`
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	subDir := filepath.Join(tmpDir, "some", "nested", "path")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	resolved, err := ResolveProposalsDir(subDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := filepath.Join(tmpDir, "my-docs", "proposals")
+	if resolved != expected {
+		t.Fatalf("expected %s, got %s", expected, resolved)
+	}
+}
+
+func TestDocsRootSupportsRelativeAndAbsolutePaths(t *testing.T) {
+	projectRoot := t.TempDir()
+	relative := Config{DocsDir: "wiki"}
+	if got, want := relative.DocsRoot(projectRoot), filepath.Join(projectRoot, "wiki"); got != want {
+		t.Fatalf("relative docs root = %s, want %s", got, want)
+	}
+	absoluteRoot := filepath.Join(t.TempDir(), "external-wiki")
+	absolute := Config{DocsDir: absoluteRoot}
+	if got := absolute.DocsRoot(projectRoot); got != absoluteRoot {
+		t.Fatalf("absolute docs root = %s, want %s", got, absoluteRoot)
 	}
 }

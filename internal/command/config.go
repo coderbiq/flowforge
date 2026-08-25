@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/spf13/cobra"
 
@@ -36,16 +37,14 @@ func newConfigListCmd() *cobra.Command {
 			}
 
 			fmt.Fprintln(cmd.OutOrStdout(), "Project Config:")
-			for k, v := range values {
-				if len(k) > 7 && k[:8] == "project." {
-					fmt.Fprintf(cmd.OutOrStdout(), "  %s = %s\n", k, v)
-				}
+			keys := make([]string, 0, len(values))
+			for key := range values {
+				keys = append(keys, key)
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), "\nRuntime State:")
-			for k, v := range values {
-				if len(k) > 7 && k[:8] == "runtime." {
-					fmt.Fprintf(cmd.OutOrStdout(), "  %s = %s\n", k, v)
-				}
+			sort.Strings(keys)
+			for _, k := range keys {
+				v := values[k]
+				fmt.Fprintf(cmd.OutOrStdout(), "  %s = %s\n", k, v)
 			}
 			return nil
 		},

@@ -17,8 +17,8 @@
    - `flowforge check`：校验 DAG 依赖图合法性，执行环检测（Cycle Detection）与悬空依赖排查。
 
 3. **方法论原汁原味**：
-   - 全量接入 `mattpocock/skills`（18 个标准 Skill），涵盖 User-invoked 编排与 Model-invoked 纪律原语。
-   - 废弃自造的卡片体系与多级工作记忆，统一使用 `CONTEXT.md`、`docs/adr/` 与 `.scratch/`。
+   - 以成熟工程方法为基础部署 `flowforge-*` Skill 套件，涵盖显式编排与模型调用的纪律原语。
+   - 统一使用 `<docs_dir>/CONTEXT.md`、`<docs_dir>/adr/` 与 `<docs_dir>/proposals/`。
 
 ---
 
@@ -33,16 +33,17 @@
                             │ 依赖/读写 Markdown
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│             本地 Markdown 文件 (.scratch/ & CONTEXT.md)     │
-│  .scratch/<feature>/spec.md                                 │
-│  .scratch/<feature>/issues/<NN>-<slug>.md                   │
-│  .scratch/<effort>/map.md                                   │
+│          本地统一 Wiki 文件 (<docs_dir>/ & CONTEXT.md)       │
+│  <docs_dir>/proposals/<feature>/spec.md                     │
+│  <docs_dir>/proposals/<feature>/issues/<NN>-<slug>.md       │
+│  <docs_dir>/proposals/<feature>/map.md                      │
 └───────────────────────────▲─────────────────────────────────┘
                             │
                             │ 扫描 & 拓扑计算
 ┌───────────────────────────┴─────────────────────────────────┐
 │                 FlowForge Go CLI 引擎                       │
-│  flowforge init       ──▶ 一键铺设 skills 与 docs/agents/   │
+│  flowforge init       ──▶ 一键铺设 skills 与 <docs_dir>/agents/ │
+│  flowforge config     ──▶ 管理 docs_dir 等项目配置          │
 │  flowforge frontier   ──▶ 毫秒级计算就绪队列 (无阻塞任务)   │
 │  flowforge check      ──▶ DAG 环检测与死锁排查              │
 │  flowforge status     ──▶ 全局任务状态汇总                  │
