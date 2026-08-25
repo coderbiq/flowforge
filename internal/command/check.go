@@ -3,71 +3,75 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
+	"flowforge/internal/config"
 	"flowforge/internal/tracker"
 )
 
 var (
-	checkDir  string
-	checkJSON bool
+	checkDir    string
+	checkJSON   bool
+	checkStrict bool
 )
 
 func newCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check",
 		Short: "Validate issue dependency graph for cycles, deadlocks, and dangling links",
-		Long: `Scans .scratch/ issues, constructs the dependency DAG, and detects:
+		Long: `Scans proposal issues, constructs the dependency DAG, and detects:
 1. Circular dependencies (deadlocks)
 2. Dangling references (blocked by non-existent tickets)
 3. Self-dependencies`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := checkDir
 			if dir == "" {
-				dir = ".scratch"
+				dir = config.ResolveProposalsDir(".")
 			}
 
-			issues, err := tracker.DiscoverIssues(dir)
+			catalog, err := tracker.DiscoverArtifacts(dir)
 			if err != nil {
-				return fmt.Errorf("discovering issues in %s: %w", dir, err)
+				return fmt.Errorf("discovering artifacts in %s: %w", dir, err)
 			}
-
-			if len(issues) == 0 {
-				if checkJSON {
-					fmt.Println("{\"valid\":true,\"issues_count\":0}")
-					return nil
-				}
-				fmt.Println("No issues found in", dir)
-				return nil
-			}
+			issues := catalog.Tickets
 
 			g := tracker.BuildGraph(issues)
 			result := g.CheckDependencies()
 
 			isValid := !result.HasCycles && len(result.Dangling) == 0 && len(result.SelfBlocked) == 0
+			for _, diagnostic := range catalog.Diagnostics {
+				if diagnostic.Waiver != nil {
+					continue
+				}
+				if diagnostic.Severity == tracker.SeverityBlocker || (checkStrict && (diagnostic.Severity == tracker.SeverityGap || diagnostic.Severity == tracker.SeverityWarning)) {
+					isValid = false
+				}
+			}
 
 			if checkJSON {
 				out := map[string]interface{}{
-					"valid":        isValid,
-					"issues_count": len(issues),
-					"cycles":       result.Cycles,
-					"dangling":     result.Dangling,
-					"self_blocked": result.SelfBlocked,
+					"valid":           isValid,
+					"issues_count":    len(issues),
+					"cycles":          result.Cycles,
+					"dangling":        result.Dangling,
+					"self_blocked":    result.SelfBlocked,
+					"diagnostics":     catalog.Diagnostics,
+					"artifacts_count": len(catalog.Artifacts),
 				}
 				data, err := json.MarshalIndent(out, "", "  ")
 				if err != nil {
 					return err
 				}
-				fmt.Println(string(data))
+				cmd.Println(string(data))
 				if !isValid {
-					os.Exit(1)
+					return errPolicyViolation
 				}
 				return nil
 			}
 
 			fmt.Printf("Checked %d issues in %s\n", len(issues), dir)
+			printDiagnostics(cmd, catalog.Diagnostics)
 
 			if isValid {
 				fmt.Println("✓ Dependency graph is healthy. No cycles or dangling references found.")
@@ -95,13 +99,13 @@ func newCheckCmd() *cobra.Command {
 				}
 			}
 
-			os.Exit(1)
-			return nil
+			return errPolicyViolation
 		},
 	}
 
-	cmd.Flags().StringVarP(&checkDir, "dir", "d", ".scratch", "Directory to scan for issues")
+	cmd.Flags().StringVarP(&checkDir, "dir", "d", "", "Directory to scan for issues (default: <docs_dir>/proposals)")
 	cmd.Flags().BoolVar(&checkJSON, "json", false, "Output in JSON format")
+	cmd.Flags().BoolVar(&checkStrict, "strict", false, "Make unwaived warnings and gaps fail validation")
 
 	return cmd
 }
