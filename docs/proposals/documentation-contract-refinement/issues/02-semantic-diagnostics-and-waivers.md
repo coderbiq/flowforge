@@ -2,7 +2,7 @@
 
 **Blocked by:** 01
 
-**Status:** open
+**Status:** closed
 
 **What to build:** The Catalog deterministically explains stale or missing authorities, scoped gaps/blockers, and exact reasoned waivers from current Markdown files without inferring prose quality or persisting readiness.
 
@@ -29,3 +29,11 @@ Catalog identity index, authority areas and revisions, Markdown link resolution,
 
 - Tests cover duplicate/missing/future identities, stale revisions, link mismatches, scoped open items, and valid/invalid/stale waivers.
 - `go test ./internal/tracker/...`
+
+## Completion evidence
+
+- Catalog now resolves whole-artifact and area authorities, feature-local and explicit cross-feature consumption, semantic Markdown targets, and scoped open items.
+- Diagnostics cover duplicate, missing, stale, future, missing-link, untracked-link, invalid anchor/scope, and invalid/stale waiver cases without mutating severity.
+- Exact waivers retain the original diagnostic and apply deterministically to all projections owned by the targeted open item.
+- `go test ./internal/tracker/...`, `go test ./internal/...`, and `git diff --check` passed.
+- Standards and Spec reviews were repeated until no reported correctness issue remained; invalid authorities are excluded from the identity index.

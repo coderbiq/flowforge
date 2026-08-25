@@ -180,6 +180,130 @@ func TestRepositoryAndTangramProposalLayouts(t *testing.T) {
 	}
 }
 
+func TestSemanticDiagnosticsAndExactWaiver(t *testing.T) {
+	root := t.TempDir()
+	feature := filepath.Join(root, "feature")
+	issues := filepath.Join(feature, "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(path, body string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(filepath.Join(feature, "design.md"), `---
+flowforge:
+  schema: 1
+  role: design
+  id: feature-design
+  areas:
+    route-seam: {revision: 3, anchor: route-seam}
+  open_items:
+    - {id: verify-route, diagnostic: verification-unselected, severity: gap, affects: [02], anchor: verify-route}
+---
+<a id="route-seam"></a>
+## Route seam
+<a id="verify-route"></a>
+## Verification remains open
+`)
+	write(filepath.Join(issues, "02-consume.md"), `---
+flowforge:
+  schema: 1
+  role: ticket
+  consumes:
+    design: {route-seam: 2, missing-seam: 1}
+  waivers:
+    - {diagnostic: upstream-changed, target: route-seam, reason: reviewed unchanged request shape}
+---
+# 02: Consume
+**Status:** open
+**Blocked by:** None
+See [route seam](../design.md#route-seam).
+`)
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertDiagnostic(t, catalog.Diagnostics, "missing-authority", filepath.Join(issues, "02-consume.md"))
+	assertDiagnostic(t, catalog.Diagnostics, "verification-unselected", filepath.Join(issues, "02-consume.md"))
+	for _, d := range catalog.Diagnostics {
+		if d.Code == "upstream-changed" {
+			if d.Waiver == nil || d.Waiver.Reason == "" {
+				t.Fatal("exact waiver was not attached")
+			}
+			return
+		}
+	}
+	t.Fatal("missing upstream-changed diagnostic")
+}
+
+func TestSemanticDiagnosticFailureMatrix(t *testing.T) {
+	root := t.TempDir()
+	feature := filepath.Join(root, "feature")
+	issues := filepath.Join(feature, "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(path, body string) {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(filepath.Join(feature, "design-a.md"), "---\nflowforge:\n  schema: 1\n  role: design\n  areas:\n    shared: {revision: 2, anchor: shared}\n  open_items:\n    - {id: bad-scope, diagnostic: design-gap, severity: gap, affects: [99], anchor: shared}\n---\n<a id=\"shared\"></a>\n")
+	write(filepath.Join(feature, "design-b.md"), "---\nflowforge:\n  schema: 1\n  role: design\n  areas:\n    shared: {revision: 3, anchor: shared}\n    invalid: {revision: 0, anchor: missing}\n---\n<a id=\"shared\"></a>\n")
+	write(filepath.Join(feature, "design-c.md"), "---\nflowforge:\n  schema: 1\n  role: design\n  areas:\n    future: {revision: 2, anchor: future}\n    scoped: {revision: 1, anchor: scoped}\n  open_items:\n    - {id: scoped-gap, diagnostic: scoped-design-gap, severity: gap, affects: [scoped], anchor: scoped}\n---\n<a id=\"future\"></a>\n<a id=\"scoped\"></a>\n")
+	write(filepath.Join(issues, "01-consumer.md"), "---\nflowforge:\n  schema: 1\n  role: ticket\n  consumes:\n    design: {shared: 4, future: 4, scoped: 1}\n  waivers:\n    - {diagnostic: upstream-changed, target: '*', reason: blanket}\n    - {diagnostic: absent-code, target: shared, reason: old}\n---\n# 01: Consumer\n**Status:** open\n**Blocked by:** None\nSee [scoped](../design-c.md#scoped).\n")
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(issues, "01-consumer.md")
+	assertDiagnostic(t, catalog.Diagnostics, "duplicate-semantic-id", filepath.Join(feature, "design-b.md"))
+	assertDiagnostic(t, catalog.Diagnostics, "duplicate-semantic-id", path)
+	assertDiagnostic(t, catalog.Diagnostics, "missing-anchor", filepath.Join(feature, "design-b.md"))
+	assertDiagnostic(t, catalog.Diagnostics, "invalid-open-item", filepath.Join(feature, "design-a.md"))
+	assertDiagnostic(t, catalog.Diagnostics, "invalid-waiver", path)
+	assertDiagnostic(t, catalog.Diagnostics, "stale-waiver", path)
+	assertDiagnostic(t, catalog.Diagnostics, "future-consumed-revision", path)
+	assertDiagnostic(t, catalog.Diagnostics, "missing-human-link", path)
+	assertDiagnostic(t, catalog.Diagnostics, "scoped-design-gap", path)
+}
+
+func TestCrossFeatureSemanticLinksAndReverseMismatch(t *testing.T) {
+	root := t.TempDir()
+	for _, feature := range []string{"producer", "consumer"} {
+		if err := os.MkdirAll(filepath.Join(root, feature, "issues"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	producer := filepath.Join(root, "producer", "design.md")
+	if err := os.WriteFile(producer, []byte("---\nflowforge:\n  schema: 1\n  role: design\n  areas:\n    route: {revision: 2, anchor: route}\n---\n<a id=\"route\"></a>\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	linked := filepath.Join(root, "consumer", "issues", "01-linked.md")
+	if err := os.WriteFile(linked, []byte("---\nflowforge:\n  schema: 1\n  role: ticket\n  consumes:\n    design: {producer/route: 2}\n---\n# 01: Linked\n**Status:** open\n**Blocked by:** None\nSee [route](../../producer/design.md#route).\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	untracked := filepath.Join(root, "consumer", "issues", "02-untracked.md")
+	if err := os.WriteFile(untracked, []byte("---\nflowforge:\n  schema: 1\n  role: ticket\n---\n# 02: Untracked\n**Status:** open\n**Blocked by:** None\nSee [route](../../producer/design.md#route).\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range catalog.Diagnostics {
+		if d.Artifact == linked && d.Code == "missing-human-link" {
+			t.Fatalf("valid cross-feature link rejected: %#v", d)
+		}
+	}
+	assertDiagnostic(t, catalog.Diagnostics, "untracked-upstream", untracked)
+}
+
 func assertDiagnostic(t *testing.T, diagnostics []tracker.Diagnostic, code tracker.DiagnosticCode, path string) {
 	t.Helper()
 	for _, diagnostic := range diagnostics {
