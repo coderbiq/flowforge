@@ -2,7 +2,7 @@
 
 **Blocked by:** 05, 06
 
-**Status:** open
+**Status:** closed
 
 **What to build:** `flowforge-to-spec` creates a compact review/navigation entry point over existing requirement and design authorities without becoming a duplicate authority or inventing missing decisions.
 
@@ -27,3 +27,10 @@ To-spec Skill, spec role metadata, semantic link examples, information-value che
 
 - A generated spec contains no copied authority section and never enters issue count or frontier.
 - Deleting the optional spec leaves authoritative traceability intact.
+
+## Completion evidence
+
+- Production To-Spec creates navigation only for multi-session, external-review, or multi-authority features and explicitly skips compact work.
+- The generated schema v1 `role: spec` records consumed revisions, labels itself non-executable/non-authoritative, and links scope, decisions, execution, verification, and scoped gaps without copying authority.
+- [To-Spec Production Validation v0.1](../to-spec-production-validation-v0.1.md) links the exact generated overview and records identical Catalog/DAG projections before and after deleting it.
+- Missing decisions return to their owning Skill; scoped open items remain visible rather than being invented away.

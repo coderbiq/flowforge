@@ -1,0 +1,25 @@
+---
+flowforge:
+  schema: 1
+  role: spec
+  consumes:
+    requirements:
+      warning-count-behavior: 2
+    design:
+      parser-result-seam: 3
+---
+# Parser warning-count navigation
+
+This file is non-executable navigation, not requirement or design authority.
+
+## Scope
+
+Expose a warning count while preserving diagnostics. See the authoritative [observable behavior](requirements.md#warning-count-behavior).
+
+## Key decision
+
+The count extends the existing result rather than adding a new diagnostics seam. See [parser result ownership](design.md#parser-result-seam).
+
+## Execution and verification
+
+Follow the compact [warning-count ticket](issues/01-warning-count.md), whose Done and verify section owns the executable observation command.

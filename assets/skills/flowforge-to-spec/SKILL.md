@@ -1,77 +1,45 @@
 ---
 name: flowforge-to-spec
-description: "Turn the current conversation into a spec and publish it to the local wiki: no interview, just synthesis of what you've already discussed."
+description: Create an optional compact navigation and review baseline over existing requirement, design, ticket, verification, and gap authorities. Use for multi-session work, external review, or when a feature needs one entry point.
 disable-model-invocation: true
 ---
 
-When synthesizing navigation, use the contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value).
+# Synthesize navigation
 
-This skill takes the current conversation context and codebase understanding and produces a spec. Do NOT interview the user; just synthesize what you already know.
+Use the shared contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value). Read [schema v1](../_shared/SCHEMA-V1.md) when publishing metadata.
 
-The spec will be published to the local markdown wiki at `<docs_dir>/proposals/<feature-slug>/spec.md` (default: `docs/proposals/<feature-slug>/spec.md`).
+This Skill synthesizes accepted content without interviewing or deciding. The result is optional navigation: requirement and design authorities remain authoritative, tickets remain executable, and evidence owns results.
 
 ## Process
 
-1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the spec, and respect any ADRs in the area you're touching.
+### 1. Decide whether an overview earns its cost
 
-2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
+Create one for a multi-session feature, external review package, or feature whose separate authorities need a stable entry point. Skip it when one compact ticket is the clearest reading interface. State the skip reason and link the compact artifact.
 
-Check with the user that these seams match their expectations.
+### 2. Resolve sources and gaps
 
-3. Write the spec using the template below, then write it directly to `<docs_dir>/proposals/<feature-slug>/spec.md`.
+Read the effective requirement and solution-design authorities, current tickets, verification/evidence navigation, and scoped open items. Inspect the repository only to resolve current artifact locations; do not invent a missing requirement, interface, seam, migration decision, or verification strategy.
 
-<spec-template>
+If a missing decision prevents an accurate overview, stop synthesis and return its owning Skill. If the authorities already record a scoped open item, link that gap and its affected area rather than silently completing it.
 
-## Problem Statement
+### 3. Publish the compact entry point
 
-The problem that the user is facing, from the user's perspective.
+Write `<docs_dir>/proposals/<feature>/spec.md` with schema v1 `role: spec` and consumed authority revisions. State near the title that it is non-executable navigation, not requirement or design authority.
 
-## Solution
+Include only information that helps a reader navigate:
 
-The solution to the problem, from the user's perspective.
+- one concise feature purpose and scope boundary;
+- semantic links to requirement and design authorities with their reviewed revisions;
+- a short list of key decisions, each expressed as a local reading cue and authority link rather than copied rationale;
+- links to ticket/DAG and verification or evidence entry points;
+- linked remaining gaps and their affected areas.
 
-## User Stories
+Omit empty roles, extensive user-story inventories, raw conversation history, and duplicated authority sections. Human link labels state meaning; machine IDs stay in metadata.
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
+### 4. Validate optionality
 
-1. As an <actor>, I want a <feature>, so that <benefit>
+Run Catalog/DAG checks. Confirm the spec is not executable and does not change issue count or frontier. Apply the deletion test: removing only this overview must leave requirement/design authority, ticket consumption, DAG edges, and evidence traceability intact.
 
-<user-story-example>
-1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
-</user-story-example>
+## Completion
 
-This list of user stories should be extremely extensive and cover all aspects of the feature.
-
-## Implementation Decisions
-
-A list of implementation decisions that were made. This can include:
-
-- The modules that will be built/modified
-- The interfaces of those modules that will be modified
-- Technical clarifications from the developer
-- Architectural decisions
-- Schema changes
-- API contracts
-- Specific interactions
-
-Do NOT include specific file paths or code snippets. They may end up being outdated very quickly.
-
-Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
-
-## Testing Decisions
-
-A list of testing decisions that were made. Include:
-
-- A description of what makes a good test (only test external behavior, not implementation details)
-- Which modules will be tested
-- Prior art for the tests (i.e. similar types of tests in the codebase)
-
-## Out of Scope
-
-A description of the things that are out of scope for this spec.
-
-## Further Notes
-
-Any further notes about the feature.
-
-</spec-template>
+Return the spec link and reviewed authority revisions, or the explicit skip/owner result. A new reader can reach scope, key decisions, execution, verification, and current gaps without treating the overview as a second authority.
