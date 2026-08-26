@@ -57,3 +57,8 @@ flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
 - 图计算和诊断是确定性的；需求或设计充分性仍由对应 Skill 负责。
 - warning、gap、blocker 不写回 readiness 状态。
 - waiver 必须匹配一个诊断和精确目标并记录理由；`*` 式全局跳过无效。
+# Managed asset verification
+
+`flowforge assets verify [project]` compares the running binary's embedded Skills and agent rules with the selected project without changing files. It reports each file as `current`, `missing`, `drifted`, or `project-owned`; `--json` provides the same facts for tooling. Missing or drifted managed files return non-zero. Project-owned files are informational and are never overwritten by verification.
+
+`flowforge init` and `flowforge upgrade` explicitly synchronize managed assets, then use this same comparison before reporting synchronization success. If a managed file remains divergent, they show its path and direct the user to `flowforge assets verify`.

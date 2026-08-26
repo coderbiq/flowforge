@@ -102,5 +102,14 @@ func syncProjectAssets(cmd *cobra.Command, successMessage string) {
 		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to synchronize project assets: %v\n", err)
 		return
 	}
+	comparison, err := verifyManagedAssets(projectRoot)
+	if err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to verify synchronized project assets: %v\n", err)
+		return
+	}
+	if !comparison.IsCurrent() {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: project assets remain missing or drifted after synchronization: %s\n", comparison.DivergenceMessage())
+		return
+	}
 	fmt.Fprintln(cmd.OutOrStdout(), successMessage)
 }

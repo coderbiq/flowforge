@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 type managedAssetState string
@@ -22,6 +23,24 @@ type managedAssetEntry struct {
 	State      managedAssetState
 	SourcePath string
 	TargetPath string
+}
+
+func (c managedAssetComparison) DivergentTargets() []string {
+	targets := []string{}
+	for _, entry := range c.Entries {
+		if entry.State == managedAssetMissing || entry.State == managedAssetDrifted {
+			targets = append(targets, fmt.Sprintf("%s %s", entry.State, entry.TargetPath))
+		}
+	}
+	return targets
+}
+
+func (c managedAssetComparison) DivergenceMessage() string {
+	targets := c.DivergentTargets()
+	if len(targets) == 0 {
+		return ""
+	}
+	return strings.Join(targets, "; ") + "; run flowforge assets verify for the full report"
 }
 
 type managedAssetComparison struct {

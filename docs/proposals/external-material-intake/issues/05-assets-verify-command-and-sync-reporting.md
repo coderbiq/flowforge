@@ -15,7 +15,7 @@ flowforge:
 
 **Blocked by:** 03
 
-**Status:** open
+**Status:** closed
 
 **Delivery:** Users can run `flowforge assets verify [project]` (including `--json`) to inspect managed-resource drift read-only, while `init` and `upgrade` report synchronization success only after the same comparison says every managed target is current.
 
@@ -43,3 +43,10 @@ Project-facing projection of the [managed-resource verification design](../desig
 
 - Command-level fixtures prove current, missing, drifted, project-owned, JSON, and non-zero policy behavior; init/upgrade success messages occur only for an all-current post-copy result.
 - `GOPROXY=https://goproxy.cn,direct go test ./internal/command/... ./internal/update/...` and `git diff --check`.
+
+## Completion evidence
+
+- Added `flowforge assets verify [project]` with human and JSON views driven by the shared comparison seam. Missing/drifted returns non-zero; project-owned-only remains a successful informational result.
+- `init` verifies its deployed assets before its success output; `upgrade` verifies after explicit synchronization. Both report specific divergent paths and direct users to `flowforge assets verify` if consistency cannot be established.
+- Added command fixtures for current, project-owned-only, missing, drifted, JSON, human output, non-zero policy, configured docs root, and non-mutation. Added [CLI documentation](../../../cli-design.md) for the command and its non-destructive semantics.
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...`, `flowforge check --dir docs/proposals/external-material-intake --strict`, and `git diff --check` passed. Dual-axis review: Standards found no actionable issue; Specification findings on documentation, divergence details, and policy fixtures were corrected, including project-owned-only success.
