@@ -12,6 +12,7 @@ Use the shared contract's [authority role boundaries](../_shared/ARTIFACT-CONTRA
 
 - Broken, failing, or regressed behavior needing a cause → `flowforge-diagnose`.
 - Raw external bug/request needing classification and a crisp brief → `flowforge-triage`.
+- Local PRD, old proposal, brief, or notes are the request's starting material → `flowforge-import`; its classified hand-off returns to Align or Solution Design.
 - Requirement outcome, scope, scenario, constraint, or term remains unsettled → `flowforge-align`.
 - Requirement is settled but responsibility, interface, seam, cross-module flow/order, migration, verification strategy, or credible alternatives remain → `flowforge-solution-design`.
 - Small settled work clearly reuses a seam identified by current design authority → `flowforge-plan` for a compact ticket, or `flowforge-implement` when an existing ticket satisfies the contract's delivery, context, changes, constraints, and verification hand-off.

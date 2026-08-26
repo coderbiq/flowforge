@@ -8,6 +8,7 @@ FlowForge v5 使用 `flowforge-*` Skill 分配问题所有权。用户不需要�
 |---|---|---|
 | `flowforge-route` | 不清楚该走哪个工程流程 | 选择一个 next owner 和理由；不创建 feature 内容 |
 | `flowforge-triage` | 外部 bug/request 需要分类和 agent-ready brief | 分类、验证、补齐清晰 brief |
+| `flowforge-import` | 本地 PRD、旧 proposal、brief 或 notes 是新工作的起点 | 分类可追溯来源事实与候选内容，并交给 Align 或 Solution Design；不转换 authority |
 | `flowforge-align` | 结果、范围、场景、约束或术语仍会改变方案空间 | requirement authority；已决事实立即写入 |
 | `flowforge-solution-design` | 模块责任、接口/seam、跨模块流、迁移或验证策略未定 | design authority、替代方案、scoped diagnostics、Plan coverage |
 | `flowforge-to-spec` | 多个 authority 需要一个跨会话或外部评审入口 | 可选的非权威导航 spec；compact work 可跳过 |
@@ -53,3 +54,5 @@ Schema v1 是按需的机器层。新独立工件使用 `flowforge` envelope；�
 - 实现发现设计不成立：保留当前工作并返回 Solution Design，而不是在 ticket 内静默改架构。
 
 这套协作以清晰的责任边界和完成条件控制质量，不依赖容易卡死的 readiness 状态机。
+
+当 Import、Align 或 Solution Design 发布 schema authority 时，工件作者运行 `flowforge check --dir <feature-dir> --strict` 并修复本次编辑造成的诊断。该检查只验证当前文件关系；它不增加状态迁移，也不要求 Plan 预先创建 issue。

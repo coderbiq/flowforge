@@ -29,9 +29,15 @@ FlowForge 把工程工作分成四种权威内容：
 
 这个例子结果明确、影响局部，并复用现有命令输出 seam，因此可以跳过独立设计文档，直接进入 Plan；ticket 的 Design context 会说明它复用的既有 seam，而不是记录一个 “design-ready” 状态。
 
+如果需求从 PRD、旧 proposal、会议记录或其它本地材料开始，先使用 `flowforge-import`。它按来源事实、需求候选、设计决定、交付/验证证据、未知/冲突分类，并保留文件与标题定位；它不机械转换文档，也不创建 ticket。需求候选回到 Align，模块/seam/迁移等选择交给 Solution Design。
+
+外部材料的完整推进是：Import 分类并交接 → Align 接受需求候选并发布 requirement → 必要时 Solution Design 决定责任与 seam 并发布 design → 每次 authority 发布后以 `check --strict` 验证 → Plan 展示 title、Delivery 和真实 DAG 边，等待用户接受后才写 issue。这个顺序是工件关系的即时校验，不是一套可卡住的状态流转。
+
 ### 2. 保存需求和设计事实
 
 `flowforge-align` 只保存会改变方案空间的事实，例如：warning 数量必须可观察、诊断顺序不能改变、默认模式不能因 warning 失败。它先查代码和现有文档，只向用户询问仓库无法回答的产品取舍。
+
+从来源材料形成 requirement/design 时，正文按目标语言重新表达确认含义，代码标识与既有术语保持稳定。每次发布或修订带 schema metadata 的 authority 后，作者运行 `flowforge check --dir <feature-dir> --strict`；这是对 anchor、revision、链接和 open item 的发布自检，不会写入 readiness 状态或阻塞未受影响工作。
 
 如果需求改成“统一 check/frontier/status 的诊断策略”，就会触发 `flowforge-solution-design`：比较责任边界，确定共享策略接口、调用方、失败语义、兼容顺序和测试 seam，并把每个设计区域的 resolved、warning、gap 或 blocker 写清楚。Plan 只消费已经确定的区域。
 

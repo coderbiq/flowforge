@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Own requirement truth without choosing implementation modules, interfaces, seams, migration, or ticket slices.
 
-Use the shared contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value). Read [schema v1](../_shared/SCHEMA-V1.md) only when promoting requirements into an independently consumed artifact.
+Use the shared contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [source intake and semantic rewrite](../_shared/ARTIFACT-CONTRACT.md#source-intake-and-semantic-rewrite), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value). Read [schema v1](../_shared/SCHEMA-V1.md) only when promoting requirements into an independently consumed artifact.
 
 ## Process
 
@@ -38,6 +38,8 @@ These are completeness checks, not mandatory headings. Omit empty roles and merg
 ### 4. Persist accepted decisions immediately
 
 After each settled requirement decision, edit the authority directly. Replace superseded meaning instead of appending interview history. Increment its semantic revision only when meaning changes. Keep machine identity in metadata and human-readable meaning in prose and semantic links.
+
+When this edit creates or revises schema requirement authority, run `flowforge check --dir <feature-dir> --strict` before reporting publication. Repair diagnostics introduced by this edit; this is a document check, not a readiness phase or a reason to create tickets.
 
 An unresolved requirement fact uses a scoped [schema v1 open item](../_shared/SCHEMA-V1.md). Name affected requirement/design areas; do not create a feature-wide readiness state.
 

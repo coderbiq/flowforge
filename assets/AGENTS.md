@@ -6,6 +6,7 @@ When asked to work on a feature, bug, refactor, or complex task in FlowForge, in
 |:---|:---|:---|
 | **Route & Guide** | `/flowforge-route` | Unsure which skill to use, or need meta-guidance on the entire workflow |
 | **Triage** | `/flowforge-triage` | Categorize incoming requests/bugs, check out-of-scope, create crisp brief |
+| **External Material** | `/flowforge-import` | Classify local PRDs, old proposals, briefs, or notes before their facts enter requirement or design authority |
 | **Align & Requirements** | `/flowforge-align` | When requirement outcomes, scope, scenarios, constraints, or terms are unsettled, persist accepted facts and hand design decisions to Solution Design |
 | **Solution Design** | `/flowforge-solution-design` | Own module responsibilities, interfaces, seams, flows, migration, and verification strategy after requirements settle |
 | **Spec Navigation** | `/flowforge-to-spec` | For multi-session/external review or multiple authorities needing one entry point, create optional non-authoritative navigation; skip compact work |

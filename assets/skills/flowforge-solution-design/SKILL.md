@@ -7,7 +7,7 @@ description: Design how approved requirements will be realized when work changes
 
 Turn approved requirement authority into the implementation decisions Plan needs, without choosing ticket slices or changing production code.
 
-Use the shared contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [packaging rules](../_shared/ARTIFACT-CONTRACT.md#packaging), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), [diagnostics](../_shared/ARTIFACT-CONTRACT.md#diagnostics), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value).
+Use the shared contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [source intake and semantic rewrite](../_shared/ARTIFACT-CONTRACT.md#source-intake-and-semantic-rewrite), [packaging rules](../_shared/ARTIFACT-CONTRACT.md#packaging), [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs), [diagnostics](../_shared/ARTIFACT-CONTRACT.md#diagnostics), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value).
 
 ## Inputs
 
@@ -38,6 +38,8 @@ When repository facts are settled but a real product or engineering trade-off le
 After each settled decision, update design authority. Treat current/target responsibilities, interfaces, information flow, migration, scoped constraints, verification, and decision-rich alternatives as a completeness checklist—not mandatory headings. Omit any section with no independent information.
 
 Use a stable semantic area and increment only its semantic revision. Formatting or link repair does not increment it. Read [schema v1](../_shared/SCHEMA-V1.md) when writing machine metadata. Read [adaptive design packaging](DESIGN-PACKAGING.md) only when deciding whether the design should remain compact or split.
+
+After creating or revising schema design authority, run `flowforge check --dir <feature-dir> --strict`; repair diagnostics caused by the edit before reporting it published. The command validates present document facts and does not create a state gate.
 
 ### 5. Record scoped unresolved facts
 

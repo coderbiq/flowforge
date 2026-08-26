@@ -3,7 +3,7 @@ name: flowforge-review
 description: Review a committed or working-tree change set from a fixed point against two independent axes: repository Standards and the effective linked Specification. Use for implementation closeout, branches, PRs, or work-in-progress changes.
 ---
 
-When resolving the effective specification or reviewing proposal documentation, use the contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority) and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value).
+When resolving the effective specification or reviewing proposal documentation, use the contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [source intake and semantic rewrite](../_shared/ARTIFACT-CONTRACT.md#source-intake-and-semantic-rewrite), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value).
 
 Two-axis review of one fixed change set:
 

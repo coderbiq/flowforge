@@ -15,7 +15,7 @@ flowforge:
 
 **Blocked by:** 01, 02
 
-**Status:** open
+**Status:** closed
 
 **Delivery:** Route, Align, Solution Design, Plan, and Review guide a request that begins with external material through the right authority owner, semantic rewrite, strict publication check, and only then user-approved ticket planning.
 
@@ -43,3 +43,10 @@ Apply the [Import ownership boundaries and writing rules](../design.md#external-
 
 - A documented mixed-source scenario reaches Import → Align → Solution Design → Plan without mechanical document conversion, empty artifact roles, or status transitions.
 - Skill reference/package tests and relevant documentation checks pass: `go test ./internal/command/...` and `git diff --check`.
+
+## Completion evidence
+
+- Route now sends material-first work to Import. Align and Solution Design share source-intake/semantic-rewrite guidance and run a feature-directory strict check after publishing schema authority.
+- Plan rechecks schema authority before drafting while preserving its existing user approval of title, Delivery, and genuine DAG edges; Review now evaluates source-intake and semantic-rewrite quality.
+- README, Skill-system documentation, deployed AGENTS index, and the mixed-source walk-through show the complete Import → Align → optional Solution Design → strict check → Plan presentation → user acceptance path with no mechanical conversion or readiness state.
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...`, `flowforge check --dir docs/proposals/external-material-intake --strict`, `flowforge frontier --dir docs/proposals/external-material-intake --strict`, and `git diff --check` passed. Dual-axis review: Standards found no issue. Specification review found missing Plan verification and incomplete end-to-end narrative; both were corrected and re-reviewed clean.

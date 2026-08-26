@@ -14,6 +14,8 @@ Use the shared contract's [packaging](../_shared/ARTIFACT-CONTRACT.md#packaging)
 
 Read the current requirement and solution-design authorities, including their scoped open items and consumed revisions. Plan only areas with settled requirement behavior, responsibility, interfaces, seams, flow/order, migration, and a feasible verification strategy.
 
+For schema authority being consumed, run `flowforge check --dir <feature-dir> --strict` before drafting tickets. Resolve diagnostics caused by the authority publication with its owning Skill; this validates current document relationships and does not create a readiness state. After the check, Plan still presents title, Delivery, and genuine DAG edges for user approval before creating issue files.
+
 Inspect the codebase when stable touch points or existing seams are not already known. A planning action that selects or moves a responsibility, interface, seam, information flow, or ordering returns to `flowforge-solution-design` instead of becoming a ticket step.
 
 ### 2. Draft tracer increments

@@ -14,4 +14,4 @@
 | 交付/验证证据 | `init` 已支持 configured `docs_dir`（`completed-change.md#Configuration`）。 | Evidence/source record |
 | 未知/冲突 | manifest 是否必须与嵌入资产比较基准相冲突；影响资源验证设计。 | Solution Design |
 
-交接的目标语言是中文。Align 接受需求候选后，Solution Design 复核设计决定和冲突；没有内容被机械改写成新的 authority，也没有创建 ticket。
+交接的目标语言是中文。Align 接受需求候选后，Solution Design 复核设计决定和冲突；两份 authority 发布后运行 `flowforge check --dir <feature-dir> --strict`。随后 Plan 展示 ticket 的 title、Delivery 与真实 DAG edge，等待用户接受才创建 issue。没有内容被机械改写成新的 authority，也没有自动创建 ticket 或状态迁移。
