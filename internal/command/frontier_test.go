@@ -54,6 +54,80 @@ func TestCheckJSONIncludesCatalogWhenThereAreNoTickets(t *testing.T) {
 	}
 }
 
+func TestStrictCheckValidatesRequirementAndDesignWithoutTickets(t *testing.T) {
+	root := t.TempDir()
+	previousDir, previousJSON, previousStrict := checkDir, checkJSON, checkStrict
+	defer func() { checkDir, checkJSON, checkStrict = previousDir, previousJSON, previousStrict }()
+	requirements := `---
+flowforge:
+  schema: 1
+  role: requirement
+  id: intake-requirements
+  revision: 1
+---
+<a id="intake-requirements"></a>
+# Requirements
+`
+	design := `---
+flowforge:
+  schema: 1
+  role: design
+  id: intake-design
+  revision: 1
+  areas:
+    publication: {revision: 1, anchor: publication}
+  consumes:
+    requirements:
+      intake-requirements: 1
+---
+<a id="intake-design"></a>
+<a id="publication"></a>
+# Design
+
+See [requirements](requirements.md#intake-requirements).
+`
+	if err := os.WriteFile(filepath.Join(root, "requirements.md"), []byte(requirements), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run := func(body string, strict, json bool) (string, error) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, "design.md"), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		cmd := newCheckCmd()
+		checkDir, checkJSON, checkStrict = root, json, strict
+		var stdout bytes.Buffer
+		cmd.SetOut(&stdout)
+		err := cmd.RunE(cmd, nil)
+		return stdout.String(), err
+	}
+	if _, err := run(design, true, false); err != nil {
+		t.Fatalf("valid authority-only feature rejected: %v", err)
+	}
+
+	invalid := map[tracker.DiagnosticCode]string{
+		tracker.DiagnosticMissingAnchor: strings.Replace(design, `anchor: publication`, `anchor: missing-publication`, 1),
+		tracker.DiagnosticInvalidOpenItem: strings.Replace(design, `  consumes:`, `  open_items:
+    - {id: unresolved-publication, diagnostic: publication-gap, severity: gap, affects: [publication], anchor: missing-open-item}
+  consumes:`, 1),
+		tracker.DiagnosticFutureRevision:   strings.Replace(design, `intake-requirements: 1`, `intake-requirements: 2`, 1),
+		tracker.DiagnosticMissingHumanLink: strings.Replace(design, `requirements.md#intake-requirements`, `unlinked.md#intake-requirements`, 1),
+	}
+	for diagnostic, body := range invalid {
+		output, err := run(body, false, true)
+		if err != nil {
+			t.Fatalf("non-strict check rejected %s: %v", diagnostic, err)
+		}
+		if !strings.Contains(output, `"issues_count": 0`) || !strings.Contains(output, `"code": "`+string(diagnostic)+`"`) {
+			t.Fatalf("non-strict JSON omitted authority diagnostic %s: %s", diagnostic, output)
+		}
+		output, err = run(body, true, true)
+		if err == nil || !strings.Contains(output, `"code": "`+string(diagnostic)+`"`) {
+			t.Fatalf("strict check accepted or hid authority diagnostic %s: output=%s err=%v", diagnostic, output, err)
+		}
+	}
+}
+
 func TestCheckReportsClosedTicketWithoutCompletionEvidence(t *testing.T) {
 	root := t.TempDir()
 	issues := filepath.Join(root, "feature", "issues")

@@ -15,7 +15,7 @@ flowforge:
 
 **Blocked by:** None
 
-**Status:** open
+**Status:** closed
 
 **Delivery:** `flowforge check --dir <feature-dir> --strict` rejects every unwaived metadata, anchor, open-item, consumed-revision, and semantic-link diagnostic created while publishing authority, even when the feature has no tickets.
 
@@ -42,3 +42,10 @@ The [authority publication check](../design.md#external-material-intake-design) 
 
 - A valid feature containing only requirement/design returns success in strict mode; each malformed authority relationship returns the expected diagnostic and strict non-zero result.
 - `GOPROXY=https://goproxy.cn,direct go test ./internal/tracker/... ./internal/command/...`.
+
+## Completion evidence
+
+- Added a command-level authority-only feature fixture. Its valid requirement/design pair passes `check --strict` with zero tickets.
+- The same fixture now independently proves non-strict JSON projection and strict failure for `missing-anchor`, `invalid-open-item`, `future-consumed-revision`, and `missing-human-link` diagnostics.
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...`, `flowforge check --dir docs/proposals/external-material-intake --strict`, `flowforge frontier --dir docs/proposals/external-material-intake --strict`, and `git diff --check` passed.
+- Dual-axis review: Standards found no hard violation; its global-flag restoration and exact-diagnostic suggestions were applied. Specification review initially found incomplete malformed-authority and JSON policy coverage; the table-driven command fixture resolves both findings.
