@@ -54,6 +54,7 @@ func TestDeployManagedAssetsUsesAbsoluteDocsRoot(t *testing.T) {
 func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 	t.Helper()
 	required := map[string][]string{
+		"flowforge-import":          {"source-intake-and-semantic-rewrite", "roles-and-authority", "information-value"},
 		"flowforge-align":           {"roles-and-authority", "hand-offs", "information-value"},
 		"flowforge-route":           {"roles-and-authority", "hand-offs"},
 		"flowforge-to-spec":         {"roles-and-authority", "hand-offs", "information-value"},

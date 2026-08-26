@@ -45,3 +45,11 @@ An `open_items` entry names one unresolved fact, explanation anchor, severity, a
 ## Information value
 
 Every retained statement contributes a fact, requirement, decision, constraint, action, verification method, unknown, or evidence. Delete template filler, implementation commonplaces, exploration that changed no decision, repeated upstream prose, and synonymous headings. Keep `MUST NOT` only for a concrete failure path and place the positive target behavior beside it.
+
+## Source intake and semantic rewrite
+
+External material is evidence and candidate input, not replacement authority. Classify retained content as source fact, requirement candidate, design decision, delivery/verification evidence, or unknown/conflict; preserve a human-readable file-and-heading location for each retained fact. Discard duplicated history and template text rather than carrying it forward.
+
+Requirement authority owns accepted outcomes, scope, scenarios, constraints, and terminology. Solution design owns accepted responsibility, interface, seam, flow, migration, and verification decisions. Keep completed work as evidence or source fact. Preserve the source's validity unless the owner explicitly changes it.
+
+Write in the requested target language by restating the settled meaning, not translating sentences. Preserve code identifiers and established glossary terms. Name a new concept once in the target language and use that name consistently. A requirement paragraph carries an outcome, scope, scenario, or constraint; a design paragraph carries responsibility, caller, seam information, a relevant boundary, or a verification method.
