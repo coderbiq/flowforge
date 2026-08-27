@@ -30,7 +30,37 @@ A ticket states, in this order near its title so legacy parsers can read it:
 **Status:** open
 ```
 
-Then it provides Delivery, Design context, Touch points, ordered Changes, scoped Constraints, and paired Done and verify conditions. An action that still selects a responsibility, interface, seam, information flow, or ordering is a design gap, not implementation work.
+Then it provides three information tiers:
+
+**Tier 1 — human-priority** (no file paths, readable in seconds):
+
+- **Delivery:** the single observable increment, stated once.
+- **Design context:** a locally sufficient design summary plus semantic authority links.
+
+**Tier 2 — shared execution contract** (human and agent both read):
+
+- **Touch points:** specific file paths and symbols needed to locate the work (e.g. `internal/tracker/catalog.go` — `Catalog` struct, `IdentityIndex` map).
+- **Changes:** ordered, mechanical actions, each formatted as `- [ ] N. <action naming the target file and symbol>`. An action that still selects a responsibility, interface, seam, information flow, or ordering is a design gap, not implementation work. Fix Changes appended by review use a `Fix:` prefix and continue the numbering.
+- **Constraints:** ticket-specific or easy-to-violate invariants, linked upstream when shared. Include a `Write set:` line listing the only directories or files the implementer may modify.
+- **Done and verify:** pair each observable completion condition with an exact command and the expected result (e.g. "all pass, 0 failures" or named test cases that must pass).
+
+**Tier 3 — agent execution detail** (after a `---` separator, skippable by humans):
+
+- **Execution detail:** subsections for Settled decisions, Expected tests, and Conventions that the implementer needs but a human reviewer can skip.
+- **Implementation note:** written by the implementer after execution; records completed Changes, commands run and results, files modified, and write-set compliance. Not evidence—a status report for the review agent.
+- **Review rounds:** accumulates review history per round; each round records the fixed point (commit SHA), Standards/Spec findings, fix Changes created, and disposition. A clean round (zero findings) triggers Completion evidence and closure.
+
+## Execution and review loop
+
+When the implementer is a lightweight model and review runs as a separate session, the ticket drives the loop:
+
+1. **Plan** creates the ticket with all Changes unchecked.
+2. **Implement** (lightweight mode) executes unchecked Changes in order, runs mechanical self-checks (build, focused tests, full verify), checks off completed Changes, writes an Implementation note, and stops. It does not review, close the ticket, or make design decisions.
+3. **Review** runs the dual-axis review on the fixed change set. If findings exist, it translates each fixable finding into a new unchecked `Fix:` Change appended to the ticket. If a finding requires an architecture/seam/interface change, it marks the finding as a design return instead. It records the round in Review rounds.
+4. **Implement** re-executes the new fix Changes. Steps 3-4 repeat.
+5. When a review round produces zero findings, **Review** writes Completion evidence and closes the ticket.
+
+A capable agent that owns the full turn may implement, invoke review, resolve findings, write evidence, and close in one continuous session. The loop above applies when implement and review are separate sessions with asymmetric capability.
 
 ## Diagnostics
 

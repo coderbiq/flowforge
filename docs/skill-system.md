@@ -13,8 +13,8 @@ FlowForge v5 使用 `flowforge-*` Skill 分配问题所有权。用户不需要�
 | `flowforge-solution-design` | 模块责任、接口/seam、跨模块流、迁移或验证策略未定 | design authority、替代方案、scoped diagnostics、Plan coverage |
 | `flowforge-to-spec` | 多个 authority 需要一个跨会话或外部评审入口 | 可选的非权威导航 spec；compact work 可跳过 |
 | `flowforge-plan` | 需求和相关设计区域已确定，需要执行增量与 DAG | 高信息 ticket、真实 blocking edge、经 CLI 验证的 frontier |
-| `flowforge-implement` | 有可执行 ticket 或等价 compact contract | TDD 实现、双轴审查、completion evidence、提交和新 frontier |
-| `flowforge-review` | 有固定 diff 与有效 specification | Standards 与 Specification 两份独立报告；不关闭 ticket |
+| `flowforge-implement` | 有可执行 ticket 或等价 compact contract | 轻量模式：执行 unchecked Changes、机械自检、写 Implementation note 后停止；完整模式：TDD 实现、双轴审查、completion evidence、提交和新 frontier |
+| `flowforge-review` | 有固定 diff 与有效 specification | Standards 与 Specification 两份独立报告；有 findings 时翻译为 `Fix:` Changes 追加到 ticket；零 findings 时写 evidence 并关闭 ticket |
 
 Align 不选择实现架构；Solution Design 不拆 ticket 或改生产代码；Plan 不把设计选择伪装成步骤；Implement 遇到责任/seam 变化会返回设计，遇到可观察需求变化会返回 Align。
 
@@ -52,6 +52,8 @@ Schema v1 是按需的机器层。新独立工件使用 `flowforge` envelope；�
 - caller 明确接受 gap：使用 `--include-gaps`，诊断仍可见。
 - blocker：必须解决事实或 DAG edge，不能通过 override 假装可执行。
 - 实现发现设计不成立：保留当前工作并返回 Solution Design，而不是在 ticket 内静默改架构。
+- Review 发现可修复问题：翻译为 `Fix:` Change 追加到 ticket，轻量 implementer 重新执行；需要架构/seam/接口变更的 finding 标记为 design return，回到 Solution Design。
+- 零 findings 收敛：Review 写 Completion evidence 并关闭 ticket；非阻塞后续项 alone 不构成完成。
 
 这套协作以清晰的责任边界和完成条件控制质量，不依赖容易卡死的 readiness 状态机。
 

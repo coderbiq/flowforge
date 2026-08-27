@@ -83,6 +83,52 @@ End with a one-line summary: total findings per axis, and the worst issue _withi
 
 Return findings to the implementation owner. Review records no completion evidence, changes no ticket status, and silently waives nothing. When proposal documentation is in the diff, report information-value findings under Standards and keep them distinct from implementation conformance.
 
+### 6. Fix planning
+
+After aggregating findings, determine the next action based on whether findings exist and whether the implementer is a separate lightweight session.
+
+**If findings exist:**
+
+For each finding, classify it:
+
+- **Fixable**: a concrete implementation issue (missing test, wrong logic, code smell, missing migration). Translate it into a new unchecked Change appended to the ticket's Changes section, using the format `- [ ] N. Fix: <mechanical action naming the target file and symbol>`. Continue the ticket's existing Change numbering. Fix Changes are mechanical descriptions, not code—the implementer writes the code.
+
+- **Design return**: fixing it would change a responsibility, interface, seam, information flow, ordering, migration, or verification strategy. Do not create a fix Change. Note it as `Design return:` in the Review rounds section with the affected area. The ticket stays open until the design owner resolves it.
+
+Then record the round in the ticket's Review rounds section (after the `---` separator):
+
+```markdown
+## Review rounds
+
+### Round N
+
+- Fixed point: <commit SHA>
+- Standards: <findings or "none">
+- Spec: <findings or "none">
+- Fix changes: <change numbers created, or "none">
+- Design returns: <areas and reasons, or "none">
+```
+
+Append fix Changes to the ticket's Changes section and record the round. The lightweight implementer re-executes the new fix Changes in its next session.
+
+**If zero findings:**
+
+Write Completion evidence in the ticket using the Implementation note's verification results plus review dispositions from all rounds:
+
+- delivered behavior;
+- commands run and observed results (from Implementation note);
+- both review axes and every finding disposition across all rounds;
+- deviations and how their authority owner handled them;
+- implementation reference such as commit, diff, or changed artifact.
+
+Then set `**Status:** closed` in the ticket. Run `flowforge check` and `flowforge frontier` to publish the next frontier.
+
+### 7. Return
+
+Return the review outcome: if fix Changes were created, return the change numbers and a one-line summary so the user can dispatch the lightweight implementer. If the ticket was closed, return the evidence location, implementation reference, review dispositions, and the new frontier.
+
+Review must not write code, merge the two axes, or silently waive a finding. Every finding either becomes a fix Change, a design return, or an authority-owned disposition recorded in the Review rounds section.
+
 ## Why two axes
 
 A change can pass one axis and fail the other:

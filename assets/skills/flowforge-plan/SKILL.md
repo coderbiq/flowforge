@@ -16,7 +16,7 @@ Read the current requirement and solution-design authorities, including their sc
 
 For schema authority being consumed, run `flowforge check --dir <feature-dir> --strict` before drafting tickets. Resolve diagnostics caused by the authority publication with its owning Skill; this validates current document relationships and does not create a readiness state. After the check, Plan still presents title, Delivery, and genuine DAG edges for user approval before creating issue files.
 
-Inspect the codebase when stable touch points or existing seams are not already known. A planning action that selects or moves a responsibility, interface, seam, information flow, or ordering returns to `flowforge-solution-design` instead of becoming a ticket step.
+Inspect the codebase to find exact file paths and symbols for Touch points and Changes. The implementer may be a lightweight model that cannot search the codebase; the ticket must provide coordinates. A planning action that selects or moves a responsibility, interface, seam, information flow, or ordering returns to `flowforge-solution-design` instead of becoming a ticket step.
 
 ### 2. Draft tracer increments
 
@@ -35,14 +35,88 @@ Write one schema v1 `role: ticket` file per increment under `<docs_dir>/proposal
 **Status:** open
 ```
 
-Then write only the semantic roles that carry information:
+Then write three information tiers. Include file paths and symbols as coordinates for the implementer; do not include code snippets—the implementer writes the code from the mechanical description.
+
+**Tier 1 — human-priority** (no file paths):
 
 - **Delivery:** the single observable increment, stated once.
 - **Design context:** a locally sufficient design summary plus semantic authority links.
-- **Touch points:** stable seams, modules, paths, or symbols needed to locate the work.
-- **Changes:** ordered, already-decided actions.
-- **Constraints:** ticket-specific or easy-to-violate invariants, linked upstream when shared.
-- **Done and verify:** pair each observable completion condition with an exact command or feasible observation method.
+
+**Tier 2 — shared execution contract** (human and agent both read):
+
+- **Touch points:** specific file paths and symbols (e.g. `internal/tracker/catalog.go` — `Catalog` struct, `IdentityIndex` map).
+- **Changes:** ordered, mechanical actions, each as `- [ ] N. <action naming the target file and symbol>`.
+- **Constraints:** ticket-specific invariants. Include a `Write set:` line listing the only directories or files the implementer may modify.
+- **Done and verify:** pair each observable condition with an exact command and the expected result (e.g. "all pass, 0 failures" or named test cases that must pass).
+
+**Tier 3 — agent execution detail** (after a `---` separator):
+
+- **Execution detail:** subsections for `### Settled decisions`, `### Expected tests`, and `### Conventions` that the implementer needs but a human reviewer can skip.
+- **Implementation note:** left empty by Plan; written by the implementer after execution.
+- **Review rounds:** left empty by Plan; accumulated by the review agent after each review round.
+
+<ticket-template>
+
+```markdown
+---
+flowforge:
+  schema: 1
+  role: ticket
+---
+
+# <NN>: <Ticket title>
+
+**Blocked by:** None
+**Status:** open
+
+## Delivery
+
+<one observable increment>
+
+## Design context
+
+<locally sufficient summary>
+
+See the design authority at `../design.md#<anchor>`.
+
+## Touch points
+
+- `<file path>` — <struct/function/module>
+- `<file path>` — <struct/function/module>
+
+## Changes
+
+- [ ] 1. <mechanical action at file/symbol>
+- [ ] 2. <mechanical action at file/symbol>
+
+## Constraints
+
+- <ticket-specific invariant>
+- Write set: <allowed directories/files only>
+
+## Done and verify
+
+- <observable condition>: `<exact command>` — <expected result>
+- <observable condition>: `<exact command>` — <expected result>
+
+---
+
+## Execution detail
+
+### Settled decisions
+
+- <design fact the implementer must know>
+
+### Expected tests
+
+- `<test name>` — <what it verifies>
+
+### Conventions
+
+- <non-obvious code convention in the touch area>
+```
+
+</ticket-template>
 
 Keep `Blocked by` human-visible even when metadata carries consumption. Omit empty roles; do not impose word counts or repeat upstream rationale. A small existing-seam change stays one compact ticket when splitting would add no independent delivery or real edge.
 

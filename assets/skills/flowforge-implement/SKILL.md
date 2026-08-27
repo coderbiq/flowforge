@@ -21,7 +21,53 @@ Read project invariants, the ticket, its linked requirement/design authorities a
 
 Do not advance status to express readiness. Begin only when the ticket's Delivery, design context, decided Changes, Constraints, and feasible Done and verify method form an executable contract.
 
-### 2. Deliver at approved seams
+### 2. Determine execution mode
+
+If the ticket has unchecked `- [ ]` Changes with mechanical steps, a `Write set:` in Constraints, and an `Execution detail` section, use **lightweight mode** (step 3). This mode is for implementers that follow explicit instructions but cannot reliably search the codebase or self-review.
+
+Otherwise, use **full mode** (step 4). This mode is for capable agents that own the entire turn: implement, review, resolve findings, write evidence, and close.
+
+### 3. Lightweight mode
+
+Execute unchecked Changes mechanically, self-check, and stop. Do not review, close the ticket, or make design decisions.
+
+#### 3a. Execute unchecked Changes
+
+Work through each `- [ ]` item in order. For each Change:
+
+1. Read the named file and symbol from the Change description and Touch points.
+2. Implement the described mechanical action at that location.
+3. Run `go build` (or the project's compile command) after each Change.
+4. Run focused tests relevant to the Change if test names are given in Expected tests or Done and verify.
+
+If a Change cannot be completed (file not found, symbol moved, build fails after the change), stop, leave the Change unchecked, and note the blocker in the Implementation note.
+
+If a Change requires a design decision (the action is ambiguous, or completing it would change a responsibility, interface, seam, or ordering), stop, leave the Change unchecked, and note it as a **design return** in the Implementation note.
+
+Do not modify files outside the ticket's `Write set:`.
+
+#### 3b. Mechanical self-check
+
+Run all commands listed in Done and verify. Record pass/fail and observed output for each. If any command fails, stop and report the failure in the Implementation note—do not attempt to debug or fix.
+
+#### 3c. Check off completed Changes
+
+Change `- [ ]` to `- [x]` for each completed Change in the ticket. Leave unchecked any Change that could not be completed.
+
+#### 3d. Write Implementation note
+
+Write a `## Implementation note` section in the ticket (after the `---` separator, before Review rounds if present) recording:
+
+- which Changes were completed (numbers) and which were not (with reason);
+- commands run and their results (pass/fail, output summary);
+- files modified;
+- write-set compliance: "All modifications within write set" or list violations.
+
+#### 3e. Stop
+
+Do not invoke `flowforge-review`. Do not write Completion evidence. Do not change `**Status:**`. Commit the implementation work and return. The review agent will pick up from the Implementation note.
+
+### 4. Full mode
 
 Use `flowforge-tdd` internally at the pre-agreed verification seam. Run focused checks through the loop and the full relevant verification at the end. Preserve unrelated worktree changes.
 
@@ -32,13 +78,13 @@ Classify discoveries immediately:
 - a responsibility, interface, seam, information-flow, ordering, migration, or verification-strategy change returns to `flowforge-solution-design` with affected areas and work preserved;
 - an observable outcome/scope/constraint change returns to `flowforge-align`.
 
-### 3. Review one fixed change set
+#### 4a. Review one fixed change set
 
 Invoke `flowforge-review` with a resolvable fixed point, an explicit committed or working-tree diff scope, and the effective specification links/revisions. Keep Standards and Specification findings separate.
 
 Resolve every finding by correction or an authority-owned disposition. A Specification finding that means required delivery is absent keeps the affected ticket open until corrected, or until the requirement/design owner explicitly rescopes the effective specification or grants an exact reasoned waiver. Creating a follow-up alone is not resolution; it can permit close only when its recorded blocking relationship prevents premature close, or the applicable authority explicitly accepts the finding as nonblocking. Review does not close the ticket.
 
-### 4. Record evidence, then close
+#### 4b. Record evidence, then close
 
 Write concise Completion evidence inline by default. Promote schema v1 `role: evidence` only for multi-environment or multi-actor verification, shared integration proof, independent audit/lifecycle, or when inline proof obscures the ticket.
 
