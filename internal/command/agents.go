@@ -58,7 +58,39 @@ If [name] is specified, deploys only that subagent. Otherwise, deploys all non-d
 		},
 	}
 
-	agents.AddCommand(deploy)
+	remove := &cobra.Command{
+		Use:   "remove <name>",
+		Short: "Remove a subagent from all host directories",
+		Long: `Remove a subagent from .claude/agents/, .opencode/agent/, and .codex/agents/.
+For built-in subagents, marks them as disabled in config to prevent redeployment.
+For custom subagents, deletes the source definition from .flowforge/subagents/.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			projectRoot, err := config.FindProjectRoot(".")
+			if err != nil {
+				return fmt.Errorf("locating project root: %w", err)
+			}
+
+			name := args[0]
+			isBuiltin, removedPaths, err := removeSubagent(projectRoot, name)
+			if err != nil {
+				return err
+			}
+
+			cmd.Printf("✓ Removed subagent %q\n", name)
+			for _, path := range removedPaths {
+				cmd.Printf("  - %s\n", path)
+			}
+
+			if isBuiltin {
+				cmd.Printf("\nBuilt-in subagent disabled. Future 'flowforge agents deploy' will skip %q.\n", name)
+			}
+
+			return nil
+		},
+	}
+
+	agents.AddCommand(deploy, remove)
 	return agents
 }
 
@@ -209,4 +241,88 @@ func sortDefinitionsByName(defs []*subagent.Definition) {
 			}
 		}
 	}
+}
+
+// removeSubagent removes a subagent from all host directories.
+// For built-in subagents, adds the name to config.Agents.Disabled.
+// For custom subagents, deletes the source file from .flowforge/subagents/.
+// Returns (isBuiltin, removedPaths, error).
+func removeSubagent(projectRoot, name string) (bool, []string, error) {
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		return false, nil, fmt.Errorf("loading config: %w", err)
+	}
+
+	// Check if this is a built-in or custom subagent
+	isBuiltin, err := isBuiltinSubagent(name)
+	if err != nil {
+		return false, nil, err
+	}
+
+	var removedPaths []string
+
+	// Remove compiled files from all three host directories
+	claudePath := filepath.Join(projectRoot, ".claude", "agents", name+".md")
+	opencodePath := filepath.Join(projectRoot, ".opencode", "agent", name+".md")
+	codexPath := filepath.Join(projectRoot, ".codex", "agents", name+".toml")
+
+	for _, path := range []string{claudePath, opencodePath, codexPath} {
+		if _, err := os.Stat(path); err == nil {
+			if err := os.Remove(path); err != nil {
+				return false, nil, fmt.Errorf("removing %s: %w", path, err)
+			}
+			removedPaths = append(removedPaths, path)
+		}
+	}
+
+	if isBuiltin {
+		// Add to disabled list if not already present
+		alreadyDisabled := false
+		for _, disabled := range cfg.Agents.Disabled {
+			if disabled == name {
+				alreadyDisabled = true
+				break
+			}
+		}
+		if !alreadyDisabled {
+			cfg.Agents.Disabled = append(cfg.Agents.Disabled, name)
+			if err := cfg.Save(projectRoot); err != nil {
+				return false, nil, fmt.Errorf("saving config: %w", err)
+			}
+		}
+	} else {
+		// Custom subagent: delete source file
+		sourcePath := filepath.Join(projectRoot, config.ConfigDirName, "subagents", name+".md")
+		if _, err := os.Stat(sourcePath); err != nil {
+			if os.IsNotExist(err) {
+				return false, nil, fmt.Errorf("custom subagent source file not found: %s", sourcePath)
+			}
+			return false, nil, fmt.Errorf("checking source file %s: %w", sourcePath, err)
+		}
+		if err := os.Remove(sourcePath); err != nil {
+			return false, nil, fmt.Errorf("removing source file %s: %w", sourcePath, err)
+		}
+		removedPaths = append(removedPaths, sourcePath)
+	}
+
+	return isBuiltin, removedPaths, nil
+}
+
+// isBuiltinSubagent checks if a subagent name exists in the built-in assets.
+func isBuiltinSubagent(name string) (bool, error) {
+	assetsDir, cleanup, err := locateAssetsDir()
+	if err != nil {
+		return false, fmt.Errorf("locating assets: %w", err)
+	}
+	defer cleanup()
+
+	builtinPath := filepath.Join(assetsDir, "subagents", name+".md")
+	_, err = os.Stat(builtinPath)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, fmt.Errorf("checking built-in subagent %s: %w", name, err)
 }
