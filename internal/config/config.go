@@ -21,6 +21,11 @@ type Config struct {
 	Projects         []ProjectConfig         `yaml:"projects,omitempty" mapstructure:"projects"`
 	Wiki             WikiConfig              `yaml:"wiki,omitempty" mapstructure:"wiki"`
 	KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty" mapstructure:"knowledge_sources"`
+	Agents           AgentsConfig            `yaml:"agents,omitempty" mapstructure:"agents"`
+}
+
+type AgentsConfig struct {
+	Disabled []string `yaml:"disabled,omitempty" mapstructure:"disabled"`
 }
 
 type ProjectConfig struct {
@@ -71,6 +76,7 @@ func (c *Config) Save(projectRoot string) error {
 		Projects         []ProjectConfig         `yaml:"projects,omitempty"`
 		Wiki             WikiConfig              `yaml:"wiki,omitempty"`
 		KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty"`
+		Agents           AgentsConfig            `yaml:"agents,omitempty"`
 	}
 
 	payload := fileConfig{
@@ -80,6 +86,7 @@ func (c *Config) Save(projectRoot string) error {
 		Projects:         c.Projects,
 		Wiki:             c.Wiki,
 		KnowledgeSources: c.KnowledgeSources,
+		Agents:           c.Agents,
 	}
 
 	data, err := yaml.Marshal(payload)
@@ -130,6 +137,7 @@ func Load(projectRoot string) (*Config, error) {
 	v.SetDefault("projects", defaultConfig.Projects)
 	v.SetDefault("wiki.root", defaultConfig.Wiki.Root)
 	v.SetDefault("knowledge_sources", []KnowledgeSourceConfig{})
+	v.SetDefault("agents.disabled", []string{})
 
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
