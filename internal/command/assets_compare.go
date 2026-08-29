@@ -154,3 +154,81 @@ func compareManagedAsset(sourcePath, targetPath string) (managedAssetState, erro
 	}
 	return managedAssetDrifted, nil
 }
+
+// compareExpectedAsset compares expected content bytes against a target file on disk.
+// This is used by `agents status` where the "source" is an in-memory compiled artifact,
+// not a file on disk (unlike compareManagedAsset which reads both from disk).
+func compareExpectedAsset(expected []byte, targetPath string) (managedAssetState, error) {
+	target, err := os.ReadFile(targetPath)
+	if os.IsNotExist(err) {
+		return managedAssetMissing, nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("reading project file %s: %w", targetPath, err)
+	}
+	if bytes.Equal(expected, target) {
+		return managedAssetCurrent, nil
+	}
+	return managedAssetDrifted, nil
+}
+
+// compareExpectedContent compares a map of expected content (key=target path, value=expected bytes)
+// against files on disk across one target directory. Returns entries for all expected files
+// plus any project-owned extra files found in the directory.
+func compareExpectedContent(expected map[string][]byte, targetDir string) ([]managedAssetEntry, error) {
+	// Build relative-path -> expected-bytes map
+	managed := make(map[string][]byte)
+	for path, content := range expected {
+		rel, err := filepath.Rel(targetDir, path)
+		if err != nil {
+			return nil, fmt.Errorf("resolving relative path for %s: %w", path, err)
+		}
+		managed[filepath.Clean(rel)] = content
+	}
+
+	var entries []managedAssetEntry
+
+	// Check each expected file
+	managedPaths := make([]string, 0, len(managed))
+	for rel := range managed {
+		managedPaths = append(managedPaths, rel)
+	}
+	sort.Strings(managedPaths)
+
+	for _, rel := range managedPaths {
+		targetPath := filepath.Join(targetDir, rel)
+		state, err := compareExpectedAsset(managed[rel], targetPath)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, managedAssetEntry{State: state, TargetPath: targetPath})
+	}
+
+	// Walk target dir for project-owned extra files
+	if err := filepath.WalkDir(targetDir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if entry.IsDir() || entry.Name() == ".gitkeep" {
+			return nil
+		}
+		rel, err := filepath.Rel(targetDir, path)
+		if err != nil {
+			return err
+		}
+		if _, known := managed[filepath.Clean(rel)]; !known {
+			entries = append(entries, managedAssetEntry{State: managedAssetProjectOwned, TargetPath: path})
+		}
+		return nil
+	}); err != nil {
+		if os.IsNotExist(err) {
+			return entries, nil
+		}
+		return nil, fmt.Errorf("discovering target directory %s: %w", targetDir, err)
+	}
+
+	return entries, nil
+}

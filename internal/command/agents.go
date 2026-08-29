@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -91,6 +92,57 @@ For custom subagents, deletes the source definition from .flowforge/subagents/.`
 	}
 
 	agents.AddCommand(deploy, remove)
+
+	// Add status subcommand
+	statusJSON := false
+	statusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "Compare deployed subagent files against expected compiled content",
+		Long: `Compare deployed subagent files in .claude/agents/, .opencode/agent/, and .codex/agents/
+against the expected compiled content. Reports current/missing/drifted/project-owned states.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			projectRoot, err := config.FindProjectRoot(".")
+			if err != nil {
+				return fmt.Errorf("locating project root: %w", err)
+			}
+
+			cfg, err := config.Load(projectRoot)
+			if err != nil {
+				return fmt.Errorf("loading config: %w", err)
+			}
+
+			result, err := computeSubagentStatus(projectRoot, cfg)
+			if err != nil {
+				return err
+			}
+
+			if statusJSON {
+				data, err := json.MarshalIndent(result, "", "  ")
+				if err != nil {
+					return err
+				}
+				cmd.Println(string(data))
+			} else {
+				for _, entry := range result.Entries {
+					cmd.Printf("%s %s\n", entry.State, entry.Target)
+				}
+				if result.Current {
+					cmd.Println("\n✓ All subagents current.")
+				} else {
+					cmd.Println("\n⚠ Some subagents missing or drifted.")
+				}
+			}
+
+			if !result.Current {
+				return errPolicyViolation
+			}
+			return nil
+		},
+	}
+	statusCmd.Flags().BoolVar(&statusJSON, "json", false, "Output JSON")
+	agents.AddCommand(statusCmd)
+
 	return agents
 }
 

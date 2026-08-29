@@ -449,3 +449,166 @@ func TestAgentsRemoveUnknownCustomNameErrors(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
+
+func TestAgentsStatusReportsCurrentAfterDeploy(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Deploy all subagents
+	_, err = deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := computeSubagentStatus(projectRoot, cfg)
+	if err != nil {
+		t.Fatalf("computeSubagentStatus: %v", err)
+	}
+
+	if !result.Current {
+		t.Errorf("expected all current, but got non-current. Entries: %+v", result.Entries)
+	}
+
+	for _, entry := range result.Entries {
+		if entry.State != string(managedAssetCurrent) {
+			t.Errorf("expected %s to be current, got %s", entry.Target, entry.State)
+		}
+	}
+}
+
+func TestAgentsStatusReportsMissing(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Deploy all subagents
+	_, err = deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove one file
+	missingPath := filepath.Join(projectRoot, ".claude", "agents", "flowforge-analyst.md")
+	if err := os.Remove(missingPath); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := computeSubagentStatus(projectRoot, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Current {
+		t.Error("expected non-current result after removing a file")
+	}
+
+	foundMissing := false
+	for _, entry := range result.Entries {
+		if entry.Target == missingPath && entry.State == string(managedAssetMissing) {
+			foundMissing = true
+		}
+	}
+	if !foundMissing {
+		t.Error("expected to find missing entry for removed file")
+	}
+}
+
+func TestAgentsStatusReportsDrifted(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Deploy all subagents
+	_, err = deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Drift one file
+	driftedPath := filepath.Join(projectRoot, ".claude", "agents", "flowforge-analyst.md")
+	if err := os.WriteFile(driftedPath, []byte("modified content"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := computeSubagentStatus(projectRoot, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Current {
+		t.Error("expected non-current result after drifting a file")
+	}
+
+	foundDrifted := false
+	for _, entry := range result.Entries {
+		if entry.Target == driftedPath && entry.State == string(managedAssetDrifted) {
+			foundDrifted = true
+		}
+	}
+	if !foundDrifted {
+		t.Error("expected to find drifted entry for modified file")
+	}
+}
+
+func TestAgentsStatusReportsProjectOwned(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Deploy all subagents
+	_, err = deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Add an extra file
+	extraPath := filepath.Join(projectRoot, ".claude", "agents", "extra-project-file.md")
+	if err := os.WriteFile(extraPath, []byte("project owned"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := computeSubagentStatus(projectRoot, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	foundProjectOwned := false
+	for _, entry := range result.Entries {
+		if entry.Target == extraPath && entry.State == string(managedAssetProjectOwned) {
+			foundProjectOwned = true
+		}
+	}
+	if !foundProjectOwned {
+		t.Error("expected to find project-owned entry for extra file")
+	}
+
+	// Project-owned should not make overall result non-current
+	if !result.Current {
+		t.Error("expected current=true when only project-owned extra files exist (no missing/drifted)")
+	}
+}
