@@ -612,3 +612,128 @@ func TestAgentsStatusReportsProjectOwned(t *testing.T) {
 		t.Error("expected current=true when only project-owned extra files exist (no missing/drifted)")
 	}
 }
+
+func TestInitDeploysSubagentsToAllHosts(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate what init does: deploy managed assets + subagents
+	if err := deployManagedAssets(projectRoot, filepath.Join(projectRoot, "docs")); err != nil {
+		t.Fatal(err)
+	}
+	deployed, err := deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("deploySubagents: %v", err)
+	}
+
+	if len(deployed) != 6 {
+		t.Fatalf("expected 6 subagents deployed, got %d", len(deployed))
+	}
+
+	// Verify all 3 host directories have 6 files each
+	for _, dir := range []string{".claude/agents", ".opencode/agent", ".codex/agents"} {
+		entries, err := os.ReadDir(filepath.Join(projectRoot, dir))
+		if err != nil {
+			t.Fatalf("reading %s: %v", dir, err)
+		}
+		if len(entries) != 6 {
+			t.Errorf("expected 6 files in %s, got %d", dir, len(entries))
+		}
+	}
+}
+
+func TestUpgradeSyncDeploysSubagents(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate what upgrade's syncProjectAssets does
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := deployManagedAssets(projectRoot, cfg.DocsRoot(projectRoot)); err != nil {
+		t.Fatal(err)
+	}
+
+	deployed, err := deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("deploySubagents: %v", err)
+	}
+
+	if len(deployed) != 6 {
+		t.Fatalf("expected 6 subagents, got %d", len(deployed))
+	}
+
+	// Verify files exist for representative roles
+	for _, role := range []string{"flowforge-analyst", "flowforge-architect"} {
+		paths := []string{
+			filepath.Join(projectRoot, ".claude", "agents", role+".md"),
+			filepath.Join(projectRoot, ".opencode", "agent", role+".md"),
+			filepath.Join(projectRoot, ".codex", "agents", role+".toml"),
+		}
+		for _, p := range paths {
+			if _, err := os.Stat(p); err != nil {
+				t.Errorf("expected file %s to exist", p)
+			}
+		}
+	}
+}
+
+func TestUpgradeSyncSkipsDisabledSubagents(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	// Disable a subagent
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Disabled = []string{"flowforge-planner"}
+	if err := cfg.Save(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err = config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Simulate sync
+	if err := deployManagedAssets(projectRoot, cfg.DocsRoot(projectRoot)); err != nil {
+		t.Fatal(err)
+	}
+	deployed, err := deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("deploySubagents: %v", err)
+	}
+
+	// Should deploy 5 (6 - 1 disabled)
+	if len(deployed) != 5 {
+		t.Fatalf("expected 5 subagents, got %d", len(deployed))
+	}
+
+	// Verify disabled agent not deployed
+	for _, name := range deployed {
+		if name == "flowforge-planner" {
+			t.Error("disabled subagent flowforge-planner was deployed")
+		}
+	}
+
+	// Verify planner files don't exist
+	plannerPath := filepath.Join(projectRoot, ".claude", "agents", "flowforge-planner.md")
+	if _, err := os.Stat(plannerPath); err == nil {
+		t.Error("disabled subagent file should not exist")
+	}
+}

@@ -111,5 +111,12 @@ func syncProjectAssets(cmd *cobra.Command, successMessage string) {
 		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: project assets remain missing or drifted after synchronization: %s\n", comparison.DivergenceMessage())
 		return
 	}
+
+	// Synchronize subagents (non-fatal warning on failure)
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to synchronize subagents: %v\n", err)
+		return
+	}
+
 	fmt.Fprintln(cmd.OutOrStdout(), successMessage)
 }

@@ -90,11 +90,17 @@ sets up <docs_dir>/agents/ rules, creates .flowforge/ configuration, and sets up
 				return fmt.Errorf("deployed assets remain missing or drifted: %s", comparison.DivergenceMessage())
 			}
 
+			// 5. Deploy subagents to host directories
+			if _, err := deploySubagents(absTarget, cfg, ""); err != nil {
+				return fmt.Errorf("deploying subagents: %w", err)
+			}
+
 			fmt.Fprintln(cmd.OutOrStdout(), "✓ FlowForge local tracker initialized successfully.")
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Created %s/ and %s hierarchy\n", config.ConfigDirName, proposalsDir)
 			fmt.Fprintln(cmd.OutOrStdout(), "✓ Deployed flowforge skills to .agents/skills/")
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Configured %s/agents/ rules\n", docsRoot)
 			fmt.Fprintln(cmd.OutOrStdout(), "✓ Managed assets verified current.")
+			fmt.Fprintf(cmd.OutOrStdout(), "✓ Deployed flowforge subagents to .claude/agents/, .opencode/agent/, .codex/agents/\n")
 			fmt.Fprintln(cmd.OutOrStdout(), "\nReady to run /flowforge-route, /flowforge-align, or /flowforge-to-spec in your agent.")
 			return nil
 		},
