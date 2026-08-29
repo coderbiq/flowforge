@@ -18,3 +18,21 @@ When asked to work on a feature, bug, refactor, or complex task in FlowForge, in
 | **Architecture Probe** | `/flowforge-codebase-design` | Deep module design scan and architectural surface analysis |
 | **Bug Diagnosis** | `/flowforge-diagnose` | Structured hypothesis-driven bug investigation |
 | **Deep Refactoring** | `/flowforge-improve-architecture` | Comprehensive codebase scan and progressive architecture refinement |
+
+## Subagent delegation
+
+When the current session can delegate (Claude Code Agent tool / `@mention`,
+OpenCode Task tool / `@mention`, Codex sub-session), prefer delegating the next
+unresolved-owner step to the matching subagent instead of doing the work inline.
+Consult `flowforge frontier` before choosing. Subagents do not call each other;
+return to this session and re-delegate based on each subagent's `Next Action`.
+
+| Next unresolved owner | Subagent | Bound Skill |
+|:---|:---|:---|
+| Requirement outcome, scope, scenario, constraint, or term unsettled | `flowforge-analyst` | `flowforge-align` |
+| Requirement settled; responsibility, interface, seam, or verification strategy unsettled | `flowforge-architect` | `flowforge-solution-design` |
+| Requirement and design settled; needs ticket slicing with DAG edges | `flowforge-planner` | `flowforge-plan` |
+| An executable frontier ticket exists | `flowforge-implementer` | `flowforge-implement` |
+| A fixed change set needs dual-axis review | `flowforge-reviewer` | `flowforge-review` |
+| A bounded research/diagnosis question blocks a decision | `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` |
+

@@ -21,6 +21,25 @@ func TestPackagedSkillPointersResolve(t *testing.T) {
 	}
 	assertSkillPointersResolve(t, filepath.Join(target, ".agents", "skills"))
 	assertRequiredArtifactContractPointers(t, filepath.Join(target, ".agents", "skills"))
+
+	// Verify AGENTS.md deployment includes Subagent delegation
+	deployedAgents, err := os.ReadFile(filepath.Join(target, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(deployedAgents)
+	if !strings.Contains(content, "<!-- FLOWFORGE:START -->") || !strings.Contains(content, "<!-- FLOWFORGE:END -->") {
+		t.Fatal("deployed AGENTS.md missing FLOWFORGE markers")
+	}
+	blockStart := strings.Index(content, "<!-- FLOWFORGE:START -->")
+	blockEnd := strings.Index(content, "<!-- FLOWFORGE:END -->")
+	if blockStart < 0 || blockEnd < 0 || blockEnd <= blockStart {
+		t.Fatal("deployed AGENTS.md FLOWFORGE markers invalid")
+	}
+	block := content[blockStart:blockEnd]
+	if !strings.Contains(block, "Subagent delegation") {
+		t.Fatal("deployed AGENTS.md FLOWFORGE block missing Subagent delegation section")
+	}
 }
 
 func TestAgentRulesDescribeOptionalSpecNavigation(t *testing.T) {
@@ -34,6 +53,30 @@ func TestAgentRulesDescribeOptionalSpecNavigation(t *testing.T) {
 	}
 	if strings.Contains(content, "Synthesize consensus into unambiguous specification") {
 		t.Fatal("stale authoritative To-Spec pointer returned")
+	}
+}
+
+func TestAgentRulesDescribeSubagentDelegation(t *testing.T) {
+	agentRules, err := os.ReadFile(filepath.Join("..", "..", "assets", "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(agentRules)
+	if !strings.Contains(content, "Subagent delegation") {
+		t.Fatal("AGENTS.md missing Subagent delegation section")
+	}
+	requiredSubagents := []string{
+		"flowforge-analyst",
+		"flowforge-architect",
+		"flowforge-planner",
+		"flowforge-implementer",
+		"flowforge-reviewer",
+		"flowforge-investigator",
+	}
+	for _, subagent := range requiredSubagents {
+		if !strings.Contains(content, subagent) {
+			t.Fatalf("AGENTS.md missing subagent %q in delegation table", subagent)
+		}
 	}
 }
 
