@@ -31,6 +31,21 @@ Align 不选择实现架构；Solution Design 不拆 ticket 或改生产代码�
 - `flowforge-handoff`：跨会话传递尚未进入权威工件的临时上下文；不是长期设计来源。
 - `flowforge-resolving-conflicts`、`flowforge-teach`、`flowforge-wizard` 等处理各自独立场景。
 
+## Subagent 委派与协作
+
+在支持委派的宿主环境（Claude Code Subagents、OpenCode Agent Tool / `@mention`、Codex 子会话）中，主会话依据 `flowforge frontier` 的就绪状态与 AGENTS.md 路由表，将工作分配给对应的 Subagent：
+
+| 角色 | 绑定 Skill | 职责 | 权限 |
+|---|---|---|---|
+| `flowforge-analyst` | `flowforge-align` | 需求澄清、范围界定、用例、约束与术语 | 只读代码，读写 requirements.md |
+| `flowforge-architect` | `flowforge-solution-design` | 模块职责、接口/seam、跨模块信息流与验证策略 | 只读代码，写 design.md/ADR |
+| `flowforge-planner` | `flowforge-plan` | Ticket 拆分、DAG 阻塞边、frontier 验证 | 读写 ticket 文件与配置 |
+| `flowforge-implementer` | `flowforge-implement` | 基于 pre-agreed seam 进行 TDD 实现与轻量自检 | 读写受限于 ticket 声明的 Write set |
+| `flowforge-reviewer` | `flowforge-review` | 针对 Standards 与 Spec 双轴进行代码审查 | **只读** |
+| `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` | 假设驱动的 bug 诊断与事实调研 | 只读，外部访问需显式授权 |
+
+Subagent 之间不直接相互调用，统一回传五段式结果契约（含 `STATUS`、Summary、Changed Artifacts、Verification、Findings、Next Action）由主会话进行下一步路由。
+
 ## 工件协作规则
 
 生产 Skill 共同读取 `assets/skills/_shared/ARTIFACT-CONTRACT.md`。它规定：
