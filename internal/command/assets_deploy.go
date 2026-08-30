@@ -30,7 +30,10 @@ func deployManagedAssets(targetDir string, docsRoot string) error {
 	}
 
 	// Deploy agent documentation rules into <docsRoot>/agents/.
-	if err := copyDir(filepath.Join(assetsDir, "agents"), filepath.Join(docsRoot, "agents"), true); err != nil {
+	// Use overwrite=false so project-customised agent docs (e.g. standards.md,
+	// domain.md, issue-tracker.md) are preserved; only new files are written.
+	// Conflicts are reported via stderr and assets verify reports them as drifted.
+	if err := copyDir(filepath.Join(assetsDir, "agents"), filepath.Join(docsRoot, "agents"), false); err != nil {
 		return fmt.Errorf("deploying agent rules: %w", err)
 	}
 
