@@ -21,7 +21,7 @@ Read project invariants, the ticket, its linked requirement/design authorities a
 
 Do not advance status to express readiness. Begin only when the ticket's Delivery, design context, decided Changes, Constraints, and feasible Done and verify method form an executable contract.
 
-**Standards pre-flight:** Before execution, check the ticket's Constraints for standards extraction status. The ticket must carry one of: `must`/`must not` standards clauses (extraction done — proceed), `standards: none found per guide` (extraction attempted, no applicable standards — proceed), or `standards: pending` (extraction not done — return the ticket to Plan). If the ticket has Changes and a `Write set` but lacks any of these markers, return it to Plan for standards extraction. Tickets without a `Write set` (pure documentation) skip this check. Do not extract standards yourself; return to Plan so Plan can perform the extraction.
+**Standards pre-flight:** Before execution, check the ticket's Constraints for standards transcription status. The ticket must carry one of: `must`/`must not` standards clauses (transcription done — proceed), `standards: none found` (design authority had no applicable standards — proceed), or `standards: pending` (transcription not done — return the ticket to Plan). If the ticket has Changes and a `Write set` but lacks any of these markers, return it to Plan for standards transcription. Tickets without a `Write set` (pure documentation) skip this check. Do not transcribe standards yourself; return to Plan so Plan can transcribe from the design authority.
 
 ### 2. Determine execution mode
 

@@ -20,6 +20,8 @@ Find the feature's current requirement authority and applicable project context/
 
 Inspect code, configuration, existing behavior, and durable project authority before asking the user. Ask only for product intent, trade-offs, or external facts the repository cannot answer. For example, whether missing configuration fails startup or selects a default is a requirement question when it changes observable behavior; the internal error-handling seam remains Solution Design's choice.
 
+Read the project's standards extraction guide (configured at `standards.guide`, default `agents/standards.md` under `docs_dir`). Follow the logic described in that guide to identify which project standards apply to this requirement's scope and scenarios. Pass the identified standards to Solution Design as requirement constraints or as a standards identification list attached to the requirement authority. Align only identifies applicable standards—it does not convert them into `must`/`must not` statements or decide tier placement; that conversion is Solution Design's responsibility.
+
 ### 3. Work the requirement frontier
 
 Invoke `flowforge-grilling` for the current branching requirement decisions. Invoke `flowforge-domain-modeling` only when a term needs durable glossary authority or the choice qualifies for an ADR.

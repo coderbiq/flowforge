@@ -6,7 +6,7 @@ flowforge:
   revision: 1
   consumes:
     design:
-      plan-extraction: 1
+      plan-transcription: 2
 ---
 
 # 04: Plan 提取职责扩展
@@ -22,7 +22,7 @@ flowforge:
 
 Plan 的 step 1 扩展为同时 resolve 规范提取说明。按提取说明中描述的逻辑（项目自定义）为本卡片定位适用规范。提取后按每条规范性质分流。自检后留标记：`standards: pending`（未完成）或 `standards: none found per guide`（已尝试但无适用）。
 
-See the [design authority](../design.md#plan-extraction) for the Plan extraction duty.
+See the [design authority](../design.md#plan-transcription) for the Plan extraction duty.
 
 ## Touch points
 

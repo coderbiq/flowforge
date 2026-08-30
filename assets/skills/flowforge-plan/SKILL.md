@@ -18,7 +18,7 @@ For schema authority being consumed, run `flowforge check --dir <feature-dir> --
 
 Inspect the codebase to find exact file paths and symbols for Touch points and Changes. The implementer may be a lightweight model that cannot search the codebase; the ticket must provide coordinates. A planning action that selects or moves a responsibility, interface, seam, information flow, or ordering returns to `flowforge-solution-design` instead of becoming a ticket step.
 
-Read the project's standards extraction guide (configured at `standards.guide`, default `agents/standards.md` under `docs_dir`). Follow the logic described in that guide to determine which project standards apply to this ticket, based on its Touch points and Write set. For each applicable standard, extract a `must` or `must not` statement that captures what the implementer must do or avoid, with a semantic link to its source. Do not copy whole sections—restate only the locally needed meaning. Plan does not judge standard correctness; it only follows the extraction guide.
+Read the design authority's `## Standards clauses` section. Transcribe each `must`/`must not` clause into the ticket at the tier indicated by its tag (`[Constraints]` → `## Constraints`, `[Conventions]` → `### Conventions`). Do not modify clause content, re-judge tier placement, or read the standards guide. If the design authority has no Standards clauses section and the ticket has a Write set, mark `standards: pending` and return to Solution Design.
 
 ### 2. Draft tracer increments
 
@@ -48,16 +48,16 @@ Then write three information tiers. Include file paths and symbols as coordinate
 
 - **Touch points:** specific file paths and symbols (e.g. `internal/tracker/catalog.go` — `Catalog` struct, `IdentityIndex` map).
 - **Changes:** ordered, mechanical actions, each as `- [ ] N. <action naming the target file and symbol>`.
-- **Constraints:** ticket-specific invariants, plus extracted `must`/`must not` standards clauses for hard invariants (violation means failure). Include a `Write set:` line listing the only directories or files the implementer may modify.
+- **Constraints:** ticket-specific invariants, plus `must`/`must not` standards clauses transcribed from the design authority's Standards clauses tagged `[Constraints]`. Include a `Write set:` line listing the only directories or files the implementer may modify.
 - **Done and verify:** pair each observable condition with an exact command and the expected result (e.g. "all pass, 0 failures" or named test cases that must pass).
 
 **Tier 3 — agent execution detail** (after a `---` separator):
 
-- **Execution detail:** subsections for `### Settled decisions`, `### Expected tests`, and `### Conventions` that the implementer needs but a human reviewer can skip. Extracted `must`/`must not` standards clauses for conventions (softer, not a direct completion gate) go here alongside non-obvious code conventions.
+- **Execution detail:** subsections for `### Settled decisions`, `### Expected tests`, and `### Conventions` that the implementer needs but a human reviewer can skip. `must`/`must not` standards clauses transcribed from the design authority's Standards clauses tagged `[Conventions]` go here alongside non-obvious code conventions.
 - **Implementation note:** left empty by Plan; written by the implementer after execution.
 - **Review rounds:** left empty by Plan; accumulated by the review agent after each review round.
 
-After writing the ticket, perform an extraction self-check. For tickets with a `Write set` (code changes), the Constraints section must carry one of: `must`/`must not` standards clauses (extraction done), `standards: none found per guide` (extraction attempted, no applicable standards), or `standards: pending` (extraction not yet done). Tickets without a `Write set` (pure documentation) do not require this marker.
+After writing the ticket, perform a transcription self-check. For tickets with a `Write set` (code changes), the Constraints section must carry one of: `must`/`must not` standards clauses (transcription done), `standards: none found` (design authority had no applicable standards), or `standards: pending` (design authority lacks Standards clauses—return to Solution Design). Tickets without a `Write set` (pure documentation) do not require this marker.
 
 <ticket-template>
 

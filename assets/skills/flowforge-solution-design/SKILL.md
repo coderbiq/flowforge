@@ -21,6 +21,8 @@ Return a question to Align only when different answers change the externally obs
 
 Identify which responsibility, interface, seam, flow, ordering, migration, or verification facts are unsettled. Do not inventory the whole codebase. A local change at an already approved seam returns directly to Plan with the reason this Skill adds no value.
 
+Receive the standards identification list from Align (the applicable project standards Align identified for this requirement's scope). These standards constrain the design space—evaluate every design decision against them.
+
 ### 2. Resolve facts before choices
 
 Inspect code and project authority for the current model. Invoke `flowforge-research` only for a named unavailable primary-source fact. Invoke `flowforge-prototype` only for one behavior hard to judge on paper. Resume the same decision after the verdict and retain only evidence that changed it.
@@ -29,13 +31,15 @@ Use `flowforge-domain-modeling` only for durable vocabulary or an ADR. Invoke `f
 
 ### 3. Compare credible designs
 
-For consequential seams, sketch at least two materially different responsibility boundaries. Compare caller knowledge, hidden complexity, failure handling, compatibility order, test seam, and change locality. Select one and retain the decision-rich reason alternatives lost.
+For consequential seams, sketch at least two materially different responsibility boundaries. Compare caller knowledge, hidden complexity, failure handling, compatibility order, test seam, change locality, and **standards compliance**—a design alternative that violates an applicable project standard is rejected unless the standard owner grants an explicit waiver. Select one and retain the decision-rich reason alternatives lost.
 
 When repository facts are settled but a real product or engineering trade-off leaves a branching decision frontier, invoke `flowforge-grilling` with the alternatives, consequences, and decision owner. Resume after the choice and write it to design authority; do not use grilling to compensate for missing facts or requirement ambiguity.
 
 ### 4. Maintain authority incrementally
 
 After each settled decision, update design authority. Treat current/target responsibilities, interfaces, information flow, migration, scoped constraints, verification, and decision-rich alternatives as a completeness checklist—not mandatory headings. Omit any section with no independent information.
+
+Convert the standards received from Align into `must`/`must not` clauses and write them into the design authority as a `## Standards clauses` section. Each clause carries a semantic link to its source document and a tier tag: `[Constraints]` for hard invariants (violation means failure, affects completion) or `[Conventions]` for conventions (the implementer must follow but softer, not a direct completion gate). The design authority is the single authoritative source for these clauses; Plan transcribes them mechanically. Do not copy whole sections from the standard document—restate only the locally needed meaning and link.
 
 Use a stable semantic area and increment only its semantic revision. Formatting or link repair does not increment it. Read [schema v1](../_shared/SCHEMA-V1.md) when writing machine metadata. Read [adaptive design packaging](DESIGN-PACKAGING.md) only when deciding whether the design should remain compact or split.
 

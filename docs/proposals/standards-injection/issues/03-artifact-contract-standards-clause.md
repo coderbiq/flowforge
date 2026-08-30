@@ -6,7 +6,7 @@ flowforge:
   revision: 1
   consumes:
     design:
-      ticket-standards-clause: 1
+      design-conversion: 2
 ---
 
 # 03: ARTIFACT-CONTRACT 扩展规范陈述书写格式
@@ -22,7 +22,7 @@ flowforge:
 
 ARTIFACT-CONTRACT 扩展 ticket 的 hand-offs 规则。规范陈述以 `must`/`must not` 形式写入，附规范源语义链接，不复制整段 rationale。落点不固定：硬不变量归 Constraints，约定性归 Conventions。
 
-See the [design authority](../design.md#ticket-standards-clause) for the standards clause format.
+See the [design authority](../design.md#design-conversion) for the standards clause format.
 
 ## Touch points
 

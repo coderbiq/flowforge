@@ -9,10 +9,10 @@ FlowForge v5 使用 `flowforge-*` Skill 分配问题所有权。用户不需要�
 | `flowforge-route` | 不清楚该走哪个工程流程 | 选择一个 next owner 和理由；不创建 feature 内容 |
 | `flowforge-triage` | 外部 bug/request 需要分类和 agent-ready brief | 分类、验证、补齐清晰 brief |
 | `flowforge-import` | 本地 PRD、旧 proposal、brief 或 notes 是新工作的起点 | 分类可追溯来源事实与候选内容，并交给 Align 或 Solution Design；不转换 authority |
-| `flowforge-align` | 结果、范围、场景、约束或术语仍会改变方案空间 | requirement authority；已决事实立即写入 |
-| `flowforge-solution-design` | 模块责任、接口/seam、跨模块流、迁移或验证策略未定 | design authority、替代方案、scoped diagnostics、Plan coverage |
+| `flowforge-align` | 结果、范围、场景、约束或术语仍会改变方案空间 | requirement authority；已决事实立即写入；读取提取说明识别适用规范传递 Design |
+| `flowforge-solution-design` | 模块责任、接口/seam、跨模块流、迁移或验证策略未定 | design authority、替代方案、scoped diagnostics、Plan coverage；接收规范、设计合规方案、将规范转换成 must/must not 写入设计 authority |
 | `flowforge-to-spec` | 多个 authority 需要一个跨会话或外部评审入口 | 可选的非权威导航 spec；compact work 可跳过 |
-| `flowforge-plan` | 需求和相关设计区域已确定，需要执行增量与 DAG | 高信息 ticket、真实 blocking edge、经 CLI 验证的 frontier；从提取说明提取适用规范以 `must`/`must not` 写入卡片 |
+| `flowforge-plan` | 需求和相关设计区域已确定，需要执行增量与 DAG | 高信息 ticket、真实 blocking edge、经 CLI 验证的 frontier；从设计 authority 机械转写 must/must not 到卡片 |
 | `flowforge-implement` | 有可执行 ticket 或等价 compact contract | 轻量模式：执行 unchecked Changes、规范 pre-flight 检查、机检自检、写 Implementation note 后停止；完整模式：TDD 实现、双轴审查、completion evidence、提交和新 frontier |
 | `flowforge-review` | 有固定 diff 与有效 specification | Standards 轴只查卡片内已注入规范 + 通用 smell baseline；Specification 轴查有效规格；两份独立报告；有 findings 时翻译为 `Fix:` Changes 追加到 ticket；零 findings 时写 evidence 并关闭 ticket |
 
