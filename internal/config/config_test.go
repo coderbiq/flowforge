@@ -233,3 +233,168 @@ func TestDocsRootSupportsRelativeAndAbsolutePaths(t *testing.T) {
 		t.Fatalf("absolute docs root = %s, want %s", got, absoluteRoot)
 	}
 }
+
+func TestStandardsGuideDefault(t *testing.T) {
+	cfg := DefaultConfig()
+
+	if cfg.Standards.Guide != "agents/standards.md" {
+		t.Errorf("expected default standards.guide agents/standards.md, got %s", cfg.Standards.Guide)
+	}
+}
+
+func TestStandardsGuideLoadDefault(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte("version: 5.0.0"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if cfg.Standards.Guide != "agents/standards.md" {
+		t.Errorf("expected standards.guide agents/standards.md, got %s", cfg.Standards.Guide)
+	}
+}
+
+func TestStandardsGuideSaveLoad(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &Config{
+		Version:      "5.0.0",
+		VersionCheck: true,
+		DocsDir:      "docs",
+		Standards:    StandardsConfig{Guide: "custom/standards.md"},
+	}
+
+	if err := cfg.Save(tmpDir); err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	loaded, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if loaded.Standards.Guide != "custom/standards.md" {
+		t.Errorf("expected standards.guide custom/standards.md, got %s", loaded.Standards.Guide)
+	}
+}
+
+func TestStandardsGuideServiceGet(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte("version: 5.0.0"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc, err := New(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
+	defer svc.Close()
+
+	got, err := svc.Get("standards.guide")
+	if err != nil {
+		t.Fatalf("failed to get standards.guide: %v", err)
+	}
+
+	if got != "agents/standards.md" {
+		t.Errorf("expected agents/standards.md, got %s", got)
+	}
+}
+
+func TestStandardsGuideServiceSet(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte("version: 5.0.0"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc, err := New(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
+	defer svc.Close()
+
+	if err := svc.Set("standards.guide", "custom/standards.md"); err != nil {
+		t.Fatalf("failed to set standards.guide: %v", err)
+	}
+
+	got, err := svc.Get("standards.guide")
+	if err != nil {
+		t.Fatalf("failed to get standards.guide: %v", err)
+	}
+
+	if got != "custom/standards.md" {
+		t.Errorf("expected custom/standards.md, got %s", got)
+	}
+}
+
+func TestStandardsGuideServiceSetEmpty(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte("version: 5.0.0"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc, err := New(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
+	defer svc.Close()
+
+	if err := svc.Set("standards.guide", ""); err == nil {
+		t.Error("expected error for empty standards.guide, got nil")
+	}
+}
+
+func TestStandardsGuideServiceList(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte("version: 5.0.0"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc, err := New(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
+	defer svc.Close()
+
+	values, err := svc.List()
+	if err != nil {
+		t.Fatalf("failed to list config: %v", err)
+	}
+
+	got, ok := values["standards.guide"]
+	if !ok {
+		t.Fatal("expected standards.guide in config list")
+	}
+
+	if got != "agents/standards.md" {
+		t.Errorf("expected agents/standards.md, got %s", got)
+	}
+}

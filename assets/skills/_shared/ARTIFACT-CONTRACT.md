@@ -44,6 +44,24 @@ Then it provides three information tiers:
 - **Constraints:** ticket-specific or easy-to-violate invariants, linked upstream when shared. Include a `Write set:` line listing the only directories or files the implementer may modify.
 - **Done and verify:** pair each observable completion condition with an exact command and the expected result (e.g. "all pass, 0 failures" or named test cases that must pass).
 
+**Standards clauses:** When Plan extracts applicable project standards into a ticket, each extracted rule becomes a `must` or `must not` statement with a semantic link to its source document. The landing tier depends on the rule's nature, not a fixed template: hard invariants (violation means failure, affects completion) go into `## Constraints` alongside ticket-specific invariants; conventions (the implementer must follow but softer, not a direct completion gate) go into Tier 3 `### Conventions` alongside non-obvious code conventions. Do not copy whole sections from the standard document—restate only the locally needed meaning and link.
+
+Format:
+
+```markdown
+## Constraints
+
+- must not <forbidden behavior> — <source document link>
+- must <required behavior> — <source document link>
+
+### Conventions
+
+- must <required behavior> — <source document link>
+- must not <forbidden behavior> — <source document link>
+```
+
+The source link is a relative path with an anchor (e.g. `../docs/dependency-rules.md#section-anchor`). No revision is recorded; the ticket snapshots the standards at execution time.
+
 **Tier 3 — agent execution detail** (after a `---` separator, skippable by humans):
 
 - **Execution detail:** subsections for Settled decisions, Expected tests, and Conventions that the implementer needs but a human reviewer can skip.

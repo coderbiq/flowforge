@@ -12,9 +12,9 @@ FlowForge v5 使用 `flowforge-*` Skill 分配问题所有权。用户不需要�
 | `flowforge-align` | 结果、范围、场景、约束或术语仍会改变方案空间 | requirement authority；已决事实立即写入 |
 | `flowforge-solution-design` | 模块责任、接口/seam、跨模块流、迁移或验证策略未定 | design authority、替代方案、scoped diagnostics、Plan coverage |
 | `flowforge-to-spec` | 多个 authority 需要一个跨会话或外部评审入口 | 可选的非权威导航 spec；compact work 可跳过 |
-| `flowforge-plan` | 需求和相关设计区域已确定，需要执行增量与 DAG | 高信息 ticket、真实 blocking edge、经 CLI 验证的 frontier |
-| `flowforge-implement` | 有可执行 ticket 或等价 compact contract | 轻量模式：执行 unchecked Changes、机械自检、写 Implementation note 后停止；完整模式：TDD 实现、双轴审查、completion evidence、提交和新 frontier |
-| `flowforge-review` | 有固定 diff 与有效 specification | Standards 与 Specification 两份独立报告；有 findings 时翻译为 `Fix:` Changes 追加到 ticket；零 findings 时写 evidence 并关闭 ticket |
+| `flowforge-plan` | 需求和相关设计区域已确定，需要执行增量与 DAG | 高信息 ticket、真实 blocking edge、经 CLI 验证的 frontier；从提取说明提取适用规范以 `must`/`must not` 写入卡片 |
+| `flowforge-implement` | 有可执行 ticket 或等价 compact contract | 轻量模式：执行 unchecked Changes、规范 pre-flight 检查、机检自检、写 Implementation note 后停止；完整模式：TDD 实现、双轴审查、completion evidence、提交和新 frontier |
+| `flowforge-review` | 有固定 diff 与有效 specification | Standards 轴只查卡片内已注入规范 + 通用 smell baseline；Specification 轴查有效规格；两份独立报告；有 findings 时翻译为 `Fix:` Changes 追加到 ticket；零 findings 时写 evidence 并关闭 ticket |
 
 Align 不选择实现架构；Solution Design 不拆 ticket 或改生产代码；Plan 不把设计选择伪装成步骤；Implement 遇到责任/seam 变化会返回设计，遇到可观察需求变化会返回 Align。
 

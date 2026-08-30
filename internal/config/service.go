@@ -37,7 +37,13 @@ func (s *ConfigService) Get(key string) (string, error) {
 		if s.fileStore.Config().DocsDir != "" {
 			return s.fileStore.Config().DocsDir, nil
 		}
-		return "docs", nil
+		return DefaultDocsDir, nil
+	case key == "standards.guide":
+		guide := s.fileStore.Config().Standards.Guide
+		if guide != "" {
+			return guide, nil
+		}
+		return DefaultStandardsGuide, nil
 	default:
 		return "", fmt.Errorf("unknown config key: %s", key)
 	}
@@ -62,6 +68,14 @@ func (s *ConfigService) Set(key, value string) error {
 		if err := s.fileStore.Save(); err != nil {
 			return err
 		}
+	case key == "standards.guide":
+		if strings.TrimSpace(value) == "" {
+			return fmt.Errorf("standards.guide must not be empty")
+		}
+		s.fileStore.Config().Standards.Guide = value
+		if err := s.fileStore.Save(); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown config key: %s", key)
 	}
@@ -73,13 +87,18 @@ func (s *ConfigService) List() (map[string]string, error) {
 	result["version_check"] = fmt.Sprintf("%t", s.fileStore.Config().VersionCheck)
 	docsDir := s.fileStore.Config().DocsDir
 	if docsDir == "" {
-		docsDir = "docs"
+		docsDir = DefaultDocsDir
 	}
 	result["docs_dir"] = docsDir
 	for _, p := range s.fileStore.Config().Projects {
 		result[fmt.Sprintf("project.%s.wikiRoot", p.ID)] = p.WikiRoot
 		result[fmt.Sprintf("project.%s.srcDirs", p.ID)] = fmt.Sprintf("%v", p.SrcDirs)
 	}
+	guide := s.fileStore.Config().Standards.Guide
+	if guide == "" {
+		guide = DefaultStandardsGuide
+	}
+	result["standards.guide"] = guide
 	return result, nil
 }
 

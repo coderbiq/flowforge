@@ -11,6 +11,7 @@ Scaffold the per-repo configuration that the engineering skills assume:
 - **Issue tracker**: local-first markdown wiki under `<docs_dir>/proposals/` managed by FlowForge DAG engine
 - **Triage labels**: the strings used for the five canonical triage roles
 - **Domain docs**: where `CONTEXT.md` and ADRs live, and the consumer rules for reading them
+- **Standards guide**: where project coding standards live and how to extract applicable standards per ticket
 
 This is a prompt-driven skill, not a deterministic script. Explore, present what you found, confirm with the user, then write.
 
@@ -44,11 +45,13 @@ The defaults are: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-hu
 
 **Section C: Domain docs.** Default to **single-context** (one `<docs_dir>/CONTEXT.md` + `<docs_dir>/adr/`). Record this in `<docs_dir>/agents/domain.md`.
 
+**Section D: Standards guide.** The file `<docs_dir>/agents/standards.md` was deployed by `flowforge init` as a managed asset with a default generic extraction guide. Show the user its contents and ask whether they want to customise it now. The default version provides a working generic heuristic (derive layer/module from Touch points and Write set, look up governing standards, extract `must`/`must not` clauses). Encourage the user to edit it to match this project's actual standard documents and extraction logic—where standards live, how to match them to a ticket. The default is already usable; customisation can happen later at any time by editing the file directly. The standards guide path is configured at `standards.guide` (default `agents/standards.md`).
+
 ### 3. Confirm and edit
 
 Show the user a draft of:
 - The `## Agent skills` block to add to `AGENTS.md` / `CLAUDE.md`
-- The contents of `<docs_dir>/agents/issue-tracker.md`, `<docs_dir>/agents/domain.md`, and `<docs_dir>/agents/triage-labels.md`
+- The contents of `<docs_dir>/agents/issue-tracker.md`, `<docs_dir>/agents/domain.md`, `<docs_dir>/agents/standards.md`, and `<docs_dir>/agents/triage-labels.md`
 
 Let them edit before writing.
 
@@ -57,6 +60,7 @@ Let them edit before writing.
 Write the docs files:
 - `<docs_dir>/agents/issue-tracker.md`: local-markdown wiki with FlowForge DAG engine
 - `<docs_dir>/agents/domain.md`: domain doc consumer rules + layout
+- `<docs_dir>/agents/standards.md`: already deployed by `flowforge init`; guide the user to customise it if they chose to in Section D
 - `<docs_dir>/agents/triage-labels.md`: label mapping (only if `flowforge-triage` is installed)
 
 ### 5. Done

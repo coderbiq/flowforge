@@ -89,7 +89,7 @@ func TestConfigListIsStableAndIncludesDocsDir(t *testing.T) {
 	if err := cmd.RunE(cmd, nil); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := output.String(), "Project Config:\n  docs_dir = wiki\n  version_check = true\n"; got != want {
+	if got, want := output.String(), "Project Config:\n  docs_dir = wiki\n  standards.guide = agents/standards.md\n  version_check = true\n"; got != want {
 		t.Fatalf("config list output:\n%s\nwant:\n%s", got, want)
 	}
 

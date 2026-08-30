@@ -54,12 +54,12 @@ Markdown 是内容接口。Agent 直接读写文件；CLI 不接受大段需求�
 
 ## 实现边界
 
-- `internal/config`：项目根、`docs_dir`、`agents.disabled` 与兼容配置解析。
+- `internal/config`：项目根、`docs_dir`、`standards.guide`、`agents.disabled` 与兼容配置解析。
 - `internal/subagent`：Subagent 权威定义解析、三宿主（Claude Code、OpenCode、Codex）原生格式编译与 Model Profile 映射。
 - `internal/tracker`：Markdown ticket 解析、Artifact Catalog、语义诊断、DAG 与 frontier。
 - `internal/command`：Cobra 命令、策略投影、初始化、Subagent 生命周期管理（deploy/remove/status）和受管资产部署。
 - `internal/update`：CLI 更新与同版本资产同步。
-- `assets/skills`、`assets/subagents`、`assets/agents`、`assets/AGENTS.md`：编译进二进制并部署到目标项目的生产资产。
+- `assets/skills`、`assets/subagents`、`assets/agents`（含 `standards.md`）、`assets/AGENTS.md`：编译进二进制并部署到目标项目的生产资产。
 
 `docs_dir` 默认为 `docs`，可为相对项目根目录或绝对路径。命令从任意子目录向上定位 `.flowforge/config.yaml`；发现损坏配置时返回错误，不静默退回其他目录。没有 FlowForge 配置的普通目录仍使用 `docs/proposals` 作为兼容默认值。
 

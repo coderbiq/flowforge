@@ -50,7 +50,7 @@ flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
 - `flowforge agents deploy [name]`：将权威 subagent 定义编译并部署到宿主原生目录（`.claude/agents/`、`.opencode/agent/`、`.codex/agents/`）。
 - `flowforge agents remove <name>`：移除 subagent 部署文件；内置角色写入 `.flowforge/config.yaml` 的 `agents.disabled` 持久化停用，自定义角色删除源文件。
 - `flowforge agents status [--json]`：报告各 subagent 在各宿主目录中的状态（`current`、`missing`、`drifted`、`project-owned`）。
-- `flowforge config get|set|list`：读取或修改 `docs_dir`、version check 及兼容项目配置。
+- `flowforge config get|set|list`：读取或修改 `docs_dir`、`standards.guide`、version check 及兼容项目配置。
 - `flowforge upgrade`：更新 CLI；已经是相同版本时仍同步当前项目的受管资产与 subagent，降级返回独立错误。
 - `flowforge version`：显示构建注入版本。
 

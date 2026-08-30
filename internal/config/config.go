@@ -12,6 +12,9 @@ import (
 const (
 	ConfigDirName  = ".flowforge"
 	ConfigFileName = "config.yaml"
+
+	DefaultDocsDir        = "docs"
+	DefaultStandardsGuide = "agents/standards.md"
 )
 
 type Config struct {
@@ -22,6 +25,11 @@ type Config struct {
 	Wiki             WikiConfig              `yaml:"wiki,omitempty" mapstructure:"wiki"`
 	KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty" mapstructure:"knowledge_sources"`
 	Agents           AgentsConfig            `yaml:"agents,omitempty" mapstructure:"agents"`
+	Standards        StandardsConfig         `yaml:"standards,omitempty" mapstructure:"standards"`
+}
+
+type StandardsConfig struct {
+	Guide string `yaml:"guide,omitempty" mapstructure:"guide"`
 }
 
 type AgentsConfig struct {
@@ -50,9 +58,12 @@ type KnowledgeSourceConfig struct {
 var defaultConfig = Config{
 	Version:      "5.0.0",
 	VersionCheck: true,
-	DocsDir:      "docs",
+	DocsDir:      DefaultDocsDir,
 	Wiki: WikiConfig{
 		Root: "ff-wiki",
+	},
+	Standards: StandardsConfig{
+		Guide: DefaultStandardsGuide,
 	},
 }
 
@@ -77,6 +88,7 @@ func (c *Config) Save(projectRoot string) error {
 		Wiki             WikiConfig              `yaml:"wiki,omitempty"`
 		KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty"`
 		Agents           AgentsConfig            `yaml:"agents,omitempty"`
+		Standards        StandardsConfig         `yaml:"standards,omitempty"`
 	}
 
 	payload := fileConfig{
@@ -87,6 +99,7 @@ func (c *Config) Save(projectRoot string) error {
 		Wiki:             c.Wiki,
 		KnowledgeSources: c.KnowledgeSources,
 		Agents:           c.Agents,
+		Standards:        c.Standards,
 	}
 
 	data, err := yaml.Marshal(payload)
@@ -138,6 +151,7 @@ func Load(projectRoot string) (*Config, error) {
 	v.SetDefault("wiki.root", defaultConfig.Wiki.Root)
 	v.SetDefault("knowledge_sources", []KnowledgeSourceConfig{})
 	v.SetDefault("agents.disabled", []string{})
+	v.SetDefault("standards.guide", defaultConfig.Standards.Guide)
 
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {

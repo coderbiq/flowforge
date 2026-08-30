@@ -37,7 +37,9 @@ An overview is not substituted for its linked authorities. If no effective speci
 
 ### 3. Identify the standards sources
 
-Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
+First, read the `must`/`must not` standards clauses already injected into the ticket's Constraints and Conventions sections. The Standards axis checks the implementation against these project-specific standards. Do not re-extract standards from the project's source documents or check whether Plan omitted applicable standards—only verify that the implementation conforms to the standards already present in the ticket.
+
+Additionally, identify general coding standards sources in the repo: anything that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`. These are cross-project code quality baselines, orthogonal to the project-specific standards injected by Plan.
 
 On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below: a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
 
