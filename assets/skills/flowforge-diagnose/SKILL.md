@@ -1,6 +1,6 @@
 ---
 name: flowforge-diagnose
-description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
+description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow. Writes a diagnosis conclusion and returns to flowforge-solution-design only if the fix needs a seam or interface change. NOT for fact research or reading legwork — that's flowforge-research.
 ---
 
 # Diagnosing Bugs

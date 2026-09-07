@@ -1,7 +1,6 @@
 ---
 name: flowforge-triage
-description: Move issues and external PRs through a state machine of triage roles, categorise, verify, grill if needed, and write agent-ready briefs.
-disable-model-invocation: true
+description: Move incoming bugs and external requests through a state machine of triage roles — categorise, verify, grill if needed, and write an agent-ready brief — triage owns intake and routing, NOT for settled-work review — that's flowforge-review. Use when the user says "incoming bug"/"外部 request"/"分类" or an issue or external PR needs categorising before any delivery work starts.
 ---
 
 # Triage

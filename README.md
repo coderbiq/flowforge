@@ -25,7 +25,7 @@ FlowForge 把工程工作分成四种权威内容：
 
 ### 1. 找到下一位责任人
 
-当入口不明确时，`flowforge-route` 只判断当前尚未解决的问题属于谁，不创建内容。如果结果、范围或约束还不清楚，交给 `flowforge-align`；如果需求清楚但接口、责任或验证 seam 未定，交给 `flowforge-solution-design`。
+当入口不明确时，agent 读取各 skill 的 description 自选合适的 skill，不创建内容。如果结果、范围或约束还不清楚，交给 `flowforge-align`；如果需求清楚但接口、责任或验证 seam 未定，交给 `flowforge-solution-design`。
 
 这个例子结果明确、影响局部，并复用现有命令输出 seam，因此可以跳过独立设计文档，直接进入 Plan；ticket 的 Design context 会说明它复用的既有 seam，而不是记录一个 “design-ready” 状态。
 

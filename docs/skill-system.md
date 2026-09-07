@@ -6,7 +6,6 @@ FlowForge v5 使用 `flowforge-*` Skill 分配问题所有权。用户不需要�
 
 | Skill | 何时拥有下一步 | 产出或推进 |
 |---|---|---|
-| `flowforge-route` | 不清楚该走哪个工程流程 | 选择一个 next owner 和理由；不创建 feature 内容 |
 | `flowforge-triage` | 外部 bug/request 需要分类和 agent-ready brief | 分类、验证、补齐清晰 brief |
 | `flowforge-import` | 本地 PRD、旧 proposal、brief 或 notes 是新工作的起点 | 分类可追溯来源事实与候选内容，并交给 Align 或 Solution Design；不转换 authority |
 | `flowforge-align` | 结果、范围、场景、约束或术语仍会改变方案空间 | requirement authority；已决事实立即写入；读取提取说明识别适用规范传递 Design |
@@ -17,6 +16,26 @@ FlowForge v5 使用 `flowforge-*` Skill 分配问题所有权。用户不需要�
 | `flowforge-review` | 有固定 diff 与有效 specification | Standards 轴只查卡片内已注入规范 + 通用 smell baseline；Specification 轴查有效规格；两份独立报告；有 findings 时翻译为 `Fix:` Changes 追加到 ticket；零 findings 时写 evidence 并关闭 ticket |
 
 Align 不选择实现架构；Solution Design 不拆 ticket 或改生产代码；Plan 不把设计选择伪装成步骤；Implement 遇到责任/seam 变化会返回设计，遇到可观察需求变化会返回 Align。
+
+## Description-driven dispatch
+
+FlowForge 不设中心 router。Agent 读取扁平的 skill `description` 列表后自选最匹配者；没有任何 front-matter 闸门或运行时调度器预过滤候选。删除 `flowforge-route` 后这套 description 自选是唯一的 dispatch 路径，不再有 "advisory + 无闸门 + 增一跳" 的最差组合（业界主流范式：Cursor / Continue / Claude Code / OpenCode 均如此）。
+
+`AGENTS.md` 路由表与本文件的"主交付链"表只是**人类参考**：它们帮助用户理解 skill 之间的责任分工，但 agent 不自动读取它们做兜底。当 description 信号不足以让 agent 确定该选哪个 skill 时，agent 直接问用户，**不**退回路由表自行裁决——这是 gap-2 已关闭的决策（见 `docs/proposals/skill-routing-simplification/design.md#二对比设计` Seam 1）。
+
+### description 三段约束
+
+每个 skill 的 `description` 字段必须承载三段信号，缺一即视为内容不合规：
+
+1. **触发短语** — 用户或 agent 会真的说出口的词或短语，例如 "review" / "审查" / "复审" / "debug this" / "检查 review 发现"。这是 dispatch 的唯一入口信号。
+2. **下游所有权** — 该 skill owns 的后续动作，例如 "review owns the fix-planning loop"、"plan owns ticket 拆分与 frontier 验证"。让调用方知道选了这个 skill 之后下一步会推进到哪里。
+3. **负边界** — `NOT for X`，与语义最近的 sibling skill 区分，例如 review 的负边界写明 "NOT for fix design — flowforge-review owns fix planning"，solution-design 的负边界写明 "NOT for review-fix design"。这是 GLM 事件根因（review / solution-design / plan 三角碰撞）的直接收敛手段。
+
+### 触发短语禁用正文术语
+
+触发短语必须是 dispatch 时就能判定的词。**禁用** skill 正文内部的方法论术语作为触发短语——"genuine DAG edges"、"deepening opportunities"、"requirement-changing unknowns" 都不可作为 dispatch 词汇：这些是正文术语，agent 在 dispatch 时无法评估，反而会破坏自选的确定性。
+
+`description` 仍是单一字段；本约定是内容约定，不改 front-matter schema（仍只有 `name` + `description`）。skill 作者指南见 `assets/skills/flowforge-writing-for-agents/SKILL-MECHANICS.md`。
 
 ## 支持与特殊路径
 

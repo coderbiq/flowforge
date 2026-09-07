@@ -1,6 +1,6 @@
 ---
 name: flowforge-tdd
-description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
+description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests. Runs the red → green → refactor loop at the pre-agreed seam, then hands back to flowforge-implement for closeout. NOT for non-test-first implementation work — that's flowforge-implement.
 ---
 
 When tests implement a proposal ticket, use the contract's [hand-off verification](../_shared/ARTIFACT-CONTRACT.md#hand-offs) and [diagnostic boundaries](../_shared/ARTIFACT-CONTRACT.md#diagnostics).

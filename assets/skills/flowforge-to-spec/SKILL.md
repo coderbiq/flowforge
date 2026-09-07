@@ -1,7 +1,6 @@
 ---
 name: flowforge-to-spec
-description: Create an optional compact navigation and review baseline over existing requirement, design, ticket, verification, and gap authorities. Use for multi-session work, external review, or when a feature needs one entry point.
-disable-model-invocation: true
+description: Create an optional non-authoritative navigation and review baseline over existing requirement, design, ticket, verification, and gap authorities — to-spec owns the navigation entry point, NOT for compact single-session work — skip this skill. Use when the user says "spec navigation"/"多 authority 入口"/"external review entry", for multi-session work or when a feature needs one entry point.
 ---
 
 # Synthesize navigation

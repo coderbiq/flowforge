@@ -1,6 +1,6 @@
 ---
 name: flowforge-prototype
-description: Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.
+description: Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like. Produces a one-time probe (HTML logic demo or UI variants) that answers the question, then is discarded. NOT for production code — throwaway only.
 ---
 
 # Prototype

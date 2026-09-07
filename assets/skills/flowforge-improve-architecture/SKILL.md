@@ -1,7 +1,6 @@
 ---
 name: flowforge-improve-architecture
-description: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.
-disable-model-invocation: true
+description: Scan a codebase for architectural friction, present the refactors that would turn shallow modules into deep ones as a visual HTML report, then grill through whichever one you pick — improve-architecture owns the scan-and-grill loop, NOT for single-module design — that's flowforge-codebase-design. Use when the user says "架构重构"/"deepening"/"improve architecture".
 ---
 
 # Improve Codebase Architecture

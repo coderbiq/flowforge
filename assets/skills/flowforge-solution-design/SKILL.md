@@ -1,6 +1,6 @@
 ---
 name: flowforge-solution-design
-description: Design how approved requirements will be realized when work changes module responsibility, an interface or seam, cross-module information flow or ordering, migration compatibility, or has multiple credible solutions. Route a local change that clearly reuses an existing seam directly to flowforge-plan.
+description: Design how approved requirements will be realized when work changes module responsibility, an interface or seam, cross-module information flow or ordering, migration compatibility, or has multiple credible solutions. NOT for review-fix design — flowforge-review owns fix planning; come here only when a finding requires responsibility/interface/seam/migration changes. Route a local change that clearly reuses an existing seam directly to flowforge-plan.
 ---
 
 # Solution design

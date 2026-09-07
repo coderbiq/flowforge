@@ -1,6 +1,6 @@
 ---
 name: flowforge-review
-description: Review implementation completeness, correctness, and standards conformance against two independent axes: repository Standards and the effective linked Specification. Use for implementation closeout, branch/PR review, work-in-progress changes, or reviewing another agent's completed work.
+description: Review a fixed change set against repository Standards and the effective Specification on two independent axes, then translate fixable findings into `Fix:` Changes appended to the same ticket and record a Review round — review owns the fix-planning loop, do NOT fork to solution-design or plan for fixable findings. Use when the user says "review"/"审查"/"复审"/"检查 review 发现"/"验证修复", or for implementation closeout, branch/PR review, or verifying another agent's completed work.
 ---
 
 When resolving the effective specification or reviewing proposal documentation, use the contract's [authority roles](../_shared/ARTIFACT-CONTRACT.md#roles-and-authority), [source intake and semantic rewrite](../_shared/ARTIFACT-CONTRACT.md#source-intake-and-semantic-rewrite), and [information-value test](../_shared/ARTIFACT-CONTRACT.md#information-value).

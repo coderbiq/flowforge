@@ -1,7 +1,6 @@
 ---
 name: flowforge-setup
-description: "Configure this repo for FlowForge engineering skills: set up local wiki issue tracking, triage label vocabulary, and domain doc layout. Run once before first use of the other engineering skills."
-disable-model-invocation: true
+description: Configure this repo for FlowForge engineering skills — set up local wiki issue tracking, triage label vocabulary, and domain doc layout — setup owns first-time scaffolding, NOT for existing-project skill work. Run once before first use of the other engineering skills, when the user says "setup"/"init"/"configure flowforge".
 ---
 
 # Setup FlowForge Skills

@@ -1,7 +1,6 @@
 ---
 name: flowforge-plan
-description: Convert settled requirement and solution-design authority into independently verifiable tracer tickets with genuine DAG edges. Use when implementation increments and execution order need to be published.
-disable-model-invocation: true
+description: Convert settled requirement and solution-design authority into new independently verifiable tracer tickets with genuine DAG edges. NOT for fix changes — flowforge-review appends `Fix:` Changes to existing tickets; plan only creates new tickets for settled authority. Use when implementation increments and execution order need to be published.
 ---
 
 # Plan tracer tickets

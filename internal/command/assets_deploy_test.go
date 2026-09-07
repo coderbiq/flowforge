@@ -94,12 +94,138 @@ func TestDeployManagedAssetsUsesAbsoluteDocsRoot(t *testing.T) {
 	}
 }
 
+// TestDeployCleansRemovedSkillDirs verifies that after a source removes a
+// skill, the target's corresponding skill directory is cleaned during deploy.
+// It exercises the cleanupRemovedSkillDirs helper that deployManagedAssets
+// invokes right after the skills copyDir. Because deployManagedAssets locates
+// its own source assets dir, this test drives the cleanup helper directly with
+// temp dirs standing in for the two-source scenario: source v2 ships
+// flowforge-A only; the target carries flowforge-A from a prior v1 deploy
+// plus a stale flowforge-B that v2 of the source no longer ships. Asserts
+// flowforge-A is preserved (still in source) and flowforge-B is cleaned
+// (absent from source), plus idempotency on a second cleanup run.
+func TestDeployCleansRemovedSkillDirs(t *testing.T) {
+	source := t.TempDir()
+	target := t.TempDir()
+
+	// Source v1 ships flowforge-A only.
+	sourceSkillA := filepath.Join(source, "flowforge-A")
+	if err := os.MkdirAll(sourceSkillA, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceSkillA, "SKILL.md"), []byte("A"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Target reflects a prior deploy of v1 (skill A present) plus a stale
+	// skill B that v2 of the source no longer ships.
+	targetSkillA := filepath.Join(target, "flowforge-A")
+	if err := os.MkdirAll(targetSkillA, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(targetSkillA, "SKILL.md"), []byte("A"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	targetSkillB := filepath.Join(target, "flowforge-B")
+	if err := os.MkdirAll(targetSkillB, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(targetSkillB, "SKILL.md"), []byte("B-stale"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Run the cleanup step that deployManagedAssets runs after copyDir.
+	if err := cleanupRemovedSkillDirs(source, target); err != nil {
+		t.Fatal(err)
+	}
+
+	// Skill A (still in source) must be preserved.
+	if _, err := os.Stat(filepath.Join(targetSkillA, "SKILL.md")); err != nil {
+		t.Fatalf("skill A still present in source was wrongly deleted: %v", err)
+	}
+	// Stale skill B (removed from source) must be cleaned.
+	if _, err := os.Stat(targetSkillB); !os.IsNotExist(err) {
+		t.Fatalf("stale skill B (not in source) was not cleaned: stat err=%v", err)
+	}
+
+	// Idempotency: a second cleanup run on the same state must be a no-op
+	// and must not error.
+	if err := cleanupRemovedSkillDirs(source, target); err != nil {
+		t.Fatalf("idempotent second cleanup run failed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(targetSkillA, "SKILL.md")); err != nil {
+		t.Fatalf("skill A disappeared after idempotent rerun: %v", err)
+	}
+	if _, err := os.Stat(targetSkillB); !os.IsNotExist(err) {
+		t.Fatalf("stale skill B reappeared after idempotent rerun: stat err=%v", err)
+	}
+}
+
+// TestDeployPreservesSharedDirs verifies the conservative deletion rule does
+// not touch non-flowforge-* directories in target .agents/skills/, regardless
+// of whether they exist in source. _shared (source-shipped) and a user-created
+// non-flowforge-* skill dir are both preserved; only flowforge-* dirs absent
+// from source are deleted.
+func TestDeployPreservesSharedDirs(t *testing.T) {
+	source := t.TempDir()
+	target := t.TempDir()
+
+	// _shared ships in source.
+	sourceShared := filepath.Join(source, "_shared")
+	if err := os.MkdirAll(sourceShared, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sourceShared, "ARTIFACT-CONTRACT.md"), []byte("contract"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Target carries: _shared (also in source), a user-created non-flowforge-*
+	// dir (not in source), and a stale flowforge-* dir (not in source).
+	targetShared := filepath.Join(target, "_shared")
+	if err := os.MkdirAll(targetShared, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(targetShared, "ARTIFACT-CONTRACT.md"), []byte("contract"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	userCreated := filepath.Join(target, "my-custom-skill")
+	if err := os.MkdirAll(userCreated, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(userCreated, "SKILL.md"), []byte("user"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	staleFlowforge := filepath.Join(target, "flowforge-stale")
+	if err := os.MkdirAll(staleFlowforge, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staleFlowforge, "SKILL.md"), []byte("stale"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := cleanupRemovedSkillDirs(source, target); err != nil {
+		t.Fatal(err)
+	}
+
+	// _shared (in source) preserved.
+	if _, err := os.Stat(filepath.Join(targetShared, "ARTIFACT-CONTRACT.md")); err != nil {
+		t.Fatalf("_shared (in source) was wrongly deleted: %v", err)
+	}
+	// User-created non-flowforge-* dir preserved (conservative rule).
+	if _, err := os.Stat(filepath.Join(userCreated, "SKILL.md")); err != nil {
+		t.Fatalf("user-created non-flowforge-* dir was wrongly deleted: %v", err)
+	}
+	// Stale flowforge-* dir (not in source) cleaned.
+	if _, err := os.Stat(staleFlowforge); !os.IsNotExist(err) {
+		t.Fatalf("stale flowforge-* dir (not in source) was not cleaned: stat err=%v", err)
+	}
+}
+
 func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 	t.Helper()
 	required := map[string][]string{
 		"flowforge-import":          {"source-intake-and-semantic-rewrite", "roles-and-authority", "information-value"},
 		"flowforge-align":           {"roles-and-authority", "hand-offs", "information-value"},
-		"flowforge-route":           {"roles-and-authority", "hand-offs"},
 		"flowforge-to-spec":         {"roles-and-authority", "hand-offs", "information-value"},
 		"flowforge-plan":            {"packaging", "hand-offs", "information-value"},
 		"flowforge-wayfinder":       {"packaging", "hand-offs"},

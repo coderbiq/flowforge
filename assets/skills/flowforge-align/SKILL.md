@@ -1,7 +1,6 @@
 ---
 name: flowforge-align
-description: Clarify and persist why a feature exists, its observable outcomes, scope, scenarios, constraints, terminology, and requirement-changing unknowns. Use before solution design when different requirement answers would change the solution space.
-disable-model-invocation: true
+description: Clarify and persist why a feature exists, its observable outcomes, scope, scenarios, constraints, and terminology, then hand the accepted facts and any standards clauses to flowforge-solution-design — align owns requirement truth, NOT for implementation architecture or ticket slicing — that's flowforge-solution-design and flowforge-plan. Use when the user says "需求澄清"/"why does this feature exist"/"scope"/"约束"/"术语", before solution design when different requirement answers would change the solution space.
 ---
 
 # Align requirement authority

@@ -1,6 +1,6 @@
 ---
 name: flowforge-writing-for-agents
-description: Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.
+description: Write documents an agent consumes — skills, AGENTS.md or CLAUDE.md, or docs reached by a pointer — in the levers that make each one predictable — writing-for-agents owns agent-readable documentation, NOT for human-only docs. Use when the user says "write skill"/"edit AGENTS.md"/"写 skill" or is creating or editing skills, AGENTS.md, or CLAUDE.md.
 ---
 
 Reference for writing any document an agent consumes: a skill, an `AGENTS.md` / `CLAUDE.md`, a doc reached by a pointer. The packaging differs; the writing does not: the same levers make each one predictable, since the agent takes the same _process_ every run rather than producing the same output.

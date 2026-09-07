@@ -1,7 +1,6 @@
 ---
 name: flowforge-import
-description: Interpret local PRDs, old proposals, briefs, or notes into traceable candidate facts before requirement or solution-design work. Use when an existing local document is the starting point; it does not convert documents mechanically.
-disable-model-invocation: true
+description: Interpret local PRDs, old proposals, briefs, or notes into traceable candidate facts, then classify each fact and hand it to flowforge-align or flowforge-solution-design for the next unsettled question — import owns source interpretation, NOT for authority creation. Use when an existing local document is the starting point and the user says "PRD"/"旧 proposal"/"brief"/"notes 是起点"; it does not convert documents mechanically.
 ---
 
 # Import external material

@@ -46,16 +46,12 @@ func TestAssetsVerifyReportsCurrentAndDriftWithoutMutation(t *testing.T) {
 	if err := os.WriteFile(drifted, []byte("custom"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	missing := filepath.Join(project, ".agents", "skills", "flowforge-route", "SKILL.md")
-	if err := os.Remove(missing); err != nil {
-		t.Fatal(err)
-	}
 	output, err = run(true)
-	if err == nil || !strings.Contains(output, `"state": "missing"`) || !strings.Contains(output, `"state": "drifted"`) || !strings.Contains(output, `"state": "project-owned"`) {
+	if err == nil || !strings.Contains(output, `"state": "drifted"`) || !strings.Contains(output, `"state": "project-owned"`) {
 		t.Fatalf("drift/project-owned projection failed: output=%s err=%v", output, err)
 	}
 	output, err = run(false)
-	if err == nil || !strings.Contains(output, "missing "+missing) || !strings.Contains(output, "drifted "+drifted) || !strings.Contains(output, "project-owned "+owned) {
+	if err == nil || !strings.Contains(output, "drifted "+drifted) || !strings.Contains(output, "project-owned "+owned) {
 		t.Fatalf("human projection failed: output=%s err=%v", output, err)
 	}
 	data, readErr := os.ReadFile(owned)

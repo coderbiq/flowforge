@@ -29,6 +29,17 @@ func deployManagedAssets(targetDir string, docsRoot string) error {
 		return fmt.Errorf("deploying skills: %w", err)
 	}
 
+	// Clean up skill directories that were removed from source (design gap-1).
+	// Conservative rule (see ticket 06 Implementation note): delete a target
+	// .agents/skills/<name>/ subdir only when (a) name is in the managed
+	// flowforge-* namespace AND (b) name is not present as a directory in
+	// <assetsDir>/skills/. This preserves source-shipped dirs (e.g. _shared)
+	// and user-created non-flowforge-* dirs. Idempotent: a second run finds
+	// nothing to delete.
+	if err := cleanupRemovedSkillDirs(filepath.Join(assetsDir, "skills"), filepath.Join(targetDir, ".agents", "skills")); err != nil {
+		return fmt.Errorf("cleaning removed skill dirs: %w", err)
+	}
+
 	// Deploy agent documentation rules into <docsRoot>/agents/.
 	// Use overwrite=false so project-customised agent docs (e.g. standards.md,
 	// domain.md, issue-tracker.md) are preserved; only new files are written.
@@ -196,6 +207,44 @@ func isProjectDirectory(dir string) bool {
 		}
 	}
 	return false
+}
+
+// cleanupRemovedSkillDirs deletes target .agents/skills/ subdirectories whose
+// name is in the managed flowforge-* namespace but no longer exists in the
+// source skills directory. Source-shipped dirs (e.g. _shared) and user-created
+// non-flowforge-* dirs are preserved. Idempotent: when there is nothing to
+// delete (e.g. target already cleaned, or target skills dir does not exist),
+// the call is a no-op.
+func cleanupRemovedSkillDirs(sourceSkillsDir, targetSkillsDir string) error {
+	entries, err := os.ReadDir(targetSkillsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("reading target skills dir %s: %w", targetSkillsDir, err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		// Only touch the managed flowforge-* namespace; preserve everything
+		// else (e.g. _shared, user-created non-flowforge-* skill dirs).
+		if !strings.HasPrefix(name, "flowforge-") {
+			continue
+		}
+		// Preserve dirs that still ship in source.
+		if _, statErr := os.Stat(filepath.Join(sourceSkillsDir, name)); statErr == nil {
+			continue
+		} else if !os.IsNotExist(statErr) {
+			return fmt.Errorf("checking source skill dir %s: %w", filepath.Join(sourceSkillsDir, name), statErr)
+		}
+		targetPath := filepath.Join(targetSkillsDir, name)
+		if err := os.RemoveAll(targetPath); err != nil {
+			return fmt.Errorf("removing stale skill dir %s: %w", targetPath, err)
+		}
+	}
+	return nil
 }
 
 func copyDir(srcDir, dstDir string, overwrite bool) error {

@@ -1,8 +1,7 @@
 ---
 name: flowforge-handoff
-description: Compact the current conversation into a handoff document for another agent to pick up.
+description: Compact the current conversation into a cross-session handoff document another agent can pick up — handoff owns session memory compression, NOT for long-term design — that's flowforge-solution-design. Use when the user says "handoff"/"交接"/"compact session" and the next session needs a compact memory of this one.
 argument-hint: "What will the next session be used for?"
-disable-model-invocation: true
 ---
 
 When linking durable authorities from temporary session context, use the contract's [hand-off rules](../_shared/ARTIFACT-CONTRACT.md#hand-offs).

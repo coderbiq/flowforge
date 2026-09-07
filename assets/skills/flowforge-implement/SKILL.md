@@ -1,7 +1,6 @@
 ---
 name: flowforge-implement
-description: Deliver one proposal ticket from effective linked specification through verification, two-axis review, completion evidence, and closeout. Use for an executable frontier ticket or equivalent compact contract.
-disable-model-invocation: true
+description: Deliver one proposal ticket from effective linked specification through TDD implementation, two-axis review, completion evidence, and closeout — implement owns the build-and-close loop, NOT for design decisions — return those to flowforge-solution-design. Use for an executable frontier ticket or equivalent compact contract when the user says "deliver ticket"/"执行 ticket"/"实现".
 ---
 
 # Implement with evidence

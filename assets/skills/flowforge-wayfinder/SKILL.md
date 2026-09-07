@@ -1,7 +1,6 @@
 ---
 name: flowforge-wayfinder
-description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on your issue tracker, and resolve them one at a time until the way to the destination is clear.
-disable-model-invocation: true
+description: Plan a huge chunk of work — more than one agent session can hold — as a shared map of decision tickets on your issue tracker and resolve them one at a time until the route to the destination is clear — wayfinder owns the decision frontier map, NOT for one-session work — that's flowforge-plan. Use when the user says "huge work"/"map of decisions"/"fog of war"/"工作太大" and the way forward is wrapped in fog.
 ---
 
 When a decision map publishes proposal tickets, use the contract's [packaging](../_shared/ARTIFACT-CONTRACT.md#packaging) and [hand-off rules](../_shared/ARTIFACT-CONTRACT.md#hand-offs).

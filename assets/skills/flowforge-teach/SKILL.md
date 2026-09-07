@@ -1,7 +1,6 @@
 ---
 name: flowforge-teach
-description: Teach the user a new skill or concept, within this workspace.
-disable-model-invocation: true
+description: Teach the user a new skill or concept within this workspace — teach owns concept explanation, NOT for production code changes. Use when the user says "teach"/"explain concept"/"教" and intends to learn the topic over multiple sessions.
 argument-hint: "What would you like to learn about?"
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: flowforge-resolving-conflicts
-description: "Use when you need to resolve an in-progress git merge/rebase conflict."
+description: "Use when you need to resolve an in-progress git merge/rebase conflict. Resolves each hunk preserving both intents, runs the project's automated checks, and finishes the merge/rebase. NOT for design conflicts — that's flowforge-align or flowforge-solution-design."
 ---
 
 1. **See the current state** of the merge/rebase. Check git history, and the conflicting files.

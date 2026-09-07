@@ -101,7 +101,7 @@ sets up <docs_dir>/agents/ rules, creates .flowforge/ configuration, and sets up
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Configured %s/agents/ rules\n", docsRoot)
 			fmt.Fprintln(cmd.OutOrStdout(), "✓ Managed assets verified current.")
 			fmt.Fprintf(cmd.OutOrStdout(), "✓ Deployed flowforge subagents to .claude/agents/, .opencode/agent/, .codex/agents/\n")
-			fmt.Fprintln(cmd.OutOrStdout(), "\nReady to run /flowforge-route, /flowforge-align, or /flowforge-to-spec in your agent.")
+			fmt.Fprintln(cmd.OutOrStdout(), "\nReady to run /flowforge-align or /flowforge-to-spec in your agent.")
 			return nil
 		},
 	}

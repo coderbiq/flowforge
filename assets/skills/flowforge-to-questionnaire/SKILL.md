@@ -1,7 +1,6 @@
 ---
 name: flowforge-to-questionnaire
-description: Turn a decision you can't fully answer into a questionnaire for someone else to fill in.
-disable-model-invocation: true
+description: Turn a decision you can't fully answer into a questionnaire document for someone else to fill in — to-questionnaire owns the questionnaire artifact, NOT for self-resolvable decisions. Use when the user says "questionnaire"/"别人填"/"decision I can't answer" and the recipient holds knowledge the user lacks.
 ---
 
 Turn something the user can't answer alone into a **questionnaire**: a Markdown document they hand to one person to fill in async, or fill out together over a meeting. The recipient holds knowledge the user lacks; the questionnaire pulls it out of them.

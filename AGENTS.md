@@ -33,7 +33,6 @@ When asked to work on a feature, bug, refactor, or complex task in FlowForge, in
 
 | Phase / Intent | Skill | Role & Responsibility |
 |:---|:---|:---|
-| **Route & Guide** | `/flowforge-route` | Unsure which skill to use, or need meta-guidance on the entire workflow |
 | **Triage** | `/flowforge-triage` | Categorize incoming requests/bugs, check out-of-scope, create crisp brief |
 | **External Material** | `/flowforge-import` | Classify local PRDs, old proposals, briefs, or notes before their facts enter requirement or design authority |
 | **Align & Requirements** | `/flowforge-align` | When requirement outcomes, scope, scenarios, constraints, or terms are unsettled, persist accepted facts and hand design decisions to Solution Design |
@@ -64,6 +63,4 @@ return to this session and re-delegate based on each subagent's `Next Action`.
 | An executable frontier ticket exists | `flowforge-implementer` | `flowforge-implement` |
 | Any code review, implementation audit, or completed-work review | `flowforge-reviewer` | `flowforge-review` |
 | A bounded research/diagnosis question blocks a decision | `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` |
-
-
 <!-- FLOWFORGE:END -->
