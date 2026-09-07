@@ -20,15 +20,16 @@ const (
 )
 
 type managedAssetEntry struct {
-	State      managedAssetState
-	SourcePath string
-	TargetPath string
+	State        managedAssetState
+	SourcePath   string
+	TargetPath   string
+	Customisable bool // true for <docs_dir>/agents/ files that are project-customisable
 }
 
 func (c managedAssetComparison) DivergentTargets() []string {
 	targets := []string{}
 	for _, entry := range c.Entries {
-		if entry.State == managedAssetMissing || entry.State == managedAssetDrifted {
+		if entry.State == managedAssetMissing || (entry.State == managedAssetDrifted && !entry.Customisable) {
 			targets = append(targets, fmt.Sprintf("%s %s", entry.State, entry.TargetPath))
 		}
 	}
@@ -49,7 +50,7 @@ type managedAssetComparison struct {
 
 func (c managedAssetComparison) IsCurrent() bool {
 	for _, entry := range c.Entries {
-		if entry.State == managedAssetMissing || entry.State == managedAssetDrifted {
+		if entry.State == managedAssetMissing || (entry.State == managedAssetDrifted && !entry.Customisable) {
 			return false
 		}
 	}
@@ -64,16 +65,17 @@ func compareManagedAssets(assetsDir, targetDir, docsRoot string) (managedAssetCo
 	}
 
 	targets := []struct {
-		source string
-		target string
+		source       string
+		target       string
+		customisable bool
 	}{
-		{source: filepath.Join(assetsDir, "skills"), target: filepath.Join(targetDir, ".agents", "skills")},
-		{source: filepath.Join(assetsDir, "agents"), target: filepath.Join(docsRoot, "agents")},
+		{source: filepath.Join(assetsDir, "skills"), target: filepath.Join(targetDir, ".agents", "skills"), customisable: false},
+		{source: filepath.Join(assetsDir, "agents"), target: filepath.Join(docsRoot, "agents"), customisable: true},
 	}
 
 	comparison := managedAssetComparison{}
 	for _, target := range targets {
-		entries, err := compareManagedAssetTree(target.source, target.target)
+		entries, err := compareManagedAssetTree(target.source, target.target, target.customisable)
 		if err != nil {
 			return managedAssetComparison{}, err
 		}
@@ -85,7 +87,7 @@ func compareManagedAssets(assetsDir, targetDir, docsRoot string) (managedAssetCo
 	return comparison, nil
 }
 
-func compareManagedAssetTree(sourceDir, targetDir string) ([]managedAssetEntry, error) {
+func compareManagedAssetTree(sourceDir, targetDir string, customisable bool) ([]managedAssetEntry, error) {
 	managed := map[string]string{}
 	if err := filepath.WalkDir(sourceDir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
@@ -111,7 +113,7 @@ func compareManagedAssetTree(sourceDir, targetDir string) ([]managedAssetEntry, 
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, managedAssetEntry{State: state, SourcePath: sourcePath, TargetPath: targetPath})
+		entries = append(entries, managedAssetEntry{State: state, SourcePath: sourcePath, TargetPath: targetPath, Customisable: customisable})
 	}
 	if err := filepath.WalkDir(targetDir, func(path string, entry fs.DirEntry, err error) error {
 		if os.IsNotExist(err) {

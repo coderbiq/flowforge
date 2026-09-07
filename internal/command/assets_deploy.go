@@ -240,7 +240,7 @@ func copyFile(srcPath, dstPath string, overwrite bool) error {
 				return fmt.Errorf("reading source file %s: %w", srcPath, readErr)
 			}
 			if !bytes.Equal(existing, source) {
-				fmt.Fprintf(os.Stderr, "! conflict: %s -> %s (preserved)\n", srcPath, dstPath)
+				fmt.Fprintf(os.Stderr, "  info: project-customised %s (preserved)\n", dstPath)
 			}
 			return nil
 		} else if !os.IsNotExist(err) {
