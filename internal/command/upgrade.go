@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/spf13/cobra"
 
@@ -71,7 +72,13 @@ then atomically replaces the current installation.`,
 			fmt.Fprintf(cmd.OutOrStdout(), "Upgraded from %s to %s\n",
 				result.OldVersion, result.NewVersion)
 
-			syncProjectAssets(cmd, "✓ Project skills and agent rules updated to latest version.")
+			// Re-exec the new binary to sync assets with the correct embedded version.
+			// The current process still holds the old binary's embed.FS in memory,
+			// so calling deployManagedAssets here would deploy stale assets.
+			syncErr := syncAssetsViaReExec(cmd)
+			if syncErr != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: post-upgrade asset sync failed: %v\n", syncErr)
+			}
 
 			return nil
 		},
@@ -119,4 +126,33 @@ func syncProjectAssets(cmd *cobra.Command, successMessage string) {
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), successMessage)
+}
+
+// syncAssetsViaReExec runs `flowforge init` using the newly replaced binary
+// so that the correct embedded assets (from the new version) are deployed.
+// The current process still holds the old binary's embed.FS in memory.
+func syncAssetsViaReExec(cmd *cobra.Command) error {
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("locating executable: %w", err)
+	}
+
+	projectRoot, err := config.FindProjectRoot(".")
+	if err != nil {
+		if !isProjectDirectory(".") {
+			return nil
+		}
+		projectRoot = "."
+	}
+
+	initCmd := exec.Command(exePath, "init", projectRoot, "--force")
+	initCmd.Stdout = cmd.OutOrStdout()
+	initCmd.Stderr = cmd.ErrOrStderr()
+	initCmd.Dir = projectRoot
+	if err := initCmd.Run(); err != nil {
+		return fmt.Errorf("running %s init: %w", exePath, err)
+	}
+
+	fmt.Fprintln(cmd.OutOrStdout(), "✓ Project skills and agent rules updated to latest version.")
+	return nil
 }
