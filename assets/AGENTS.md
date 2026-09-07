@@ -13,7 +13,7 @@ When asked to work on a feature, bug, refactor, or complex task in FlowForge, in
 | **Plan & Slicing** | `/flowforge-plan` | Vertical tracer-bullet slicing with explicit DAG blocking edges (`issues/`) |
 | **Implement & TDD** | `/flowforge-implement` | TDD delivery on pre-agreed seams; close out with dual-axis code review |
 | **Wayfinding** | `/flowforge-wayfinder` | Fog-of-war decision mapping (`map.md`) for high-uncertainty efforts |
-| **Dual-Axis Review** | `/flowforge-review` | Dual-axis (Standards vs Spec) parallel sub-agent code inspection |
+| **Dual-Axis Review** | `/flowforge-review` | Dual-axis (Standards vs Spec) review of implementation completeness, correctness, and standards conformance |
 | **Session Handoff** | `/flowforge-handoff` | Compact session memory into cross-agent handoff artifact |
 | **Architecture Probe** | `/flowforge-codebase-design` | Deep module design scan and architectural surface analysis |
 | **Bug Diagnosis** | `/flowforge-diagnose` | Structured hypothesis-driven bug investigation |
@@ -33,6 +33,6 @@ return to this session and re-delegate based on each subagent's `Next Action`.
 | Requirement settled; responsibility, interface, seam, or verification strategy unsettled | `flowforge-architect` | `flowforge-solution-design` |
 | Requirement and design settled; needs ticket slicing with DAG edges | `flowforge-planner` | `flowforge-plan` |
 | An executable frontier ticket exists | `flowforge-implementer` | `flowforge-implement` |
-| A fixed change set needs dual-axis review | `flowforge-reviewer` | `flowforge-review` |
+| Any code review, implementation audit, or completed-work review | `flowforge-reviewer` | `flowforge-review` |
 | A bounded research/diagnosis question blocks a decision | `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` |
 
