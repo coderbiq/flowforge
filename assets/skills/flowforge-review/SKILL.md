@@ -35,6 +35,8 @@ Resolve, in order:
 
 An overview is not substituted for its linked authorities. If no effective specification can be resolved, ask for its source; if none exists, the Specification axis reports that it could not run.
 
+Run `flowforge check --dir <proposal-dir>` — all warnings are review items for the Specification axis.
+
 ### 3. Identify the standards sources
 
 First, read the `must`/`must not` standards clauses already injected into the ticket's Constraints and Conventions sections. The Standards axis checks the implementation against these project-specific standards. Do not re-extract standards from the project's source documents or check whether Plan omitted applicable standards—only verify that the implementation conforms to the standards already present in the ticket.
@@ -67,19 +69,21 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 - The full diff command and commit list.
 - The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full (the sub-agent has no other access to it).
-- The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls: documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
+- The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls: documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Guardrails: falsify before reporting—attempt to find a safe code path that neutralizes the candidate, report only if falsification fails; design choices are not defects—do not flag intentional decisions unless they introduce a concrete failure; current code only—verify every finding against the current code state, not a prior version; prefer not reporting over guessing. Under 400 words."
 
 **Spec sub-agent prompt** should include:
 
 - The diff command and commit list.
 - The ticket plus linked effective-specification authorities, revisions, and waivers.
-- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
+- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Guardrails: falsify before reporting—attempt to find a safe code path that neutralizes the candidate, report only if falsification fails; test pass does not equal requirement met—implementer's tests only cover implemented paths, cross-reference acceptance criteria not test results; no speculation—do not claim "might break X" unless you can point to the exact affected code path; design choices are not defects—do not flag intentional decisions unless they introduce a concrete failure; current code only—verify every finding against the current code state; prefer not reporting over guessing. Under 400 words."
 
 If effective specification is missing, skip the Specification sub-agent and note this in the final report.
 
 ### 5. Aggregate
 
 Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings, because the two axes are deliberately separate (see _Why two axes_).
+
+Each finding must carry a severity tag: **[Critical]** (crash/data loss/security), **[High]** (logic error/resource leak), **[Medium]** (edge case/boundary), **[Low]** (minor robustness). For clear bugs and security issues, be thorough. For lower-severity concerns, be certain with a concrete trigger scenario, or do not flag.
 
 End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes: that's the reranking the separation exists to prevent.
 
