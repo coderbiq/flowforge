@@ -52,7 +52,7 @@ Then write three information tiers. Include file paths and symbols as coordinate
 
 **Tier 3 — agent execution detail** (after a `---` separator):
 
-- **Execution detail:** subsections for `### Settled decisions`, `### Expected tests`, and `### Conventions` that the implementer needs but a human reviewer can skip. `must`/`must not` standards clauses transcribed from the design authority's Standards clauses tagged `[Conventions]` go here alongside non-obvious code conventions.
+- **Execution detail:** Plan publishes only the titled skeleton — the `## Execution detail` heading plus empty `### Verified contracts`, `### Execution scenarios`, `### Expected tests`, `### Generated artifacts`, and `### Conventions` subsection headings. Fact-backed content is filled by `flowforge-refine-ticket`, which verifies repository evidence before writing. Plan must not populate these sections with guessed values.
 - **Implementation note:** left empty by Plan; written by the implementer after execution.
 - **Review rounds:** left empty by Plan; accumulated by the review agent after each review round.
 
@@ -106,17 +106,25 @@ See the design authority at `../design.md#<anchor>`.
 
 ## Execution detail
 
-### Settled decisions
+### Verified contracts
 
-- <design fact the implementer must know>
+- <filled by flowforge-refine-ticket>
+
+### Execution scenarios
+
+- <filled by flowforge-refine-ticket>
 
 ### Expected tests
 
-- `<test name>` — <what it verifies>
+- <filled by flowforge-refine-ticket>
+
+### Generated artifacts
+
+- <filled by flowforge-refine-ticket>
 
 ### Conventions
 
-- <non-obvious code convention in the touch area>
+- <filled by flowforge-refine-ticket>
 ```
 
 </ticket-template>

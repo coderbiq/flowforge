@@ -9,6 +9,7 @@ const (
 	StatusOpen          Status = "open"
 	StatusNeedsTriage   Status = "needs-triage"
 	StatusNeedsInfo     Status = "needs-info"
+	StatusNeedsRepair   Status = "needs-repair"
 	StatusReadyForAgent Status = "ready-for-agent"
 	StatusReadyForHuman Status = "ready-for-human"
 	StatusClaimed       Status = "claimed"
@@ -29,18 +30,19 @@ func (s Status) IsExecutable() bool {
 
 // Issue represents a ticket or spec parsed from a markdown file.
 type Issue struct {
-	ID          string    `json:"id"`           // e.g. "01"
-	Slug        string    `json:"slug"`         // e.g. "database-schema"
-	FilePath    string    `json:"file_path"`    // relative path from repo root
-	Feature     string    `json:"feature"`      // feature or effort slug (directory name)
-	Title       string    `json:"title"`        // parsed from "# <ID>: <Title>" or first header
-	Status      Status    `json:"status"`       // parsed from "**Status:** <status>"
-	Type        string    `json:"type"`         // "ticket", "spec", "task", "bug", etc.
-	BlockedBy   []string  `json:"blocked_by"`   // list of blocker IDs
-	Assignee    string    `json:"assignee"`     // parsed from "**Assignee:** <name>"
-	Labels      []string  `json:"labels"`       // parsed from "**Labels:** a, b"
-	Body        string    `json:"body"`         // Markdown content excluding front metadata
-	ModTime     time.Time `json:"mod_time"`     // File modification time
+	ID        string    `json:"id"`         // e.g. "01"
+	Slug      string    `json:"slug"`       // e.g. "database-schema"
+	FilePath  string    `json:"file_path"`  // relative path from repo root
+	Feature   string    `json:"feature"`    // feature or effort slug (directory name)
+	Title     string    `json:"title"`      // parsed from "# <ID>: <Title>" or first header
+	Status    Status    `json:"status"`     // parsed from "**Status:** <status>"
+	Type      string    `json:"type"`       // "ticket", "spec", "task", "bug", etc.
+	BlockedBy []string  `json:"blocked_by"` // list of blocker IDs
+	Assignee  string    `json:"assignee"`   // parsed from "**Assignee:** <name>"
+	Labels    []string  `json:"labels"`     // parsed from "**Labels:** a, b"
+	RepairOf  string    `json:"repair_of"`  // parsed from "**Repair of:** <id>" — provenance, not a DAG edge
+	Body      string    `json:"body"`       // Markdown content excluding front metadata
+	ModTime   time.Time `json:"mod_time"`   // File modification time
 }
 
 // IssueGraph represents the DAG of all issues across features or within a feature.
@@ -65,13 +67,13 @@ type Dangling struct {
 
 // FrontierResult represents ready and blocked issues.
 type FrontierResult struct {
-	Ready   []*Issue `json:"ready"`
-	Claimed []*Issue `json:"claimed"`
+	Ready   []*Issue      `json:"ready"`
+	Claimed []*Issue      `json:"claimed"`
 	Blocked []BlockedInfo `json:"blocked"`
 }
 
 // BlockedInfo details why an issue is blocked.
 type BlockedInfo struct {
-	Issue          *Issue   `json:"issue"`
-	WaitingOn      []string `json:"waiting_on"` // List of blocker IDs not yet resolved
+	Issue     *Issue   `json:"issue"`
+	WaitingOn []string `json:"waiting_on"` // List of blocker IDs not yet resolved
 }

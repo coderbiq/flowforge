@@ -32,23 +32,26 @@ const (
 	SeverityGap     DiagnosticSeverity = "gap"
 	SeverityBlocker DiagnosticSeverity = "blocker"
 
-	DiagnosticLegacyMetadata     DiagnosticCode = "legacy-metadata"
-	DiagnosticInvalidFrontmatter DiagnosticCode = "invalid-frontmatter"
-	DiagnosticUnsupportedSchema  DiagnosticCode = "unsupported-schema"
-	DiagnosticMissingMetadata    DiagnosticCode = "missing-required-metadata"
-	DiagnosticInvalidMetadata    DiagnosticCode = "invalid-metadata"
-	DiagnosticRoleLocation       DiagnosticCode = "role-location-conflict"
-	DiagnosticDuplicateIdentity  DiagnosticCode = "duplicate-semantic-id"
-	DiagnosticMissingAuthority   DiagnosticCode = "missing-authority"
-	DiagnosticUpstreamChanged    DiagnosticCode = "upstream-changed"
-	DiagnosticFutureRevision     DiagnosticCode = "future-consumed-revision"
-	DiagnosticMissingHumanLink   DiagnosticCode = "missing-human-link"
-	DiagnosticInvalidOpenItem    DiagnosticCode = "invalid-open-item"
-	DiagnosticInvalidWaiver      DiagnosticCode = "invalid-waiver"
-	DiagnosticStaleWaiver        DiagnosticCode = "stale-waiver"
-	DiagnosticMissingAnchor      DiagnosticCode = "missing-anchor"
-	DiagnosticUntrackedLink      DiagnosticCode = "untracked-upstream"
-	DiagnosticMissingEvidence    DiagnosticCode = "missing-completion-evidence"
+	DiagnosticLegacyMetadata              DiagnosticCode = "legacy-metadata"
+	DiagnosticInvalidFrontmatter          DiagnosticCode = "invalid-frontmatter"
+	DiagnosticUnsupportedSchema           DiagnosticCode = "unsupported-schema"
+	DiagnosticMissingMetadata             DiagnosticCode = "missing-required-metadata"
+	DiagnosticInvalidMetadata             DiagnosticCode = "invalid-metadata"
+	DiagnosticRoleLocation                DiagnosticCode = "role-location-conflict"
+	DiagnosticDuplicateIdentity           DiagnosticCode = "duplicate-semantic-id"
+	DiagnosticMissingAuthority            DiagnosticCode = "missing-authority"
+	DiagnosticUpstreamChanged             DiagnosticCode = "upstream-changed"
+	DiagnosticFutureRevision              DiagnosticCode = "future-consumed-revision"
+	DiagnosticMissingHumanLink            DiagnosticCode = "missing-human-link"
+	DiagnosticInvalidOpenItem             DiagnosticCode = "invalid-open-item"
+	DiagnosticInvalidWaiver               DiagnosticCode = "invalid-waiver"
+	DiagnosticStaleWaiver                 DiagnosticCode = "stale-waiver"
+	DiagnosticMissingAnchor               DiagnosticCode = "missing-anchor"
+	DiagnosticUntrackedLink               DiagnosticCode = "untracked-upstream"
+	DiagnosticMissingEvidence             DiagnosticCode = "missing-completion-evidence"
+	DiagnosticExecutionContractIncomplete DiagnosticCode = "execution-contract-incomplete"
+	DiagnosticDanglingRepairReference     DiagnosticCode = "dangling-repair-reference"
+	DiagnosticMissingReciprocalRepair     DiagnosticCode = "missing-reciprocal-repair"
 )
 
 type Diagnostic struct {
@@ -116,6 +119,48 @@ func (c *Catalog) ExecutableTickets() []*Issue {
 	return append([]*Issue(nil), c.Tickets...)
 }
 
+func (c *Catalog) validateRepairReferences() {
+	byID := make(map[string]*Issue)
+	for _, t := range c.Tickets {
+		byID[issueKey(t)] = t
+		if _, ok := byID[t.ID]; !ok {
+			byID[t.ID] = t
+		}
+	}
+	repairTargets := make(map[string]bool)
+	for _, t := range c.Tickets {
+		if t.RepairOf == "" {
+			continue
+		}
+		target, ok := byID[t.RepairOf]
+		if !ok {
+			c.Diagnostics = append(c.Diagnostics, Diagnostic{
+				Code:     DiagnosticDanglingRepairReference,
+				Severity: SeverityWarning,
+				Artifact: t.FilePath,
+				Message:  "Repair of: references a non-existent ticket " + t.RepairOf,
+				Source:   SourceLocation{Path: t.FilePath},
+			})
+			continue
+		}
+		repairTargets[issueKey(target)] = true
+	}
+	for _, t := range c.Tickets {
+		if t.Status != StatusNeedsRepair {
+			continue
+		}
+		if !repairTargets[issueKey(t)] {
+			c.Diagnostics = append(c.Diagnostics, Diagnostic{
+				Code:     DiagnosticMissingReciprocalRepair,
+				Severity: SeverityWarning,
+				Artifact: t.FilePath,
+				Message:  "needs-repair ticket has no reciprocal Repair of: reference",
+				Source:   SourceLocation{Path: t.FilePath},
+			})
+		}
+	}
+}
+
 type catalogEnvelope struct {
 	FlowForge catalogMetadata `yaml:"flowforge"`
 }
@@ -161,6 +206,7 @@ func DiscoverArtifacts(root string) (*Catalog, error) {
 
 	sort.Slice(catalog.Artifacts, func(i, j int) bool { return catalog.Artifacts[i].Path < catalog.Artifacts[j].Path })
 	catalog.buildSemanticDiagnostics()
+	catalog.validateRepairReferences()
 	return catalog, nil
 }
 
@@ -225,12 +271,83 @@ func discoverArtifact(path string) (*Artifact, []Diagnostic, error) {
 		if issue.Status == StatusClosed && !hasCompletionEvidence(issue.Body) {
 			diagnostics = append(diagnostics, warning(DiagnosticMissingEvidence, path, "Closed ticket has no observable completion evidence"))
 		}
+		if artifact.Schema > 0 && issue.Status.IsExecutable() && !hasCompleteExecutionContract(issue.Body) {
+			diagnostics = append(diagnostics, Diagnostic{
+				Code:     DiagnosticExecutionContractIncomplete,
+				Severity: SeverityGap,
+				Artifact: path,
+				Message:  "Open ticket is missing a complete machine execution contract",
+				Source:   SourceLocation{Path: path},
+			})
+		}
 	}
 
 	return artifact, diagnostics, nil
 }
 
 var markdownHeading = regexp.MustCompile(`(?m)^#{2,6}\s+(.+?)\s*$`)
+
+var (
+	executionDetailHeading   = regexp.MustCompile(`(?mi)^##\s+Execution detail\s*$`)
+	executionDetailBoundary  = regexp.MustCompile(`(?m)^#{1,2}\s+`)
+	executionContractHeading = regexp.MustCompile(`(?m)^#{1,3}\s+`)
+	executionTaskPlaceholder = regexp.MustCompile(`(?m)^\s*[-*]\s+\[[ xX]\]\s*`)
+)
+
+var executionContractSections = []string{
+	"Verified contracts",
+	"Execution scenarios",
+	"Expected tests",
+	"Generated artifacts",
+	"Conventions",
+}
+
+var executionContractSectionHeadings = func() []*regexp.Regexp {
+	hs := make([]*regexp.Regexp, len(executionContractSections))
+	for i, section := range executionContractSections {
+		hs[i] = regexp.MustCompile(`(?mi)^###\s+` + regexp.QuoteMeta(section) + `\s*$`)
+	}
+	return hs
+}()
+
+func hasCompleteExecutionContract(body string) bool {
+	detailLocation := executionDetailHeading.FindStringIndex(body)
+	if detailLocation == nil {
+		return false
+	}
+	detail := body[detailLocation[1]:]
+	if boundary := executionDetailBoundary.FindStringIndex(detail); boundary != nil {
+		detail = detail[:boundary[0]]
+	}
+	for _, heading := range executionContractSectionHeadings {
+		location := heading.FindStringIndex(detail)
+		if location == nil {
+			return false
+		}
+		content := detail[location[1]:]
+		if next := executionContractHeading.FindStringIndex(content); next != nil {
+			content = content[:next[0]]
+		}
+		if isExecutionContractPlaceholder(content) {
+			return false
+		}
+	}
+	return true
+}
+
+func isExecutionContractPlaceholder(content string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(content))
+	normalized = executionTaskPlaceholder.ReplaceAllString(normalized, "")
+	normalized = strings.Trim(normalized, "-*_` \t\r\n")
+	if normalized == "" {
+		return true
+	}
+	switch normalized {
+	case "todo", "tbd", "tba", "placeholder", "fill in", "to be completed", "n/a", "not applicable":
+		return true
+	}
+	return strings.HasPrefix(normalized, "<") && strings.HasSuffix(normalized, ">")
+}
 
 func hasCompletionEvidence(body string) bool {
 	matches := markdownHeading.FindAllStringSubmatchIndex(body, -1)

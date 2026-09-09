@@ -155,6 +155,10 @@ func (g *IssueGraph) ComputeFrontier() FrontierResult {
 			continue
 		}
 
+		if !issue.Status.IsExecutable() {
+			continue
+		}
+
 		var waitingOn []string
 		for blockerKey := range g.Edges[key] {
 			blocker, exists := g.Issues[blockerKey]

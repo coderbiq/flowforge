@@ -31,6 +31,8 @@ When the implementer is a lightweight model and review runs as a separate sessio
 4. **Implement** re-executes the fix Changes. Steps 3-4 repeat.
 5. When a review round produces zero findings, **Review** writes Completion evidence and closes the ticket.
 
+**Substantive finding → repair ticket:** High/Critical, contract-changing, cross-write-set, or boundary-altering findings are not appended to the original ticket. Review creates a new repair ticket with `**Repair of:** <original-id>` (provenance, not a DAG edge) and `**Status:** open`, sets the original to `needs-repair` (nonterminal, non-executable), rewires downstream `Blocked by` to the repair, and records the repair reference in the original's Review rounds. The repair enters the frontier; the original does not. After the repair passes its own clean review, Review writes the repair's evidence back to the original and closes both.
+
 A capable agent may own the full turn (implement, review, evidence, close) in one session. See the artifact contract's [execution and review loop](../../assets/skills/_shared/ARTIFACT-CONTRACT.md#execution-and-review-loop) for details.
 
 ## Deterministic checks

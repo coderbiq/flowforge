@@ -22,6 +22,8 @@ Do not advance status to express readiness. Begin only when the ticket's Deliver
 
 **Standards pre-flight:** Before execution, check the ticket's Constraints for standards transcription status. The ticket must carry one of: `must`/`must not` standards clauses (transcription done — proceed), `standards: none found` (design authority had no applicable standards — proceed), or `standards: pending` (transcription not done — return the ticket to Plan). If the ticket has Changes and a `Write set` but lacks any of these markers, return it to Plan for standards transcription. Tickets without a `Write set` (pure documentation) skip this check. Do not transcribe standards yourself; return to Plan so Plan can transcribe from the design authority.
 
+**Execution-contract pre-flight:** Before any implementation mode starts, verify the ticket has no `execution-contract-incomplete` gap. If the catalog reports this gap, stop and return the ticket to `flowforge-refine-ticket` — the contract must be filled with verified repository evidence before implementation. This preflight is non-negotiable: `--include-gaps` on the frontier or a caller request to include gaps does not bypass it. A ticket visible only through `frontier --include-gaps` because of an incomplete contract is explicitly not eligible for implementation.
+
 ### 2. Determine execution mode
 
 If the ticket has unchecked `- [ ]` Changes with mechanical steps, a `Write set:` in Constraints, and an `Execution detail` section, use **lightweight mode** (step 3). This mode is for implementers that follow explicit instructions but cannot reliably search the codebase or self-review.

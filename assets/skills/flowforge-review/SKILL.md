@@ -99,7 +99,16 @@ For each finding, classify it:
 
 - **Fixable**: a concrete implementation issue (missing test, wrong logic, code smell, missing migration). Translate it into a new unchecked Change appended to the ticket's Changes section, using the format `- [ ] N. Fix: <mechanical action naming the target file and symbol>`. Continue the ticket's existing Change numbering. Fix Changes are mechanical descriptions, not code—the implementer writes the code.
 
-- **Design return**: fixing it would change a responsibility, interface, seam, information flow, ordering, migration, or verification strategy. Do not create a fix Change. Note it as `Design return:` in the Review rounds section with the affected area. The ticket stays open until the design owner resolves it.
+- **Design return (repair escalation)**: fixing it would change a responsibility, interface, seam, information flow, ordering, migration, or verification strategy. Do not append it to the original ticket's Changes. Create a repair ticket (same as substantive finding) with the design-return area noted in its Delivery and Changes as design questions for the solution-design owner. The original enters `needs-repair` and stays non-executable until the design owner resolves the questions and the repair passes review.
+
+- **Substantive finding (repair escalation)**: the finding is High/Critical severity, changes an execution contract or acceptance criterion, crosses the ticket's write set, or alters a boundary that downstream work depends on. Do not append it to the original ticket's Changes. Instead, create a new repair ticket under the same `issues/` directory:
+  - Schema v1 `role: ticket` frontmatter with a clear `id` (e.g. `<original-id>-repair-<n>`).
+  - `**Status:** open` and `**Repair of:** <original-id>` — provenance, not a DAG edge.
+  - `**Blocked by:** None` (the repair is not blocked by its original; the original is nonterminal until the repair passes review).
+  - Touch points, Changes, Constraints (with its own `Write set:`), and Done and verify for the repair work.
+  - Set the original ticket's `**Status:** needs-repair`. The original enters `needs-repair` (nonterminal, non-executable) and is excluded from frontier dispatch.
+  - Rewire downstream tickets that semantically depend on the original's delivery: change their `**Blocked by:**` from the original ID to the repair ticket ID. Downstream work stays blocked until the repair closes.
+  - Record the repair ticket reference in the original's Review rounds as `Repair: <repair-id>`.
 
 Then record the round in the ticket's Review rounds section (after the `---` separator):
 
@@ -113,9 +122,10 @@ Then record the round in the ticket's Review rounds section (after the `---` sep
 - Spec: <findings or "none">
 - Fix changes: <change numbers created, or "none">
 - Design returns: <areas and reasons, or "none">
+- Repair: <repair ticket id and reason, or "none">
 ```
 
-Append fix Changes to the ticket's Changes section and record the round. The lightweight implementer re-executes the new fix Changes in its next session.
+Append fix Changes to the ticket's Changes section and record the round. The lightweight implementer re-executes the new fix Changes in its next session. If a repair ticket was created, the repair ticket enters the frontier independently; the original stays `needs-repair` until the repair passes its own review.
 
 **If zero findings:**
 
@@ -131,9 +141,9 @@ Then set `**Status:** closed` in the ticket. Run `flowforge check` and `flowforg
 
 ### 7. Return
 
-Return the review outcome: if fix Changes were created, return the change numbers and a one-line summary so the user can dispatch the lightweight implementer. If the ticket was closed, return the evidence location, implementation reference, review dispositions, and the new frontier.
+Return the review outcome: if fix Changes were created, return the change numbers and a one-line summary so the user can dispatch the lightweight implementer. If a repair ticket was created, return the repair ticket path, the original's new `needs-repair` status, and the downstream rewiring summary. If the ticket was closed, return the evidence location, implementation reference, review dispositions, and the new frontier.
 
-Review must not write code, merge the two axes, or silently waive a finding. Every finding either becomes a fix Change, a design return, or an authority-owned disposition recorded in the Review rounds section.
+Review must not write code, merge the two axes, or silently waive a finding. Every finding either becomes a fix Change, a design return, a repair ticket, or an authority-owned disposition recorded in the Review rounds section.
 
 ## Why two axes
 

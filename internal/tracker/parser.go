@@ -16,6 +16,7 @@ var (
 	statusRegex    = regexp.MustCompile(`(?i)^\*\*Status:\*\*\s*(.+)$`)
 	typeRegex      = regexp.MustCompile(`(?i)^\*\*Type:\*\*\s*(.+)$`)
 	blockedByRegex = regexp.MustCompile(`(?i)^\*\*Blocked\s+by:\*\*\s*(.+)$`)
+	repairOfRegex  = regexp.MustCompile(`(?i)^\*\*Repair\s+of:\*\*\s*(.+)$`)
 	assigneeRegex  = regexp.MustCompile(`(?i)^\*\*Assignee:\*\*\s*(.+)$`)
 	labelsRegex    = regexp.MustCompile(`(?i)^\*\*Labels:\*\*\s*(.+)$`)
 	idPrefixRegex  = regexp.MustCompile(`^(\d+)(?:-(.*))?\.md$`)
@@ -110,6 +111,14 @@ func parseIssueData(filePath string, data []byte) (*Issue, error) {
 							issue.BlockedBy = append(issue.BlockedBy, p)
 						}
 					}
+				}
+				continue
+			}
+
+			if m := repairOfRegex.FindStringSubmatch(trimmed); len(m) > 1 {
+				raw := strings.TrimSpace(m[1])
+				if raw != "" && raw != "none" && raw != "None" {
+					issue.RepairOf = raw
 				}
 				continue
 			}

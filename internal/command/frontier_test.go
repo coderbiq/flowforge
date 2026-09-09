@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -201,6 +202,28 @@ func TestFrontierQuietStrictAndGapOverride(t *testing.T) {
 	}
 }
 
+func TestFrontierExcludesIncompleteExecutionContractsUnlessGapsAreIncluded(t *testing.T) {
+	root := executionContractFrontierFixture(t)
+	run := func(include bool) (string, string, error) {
+		cmd := newFrontierCmd()
+		frontierDir, frontierQuiet, frontierJSON, frontierStrict, frontierIncludeGaps = root, true, false, false, include
+		var stdout, stderr bytes.Buffer
+		cmd.SetOut(&stdout)
+		cmd.SetErr(&stderr)
+		err := cmd.RunE(cmd, nil)
+		return stdout.String(), stderr.String(), err
+	}
+
+	stdout, stderr, err := run(false)
+	if err != nil || !strings.Contains(stdout, "01-complete.md") || strings.Contains(stdout, "02-incomplete.md") || !strings.Contains(stderr, "execution-contract-incomplete") {
+		t.Fatalf("default execution-contract projection failed stdout=%q stderr=%q err=%v", stdout, stderr, err)
+	}
+	stdout, stderr, err = run(true)
+	if err != nil || !strings.Contains(stdout, "01-complete.md") || !strings.Contains(stdout, "02-incomplete.md") || !strings.Contains(stderr, "execution-contract-incomplete") {
+		t.Fatalf("include-gaps execution-contract projection failed stdout=%q stderr=%q err=%v", stdout, stderr, err)
+	}
+}
+
 func TestFrontierJSONCarriesAllGroupsAndDiagnostics(t *testing.T) {
 	cmd := newFrontierCmd()
 	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps = frontierGapFixture(t), true, false, false, false
@@ -251,4 +274,99 @@ flowforge:
 		t.Fatal(err)
 	}
 	return root
+}
+
+func executionContractFrontierFixture(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	complete := "## Execution detail\n\n### Verified contracts\n\n- catalog.go supplies diagnostics.\n\n### Execution scenarios\n\n- Success: ticket is ready.\n- Failure: missing sections are gaps.\n\n### Expected tests\n\n- go test ./internal/tracker/...\n\n### Generated artifacts\n\n- Not applicable — no generated output.\n\n### Conventions\n\n- Reuse existing gap projection.\n"
+	write := func(name, detail string) {
+		t.Helper()
+		body := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n# " + name + "\n**Status:** open\n**Blocked by:** None\n\n" + detail
+		if err := os.WriteFile(filepath.Join(issues, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("01-complete.md", complete)
+	write("02-incomplete.md", "## Execution detail\n\n### Verified contracts\n\n- TODO\n")
+	return root
+}
+
+func TestFrontierExcludesNeedsRepairAndDispatchesRepair(t *testing.T) {
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fm := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n"
+	execContract := "\n\n## Execution detail\n\n### Verified contracts\n\n- parser.go owns header parsing.\n\n### Execution scenarios\n\n- Success: repair is dispatched.\n- Failure: needs-repair is excluded.\n\n### Expected tests\n\n- go test ./internal/command/...\n\n### Generated artifacts\n\n- Not applicable.\n\n### Conventions\n\n- Reuse existing frontier logic.\n"
+	writeTicket := func(name, status, blockedBy, repairOf string) {
+		header := "# " + strings.TrimSuffix(name, ".md") + "\n**Status:** " + status + "\n"
+		if repairOf != "" {
+			header += "**Repair of:** " + repairOf + "\n"
+		}
+		header += "**Blocked by:** " + blockedBy + "\n"
+		body := fm + header + execContract
+		if err := os.WriteFile(filepath.Join(issues, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeTicket("01-original.md", "needs-repair", "None", "")
+	writeTicket("02-repair.md", "open", "None", "01")
+	writeTicket("03-downstream.md", "open", "02", "")
+
+	cmd := newFrontierCmd()
+	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps = root, true, false, false, false
+	var stdout, stderr bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("frontier failed: %v stdout=%q stderr=%q", err, stdout.String(), stderr.String())
+	}
+	var result struct {
+		Ready   []*tracker.Issue `json:"ready"`
+		Blocked []struct {
+			Issue     *tracker.Issue `json:"issue"`
+			WaitingOn []string       `json:"waiting_on"`
+		} `json:"blocked"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		t.Fatalf("unmarshal: %v stdout=%q", err, stdout.String())
+	}
+	for _, issue := range result.Ready {
+		if issue.ID == "01" {
+			t.Fatal("needs-repair ticket must not be in ready")
+		}
+	}
+	var repairReady bool
+	for _, issue := range result.Ready {
+		if issue.ID == "02" {
+			repairReady = true
+		}
+	}
+	if !repairReady {
+		t.Fatal("repair ticket must be in ready")
+	}
+	var downstreamBlocked bool
+	for _, b := range result.Blocked {
+		if b.Issue != nil && b.Issue.ID == "03" {
+			downstreamBlocked = true
+			found := false
+			for _, w := range b.WaitingOn {
+				if w == "02" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("downstream 03 should wait on 02, got %v", b.WaitingOn)
+			}
+		}
+	}
+	if !downstreamBlocked {
+		t.Fatal("downstream ticket 03 should be blocked waiting on repair 02")
+	}
 }

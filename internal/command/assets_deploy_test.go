@@ -10,6 +10,15 @@ import (
 
 var localMarkdownLink = regexp.MustCompile(`\[[^]]+\]\(([^)]+)\)`)
 
+func readSkillBody(t *testing.T, relPath string) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "assets", "skills", relPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
 func TestPackagedSkillPointersResolve(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
 	assertSkillPointersResolve(t, filepath.Join(repoRoot, "assets", "skills"))
@@ -221,6 +230,95 @@ func TestDeployPreservesSharedDirs(t *testing.T) {
 	}
 }
 
+func TestRefineTicketSkillIsPackagedAndLinked(t *testing.T) {
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	source := filepath.Join(repoRoot, "assets", "skills", "flowforge-refine-ticket", "SKILL.md")
+	if _, err := os.Stat(source); err != nil {
+		t.Fatalf("flowforge-refine-ticket SKILL.md not found: %v", err)
+	}
+	body := readSkillBody(t, filepath.Join("flowforge-refine-ticket", "SKILL.md"))
+	for _, anchor := range []string{"hand-offs", "information-value"} {
+		needle := "../_shared/ARTIFACT-CONTRACT.md#" + anchor
+		if !strings.Contains(body, needle) {
+			t.Errorf("flowforge-refine-ticket missing contract pointer %s", needle)
+		}
+	}
+	if !strings.Contains(body, "Verified contracts") ||
+		!strings.Contains(body, "Execution scenarios") ||
+		!strings.Contains(body, "Expected tests") ||
+		!strings.Contains(body, "Generated artifacts") ||
+		!strings.Contains(body, "Conventions") {
+		t.Error("flowforge-refine-ticket must name all five execution-contract sections")
+	}
+
+	target := t.TempDir()
+	if err := deployManagedAssets(target, filepath.Join(target, "docs")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(target, ".agents", "skills", "flowforge-refine-ticket", "SKILL.md")); err != nil {
+		t.Fatalf("refine-ticket skill not deployed: %v", err)
+	}
+}
+
+func TestPlanPublishesExecutionDetailSkeleton(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("flowforge-plan", "SKILL.md"))
+	if !strings.Contains(body, "Execution detail") {
+		t.Fatal("Plan must publish an Execution detail skeleton")
+	}
+	if !strings.Contains(body, "refine-ticket") {
+		t.Fatal("Plan must delegate fact-backed execution-contract content to flowforge-refine-ticket")
+	}
+}
+
+func TestImplementPreflightRejectsIncompleteExecutionContract(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("flowforge-implement", "SKILL.md"))
+	if !strings.Contains(body, "execution-contract-incomplete") {
+		t.Fatal("Implement preflight must reject execution-contract-incomplete")
+	}
+	if !strings.Contains(body, "include-gaps") && !strings.Contains(body, "include_gaps") {
+		t.Fatal("Implement preflight must not treat include-gaps as permission to bypass")
+	}
+}
+
+func TestArtifactContractDocumentsExecutionContractSections(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("_shared", "ARTIFACT-CONTRACT.md"))
+	for _, section := range []string{"Verified contracts", "Execution scenarios", "Expected tests", "Generated artifacts", "Conventions"} {
+		if !strings.Contains(body, section) {
+			t.Errorf("ARTIFACT-CONTRACT.md must document execution-contract section %q", section)
+		}
+	}
+}
+
+func TestReviewSkillDescribesRepairEscalation(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("flowforge-review", "SKILL.md"))
+	if !strings.Contains(body, "repair") {
+		t.Fatal("Review skill must describe repair-ticket escalation for substantive findings")
+	}
+	if !strings.Contains(body, "needs-repair") {
+		t.Fatal("Review skill must reference needs-repair status for original ticket")
+	}
+	if !strings.Contains(body, "Repair of:") {
+		t.Fatal("Review skill must reference Repair of: provenance header")
+	}
+}
+
+func TestArtifactContractDescribesRepairLoop(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("_shared", "ARTIFACT-CONTRACT.md"))
+	if !strings.Contains(body, "repair") {
+		t.Fatal("ARTIFACT-CONTRACT.md must describe the repair escalation path")
+	}
+}
+
+func TestIssueTrackerDescribesRepairWorkflow(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "docs", "agents", "issue-tracker.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "repair") {
+		t.Fatal("issue-tracker.md must describe the repair workflow")
+	}
+}
+
 func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 	t.Helper()
 	required := map[string][]string{
@@ -232,6 +330,7 @@ func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 		"flowforge-implement":       {"hand-offs", "diagnostics"},
 		"flowforge-tdd":             {"hand-offs", "diagnostics"},
 		"flowforge-review":          {"roles-and-authority", "information-value"},
+		"flowforge-refine-ticket":   {"hand-offs", "information-value"},
 		"flowforge-handoff":         {"hand-offs"},
 		"flowforge-solution-design": {"roles-and-authority", "packaging", "hand-offs", "diagnostics", "information-value"},
 	}

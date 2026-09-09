@@ -73,7 +73,14 @@ The source link is a relative path with an anchor (e.g. `../docs/dependency-rule
 
 **Tier 3 — agent execution detail** (after a `---` separator, skippable by humans):
 
-- **Execution detail:** subsections for Settled decisions, Expected tests, and Conventions that the implementer needs but a human reviewer can skip.
+- **Execution detail:** the machine execution contract, filled by `flowforge-refine-ticket` with verified repository evidence. Five required subsections:
+  1. **Verified contracts** — precise contract facts with file/symbol/anchor evidence.
+  2. **Execution scenarios** — at least one success and one failure path with observable results.
+  3. **Expected tests** — runnable commands or named test cases with assertions.
+  4. **Generated artifacts** — producer → artifact → consumer sync assertions, or an explicit `Not applicable` reason.
+  5. **Conventions** — local non-obvious conventions and transcribed `[Conventions]` standards clauses.
+  
+  A schema-managed executable ticket missing any section or carrying only placeholder content is diagnosed `execution-contract-incomplete` (gap). Plan publishes the skeleton headings; Refine Ticket fills them with facts. Implement refuses to execute a ticket with this gap regardless of `--include-gaps`.
 - **Implementation note:** written by the implementer after execution; records completed Changes, commands run and results, files modified, and write-set compliance. Not evidence—a status report for the review agent.
 - **Review rounds:** accumulates review history per round; each round records the fixed point (commit SHA), Standards/Spec findings, fix Changes created, and disposition. A clean round (zero findings) triggers Completion evidence and closure.
 
@@ -86,6 +93,8 @@ When the implementer is a lightweight model and review runs as a separate sessio
 3. **Review** runs the dual-axis review on the fixed change set. If findings exist, it translates each fixable finding into a new unchecked `Fix:` Change appended to the ticket. If a finding requires an architecture/seam/interface change, it marks the finding as a design return instead. It records the round in Review rounds.
 4. **Implement** re-executes the new fix Changes. Steps 3-4 repeat.
 5. When a review round produces zero findings, **Review** writes Completion evidence and closes the ticket.
+
+**Substantive finding → repair ticket:** If a finding is High/Critical, changes an execution contract or acceptance criterion, crosses the write set, or alters a boundary downstream work depends on, Review does not append it to the original ticket. Instead, it creates a new repair ticket (`**Repair of:** <original-id>`, `**Status:** open`), sets the original to `needs-repair`, rewires downstream `Blocked by` to the repair, and records the repair reference in the original's Review rounds. The repair ticket enters the frontier independently; the original stays non-executable until the repair passes its own clean review, after which Review writes the repair's evidence back to the original and closes both. `Repair of:` is provenance, not a DAG edge.
 
 A capable agent that owns the full turn may implement, invoke review, resolve findings, write evidence, and close in one continuous session. The loop above applies when implement and review are separate sessions with asymmetric capability.
 

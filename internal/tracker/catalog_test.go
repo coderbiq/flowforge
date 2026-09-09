@@ -3,6 +3,7 @@ package tracker_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"flowforge/internal/tracker"
@@ -180,6 +181,277 @@ func TestClosedTicketRequiresObservableCompletionEvidence(t *testing.T) {
 		if diagnostic.Code == tracker.DiagnosticMissingEvidence && diagnostic.Artifact == present {
 			t.Fatalf("ticket with observable evidence was rejected: %#v", diagnostic)
 		}
+	}
+}
+
+func TestExecutionContractCompletenessAppliesOnlyToManagedExecutableTickets(t *testing.T) {
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	complete := `## Execution detail
+
+### Verified contracts
+
+- internal/tracker/catalog.go:discoverArtifact owns ticket diagnostics.
+
+### Execution scenarios
+
+- Success: a complete ticket is eligible.
+- Failure: a missing section is diagnosed.
+
+### Expected tests
+
+- go test ./internal/tracker/...
+
+### Generated artifacts
+
+- Not applicable — this ticket has no generated output.
+
+### Conventions
+
+- Reuse catalog diagnostics.
+`
+	sectionContent := map[string]string{
+		"Verified contracts":  "- internal/tracker/catalog.go:discoverArtifact owns ticket diagnostics.",
+		"Execution scenarios": "- Success: a complete ticket is eligible.\n- Failure: a missing section is diagnosed.",
+		"Expected tests":      "- go test ./internal/tracker/...",
+		"Generated artifacts": "- Not applicable — this ticket has no generated output.",
+		"Conventions":         "- Reuse catalog diagnostics.",
+	}
+	placeholderOnly := strings.Replace(complete, "- go test ./internal/tracker/...", "- [ ]", 1)
+	headingsOutsideDetail := "## Execution detail\n\n## Notes\n\n" + strings.TrimPrefix(complete, "## Execution detail\n\n")
+	writeTicket := func(name, status, detail string, managed bool) string {
+		t.Helper()
+		frontmatter := ""
+		if managed {
+			frontmatter = "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n"
+		}
+		path := filepath.Join(issues, name)
+		body := frontmatter + "# " + strings.TrimSuffix(name, ".md") + "\n**Status:** " + status + "\n**Blocked by:** None\n\n" + detail
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+
+	completePath := writeTicket("01-complete.md", "open", complete, true)
+	readyPath := writeTicket("02-ready.md", "ready-for-agent", complete, true)
+	missingPaths := make([]string, 0, len(sectionContent))
+	for index, section := range []string{"Verified contracts", "Execution scenarios", "Expected tests", "Generated artifacts", "Conventions"} {
+		missing := strings.Replace(complete, "### "+section+"\n\n"+sectionContent[section], "", 1)
+		missingPaths = append(missingPaths, writeTicket("0"+string(rune('3'+index))+"-missing.md", "open", missing, true))
+	}
+	placeholderPath := writeTicket("08-placeholder.md", "ready-for-agent", placeholderOnly, true)
+	outsidePath := writeTicket("09-outside.md", "open", headingsOutsideDetail, true)
+	closedPath := writeTicket("10-closed.md", "closed", "", true)
+	legacyPath := writeTicket("11-legacy.md", "open", "", false)
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range append(missingPaths, placeholderPath, outsidePath) {
+		assertDiagnostic(t, catalog.Diagnostics, tracker.DiagnosticCode("execution-contract-incomplete"), path)
+	}
+	for _, path := range []string{completePath, readyPath, closedPath, legacyPath} {
+		for _, diagnostic := range catalog.Diagnostics {
+			if diagnostic.Code == tracker.DiagnosticCode("execution-contract-incomplete") && diagnostic.Artifact == path {
+				t.Fatalf("unexpected execution-contract diagnostic for %s: %#v", path, diagnostic)
+			}
+		}
+	}
+}
+
+func TestNeedsRepairIsNonExecutableAndRepairProvenanceIsParsed(t *testing.T) {
+	if tracker.StatusNeedsRepair.IsExecutable() {
+		t.Fatal("needs-repair must not be executable")
+	}
+	if tracker.StatusNeedsRepair.IsTerminal() {
+		t.Fatal("needs-repair must not be terminal")
+	}
+
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fm := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n"
+	writeTicket := func(name, header string) string {
+		path := filepath.Join(issues, name)
+		body := fm + "# " + strings.TrimSuffix(name, ".md") + "\n" + header + "\n**Blocked by:** None\n"
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	original := writeTicket("01-original.md", "**Status:** needs-repair\n**Repair of:** None")
+	repair := writeTicket("02-repair.md", "**Status:** open\n**Repair of:** 01")
+	legacy := writeTicket("03-legacy.md", "**Status:** open")
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var origTicket, repairTicket *tracker.Issue
+	for _, ticket := range catalog.Tickets {
+		switch ticket.FilePath {
+		case original:
+			origTicket = ticket
+		case repair:
+			repairTicket = ticket
+		}
+	}
+	if origTicket == nil || repairTicket == nil {
+		t.Fatalf("missing tickets: original=%v repair=%v", origTicket, repairTicket)
+	}
+	if origTicket.Status != tracker.StatusNeedsRepair {
+		t.Fatalf("original status = %q, want needs-repair", origTicket.Status)
+	}
+	if repairTicket.RepairOf != "01" {
+		t.Fatalf("repair provenance = %q, want 01", repairTicket.RepairOf)
+	}
+	if origTicket.RepairOf != "" {
+		t.Fatalf("original with 'Repair of: None' should have empty RepairOf, got %q", origTicket.RepairOf)
+	}
+	for _, ticket := range catalog.Tickets {
+		if ticket.FilePath == legacy && ticket.RepairOf != "" {
+			t.Fatalf("legacy ticket should have empty RepairOf, got %q", ticket.RepairOf)
+		}
+	}
+}
+
+func TestRepairReciprocalReferencesAreValidated(t *testing.T) {
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fm := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n"
+	writeTicket := func(name, status, repairOf string) string {
+		path := filepath.Join(issues, name)
+		header := "# " + strings.TrimSuffix(name, ".md") + "\n**Status:** " + status + "\n"
+		if repairOf != "" {
+			header += "**Repair of:** " + repairOf + "\n"
+		}
+		header += "**Blocked by:** None\n"
+		body := fm + header
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	orphanRepair := writeTicket("01-orphan-repair.md", "open", "99")
+	originalNoRepair := writeTicket("02-no-reciprocal.md", "needs-repair", "")
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertDiagnostic(t, catalog.Diagnostics, tracker.DiagnosticCode("dangling-repair-reference"), orphanRepair)
+	assertDiagnostic(t, catalog.Diagnostics, tracker.DiagnosticCode("missing-reciprocal-repair"), originalNoRepair)
+}
+
+func TestEndToEndRepairDAGPath(t *testing.T) {
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fm := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n"
+	execContract := "\n\n## Execution detail\n\n### Verified contracts\n\n- model.go owns status.\n\n### Execution scenarios\n\n- Success: repair completes.\n- Failure: original stays needs-repair.\n\n### Expected tests\n\n- go test ./internal/tracker/...\n\n### Generated artifacts\n\n- Not applicable.\n\n### Conventions\n\n- Reuse existing DAG logic.\n"
+	writeTicket := func(name, status, blockedBy, repairOf string) string {
+		path := filepath.Join(issues, name)
+		header := "# " + strings.TrimSuffix(name, ".md") + "\n**Status:** " + status + "\n"
+		if repairOf != "" {
+			header += "**Repair of:** " + repairOf + "\n"
+		}
+		header += "**Blocked by:** " + blockedBy + "\n"
+		body := fm + header + execContract
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+
+	original := writeTicket("01-original.md", "needs-repair", "None", "")
+	repair := writeTicket("02-repair.md", "open", "None", "01")
+	downstream := writeTicket("03-downstream.md", "open", "02", "")
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var origIssue, repairIssue, downstreamIssue *tracker.Issue
+	for _, ticket := range catalog.Tickets {
+		switch ticket.FilePath {
+		case original:
+			origIssue = ticket
+		case repair:
+			repairIssue = ticket
+		case downstream:
+			downstreamIssue = ticket
+		}
+	}
+	if origIssue == nil || repairIssue == nil || downstreamIssue == nil {
+		t.Fatalf("missing tickets: orig=%v repair=%v downstream=%v", origIssue, repairIssue, downstreamIssue)
+	}
+
+	if origIssue.Status != tracker.StatusNeedsRepair {
+		t.Fatalf("original status = %q, want needs-repair", origIssue.Status)
+	}
+	if origIssue.Status.IsExecutable() {
+		t.Fatal("needs-repair must be non-executable")
+	}
+	if repairIssue.RepairOf != "01" {
+		t.Fatalf("repair provenance = %q, want 01", repairIssue.RepairOf)
+	}
+	if !repairIssue.Status.IsExecutable() {
+		t.Fatal("repair ticket must be executable")
+	}
+
+	g := tracker.BuildGraph(catalog.Tickets)
+	frontier := g.ComputeFrontier()
+	for _, ready := range frontier.Ready {
+		if ready.ID == "01" {
+			t.Fatal("needs-repair original must not be in ready")
+		}
+		if ready.ID == "03" {
+			t.Fatal("downstream must not be in ready while repair is open")
+		}
+	}
+	var repairInReady bool
+	for _, ready := range frontier.Ready {
+		if ready.ID == "02" {
+			repairInReady = true
+		}
+	}
+	if !repairInReady {
+		t.Fatal("repair ticket must be in ready")
+	}
+	var downstreamBlocked bool
+	for _, b := range frontier.Blocked {
+		if b.Issue != nil && b.Issue.ID == "03" {
+			downstreamBlocked = true
+		}
+	}
+	if !downstreamBlocked {
+		t.Fatal("downstream must be blocked waiting on repair")
+	}
+
+	noRepairDiagnostics := true
+	for _, d := range catalog.Diagnostics {
+		if d.Code == tracker.DiagnosticDanglingRepairReference || d.Code == tracker.DiagnosticMissingReciprocalRepair {
+			if d.Artifact == original || d.Artifact == repair {
+				noRepairDiagnostics = false
+			}
+		}
+	}
+	if !noRepairDiagnostics {
+		t.Fatal("valid repair pair must not produce reciprocal-repair diagnostics")
 	}
 }
 
