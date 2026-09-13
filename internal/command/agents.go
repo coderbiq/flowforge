@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 
 	"flowforge/internal/config"
 	"flowforge/internal/subagent"
@@ -163,8 +165,8 @@ type hostTarget struct {
 
 func allHostTargets() []hostTarget {
 	return []hostTarget{
-		{"claude", filepath.Join(".claude", "agents"), ".md", func(def *subagent.Definition, _ subagent.CompileOptions) ([]byte, error) {
-			return subagent.CompileClaudeCode(def)
+		{"claude", filepath.Join(".claude", "agents"), ".md", func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error) {
+			return subagent.CompileClaudeCodeWithOptions(def, opts)
 		}},
 		{"opencode", filepath.Join(".opencode", "agent"), ".md", func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error) {
 			return subagent.CompileOpenCodeWithOptions(def, opts)
@@ -307,7 +309,10 @@ func cleanDeselectedHosts(projectRoot string, selected []hostTarget, allDefs []*
 // deploySubagents discovers, compiles, and writes subagent definitions to the
 // enabled host directories. If targetName is non-empty, deploys only that
 // subagent. Otherwise deploys all non-disabled. Managed files in deselected
-// hosts are cleaned. Returns the list of deployed subagent names.
+// hosts are cleaned. Before overwriting an existing deployed file, a local
+// `model:` frontmatter value the fresh compile would not reproduce is
+// preserved (config-pinned models always win). Returns the list of deployed
+// subagent names.
 func deploySubagents(projectRoot string, cfg *config.Config, targetName string) ([]string, error) {
 	hosts, err := resolveHostTargets(cfg)
 	if err != nil {
@@ -368,11 +373,28 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 			return nil, err
 		}
 		for _, h := range hosts {
+			path := filepath.Join(projectRoot, h.relDir, def.Name+h.ext)
 			content, err := h.compile(def, opts)
 			if err != nil {
 				return nil, fmt.Errorf("compiling %s for %s: %w", def.Name, h.key, err)
 			}
-			path := filepath.Join(projectRoot, h.relDir, def.Name+h.ext)
+			// Preserve-merge: when config does not pin a model for this
+			// definition and the existing deployed file carries a local
+			// `model:` the fresh compile would not reproduce, recompile
+			// with it as the fallback and say so on stderr. Hosts whose
+			// files carry no yaml frontmatter `model` (codex TOML) are
+			// naturally unaffected.
+			if opts.Model == "" {
+				if existing := deployedModel(path); existing != "" && existing != frontmatterModel(content) {
+					fallbackOpts := opts
+					fallbackOpts.FallbackModel = existing
+					content, err = h.compile(def, fallbackOpts)
+					if err != nil {
+						return nil, fmt.Errorf("compiling %s for %s: %w", def.Name, h.key, err)
+					}
+					fmt.Fprintf(os.Stderr, "  info: preserved local model %q for %s (set agents.models in .flowforge/config.yaml to pin explicitly)\n", existing, filepath.Join(h.relDir, def.Name+h.ext))
+				}
+			}
 			if err := os.WriteFile(path, content, 0644); err != nil {
 				return nil, fmt.Errorf("writing %s: %w", path, err)
 			}
@@ -385,6 +407,38 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 	}
 
 	return deployed, nil
+}
+
+// frontmatterModel extracts the `model` key from the leading yaml frontmatter
+// block of data. Missing delimiters, unparseable yaml, or an absent/empty key
+// all yield "" — preserve-merge treats such content as having no local model.
+func frontmatterModel(data []byte) string {
+	normalized := bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
+	if !bytes.HasPrefix(normalized, []byte("---\n")) {
+		return ""
+	}
+	rest := normalized[len("---\n"):]
+	end := bytes.Index(rest, []byte("\n---\n"))
+	if end < 0 {
+		return ""
+	}
+	var fm struct {
+		Model string `yaml:"model"`
+	}
+	if err := yaml.Unmarshal(rest[:end], &fm); err != nil {
+		return ""
+	}
+	return strings.TrimSpace(fm.Model)
+}
+
+// deployedModel returns the `model` key from the yaml frontmatter of an
+// existing deployed file. Missing or unreadable files yield "".
+func deployedModel(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return frontmatterModel(data)
 }
 
 // discoverSubagentSources reads subagent definitions from built-in assets and project-custom sources.

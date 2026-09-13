@@ -6,8 +6,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// CompileClaudeCode generates a Claude Code native agent definition file.
+// CompileClaudeCode generates a Claude Code native agent definition file with
+// zero options: the model field carries the profile default, matching
+// pre-option behavior byte for byte.
 func CompileClaudeCode(def *Definition) ([]byte, error) {
+	return CompileClaudeCodeWithOptions(def, CompileOptions{})
+}
+
+// CompileClaudeCodeWithOptions generates a Claude Code native agent
+// definition file with explicit compile options applied. The model field
+// precedence: config-pinned Model, then preserved FallbackModel, then the
+// profile default.
+func CompileClaudeCodeWithOptions(def *Definition, opts CompileOptions) ([]byte, error) {
 	type claudeFrontmatter struct {
 		Name        string   `yaml:"name"`
 		Description string   `yaml:"description"`
@@ -15,10 +25,15 @@ func CompileClaudeCode(def *Definition) ([]byte, error) {
 		Skills      []string `yaml:"skills"`
 	}
 
+	model := resolveModel(opts)
+	if model == "" {
+		model = def.ModelProfile.ClaudeModel()
+	}
+
 	fm := claudeFrontmatter{
 		Name:        def.Name,
 		Description: def.Description,
-		Model:       def.ModelProfile.ClaudeModel(),
+		Model:       model,
 		Skills:      []string{def.DefaultSkill},
 	}
 

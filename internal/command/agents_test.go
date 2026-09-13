@@ -1,12 +1,14 @@
 package command
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"flowforge/internal/config"
+	"flowforge/internal/subagent"
 )
 
 func TestAgentsDeployWritesAllHostsForBuiltinRoles(t *testing.T) {
@@ -1176,4 +1178,494 @@ func TestStatusUsesSameCompileOptions(t *testing.T) {
 	if !result.Current {
 		t.Error("status must use the same compile options as deploy (no false drift)")
 	}
+}
+
+// captureStderr runs fn with os.Stderr redirected into a pipe and returns
+// everything fn wrote there.
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+	old := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	os.Stderr = w
+	defer func() { os.Stderr = old }()
+	fn()
+	if err := w.Close(); err != nil {
+		t.Fatalf("closing stderr pipe: %v", err)
+	}
+	data, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("reading stderr pipe: %v", err)
+	}
+	return string(data)
+}
+
+// findDiscoveredDefinition returns the discovered definition with the given
+// name, so tests can byte-compare deployed files against fresh compiles.
+func findDiscoveredDefinition(t *testing.T, projectRoot, name string) *subagent.Definition {
+	t.Helper()
+	defs, err := discoverSubagentSources(projectRoot)
+	if err != nil {
+		t.Fatalf("discoverSubagentSources: %v", err)
+	}
+	for _, def := range defs {
+		if def.Name == name {
+			return def
+		}
+	}
+	t.Fatalf("definition %q not found among discovered sources", name)
+	return nil
+}
+
+func TestDeployPreservesLocalModel(t *testing.T) {
+	t.Run("opencode preserves hand-edited model with stderr hint", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		if _, err := deploySubagents(projectRoot, cfg, "flowforge-analyst"); err != nil {
+			t.Fatal(err)
+		}
+
+		// Hand-edit a local model into the deployed frontmatter.
+		path := filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handEdited := strings.Replace(string(data), "---\n", "---\nmodel: custom-model/x\n", 1)
+		if err := os.WriteFile(path, []byte(handEdited), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-analyst")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-analyst")
+		want, err := subagent.CompileOpenCodeWithOptions(def, subagent.CompileOptions{FallbackModel: "custom-model/x"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("redeployed file must equal fresh compile with the preserved model as fallback\n got: %q\nwant: %q", got, want)
+		}
+
+		wantHint := "  info: preserved local model \"custom-model/x\" for .opencode/agent/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n"
+		if !strings.Contains(stderr, wantHint) {
+			t.Errorf("stderr must carry the preserved hint\ngot:  %q\nwant: %q", stderr, wantHint)
+		}
+	})
+
+	t.Run("config model wins without hint", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		cfg.Agents.Models = map[string]string{"tool-capable": "pinned-by-config/y"}
+		if _, err := deploySubagents(projectRoot, cfg, "flowforge-implementer"); err != nil {
+			t.Fatal(err)
+		}
+
+		// Replace the pinned model with a local residue value.
+		path := filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handEdited := strings.Replace(string(data), "model: pinned-by-config/y", "model: stale-local/x", 1)
+		if handEdited == string(data) {
+			t.Fatal("expected the deployed file to carry the pinned model")
+		}
+		if err := os.WriteFile(path, []byte(handEdited), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-implementer")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(got), "stale-local/x") {
+			t.Error("config-pinned model must win over the file residue")
+		}
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-implementer")
+		opts, err := resolveCompileOptions(cfg, def)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := subagent.CompileOpenCodeWithOptions(def, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("redeployed file must equal the config-driven compile\n got: %q\nwant: %q", got, want)
+		}
+		if strings.Contains(stderr, "preserved local model") {
+			t.Errorf("config-pinned model must not emit a preserved hint, got: %q", stderr)
+		}
+	})
+
+	t.Run("claude config model wins without hint", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"claude"}
+		cfg.Agents.Models = map[string]string{"tool-capable": "pinned-claude/y"}
+		if _, err := deploySubagents(projectRoot, cfg, "flowforge-implementer"); err != nil {
+			t.Fatal(err)
+		}
+
+		// Replace the pinned model with a local residue value.
+		path := filepath.Join(projectRoot, ".claude", "agents", "flowforge-implementer.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handEdited := strings.Replace(string(data), "model: pinned-claude/y", "model: stale-local/w", 1)
+		if handEdited == string(data) {
+			t.Fatal("expected the deployed claude file to carry the pinned model")
+		}
+		if err := os.WriteFile(path, []byte(handEdited), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-implementer")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(got), "stale-local/w") {
+			t.Error("config-pinned model must win over the claude file residue")
+		}
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-implementer")
+		opts, err := resolveCompileOptions(cfg, def)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := subagent.CompileClaudeCodeWithOptions(def, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("redeployed claude file must equal the config-driven compile\n got: %q\nwant: %q", got, want)
+		}
+		if strings.Contains(stderr, "preserved local model") {
+			t.Errorf("config-pinned model must not emit a preserved hint, got: %q", stderr)
+		}
+	})
+
+	t.Run("no spurious model when existing file has none", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		if _, err := deploySubagents(projectRoot, cfg, "flowforge-analyst"); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-analyst")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		got, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(got), "model:") {
+			t.Error("redeploy must not introduce a model field out of thin air")
+		}
+		if strings.Contains(stderr, "preserved local model") {
+			t.Errorf("no local model to preserve, unexpected hint: %q", stderr)
+		}
+	})
+
+	t.Run("claude default model causes no hint but custom model is preserved", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"claude"}
+		if _, err := deploySubagents(projectRoot, cfg, "flowforge-analyst"); err != nil {
+			t.Fatal(err)
+		}
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-analyst")
+		profileDefault := def.ModelProfile.ClaudeModel()
+
+		// Redeploying over our own profile-default model must stay silent:
+		// the value came from the previous deploy, not from local custom.
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-analyst")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+		if strings.Contains(stderr, "preserved local model") {
+			t.Errorf("profile-default model is not a local customization, unexpected hint: %q", stderr)
+		}
+
+		// Hand-edit a custom model; it must be preserved with a hint.
+		path := filepath.Join(projectRoot, ".claude", "agents", "flowforge-analyst.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handEdited := strings.Replace(string(data), "model: "+profileDefault, "model: claude-custom/z", 1)
+		if handEdited == string(data) {
+			t.Fatalf("expected deployed claude file to carry model: %s", profileDefault)
+		}
+		if err := os.WriteFile(path, []byte(handEdited), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		stderr = captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-analyst")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want, err := subagent.CompileClaudeCodeWithOptions(def, subagent.CompileOptions{FallbackModel: "claude-custom/z"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("redeployed claude file must equal fresh compile with the preserved model as fallback\n got: %q\nwant: %q", got, want)
+		}
+		wantHint := "  info: preserved local model \"claude-custom/z\" for .claude/agents/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n"
+		if !strings.Contains(stderr, wantHint) {
+			t.Errorf("stderr must carry the preserved hint\ngot:  %q\nwant: %q", stderr, wantHint)
+		}
+	})
+
+	t.Run("first deploy emits no hint and keeps fresh output", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+		if strings.Contains(stderr, "preserved local model") {
+			t.Errorf("first deploy has nothing to preserve, unexpected hint: %q", stderr)
+		}
+
+		opencodeAnalyst, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(opencodeAnalyst), "model:") {
+			t.Error("first deploy must keep the opencode inherit behavior (no model field)")
+		}
+		claudeAnalyst, err := os.ReadFile(filepath.Join(projectRoot, ".claude", "agents", "flowforge-analyst.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-analyst")
+		if !strings.Contains(string(claudeAnalyst), "model: "+def.ModelProfile.ClaudeModel()) {
+			t.Error("first deploy must keep the claude profile default model")
+		}
+	})
+
+	t.Run("codex redeploy stays byte-identical", func(t *testing.T) {
+		root1 := t.TempDir()
+		if err := initializeTestProject(root1); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(root1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := deploySubagents(root1, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+
+		// Plant a TOML model-looking key in the existing codex file.
+		codexPath := filepath.Join(root1, ".codex", "agents", "flowforge-analyst.toml")
+		if err := os.WriteFile(codexPath, []byte("model = \"hacked\"\ndeveloper_instructions = \"stale\"\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(root1, cfg, "")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+		if strings.Contains(stderr, ".codex/") && strings.Contains(stderr, "preserved local model") {
+			t.Errorf("codex host has no model concept, unexpected hint: %q", stderr)
+		}
+
+		root2 := t.TempDir()
+		if err := initializeTestProject(root2); err != nil {
+			t.Fatal(err)
+		}
+		cfg2, err := config.Load(root2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := deploySubagents(root2, cfg2, ""); err != nil {
+			t.Fatal(err)
+		}
+		redeployed, err := os.ReadFile(codexPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fresh, err := os.ReadFile(filepath.Join(root2, ".codex", "agents", "flowforge-analyst.toml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(redeployed) != string(fresh) {
+			t.Errorf("codex redeploy output must be byte-identical to a fresh deploy\n got: %q\nwant: %q", redeployed, fresh)
+		}
+	})
+
+	t.Run("hand-edited model survives init --force style redeploy", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The init/upgrade pipeline: managed assets + subagents to all hosts.
+		if err := deployManagedAssets(projectRoot, filepath.Join(projectRoot, "docs")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+
+		// Hand-edit models in both frontmatter hosts.
+		opencodePath := filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md")
+		opencodeData, err := os.ReadFile(opencodePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(opencodePath, []byte(strings.Replace(string(opencodeData), "---\n", "---\nmodel: custom-model/x\n", 1)), 0644); err != nil {
+			t.Fatal(err)
+		}
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-analyst")
+		claudePath := filepath.Join(projectRoot, ".claude", "agents", "flowforge-analyst.md")
+		claudeData, err := os.ReadFile(claudePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(claudePath, []byte(strings.Replace(string(claudeData), "model: "+def.ModelProfile.ClaudeModel(), "model: claude-custom/z", 1)), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		// Re-run the pipeline as init --force does.
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			deployErr = deployManagedAssets(projectRoot, filepath.Join(projectRoot, "docs"))
+			if deployErr != nil {
+				return
+			}
+			_, deployErr = deploySubagents(projectRoot, cfg, "")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		opencodeGot, err := os.ReadFile(opencodePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		opencodeWant, err := subagent.CompileOpenCodeWithOptions(def, subagent.CompileOptions{FallbackModel: "custom-model/x"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(opencodeGot) != string(opencodeWant) {
+			t.Errorf("opencode model must survive the init --force pipeline\n got: %q\nwant: %q", opencodeGot, opencodeWant)
+		}
+
+		claudeGot, err := os.ReadFile(claudePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		claudeWant, err := subagent.CompileClaudeCodeWithOptions(def, subagent.CompileOptions{FallbackModel: "claude-custom/z"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(claudeGot) != string(claudeWant) {
+			t.Errorf("claude model must survive the init --force pipeline\n got: %q\nwant: %q", claudeGot, claudeWant)
+		}
+
+		for _, hint := range []string{
+			"  info: preserved local model \"custom-model/x\" for .opencode/agent/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n",
+			"  info: preserved local model \"claude-custom/z\" for .claude/agents/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n",
+		} {
+			if !strings.Contains(stderr, hint) {
+				t.Errorf("stderr must carry the preserved hint\ngot:  %q\nwant: %q", stderr, hint)
+			}
+		}
+	})
 }

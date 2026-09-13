@@ -128,6 +128,122 @@ func TestCompileOpenCodeOmitsModelField(t *testing.T) {
 	}
 }
 
+func TestCompileOpenCodeModelFallbackPriority(t *testing.T) {
+	dir := testAssetsDir(t)
+	definitions, err := ParseDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, def := range definitions {
+		cases := []struct {
+			name      string
+			opts      CompileOptions
+			wantModel bool
+			want      string
+		}{
+			{"config model beats fallback", CompileOptions{Model: "A", FallbackModel: "B"}, true, "A"},
+			{"config model alone", CompileOptions{Model: "A"}, true, "A"},
+			{"fallback fills absent model", CompileOptions{FallbackModel: "B"}, true, "B"},
+			{"zero options omit model", CompileOptions{}, false, ""},
+		}
+		for _, tc := range cases {
+			compiled, err := CompileOpenCodeWithOptions(def, tc.opts)
+			if err != nil {
+				t.Errorf("%s/%s: %v", def.Name, tc.name, err)
+				continue
+			}
+			fm, _, ok := splitFrontmatter(compiled)
+			if !ok {
+				t.Errorf("%s/%s: frontmatter delimiters missing", def.Name, tc.name)
+				continue
+			}
+			var parsed map[string]interface{}
+			if err := yaml.Unmarshal(fm, &parsed); err != nil {
+				t.Errorf("%s/%s: frontmatter invalid YAML: %v", def.Name, tc.name, err)
+				continue
+			}
+			got, present := parsed["model"]
+			if !tc.wantModel {
+				if present {
+					t.Errorf("%s/%s: unexpected model field %v", def.Name, tc.name, got)
+				}
+				continue
+			}
+			if s, ok := got.(string); !ok || s != tc.want {
+				t.Errorf("%s/%s: model = %v (want %q)", def.Name, tc.name, got, tc.want)
+			}
+		}
+
+		// Zero options must stay byte-identical to the zero-arg delegate.
+		base, err := CompileOpenCode(def)
+		if err != nil {
+			t.Fatalf("CompileOpenCode(%s): %v", def.Name, err)
+		}
+		zero, err := CompileOpenCodeWithOptions(def, CompileOptions{})
+		if err != nil {
+			t.Fatalf("CompileOpenCodeWithOptions(%s, zero): %v", def.Name, err)
+		}
+		if !bytes.Equal(zero, base) {
+			t.Errorf("CompileOpenCodeWithOptions(%s, zero) must equal CompileOpenCode byte for byte", def.Name)
+		}
+	}
+}
+
+func TestCompileClaudeCodeModelPriority(t *testing.T) {
+	dir := testAssetsDir(t)
+	definitions, err := ParseDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, def := range definitions {
+		profileDefault := def.ModelProfile.ClaudeModel()
+		cases := []struct {
+			name string
+			opts CompileOptions
+			want string
+		}{
+			{"zero options keep profile default", CompileOptions{}, profileDefault},
+			{"config model beats fallback", CompileOptions{Model: "A", FallbackModel: "B"}, "A"},
+			{"fallback beats profile default", CompileOptions{FallbackModel: "B"}, "B"},
+			{"config model alone", CompileOptions{Model: "A"}, "A"},
+		}
+		for _, tc := range cases {
+			compiled, err := CompileClaudeCodeWithOptions(def, tc.opts)
+			if err != nil {
+				t.Errorf("%s/%s: %v", def.Name, tc.name, err)
+				continue
+			}
+			fm, _, ok := splitFrontmatter(compiled)
+			if !ok {
+				t.Errorf("%s/%s: frontmatter delimiters missing", def.Name, tc.name)
+				continue
+			}
+			var parsed map[string]interface{}
+			if err := yaml.Unmarshal(fm, &parsed); err != nil {
+				t.Errorf("%s/%s: frontmatter invalid YAML: %v", def.Name, tc.name, err)
+				continue
+			}
+			// Claude always serializes the model field (no omitempty).
+			if s, ok := parsed["model"].(string); !ok || s != tc.want {
+				t.Errorf("%s/%s: model = %v (want %q)", def.Name, tc.name, parsed["model"], tc.want)
+			}
+		}
+
+		// Zero options must stay byte-identical to the zero-arg delegate.
+		base, err := CompileClaudeCode(def)
+		if err != nil {
+			t.Fatalf("CompileClaudeCode(%s): %v", def.Name, err)
+		}
+		zero, err := CompileClaudeCodeWithOptions(def, CompileOptions{})
+		if err != nil {
+			t.Fatalf("CompileClaudeCodeWithOptions(%s, zero): %v", def.Name, err)
+		}
+		if !bytes.Equal(zero, base) {
+			t.Errorf("CompileClaudeCodeWithOptions(%s, zero) must equal CompileClaudeCode byte for byte", def.Name)
+		}
+	}
+}
+
 func TestCompileOpenCodeStepsBudget(t *testing.T) {
 	dir := testAssetsDir(t)
 	definitions, err := ParseDir(dir)

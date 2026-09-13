@@ -7,13 +7,25 @@ import (
 )
 
 // CompileOptions carries per-deployment compilation parameters resolved from
-// project config: an explicit model to pin (otherwise inherit), edit-deny
-// globs for host-level file protection, and an optional host-level execution
-// budget (OpenCode `steps`, nil = inherit host behavior).
+// project config and existing deployed files: an explicit model to pin
+// (otherwise inherit), a fallback model preserved from a prior deployment
+// (used only when Model is empty), edit-deny globs for host-level file
+// protection, and an optional host-level execution budget (OpenCode `steps`,
+// nil = inherit host behavior).
 type CompileOptions struct {
-	Model    string
-	EditDeny []string
-	MaxSteps *int
+	Model         string
+	FallbackModel string
+	EditDeny      []string
+	MaxSteps      *int
+}
+
+// resolveModel applies the model precedence: config-pinned Model first, then
+// a preserved FallbackModel, then empty (host default: the field is omitted).
+func resolveModel(opts CompileOptions) string {
+	if opts.Model != "" {
+		return opts.Model
+	}
+	return opts.FallbackModel
 }
 
 // CompileOpenCode generates an OpenCode native agent definition file with
@@ -37,7 +49,7 @@ func CompileOpenCodeWithOptions(def *Definition, opts CompileOptions) ([]byte, e
 	fm := opencodeFrontmatter{
 		Description: def.Description,
 		Mode:        "subagent",
-		Model:       opts.Model,
+		Model:       resolveModel(opts),
 		Steps:       opts.MaxSteps,
 	}
 	if len(opts.EditDeny) > 0 {
