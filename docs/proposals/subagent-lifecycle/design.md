@@ -3,10 +3,10 @@ flowforge:
   schema: 1
   role: design
   id: subagent-lifecycle-design
-  revision: 1
+  revision: 3
   consumes:
     requirements:
-      subagent-lifecycle-requirements: 1
+      subagent-lifecycle-requirements: 2
 ---
 
 <a id="subagent-lifecycle-design"></a>
@@ -29,7 +29,7 @@ flowforge:
 | **flowforge-analyst** | `flowforge-align` | `flowforge-triage`、`flowforge-import` | 不选实现模块、接口、seam、迁移顺序或 ticket 切分；不持久化 `requirements-ready` 状态 | high-capability | 只读代码；读写 `requirements.md` |
 | **flowforge-architect** | `flowforge-solution-design` | `flowforge-codebase-design`、`flowforge-domain-modeling`、`flowforge-wayfinder` | 不拆 ticket；不改产品代码；不静默解决需求歧义 | high-capability | 只读代码；读写 `design.md`/ADR |
 | **flowforge-planner** | `flowforge-plan` | — | 不把设计选择伪装成机械步骤 | tool-capable | 读写 `issues/*.md`；执行 `flowforge check`/`frontier` |
-| **flowforge-implementer** | `flowforge-implement`（内部含 `flowforge-tdd`） | — | 不做架构/scope 决策；不修改 ticket 声明的 Write set 之外的文件 | tool-capable | 读写限于 ticket `Write set:`；执行构建/测试命令 |
+| **flowforge-implementer** | `flowforge-implement`（内部含 `flowforge-tdd`） | — | 不做架构/scope 决策；不修改 ticket 声明的 Write set 之外的文件 | tool-capable | 读写限于 ticket `Write set:`；plan 预置测试文件默认只读（可配置关闭）；执行构建/测试命令 |
 | **flowforge-reviewer** | `flowforge-review`（内部并行两个只读子代理：Standards / Spec） | — | 只读；不写代码；不合并两轴发现；不静默豁免 finding | high-capability | **只读**（Read/Grep/Glob + 限定 `git diff/log/show` 的 Bash） |
 | **flowforge-investigator** | `flowforge-diagnose` 或 `flowforge-research`（按问题形态二选一，见下） | — | 只答注册问题；外部访问需显式授权；不直接编辑 authority | tool-capable-read-only | 只读；网络访问默认拒绝，需分配任务显式授权 |
 
@@ -193,8 +193,10 @@ flowforge_agent:
 | Profile | Claude Code `model` | OpenCode `model` | Codex `model_reasoning_effort` |
 |---|---|---|---|
 | high-capability | `opus`（或 `inherit`，取项目配置） | 继承主会话（省略字段） | `high` |
-| tool-capable | `sonnet` | 继承主会话（省略字段） | `medium` |
-| tool-capable-read-only | `sonnet` | 继承主会话（省略字段） | `medium` |
+| tool-capable | `sonnet` | `agents.models.tool-capable` 配置存在时写显式 `model` 字段（快/廉价执行者模型），未配置回退继承主会话 | `medium` |
+| tool-capable-read-only | `sonnet` | 同上（`agents.models.tool-capable-read-only` 键） | `medium` |
+
+修订 2（2026-09-12，源：`docs/proposals/fast-executor-reliability/design.md` 的 d-execution-unit 节）：OpenCode 下 tool-capable 档原"一律省略字段（继承主会话）"会使执行子代理落到主会话的旗舰模型，与"执行者钉快模型"的强规划/弱执行分工矛盾（tangram-v2 部署现状实证）；改为配置存在时显式钉定。同修订为 implementer 角色权限追加"plan 预置测试文件默认只读（可配置关闭）"，支撑测试作者与实现者分离。
 
 ### `flowforge agents` 命令
 
@@ -203,6 +205,20 @@ flowforge_agent:
   - **自定义角色**：删除三个宿主目录下的编译文件，并删除权威定义源文件本身——真正卸载。
   - **内置角色**：无法删除随二进制嵌入的权威源，改为在 `.flowforge/config.yaml` 写入 `agents.disabled: [<name>]` 并删除三个宿主目录下的编译文件；后续 `init`/`upgrade`/`agents deploy` 读取该列表后跳过部署，实现持久化"停用"而不误删内置定义——语义对齐 OpenCode agent 定义已有的 `disable: true` 字段先例。
 - `flowforge agents status`：复用 `assets compare`/`verify` 已建立的比对语义，逐角色、逐宿主报告 current / missing / drifted，并区分项目自有额外宿主文件。
+
+### 启用宿主集合（修订 3 新增，对应需求修订 2 目标 6）
+
+`.flowforge/config.yaml` 新增 `agents.hosts`：值为 `claude` / `opencode` / `codex` 的非空子集；未配置时默认全部三个（向后兼容修订 1 行为）。语义：
+
+- **作用域**：`deploy`、`status`、`remove` 与 `init`/`upgrade` 的自动部署都只作用于启用宿主；未启用宿主的目录不创建、不写入、不核对。
+- **校验**：出现未知宿主名（或空列表）时命令报错拒绝执行，不静默回退默认值——配置错误必须显式修复。
+- **收窄清理**：部署时对未启用宿主执行受管文件清理——按"全部可发现定义名（内置+自定义合并，忽略 disabled 过滤）× 该宿主文件扩展名"删除存在的受管文件；只删受管文件名，绝不触碰项目自有文件；目录本身保留。这样把宿主移出启用集合后一次 `deploy` 即完成收敛。
+- **提示语**：deploy/init/upgrade 的成功提示按启用宿主动态渲染目录列表，不再硬编码三个目录。
+
+### 替代方案（修订 3，被拒）
+
+- **自动探测宿主目录存在性**：`.claude/` 不存在就跳过——不确定（opencode 用户可能尚未生成 `.opencode/`，全新项目会部署成空）且违背"配置显式优于推断"的确定性原则。
+- **CLI flag（`--hosts`）按次指定**：无持久化，`init`/`upgrade` 自动部署无法继承，每次都要记得传参；config 键与 `agents.disabled` 既有形态一致。
 
 ## 八、替代方案与取舍
 

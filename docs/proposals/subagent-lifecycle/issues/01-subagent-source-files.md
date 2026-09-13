@@ -5,6 +5,10 @@ flowforge:
   consumes:
     design:
       subagent-lifecycle-design: 1
+  waivers:
+    - diagnostic: upstream-changed
+      target: subagent-lifecycle-design
+      reason: "Reviewed design revisions 2-3 (2026-09-12): adds config-driven model pinning, test-file read-only option, and enabled-hosts scoping; this ticket's delivered scope under revision 1 remains valid, superseding behavior is tracked in fast-executor-reliability."
 ---
 
 # 01: 编写内置 subagent 权威定义源文件
