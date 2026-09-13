@@ -366,6 +366,84 @@ func assertPinnedLoopContracts(t *testing.T, body, where string, anchors []strin
 	}
 }
 
+// blockAndRecordSentence is the fourth Non-negotiables sentence pinned from
+// the flowforge-implement SKILL.md block-and-record contract; wording drift
+// here must be synced with the skill source of truth.
+const blockAndRecordSentence = "Block and record: When you must return STATUS: BLOCKED, first append a `## Blocked evidence` section to the ticket (verbatim error, commands tried with exit codes, next hypothesis)."
+
+// TestBlockAndRecordContractPinned verifies the block-and-record write
+// contract: the implement skill instructs every BLOCKED exit to append a
+// `## Blocked evidence` section before returning (three elements: verbatim
+// error, commands tried with exit codes, next hypothesis), and the fourth
+// Non-negotiables sentence carries the same anchor from the definition
+// source through deployment into the per-session host artifact
+// (.opencode/agent/flowforge-implementer.md).
+func TestBlockAndRecordContractPinned(t *testing.T) {
+	// (a) SKILL.md owns the instruction sentence with all three elements.
+	skillBody := readSkillBody(t, filepath.Join("flowforge-implement", "SKILL.md"))
+	for _, needle := range []string{
+		"## Blocked evidence",
+		"verbatim error",
+		"commands tried with exit codes",
+		"next hypothesis",
+	} {
+		if !strings.Contains(skillBody, needle) {
+			t.Errorf("flowforge-implement SKILL.md missing block-and-record element %q", needle)
+		}
+	}
+
+	// (b) The definition source pins the fourth sentence in Non-negotiables.
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	defData, err := os.ReadFile(filepath.Join(repoRoot, "assets", "subagents", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertBlockAndRecordPinned(t, string(defData), "definition source")
+
+	// (c) Deployment carries the fourth sentence into the host injection
+	// layer (same deployManagedAssets + deploySubagents sequence init runs).
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := deployManagedAssets(projectRoot, filepath.Join(projectRoot, "docs")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	deployedData, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertBlockAndRecordPinned(t, string(deployedData), "deployed artifact")
+}
+
+// assertBlockAndRecordPinned checks that an implementer definition body
+// (authoritative source or compiled host artifact) carries the fourth
+// block-and-record sentence inside the Non-negotiables section between
+// Identity and Boundaries, reusing the pinned-loop-contracts placement rule.
+// Whitespace is normalized so line wrapping in the source cannot break the
+// verbatim sentence pin.
+func assertBlockAndRecordPinned(t *testing.T, body, where string) {
+	t.Helper()
+	assertPinnedLoopContracts(t, body, where, []string{"## Blocked evidence"})
+	section := body
+	if start := strings.Index(section, "## Non-negotiables"); start >= 0 {
+		section = section[start:]
+	}
+	if end := strings.Index(section, "## Boundaries"); end >= 0 {
+		section = section[:end]
+	}
+	if !strings.Contains(strings.Join(strings.Fields(section), " "), strings.Join(strings.Fields(blockAndRecordSentence), " ")) {
+		t.Errorf("%s: Non-negotiables missing fourth block-and-record sentence", where)
+	}
+}
+
 func TestImplementPreflightRejectsIncompleteExecutionContract(t *testing.T) {
 	body := readSkillBody(t, filepath.Join("flowforge-implement", "SKILL.md"))
 	if !strings.Contains(body, "execution-contract-incomplete") {
