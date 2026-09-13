@@ -10,17 +10,27 @@ Use the shared contract's [hand-offs](../_shared/ARTIFACT-CONTRACT.md#hand-offs)
 
 ## Process
 
-### 1. Select the candidate
+### 1. Consume blocked evidence
+
+If the ticket carries a `## Blocked evidence` section — the failure record a previous implementer appended before returning `STATUS: BLOCKED` (verbatim error, commands tried with exit codes, next hypothesis) — consume it first, before any other step:
+
+1. Transcribe every failure fact it records into a `Verified contracts` entry: "command X failed in way Y; the correct invocation is Z". Verify Z before writing it; when the correct invocation cannot be verified, keep the failure fact only — no guesses.
+2. Remove the consumed `## Blocked evidence` section. It is transient by design; the knowledge's permanent home is Verified contracts.
+3. Re-run `flowforge check --dir <proposal-dir>` and confirm the `blocked-evidence-present` diagnostic is gone.
+
+Consumption precedes the five-section contract fill below: a blocked ticket digests its failure history before its execution contract is written.
+
+### 2. Select the candidate
 
 Identify a ticket whose only blocker is `execution-contract-incomplete`. The ticket must have been published by Plan with a titled `## Execution detail` skeleton and no DAG blockers. If the ticket has unresolved design questions or open authority gaps, return it to `flowforge-solution-design` or `flowforge-align` — do not invent values.
 
-### 2. Gather verified repository evidence
+### 3. Gather verified repository evidence
 
 Read the ticket's linked requirement and design authorities, their consumed revisions, and applicable waivers. Inspect the codebase at the Touch points to collect concrete facts: file paths, symbol names, API shapes, test commands, and generation/consumption relationships. Every fact written into the execution contract must be traceable to a repository location or an authority artifact.
 
 If a fact cannot be verified — conflicting API shape, missing schema, unclear seam, or unknown ordering — stop and return a scoped design/research finding. Do not fill the section with placeholders or guessed values.
 
-### 3. Fill the five execution-contract sections
+### 4. Fill the five execution-contract sections
 
 Write or complete all five sections under the ticket's existing `## Execution detail` heading. Each section must carry verified content, not template text:
 
@@ -32,7 +42,7 @@ Write or complete all five sections under the ticket's existing `## Execution de
 
 Do not duplicate the `Write set` — verify it exists in Constraints, is narrow enough, and is consistent with the execution scenarios.
 
-### 4. Verify readiness
+### 5. Verify readiness
 
 Run `flowforge check --dir <proposal-dir>` on the refined ticket. The `execution-contract-incomplete` gap must clear. If it persists, the contract is still incomplete — re-read the diagnostic and fix the specific missing section or placeholder.
 
@@ -40,7 +50,7 @@ Verify the ticket carries a `**Mode:** lightweight` line (write it when Plan omi
 
 Do not introduce a persisted `ready` or `execution-ready` status. Readiness is derived from the current Markdown and diagnostics.
 
-### 5. Return
+### 6. Return
 
 Return the refined ticket path, the verified facts and their sources, and the check result. The ticket is now eligible for `flowforge-implement` lightweight mode.
 

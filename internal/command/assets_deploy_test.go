@@ -262,6 +262,36 @@ func TestRefineTicketSkillIsPackagedAndLinked(t *testing.T) {
 	}
 }
 
+// TestRefineSkillConsumesBlockedEvidence verifies the refine-ticket skill
+// consumes blocked evidence before filling the execution contract: when a
+// ticket carries a `## Blocked evidence` section, the skill transcribes every
+// failure fact into a Verified contracts entry (a correct invocation is
+// written only when verified — no guesses), removes the consumed section,
+// and re-runs flowforge check until the blocked-evidence-present diagnostic
+// is gone — all before the five execution-contract sections are filled.
+func TestRefineSkillConsumesBlockedEvidence(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("flowforge-refine-ticket", "SKILL.md"))
+	for _, needle := range []string{
+		"Blocked evidence",
+		"Verified contracts",
+		"no guesses",
+		"Remove the consumed",
+		"flowforge check",
+		"blocked-evidence-present",
+	} {
+		if !strings.Contains(body, needle) {
+			t.Errorf("flowforge-refine-ticket missing blocked-evidence consumption element %q", needle)
+		}
+	}
+	// Consumption must precede the five-section contract fill: a blocked
+	// ticket digests its failure history before its contract is written.
+	consume := strings.Index(body, "Consume blocked evidence")
+	fill := strings.Index(body, "Fill the five execution-contract sections")
+	if consume < 0 || fill < 0 || consume >= fill {
+		t.Error("flowforge-refine-ticket must consume blocked evidence before filling the five execution-contract sections")
+	}
+}
+
 func TestPlanPublishesExecutionDetailSkeleton(t *testing.T) {
 	body := readSkillBody(t, filepath.Join("flowforge-plan", "SKILL.md"))
 	if !strings.Contains(body, "Execution detail") {
