@@ -19,6 +19,13 @@ Usage:
         [--epochs "name:<T,name:T1-T2,name:>T2"] \
         [--price-override '{"flash":[in,out,cacheR],...}']
 
+    python3 scripts/executor_metrics.py report \
+        --obs docs/proposals/executor-value-measurement/observations.md \
+        [--out docs/proposals/executor-value-measurement/report.md] \
+        [--epochs "name:<T,name:T1-T2,name:>T2"] \
+        [--project-root /path/to/target-repo] \
+        [--price-override '{"flash":[in,out,cacheR],...}']
+
 Semantics pinned by the design authority:
 - verdict per bash part (output text): ``BUILD SUCCESSFUL`` -> ok;
   ``BUILD FAILED`` -> fail; ``exit code N`` with N != 0 -> fail; otherwise
@@ -28,15 +35,31 @@ Semantics pinned by the design authority:
 - ticket: first ``proposals/<p>/issues/<id>.md`` match in the FIRST text part.
 - bash commands are normalized (trim, collapse whitespace, truncate to 120
   chars) before counting repetitions.
-- epoch bounds are strict (``<T``, ``>T``); ranges ``T1-T2`` are inclusive.
+- epoch bounds are strict (``<T``, ``>T``); ranges ``T1-T2`` are inclusive
+  (a ts exactly at a boundary belongs to the right, closed range form).
 - est_cost uses tier proxy prices $/M (input, output, cache read); tier is
   ``flash`` when the model id contains "flash", else ``flagship``.
+
+Report semantics (ticket 02; design d-epoch / d-strata / d-cost):
+- observations.md is read-only for report; report.md is fully replaced.
+- epochs come from ``--epochs`` (never guessed); sessions outside every
+  bound are ``unclassified``.
+- strata are the objective ticket proxy: change-bullet count plus
+  evidence-cmd family — L = >= 4 change bullets or any integrationTest /
+  E2E / --rerun command; S = <= 2 change bullets with unit-level commands
+  only (test --tests / pnpm test / go test / unittest / pytest class);
+  M otherwise. Tickets that cannot be resolved under --project-root are
+  ``unknown`` and counted in the report.
+- runaway = steps > 150 or rep_max > 10 or dur_min > 30 (any one).
+- medians use statistics.median (even n = mean of the two middle values).
 """
 
 import argparse
 import json
+import os
 import re
 import sqlite3
+import statistics
 import sys
 import urllib.parse
 from datetime import datetime, timezone
@@ -159,6 +182,379 @@ def epoch_label(ts, epochs):
     return "-"
 
 
+# --- report: epoch / strata / runaway constants (ticket 02; single source) ---
+
+UNCLASSIFIED = "unclassified"
+STRATA_ORDER = ("S", "M", "L", "unknown")
+STRATA_S_MAX_CHANGES = 2   # S: changes <= 2 AND all evidence cmds unit-level
+STRATA_L_MIN_CHANGES = 4   # L: changes >= 4 OR any heavy evidence cmd
+RUNAWAY_STEPS = 150        # runaway: steps > 150 ...
+RUNAWAY_REP_MAX = 10       # ... or rep_max > 10 ...
+RUNAWAY_DUR_MIN = 30.0     # ... or dur_min > 30 (any one)
+
+# ticket-file shape proxies for the strata classification (objective, no human
+# rating): change bullets, inline command code spans, and cmd families.
+CHANGE_LINE_RE = re.compile(r"(?m)^\s*- \[[ x]\]\s")
+CODE_SPAN_RE = re.compile(r"`([^`\n]+)`")
+# a code span counts as a command if it names a known runner
+COMMAND_SPAN_RE = re.compile(
+    r"gradlew|gradle|pnpm|npm|yarn|go\s+(?:test|build|vet)|python|pytest|unittest|make|mvn|cargo",
+    re.IGNORECASE)
+# unit-level acceptance cmds (design d-strata family: test --tests / pnpm test /
+# go test ./pkg; unittest/pytest are the same class for this repo's scripts)
+UNIT_CMD_RE = re.compile(
+    r"test\s+--tests|pnpm\s+test|npm\s+test|yarn\s+test|go\s+test\b|unittest|pytest",
+    re.IGNORECASE)
+# heavy acceptance cmds -> L regardless of change count (design d-strata)
+HEAVY_CMD_RE = re.compile(r"integrationTest|E2E|--rerun")
+
+# directories never containing tickets; pruned from the project-root walk
+GLOB_SKIP_DIRS = {".git", "node_modules", "build", "dist", "out", "target",
+                  ".gradle", ".next", "vendor"}
+
+
+def report_epoch(ts, epochs):
+    """Epoch label for a report row; uncovered (or no spec) -> unclassified."""
+    if not epochs:
+        return UNCLASSIFIED
+    label = epoch_label(ts, epochs)
+    return UNCLASSIFIED if label == "-" else label
+
+
+def ts_ms(iso):
+    """ISO8601 observations ts -> epoch ms."""
+    try:
+        dt = datetime.fromisoformat(iso)
+    except (TypeError, ValueError) as exc:
+        raise MetricsError(f"bad ts value in observations row: {iso!r}") from exc
+    if dt.tzinfo is None:
+        dt = dt.astimezone()
+    return int(dt.timestamp() * 1000)
+
+
+def _split_table_line(line):
+    return [c.strip().replace("\\|", "|")
+            for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+
+
+def _is_separator(cells):
+    return bool(cells) and all(set(c) <= {"-", " ", ":"} for c in cells)
+
+
+def parse_obs_rows(text):
+    """Parse the observations.md metrics table (header-driven) into dicts.
+
+    The header row supplies the column order (all COLUMNS must be present);
+    values are typed: ints for counters/tokens, floats for dur_min/est_cost.
+    """
+    header = None
+    rows = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if not line.startswith("|"):
+            continue
+        cells = _split_table_line(line)
+        if _is_separator(cells):
+            continue
+        if header is None:
+            header = cells
+            continue
+        if len(cells) != len(header):
+            raise MetricsError(
+                f"observations row {lineno}: expected {len(header)} columns "
+                f"(header {header[0]}|...), got {len(cells)}")
+        rows.append(dict(zip(header, cells)))
+    if header is None:
+        raise MetricsError("observations file has no metrics table header")
+    missing = [c for c in COLUMNS if c not in header]
+    if missing:
+        raise MetricsError(
+            "observations table missing column(s): " + ", ".join(missing))
+    for row in rows:
+        for col in ("steps", "tools", "bash_n", "rep_max", "fail_streak",
+                    "in_tok", "out_tok", "cacheR_tok"):
+            try:
+                row[col] = int(row[col])
+            except (TypeError, ValueError) as exc:
+                raise MetricsError(
+                    f"observations row {row['session']!r}: column {col} is not "
+                    f"an integer: {row[col]!r}") from exc
+        for col in ("dur_min", "est_cost"):
+            try:
+                row[col] = float(row[col])
+            except (TypeError, ValueError) as exc:
+                raise MetricsError(
+                    f"observations row {row['session']!r}: column {col} is not "
+                    f"a number: {row[col]!r}") from exc
+    return rows
+
+
+def count_change_lines(ticket_text):
+    """Number of `- [ ]` / `- [x]` Change bullets in a ticket file."""
+    return len(CHANGE_LINE_RE.findall(ticket_text))
+
+
+def ticket_cmds(ticket_text):
+    """Command-shaped strings from a ticket file: inline code spans and
+    `- cmd:` values (objective evidence-cmd proxy)."""
+    cmds = [m.group(1) for m in CODE_SPAN_RE.finditer(ticket_text)]
+    return [c for c in cmds if COMMAND_SPAN_RE.search(c)]
+
+
+def classify_stratum_text(ticket_text):
+    """S / M / L objective proxy (design d-strata):
+    L = changes >= 4 or any heavy cmd (integrationTest / E2E / --rerun);
+    S = changes <= 2 and every command span is unit-level;
+    M = the rest."""
+    n_changes = count_change_lines(ticket_text)
+    cmds = ticket_cmds(ticket_text)
+    if n_changes >= STRATA_L_MIN_CHANGES or any(HEAVY_CMD_RE.search(c) for c in cmds):
+        return "L"
+    if n_changes <= STRATA_S_MAX_CHANGES and cmds and \
+            all(UNIT_CMD_RE.search(c) for c in cmds):
+        return "S"
+    return "M"
+
+
+def glob_ticket_files(project_root):
+    """`**/issues/*.md` under project_root, pruning dependency/build dirs."""
+    found = []
+    for dirpath, dirnames, filenames in os.walk(project_root):
+        dirnames[:] = [d for d in dirnames if d not in GLOB_SKIP_DIRS]
+        if os.path.basename(dirpath) == "issues":
+            for fn in sorted(filenames):
+                if fn.endswith(".md"):
+                    found.append(Path(dirpath) / fn)
+    return sorted(found)
+
+
+def resolve_strata(rows, project_root):
+    """Map each observation row to its stratum via the ticket file under
+    project_root (suffix match on the ticket path). Returns
+    (session -> stratum, unresolved_count); unresolvable tickets (and the
+    no-project-root case) are `unknown` (design d-strata)."""
+    strata = {}
+    unresolved = 0
+    if not project_root:
+        for row in rows:
+            strata[row["session"]] = "unknown"
+        return strata, len(rows)
+    root = Path(project_root).expanduser()
+    ticket_files = glob_ticket_files(root) if root.is_dir() else []
+    cache = {}
+
+    def stratum_for_ticket(ticket):
+        if ticket == "-":
+            return "unknown"
+        matches = [p for p in ticket_files if p.as_posix().endswith("/" + ticket)]
+        if not matches:
+            return "unknown"
+        path = matches[0]
+        if path not in cache:
+            try:
+                cache[path] = classify_stratum_text(
+                    path.read_text(encoding="utf-8", errors="replace"))
+            except OSError:
+                cache[path] = "unknown"
+        return cache[path]
+
+    for row in rows:
+        st = stratum_for_ticket(row["ticket"])
+        strata[row["session"]] = st
+        if st == "unknown":
+            unresolved += 1
+    return strata, unresolved
+
+
+def tier_of(model_id):
+    """flash when the model id contains 'flash', else flagship (d-cost)."""
+    return "flash" if "flash" in model_id.lower() else "flagship"
+
+
+def effective_prices(override=None):
+    """Merged price table: proxy defaults with --price-override tiers
+    replaced as whole [in, out, cacheR] triples."""
+    prices = dict(DEFAULT_PRICES)
+    prices.update(override or {})
+    return prices
+
+
+def est_cost_tokens(ti, to, tcr, prices, tier):
+    """est_cost from raw token counts (design d-cost formula, single site)."""
+    pin, pout, pcr = prices[tier]
+    return round(ti / 1e6 * pin + to / 1e6 * pout + tcr / 1e6 * pcr, 4)
+
+
+def is_runaway(row):
+    """Out-of-control session: any ONE of the three pinned thresholds."""
+    return (row["steps"] > RUNAWAY_STEPS
+            or row["rep_max"] > RUNAWAY_REP_MAX
+            or row["dur_min"] > RUNAWAY_DUR_MIN)
+
+
+def est_cost_for(row, prices):
+    """Recompute a session's est_cost from its token columns and tier price."""
+    return est_cost_tokens(row["in_tok"], row["out_tok"], row["cacheR_tok"],
+                           prices, tier_of(row["model"]))
+
+
+def cell_stats(cell_rows, prices):
+    """Aggregates for one (epoch, stratum) cell over its session rows."""
+    costs = [est_cost_for(r, prices) for r in cell_rows]
+    total = sum(costs)
+    cache_cost = sum(r["cacheR_tok"] / 1e6 * prices[tier_of(r["model"])][2]
+                     for r in cell_rows)
+    flash = [c for c, r in zip(costs, cell_rows)
+             if tier_of(r["model"]) == "flash"]
+    flagship = [c for c, r in zip(costs, cell_rows)
+                if tier_of(r["model"]) == "flagship"]
+    return {
+        "n": len(cell_rows),
+        "dur_med": statistics.median(r["dur_min"] for r in cell_rows),
+        "cost_med": statistics.median(costs),
+        "cache_share": (cache_cost / total) if total > 0 else 0.0,
+        "runaway": sum(1 for r in cell_rows if is_runaway(r)),
+        "flash_n": len(flash),
+        "flash_med": statistics.median(flash) if flash else None,
+        "flagship_n": len(flagship),
+        "flagship_med": statistics.median(flagship) if flagship else None,
+    }
+
+
+def aggregate_cells(rows, epochs, strata, prices):
+    """Group rows by report epoch × stratum.
+
+    Returns {epoch: {"cells": {stratum: stats}, "status": {status: n}, "n": N}}
+    keyed by epoch spec names plus UNCLASSIFIED for uncovered sessions."""
+    grouped = {}
+    for row in rows:
+        ep = report_epoch(ts_ms(row["ts"]), epochs)
+        bucket = grouped.setdefault(ep, {"cells": {}, "status": {}})
+        st = strata.get(row["session"], "unknown")
+        bucket["cells"].setdefault(st, []).append(row)
+        bucket["status"][row["status"]] = bucket["status"].get(row["status"], 0) + 1
+    out = {}
+    for ep, bucket in grouped.items():
+        out[ep] = {
+            "cells": {st: cell_stats(rs, prices)
+                      for st, rs in bucket["cells"].items()},
+            "status": bucket["status"],
+            "n": sum(len(rs) for rs in bucket["cells"].values()),
+        }
+    return out
+
+
+def _fmt_dur(x):
+    return f"{x:.2f}".rstrip("0").rstrip(".") or "0"
+
+
+def _fmt_cost(x):
+    return f"{x:.4f}"
+
+
+def render_report(rows, epochs, strata, prices, *, obs_name, epochs_spec,
+                  warnings, generated=None, price_note="proxy defaults"):
+    """Render the full daily report document (single \\n, UTF-8)."""
+    agg = aggregate_cells(rows, epochs, strata, prices)
+    epoch_names = [name for name, _, _ in (epochs or [])]
+    if UNCLASSIFIED in agg and UNCLASSIFIED not in epoch_names:
+        epoch_names.append(UNCLASSIFIED)
+    if not epoch_names:
+        epoch_names = [UNCLASSIFIED]
+    generated = generated or datetime.now().astimezone().isoformat(
+        timespec="seconds")
+    price_bits = [f"{tier} {'/'.join(str(p) for p in trio)}"
+                  for tier, trio in sorted(prices.items())]
+
+    lines = [
+        "# Executor value report",
+        "",
+        "Daily replacement report generated by `scripts/executor_metrics.py report` —",
+        "do not edit by hand: observations.md is the append-only source, this file is",
+        "fully replaced on each run. est_cost is a tier proxy price estimate, not an",
+        "invoice figure.",
+        "",
+        f"- generated: {generated}",
+        f"- observations: {obs_name} ({len(rows)} sessions)",
+        f"- epochs: {epochs_spec if epochs_spec else '(none — all sessions unclassified)'}",
+        f"- prices ($/M in/out/cacheR, {price_note}): " + " · ".join(price_bits),
+        "",
+    ]
+    for w in warnings:
+        lines.append(f"> warning: {w}")
+    if warnings:
+        lines.append("")
+
+    lines += [
+        "## Epoch × stratum aggregation",
+        "",
+        "| epoch | stratum | n | dur_med (min) | est_cost_med ($) "
+        "| cacheR_cost_share | runaway_n |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for ep in epoch_names:
+        bucket = agg.get(ep)
+        if not bucket or not bucket["cells"]:
+            lines.append(f"| {ep} | - | 0 | - | - | - | 0 |")
+            continue
+        for st in STRATA_ORDER:
+            if st not in bucket["cells"]:
+                continue
+            c = bucket["cells"][st]
+            lines.append(
+                f"| {ep} | {st} | {c['n']} | {_fmt_dur(c['dur_med'])} | "
+                f"{_fmt_cost(c['cost_med'])} | {c['cache_share'] * 100:.1f}% | "
+                f"{c['runaway']} |")
+    lines += [
+        "",
+        f"runaway_n: sessions with steps > {RUNAWAY_STEPS} or rep_max > "
+        f"{RUNAWAY_REP_MAX} or dur_min > {RUNAWAY_DUR_MIN:g} (any one).",
+        "cacheR_cost_share: cache-read cost share of the cell's est_cost "
+        "(Σ cacheR·P_cacheR / Σ est_cost).",
+        "est_cost_med: per-ticket est_cost median (even n = mean of the two middle",
+        "values), recomputed from token columns with the price table above.",
+        "",
+        "## Same-stratum flash vs flagship (per-ticket est_cost median)",
+        "",
+        "| epoch | stratum | flash n | flash est_cost_med ($) | flagship n "
+        "| flagship est_cost_med ($) | flash/flagship |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for ep in epoch_names:
+        bucket = agg.get(ep)
+        if not bucket:
+            continue
+        for st in STRATA_ORDER:
+            if st not in bucket["cells"]:
+                continue
+            c = bucket["cells"][st]
+            f_med = _fmt_cost(c["flash_med"]) if c["flash_med"] is not None else "-"
+            g_med = (_fmt_cost(c["flagship_med"])
+                     if c["flagship_med"] is not None else "-")
+            if c["flash_med"] is not None and c["flagship_med"] is not None:
+                ratio = f"{c['flash_med'] / c['flagship_med']:.2f}"
+            else:
+                ratio = "-"
+            lines.append(f"| {ep} | {st} | {c['flash_n']} | {f_med} | "
+                         f"{c['flagship_n']} | {g_med} | {ratio} |")
+    lines += [
+        "",
+        "## Session status by epoch",
+        "",
+        "| epoch | n | COMPLETED | BLOCKED | none | other |",
+        "|---|---|---|---|---|---|",
+    ]
+    for ep in epoch_names:
+        bucket = agg.get(ep)
+        st = bucket["status"] if bucket else {}
+        other = sum(v for k, v in st.items()
+                    if k not in ("COMPLETED", "BLOCKED", "none"))
+        lines.append(f"| {ep} | {bucket['n'] if bucket else 0} | "
+                     f"{st.get('COMPLETED', 0)} | {st.get('BLOCKED', 0)} | "
+                     f"{st.get('none', 0)} | {other} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def parse_prices(override_json):
     if not override_json:
         return None
@@ -266,9 +662,8 @@ def _session_metrics(conn, sess_row, prices, epochs):
     ti = ti or 0
     to = to or 0
     tcr = tcr or 0
-    tier = "flash" if "flash" in model_id.lower() else "flagship"
-    pin, pout, pcr = prices[tier]
-    est_cost = round(ti / 1e6 * pin + to / 1e6 * pout + tcr / 1e6 * pcr, 4)
+    tier = tier_of(model_id)
+    est_cost = est_cost_tokens(ti, to, tcr, prices, tier)
     ticket_match = first_text and TICKET_RE.search(first_text)
     status_match = last_text and STATUS_RE.search(last_text)
     metrics = {
@@ -296,8 +691,7 @@ def _session_metrics(conn, sess_row, prices, epochs):
 def collect_metrics(conn, project, since_ms=None, prices=None, epochs=None):
     """Return (rows, corrupt_total): one metrics dict per matching session,
     ordered by time_created ascending."""
-    merged = dict(DEFAULT_PRICES)
-    merged.update(prices or {})
+    merged = effective_prices(prices)
     query = ("SELECT id, model, directory, tokens_input, tokens_output, "
              "tokens_cache_read, time_created, time_updated FROM session "
              "WHERE agent='flowforge-implementer' AND directory LIKE ? ")
@@ -343,7 +737,8 @@ def build_parser():
     parser = argparse.ArgumentParser(
         prog="executor_metrics.py",
         description="Extract flowforge-implementer session metrics from the "
-                    "opencode DB (read-only).")
+                    "opencode DB (read-only) and aggregate epoch × strata "
+                    "reports.")
     sub = parser.add_subparsers(dest="command", required=True)
     extract = sub.add_parser(
         "extract", help="extract metrics and append to observations.md")
@@ -362,11 +757,27 @@ def build_parser():
     extract.add_argument("--price-override", default=None,
                          help="JSON object tier -> [in, out, cacheR] $/M "
                               "over the built-in proxy prices")
+    report = sub.add_parser(
+        "report", help="aggregate observations.md into report.md (replace)")
+    report.add_argument("--obs", required=True,
+                        help="observations.md path (read-only input)")
+    report.add_argument("--out", default=None,
+                        help="report.md path (default: report.md next to "
+                             "--obs; fully replaced on each run)")
+    report.add_argument("--epochs", default=None,
+                        help='epoch spec "name:<T,name:T1-T2,name:>T2" in epoch '
+                             "ms; uncovered sessions are unclassified")
+    report.add_argument("--project-root", default=None,
+                        help="target repo root; ticket files are resolved via "
+                             "**/issues/*.md under it (missing -> unknown)")
+    report.add_argument("--price-override", default=None,
+                        help="JSON object tier -> [in, out, cacheR] $/M over "
+                             "the built-in proxy prices; est_cost is "
+                             "recomputed from token columns")
     return parser
 
 
-def main(argv=None):
-    args = build_parser().parse_args(argv)
+def cmd_extract(args):
     try:
         epochs = parse_epochs(args.epochs)
         prices = parse_prices(args.price_override)
@@ -393,6 +804,66 @@ def main(argv=None):
     print(f"extract: {len(metrics)} session(s) matched, appended {appended}, "
           f"skipped {skipped} existing -> {args.out}")
     return 0
+
+
+def cmd_report(args):
+    try:
+        epochs = parse_epochs(args.epochs)
+        override = parse_prices(args.price_override)
+        prices = effective_prices(override)
+        obs = Path(args.obs).expanduser()
+        if not obs.exists():
+            raise MetricsError(f"observations file not found: {obs}")
+        try:
+            text = obs.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise MetricsError(
+                f"cannot read observations file {obs}: {exc}") from exc
+        rows = parse_obs_rows(text)
+        strata, unresolved = resolve_strata(rows, args.project_root)
+    except MetricsError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    warnings = []
+    if not rows:
+        pass
+    elif not args.project_root:
+        warnings.append("no --project-root given: every session classified "
+                        f"stratum unknown ({len(rows)} session(s))")
+    elif unresolved == len(rows):
+        warnings.append(f"no ticket files matched under --project-root "
+                        f"'{args.project_root}': every session stratum unknown")
+    elif unresolved:
+        warnings.append(f"{unresolved} session(s) with unresolvable ticket "
+                        "path -> stratum unknown")
+    out = Path(args.out).expanduser() if args.out else obs.parent / "report.md"
+    price_note = ("overridden via --price-override" if override
+                  else "proxy defaults")
+    report = render_report(rows, epochs, strata, prices,
+                           obs_name=str(args.obs),
+                           epochs_spec=args.epochs or "",
+                           warnings=warnings, price_note=price_note)
+    try:
+        with open(out, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(report)
+    except OSError as exc:
+        print(f"error: cannot write report file {out}: {exc}", file=sys.stderr)
+        return 1
+    counts = {}
+    for st in strata.values():
+        counts[st] = counts.get(st, 0) + 1
+    strata_bits = " ".join(f"{st}={counts[st]}" for st in STRATA_ORDER
+                           if st in counts)
+    print(f"report: {len(rows)} session(s), {len(epochs or [])} epoch(s), "
+          f"strata {strata_bits or 'none'} -> {out}")
+    return 0
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    if args.command == "report":
+        return cmd_report(args)
+    return cmd_extract(args)
 
 
 if __name__ == "__main__":
