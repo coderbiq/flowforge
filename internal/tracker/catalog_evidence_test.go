@@ -1,8 +1,10 @@
 package tracker
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -34,7 +36,7 @@ func evidenceCodes(t *testing.T, catalog *Catalog, path string) []DiagnosticCode
 
 func isEvidenceCode(code DiagnosticCode) bool {
 	switch code {
-	case DiagnosticEvidenceMissing, DiagnosticEvidenceIncomplete, DiagnosticEvidenceExitNonzero, DiagnosticEvidenceArtifactMissing:
+	case DiagnosticEvidenceMissing, DiagnosticEvidenceIncomplete, DiagnosticEvidenceExitNonzero, DiagnosticEvidenceArtifactMissing, DiagnosticEvidenceRepeatFailure:
 		return true
 	}
 	return false
@@ -193,5 +195,162 @@ func TestEvidenceDontAffectUnmatchedTickets(t *testing.T) {
 		if isEvidenceCode(d.Code) {
 			t.Fatalf("non-ticket artifact must not produce evidence diagnostics: %s %s", d.Code, d.Artifact)
 		}
+	}
+}
+
+// failedEvidence renders a checked Change whose evidence quadruple records a
+// failed run of cmd (exit != 0).
+func failedEvidence(n int, cmd string) string {
+	return fmt.Sprintf("- [x] %d. Attempt %d\n    - cmd: %s\n    - exit: 1\n    - output: \"boom\"\n    - artifact: app/src/a.kt\n", n, n, cmd)
+}
+
+func evidenceCodeCount(codes []DiagnosticCode, code DiagnosticCode) int {
+	count := 0
+	for _, c := range codes {
+		if c == code {
+			count++
+		}
+	}
+	return count
+}
+
+func TestEvidenceRepeatFailureThreshold(t *testing.T) {
+	cases := []struct {
+		name string
+		// changes builds the ticket's Changes section body; returning ""
+		// for an n means no Change is rendered for that slot.
+		changes func(n int) string
+		// wantRepeatFailures is the expected number of
+		// evidence-repeat-failure diagnostics for the ticket.
+		wantRepeatFailures int
+	}{
+		{
+			name: "three-same-cmd-reports",
+			changes: func(n int) string {
+				if n <= 3 {
+					return failedEvidence(n, "go test ./...")
+				}
+				return ""
+			},
+			wantRepeatFailures: 1,
+		},
+		{
+			name: "two-same-cmd-silent",
+			changes: func(n int) string {
+				if n <= 2 {
+					return failedEvidence(n, "go test ./...")
+				}
+				return ""
+			},
+			wantRepeatFailures: 0,
+		},
+		{
+			name: "whitespace-variants-count-as-same-cmd",
+			changes: func(n int) string {
+				switch n {
+				case 1:
+					return failedEvidence(n, "go test ./...")
+				case 2:
+					return failedEvidence(n, "`  go  test   ./...`")
+				case 3:
+					return failedEvidence(n, "go test ./... ")
+				default:
+					return ""
+				}
+			},
+			wantRepeatFailures: 1,
+		},
+		{
+			name: "different-cmds-do-not-accumulate",
+			changes: func(n int) string {
+				if n > 4 {
+					return ""
+				}
+				if n%2 == 1 {
+					return failedEvidence(n, "go test ./...")
+				}
+				return failedEvidence(n, "npm test")
+			},
+			wantRepeatFailures: 0,
+		},
+		{
+			name: "multiple-offending-cmds-report-one-each",
+			changes: func(n int) string {
+				if n <= 3 {
+					return failedEvidence(n, "go test ./...")
+				}
+				return failedEvidence(n, "npm test")
+			},
+			wantRepeatFailures: 2,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			var changes string
+			for n := 1; n <= 6; n++ {
+				changes += tc.changes(n)
+			}
+			path := writeEvidenceTicket(t, root, "feature-repeat", "01-repeat.md", ticketBody(changes))
+			catalog, err := DiscoverArtifacts(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			codes := evidenceCodes(t, catalog, path)
+			if got := evidenceCodeCount(codes, DiagnosticEvidenceRepeatFailure); got != tc.wantRepeatFailures {
+				t.Fatalf("expected %d evidence-repeat-failure, got %d (codes: %v)", tc.wantRepeatFailures, got, codes)
+			}
+		})
+	}
+}
+
+func TestEvidenceRepeatFailureCoexistsWithExitNonzero(t *testing.T) {
+	root := t.TempDir()
+	var changes string
+	for n := 1; n <= 3; n++ {
+		changes += failedEvidence(n, "go test ./...")
+	}
+	path := writeEvidenceTicket(t, root, "feature-coexist", "01-coexist.md", ticketBody(changes))
+	catalog, err := DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	codes := evidenceCodes(t, catalog, path)
+	if evidenceCodeCount(codes, DiagnosticEvidenceExitNonzero) != 3 {
+		t.Fatalf("expected 3 evidence-exit-nonzero (one per failed Change), got %v", codes)
+	}
+	if evidenceCodeCount(codes, DiagnosticEvidenceRepeatFailure) != 1 {
+		t.Fatalf("expected 1 evidence-repeat-failure alongside exit-nonzero, got %v", codes)
+	}
+	for _, d := range catalog.Diagnostics {
+		if d.Artifact == path && d.Code == DiagnosticEvidenceRepeatFailure {
+			if d.Severity != SeverityWarning {
+				t.Fatalf("evidence-repeat-failure must be a warning, got %s", d.Severity)
+			}
+			if !strings.Contains(d.Message, "go test ./...") {
+				t.Fatalf("diagnostic message should name the offending command, got: %s", d.Message)
+			}
+		}
+	}
+}
+
+func TestEvidenceRepeatFailureExemptProposals(t *testing.T) {
+	root := t.TempDir()
+	var changes string
+	for n := 1; n <= 3; n++ {
+		changes += failedEvidence(n, "go test ./...")
+	}
+	exempted := writeEvidenceTicket(t, root, "legacy-proposal", "01-old.md", ticketBody(changes))
+	kept := writeEvidenceTicket(t, root, "fresh-proposal", "01-new.md", ticketBody(changes))
+
+	catalog, err := DiscoverArtifactsWithConfig(root, Options{ExemptProposals: []string{"legacy-proposal"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := evidenceCodes(t, catalog, exempted); len(codes) != 0 {
+		t.Fatalf("exempt proposal must produce no evidence diagnostics, got %v", codes)
+	}
+	if got := evidenceCodeCount(evidenceCodes(t, catalog, kept), DiagnosticEvidenceRepeatFailure); got != 1 {
+		t.Fatalf("non-exempt proposal must report evidence-repeat-failure, got %d", got)
 	}
 }

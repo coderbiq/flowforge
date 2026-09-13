@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -59,6 +60,7 @@ func discoverEvidenceDiagnostics(artifactBase, path, body string) []Diagnostic {
 	}
 
 	var diagnostics []Diagnostic
+	nonZeroByCmd := map[string]int{}
 	lines := strings.Split(changes, "\n")
 	for i := 0; i < len(lines); i++ {
 		m := checkedItemRe.FindStringSubmatch(lines[i])
@@ -78,8 +80,12 @@ func discoverEvidenceDiagnostics(artifactBase, path, body string) []Diagnostic {
 				keys[km[1]] = cleanEvidenceValue(km[2])
 			}
 		}
+		if keys["cmd"] != "" && keys["exit"] != "" && keys["exit"] != "0" {
+			nonZeroByCmd[normalizeEvidenceCmd(keys["cmd"])]++
+		}
 		diagnostics = append(diagnostics, evaluateEvidenceQuadruple(artifactBase, path, m[2], keys)...)
 	}
+	diagnostics = append(diagnostics, repeatFailureDiagnostics(path, nonZeroByCmd)...)
 	return diagnostics
 }
 
@@ -128,6 +134,42 @@ func cleanEvidenceValue(raw string) string {
 	value = strings.Trim(value, "`")
 	value = strings.Trim(value, "\"")
 	return strings.TrimSpace(value)
+}
+
+// evidenceRepeatFailureThreshold is the number of non-zero exits for one
+// normalized command within a single ticket that triggers
+// DiagnosticEvidenceRepeatFailure (research reference: opencode
+// DOOM_LOOP_THRESHOLD=3, Gemini CLI aborts after 5 consecutive repeats).
+const evidenceRepeatFailureThreshold = 3
+
+// normalizeEvidenceCmd trims leading/trailing whitespace and collapses
+// consecutive whitespace runs so trivially different spellings of one
+// command count as the same command.
+func normalizeEvidenceCmd(cmd string) string {
+	return strings.Join(strings.Fields(cmd), " ")
+}
+
+// repeatFailureDiagnostics reports each command whose non-zero exits across
+// one ticket's checked Changes reach the repeat-failure threshold. It
+// complements DiagnosticEvidenceExitNonzero (single failed Change) with the
+// repeated-failure pattern; both diagnostics can coexist.
+func repeatFailureDiagnostics(path string, nonZeroByCmd map[string]int) []Diagnostic {
+	var repeated []string
+	for cmd, count := range nonZeroByCmd {
+		if count >= evidenceRepeatFailureThreshold {
+			repeated = append(repeated, cmd)
+		}
+	}
+	sort.Strings(repeated)
+	var diagnostics []Diagnostic
+	for _, cmd := range repeated {
+		diagnostics = append(diagnostics, warning(
+			DiagnosticEvidenceRepeatFailure,
+			path,
+			fmt.Sprintf("Command reported non-zero exit %d times across checked Changes (threshold %d): %s", nonZeroByCmd[cmd], evidenceRepeatFailureThreshold, cmd),
+		))
+	}
+	return diagnostics
 }
 
 func truncateChange(text string) string {

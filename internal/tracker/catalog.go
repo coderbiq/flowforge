@@ -54,6 +54,7 @@ const (
 	DiagnosticEvidenceIncomplete          DiagnosticCode = "evidence-incomplete"
 	DiagnosticEvidenceExitNonzero         DiagnosticCode = "evidence-exit-nonzero"
 	DiagnosticEvidenceArtifactMissing     DiagnosticCode = "evidence-artifact-missing"
+	DiagnosticEvidenceRepeatFailure       DiagnosticCode = "evidence-repeat-failure"
 	DiagnosticDanglingRepairReference     DiagnosticCode = "dangling-repair-reference"
 	DiagnosticMissingReciprocalRepair     DiagnosticCode = "missing-reciprocal-repair"
 )
