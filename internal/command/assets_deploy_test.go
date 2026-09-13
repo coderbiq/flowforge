@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"flowforge/internal/config"
 )
 
 var localMarkdownLink = regexp.MustCompile(`\[[^]]+\]\(([^)]+)\)`)
@@ -285,6 +287,81 @@ func TestImplementSkillCarriesWeakExecutorContract(t *testing.T) {
 	} {
 		if !strings.Contains(body, needle) {
 			t.Errorf("flowforge-implement weak-executor contract missing %q", needle)
+		}
+	}
+}
+
+// TestImplementerPromptPinsLoopContracts verifies the implementer subagent
+// definition pins the loop-hardening contracts (fail-fast verification cap,
+// repair-round cap, budget closure) in an always-injected Non-negotiables
+// section, anchored verbatim to the flowforge-implement SKILL.md single
+// source of truth and carried through deployment into the per-session host
+// artifact (.opencode/agent/flowforge-implementer.md).
+func TestImplementerPromptPinsLoopContracts(t *testing.T) {
+	anchors := []string{
+		"at most 2 times",
+		"STATUS: BLOCKED",
+		"failed repair rounds",
+	}
+
+	// SKILL.md owns the contract wording; every anchor must remain present
+	// there verbatim so the pinned summary never outlives its source.
+	skillBody := readSkillBody(t, filepath.Join("flowforge-implement", "SKILL.md"))
+	for _, anchor := range anchors {
+		if !strings.Contains(skillBody, anchor) {
+			t.Errorf("flowforge-implement SKILL.md missing loop-contract anchor %q", anchor)
+		}
+	}
+
+	// The definition source pins the contracts as a Non-negotiables section.
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	defData, err := os.ReadFile(filepath.Join(repoRoot, "assets", "subagents", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPinnedLoopContracts(t, string(defData), "definition source", anchors)
+
+	// Deployment carries the pinned contracts into the host injection layer
+	// (same deployManagedAssets + deploySubagents sequence init runs).
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := deployManagedAssets(projectRoot, filepath.Join(projectRoot, "docs")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	deployedData, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPinnedLoopContracts(t, string(deployedData), "deployed artifact", anchors)
+}
+
+// assertPinnedLoopContracts checks that an implementer definition body
+// (authoritative source or compiled host artifact) carries the
+// Non-negotiables section between Identity and Boundaries with the
+// SKILL.md anchor wording intact.
+func assertPinnedLoopContracts(t *testing.T, body, where string, anchors []string) {
+	t.Helper()
+	section := strings.Index(body, "## Non-negotiables")
+	if section < 0 {
+		t.Fatalf("%s: missing ## Non-negotiables section", where)
+	}
+	identity := strings.Index(body, "## Identity")
+	boundaries := strings.Index(body, "## Boundaries")
+	if identity < 0 || boundaries < 0 || identity >= section || section >= boundaries {
+		t.Errorf("%s: ## Non-negotiables must sit between ## Identity and ## Boundaries", where)
+	}
+	for _, anchor := range anchors {
+		if !strings.Contains(body, anchor) {
+			t.Errorf("%s: missing loop-contract anchor %q", where, anchor)
 		}
 	}
 }
