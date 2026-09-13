@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Tests for scripts/executor_metrics.py (ticket 01-metrics-extractor).
+"""Tests for scripts/executor_metrics.py (tickets 01/02/03).
 
 Metric-level tests replay known shapes against an in-memory fixture DB
 (sqlite3 :memory:). CLI-level tests use a temp-file fixture DB because the
 script opens database files read-only via a file:...?mode=ro URI.
+Gate tests (ticket 03) drive the public gate/evaluation functions, the
+report renderer and the DECISION.md template artifact.
 
 Run: python3 -m unittest discover -s scripts -p 'executor_metrics_test.py' -v
 """
@@ -933,6 +935,348 @@ class CliReportTests(unittest.TestCase):
         self.assertTrue(prov_line.endswith("| 0 |"))  # no runaway sessions
         self.assertIn("| provider-switch | L | 2 |", prov_line)
         self.assertIn("| hardened | - | 0 | - | - | - | 0 |", text)
+
+
+HARDENED_TS = 1789300000000  # 2026-09-13T19:46:40+08:00 — inside hardened epoch
+PRE_TS = 1789274144000      # 2026-09-13T12:35:44+08:00 — incident session (pre)
+
+
+class GateG1Tests(unittest.TestCase):
+    """G1 loop safety (ticket 03; design d-decision-gates): hardened epoch
+    runaway events = 0 -> pass; any -> fail; hardened empty -> insufficient-n."""
+
+    def g1(self, rows):
+        hrd = em.hardened_rows(rows, em.parse_epochs(REAL_EPOCHS))
+        return em.evaluate_g1(hrd)
+
+    def test_hardened_empty_is_insufficient_n(self):
+        rows = [rrow("ses_pre", PRE_TS)]  # baseline-only data never gates
+        g = self.g1(rows)
+        self.assertEqual(g["verdict"], em.GATE_INSUFFICIENT)
+        self.assertIn("0 session", g["detail"])
+
+    def test_hardened_runaway_session_fails_with_ids(self):
+        rows = [rrow("ses_ok_h", HARDENED_TS, steps=em.RUNAWAY_STEPS,
+                     rep_max=em.RUNAWAY_REP_MAX, dur_min=em.RUNAWAY_DUR_MIN),
+                rrow("ses_bad_h", HARDENED_TS + 1, steps=em.RUNAWAY_STEPS + 1)]
+        g = self.g1(rows)
+        self.assertEqual(g["verdict"], em.GATE_FAIL)
+        self.assertIn("ses_bad_h", g["detail"])
+        self.assertNotIn("ses_ok_h", g["detail"])
+
+    def test_hardened_clean_sessions_pass(self):
+        rows = [rrow("ses_ok_h", HARDENED_TS, steps=em.RUNAWAY_STEPS,
+                     rep_max=em.RUNAWAY_REP_MAX, dur_min=em.RUNAWAY_DUR_MIN)]
+        g = self.g1(rows)
+        self.assertEqual(g["verdict"], em.GATE_PASS)
+        self.assertIn("1 session", g["detail"])
+
+
+class GateG2Tests(unittest.TestCase):
+    """G2 economics (design d-decision-gates): same-stratum flash cost median
+    < flagship median x 0.7 with n>=5 per side, else insufficient-n."""
+
+    # 1 $/M output for both tiers -> est_cost = out_tok/1e6 (exact, price-independent)
+    PRICES = {"flash": (0, 1, 0), "flagship": (0, 1, 0)}
+
+    def build_agg(self, flash_out, flagship_out, ts=HARDENED_TS):
+        rows = [rrow(f"ses_f{i}", ts, model="gemini-flash", out_tok=t)
+                for i, t in enumerate(flash_out)]
+        rows += [rrow(f"ses_g{i}", ts, model="glm-4.7", out_tok=t)
+                 for i, t in enumerate(flagship_out)]
+        strata = {r["session"]: "L" for r in rows}
+        epochs = em.parse_epochs(REAL_EPOCHS)
+        return em.aggregate_cells(rows, epochs, strata, self.PRICES)
+
+    def evaluate(self, flash_out, flagship_out, **kw):
+        per, overall = em.evaluate_g2(self.build_agg(flash_out, flagship_out, **kw))
+        self.assertEqual(len(per), 1)  # only stratum L present
+        return per[0], overall
+
+    def test_pass_ratio_below_threshold(self):
+        # flash n=6, flagship n=5, median ratio 0.5 -> pass
+        entry, overall = self.evaluate([500_000] * 6, [1_000_000] * 5)
+        self.assertEqual(entry["verdict"], em.GATE_PASS)
+        self.assertEqual(overall["verdict"], em.GATE_PASS)
+        self.assertIn("ratio 0.50", entry["detail"])
+
+    def test_insufficient_n_when_either_side_below_five(self):
+        entry, overall = self.evaluate([500_000] * 6, [1_000_000] * 4)
+        self.assertEqual(entry["verdict"], em.GATE_INSUFFICIENT)
+        self.assertEqual(overall["verdict"], em.GATE_INSUFFICIENT)
+        self.assertIn("flagship n=4", entry["detail"])
+        entry, _ = self.evaluate([500_000] * 4, [1_000_000] * 5)
+        self.assertEqual(entry["verdict"], em.GATE_INSUFFICIENT)
+        self.assertIn("flash n=4", entry["detail"])
+
+    def test_fail_ratio_above_threshold_extends_observation(self):
+        entry, overall = self.evaluate([800_000] * 6, [1_000_000] * 5)  # 0.8
+        self.assertEqual(entry["verdict"], em.GATE_FAIL)
+        self.assertEqual(overall["verdict"], em.GATE_FAIL)
+        self.assertIn("extend observation", entry["detail"])
+        self.assertIn("ratio 0.80", entry["detail"])
+
+    def test_fail_ratio_at_exactly_0p7_is_not_pass(self):
+        # pinned rule is strict: median < flagship x 0.7 (equality -> fail)
+        entry, _ = self.evaluate([700_000] * 6, [1_000_000] * 5)  # 0.7 == 0.7
+        self.assertEqual(entry["verdict"], em.GATE_FAIL)
+
+    def test_fail_ratio_at_2x_maps_to_rollback(self):
+        entry, _ = self.evaluate([2_500_000] * 6, [1_000_000] * 5)  # 2.5x
+        self.assertEqual(entry["verdict"], em.GATE_FAIL)
+        self.assertIn("rollback", entry["detail"])
+
+    def test_baseline_epoch_data_never_gates(self):
+        # identical shape placed in pre-hardening -> nothing judged
+        per, overall = em.evaluate_g2(self.build_agg(
+            [500_000] * 6, [1_000_000] * 5, ts=PRE_TS))
+        self.assertEqual(per, [])
+        self.assertEqual(overall["verdict"], em.GATE_INSUFFICIENT)
+
+
+class GateG3Tests(unittest.TestCase):
+    """G3 duration (design d-decision-gates): same-stratum flash dur median
+    <= flagship x 1.5 — recorded only, never triggers rollback by itself."""
+
+    def rows_for(self, flash_dur, flag_dur, n=5, st="S"):
+        rows = [rrow(f"ses_f{i}", HARDENED_TS, model="gemini-flash",
+                     dur_min=flash_dur) for i in range(n)]
+        rows += [rrow(f"ses_g{i}", HARDENED_TS, model="glm-4.7",
+                      dur_min=flag_dur) for i in range(n)]
+        return rows, {r["session"]: st for r in rows}
+
+    def evaluate(self, flash_dur, flag_dur, n=5):
+        rows, strata = self.rows_for(flash_dur, flag_dur, n)
+        per, overall = em.evaluate_g3(em.hardened_rows(
+            rows, em.parse_epochs(REAL_EPOCHS)), strata)
+        return per, overall
+
+    def test_ratio_exactly_1p5_passes(self):
+        per, overall = self.evaluate(3.0, 2.0)
+        self.assertEqual(per[0]["verdict"], em.GATE_PASS)  # <= inclusive
+        self.assertEqual(overall["verdict"], em.GATE_PASS)
+        self.assertIn("ratio 1.50", per[0]["detail"])
+
+    def test_ratio_above_1p5_fails_recorded_only(self):
+        per, overall = self.evaluate(3.1, 2.0)
+        self.assertEqual(per[0]["verdict"], em.GATE_FAIL)
+        self.assertEqual(overall["verdict"], em.GATE_FAIL)
+        self.assertIn("recorded only", per[0]["detail"])
+
+    def test_insufficient_n(self):
+        per, overall = self.evaluate(3.0, 2.0, n=4)
+        self.assertEqual(per[0]["verdict"], em.GATE_INSUFFICIENT)
+        self.assertEqual(overall["verdict"], em.GATE_INSUFFICIENT)
+
+
+class GateG4Tests(unittest.TestCase):
+    """G4 recurrence circuit-break (design d-decision-gates): hardened row
+    with rep_max>=20 or steps>=400 (right-inclusive) -> fail + rollback alarm."""
+
+    def g4(self, **kw):
+        hrd = em.hardened_rows([rrow("ses_t", HARDENED_TS, **kw)],
+                               em.parse_epochs(REAL_EPOCHS))
+        return em.evaluate_g4(hrd)
+
+    def test_rep_max_20_triggers(self):
+        g = self.g4(rep_max=em.G4_REP_MAX)
+        self.assertEqual(g["verdict"], em.GATE_FAIL)
+        self.assertIn("ses_t", g["detail"])
+
+    def test_rep_max_19_does_not_trigger(self):
+        self.assertEqual(self.g4(rep_max=em.G4_REP_MAX - 1)["verdict"],
+                         em.GATE_NOT_TRIGGERED)
+
+    def test_steps_400_triggers(self):
+        self.assertEqual(self.g4(steps=em.G4_STEPS)["verdict"], em.GATE_FAIL)
+
+    def test_steps_399_does_not_trigger(self):
+        self.assertEqual(self.g4(steps=em.G4_STEPS - 1)["verdict"],
+                         em.GATE_NOT_TRIGGERED)
+
+    def test_baseline_epoch_shape_never_triggers(self):
+        # pre-hardening incident shape (rep_max=184) must NOT trip the gate:
+        # only the hardened epoch is judged
+        hrd = em.hardened_rows(
+            [rrow("ses_incident", PRE_TS, rep_max=184, steps=895)],
+            em.parse_epochs(REAL_EPOCHS))
+        self.assertEqual(em.evaluate_g4(hrd)["verdict"], em.GATE_NOT_TRIGGERED)
+
+
+class GateCompositionTests(unittest.TestCase):
+    """evaluate_gates: G1 fail / G4 triggered raise rollback alarms; G2/G3
+    verdicts alone never do."""
+
+    def compose(self, rows, strata=None):
+        epochs = em.parse_epochs(REAL_EPOCHS)
+        strata = strata or {r["session"]: "L" for r in rows}
+        agg = em.aggregate_cells(rows, epochs, strata, em.DEFAULT_PRICES)
+        return em.evaluate_gates(rows, strata, epochs, agg)
+
+    def test_g1_runaway_raises_alarm(self):
+        result = self.compose(
+            [rrow("ses_bad_h", HARDENED_TS, steps=895, rep_max=184,
+                  dur_min=86.4)])
+        alarms = " ".join(result["alarms"])
+        self.assertIn("G1", alarms)
+        self.assertIn("ses_bad_h", alarms)
+        self.assertIn("rollback", alarms)
+
+    def test_g4_triggered_raises_immediate_rollback_alarm(self):
+        result = self.compose([rrow("ses_cb", HARDENED_TS, rep_max=20)])
+        alarms = " ".join(result["alarms"])
+        self.assertIn("G4", alarms)
+        self.assertIn("ses_cb", alarms)
+        self.assertIn("immediately", alarms)
+
+    def test_g3_fail_alone_produces_no_alarm(self):
+        rows = [rrow(f"ses_f{i}", HARDENED_TS, model="gemini-flash",
+                     dur_min=3.1) for i in range(5)]
+        rows += [rrow(f"ses_g{i}", HARDENED_TS, model="glm-4.7",
+                      dur_min=2.0) for i in range(5)]
+        strata = {r["session"]: "S" for r in rows}
+        result = self.compose(rows, strata)
+        self.assertEqual(result["alarms"], [])
+        gates = {g["gate"]: g["verdict"] for g in result["gates"]}
+        self.assertEqual(gates["G3 duration (overall)"], em.GATE_FAIL)
+
+    def test_all_gates_present_in_result(self):
+        result = self.compose([rrow("ses_pre_only", PRE_TS)])
+        names = [g["gate"] for g in result["gates"]]
+        for prefix in ("G1 ", "G2 economics (overall)", "G3 duration (overall)",
+                       "G4 "):
+            self.assertTrue(any(n.startswith(prefix) for n in names), names)
+
+
+class ObservationWindowTests(unittest.TestCase):
+    """Pre-registered window 2026-09-14 00:00 -> 09-20 23:59 local;
+    remaining days = window last day - report run day (ticket pinned)."""
+
+    def test_day_before_window_shows_seven_remaining(self):
+        line, remaining = em.observation_window("2026-09-13T21:00:00+08:00")
+        self.assertEqual(remaining, 7)
+        self.assertIn("7 day(s) remaining", line)
+
+    def test_each_day_of_the_window(self):
+        self.assertEqual(em.observation_window("2026-09-14T00:30:00+08:00")[1], 6)
+        self.assertEqual(em.observation_window("2026-09-16T12:00:00+08:00")[1], 4)
+        self.assertEqual(em.observation_window("2026-09-20T23:00:00+08:00")[1], 0)
+
+    def test_after_window_end_reports_ended(self):
+        line, remaining = em.observation_window("2026-09-22T08:00:00+08:00")
+        self.assertEqual(remaining, -2)
+        self.assertIn("window ended", line)
+
+    def test_line_carries_window_bounds_and_local_offset(self):
+        line, _ = em.observation_window("2026-09-13T21:00:00+08:00")
+        self.assertIn("2026-09-14 00:00", line)
+        self.assertIn("2026-09-20 23:59", line)
+        self.assertRegex(line, r"UTC[+-]\d{2}:\d{2}")
+
+
+class GatesRenderTests(unittest.TestCase):
+    """render_report: window line + gates section at the top, rollback alarm
+    lines above the gates table, gates before the aggregation."""
+
+    def render(self, rows, strata=None, generated="2026-09-13T21:00:00+08:00"):
+        epochs = em.parse_epochs(REAL_EPOCHS)
+        strata = strata or {r["session"]: "L" for r in rows}
+        return em.render_report(
+            rows, epochs, strata, em.DEFAULT_PRICES,
+            obs_name="observations.md", epochs_spec=REAL_EPOCHS,
+            warnings=[], generated=generated)
+
+    def test_baseline_only_data_shows_insufficient_gates(self):
+        text = self.render([rrow("ses_pre", PRE_TS)])
+        self.assertIn("- observation window:", text)
+        self.assertIn("7 day(s) remaining", text)
+        self.assertIn("| G1 loop safety (hardened) | insufficient-n |", text)
+        self.assertIn("| G2 economics (overall) | insufficient-n |", text)
+        self.assertIn("| G3 duration (overall) | insufficient-n |", text)
+        self.assertIn("| G4 recurrence circuit-break | not-triggered |", text)
+        self.assertNotIn("ALARM", text)
+
+    def test_gates_section_sits_above_aggregation(self):
+        text = self.render([rrow("ses_pre", PRE_TS)])
+        self.assertLess(text.index("## Decision gates"),
+                        text.index("## Epoch × stratum aggregation"))
+
+    def test_g1_fail_puts_alarm_at_top(self):
+        text = self.render([rrow("ses_bad_h", HARDENED_TS, steps=895,
+                                 rep_max=184, dur_min=86.4)])
+        self.assertIn("> ALARM:", text)
+        self.assertIn("ses_bad_h", text)
+        self.assertLess(text.index("ALARM"), text.index("## Decision gates"))
+        self.assertIn("| G1 loop safety (hardened) | fail |", text)
+
+    def test_g4_triggered_puts_alarm_at_top(self):
+        text = self.render([rrow("ses_cb", HARDENED_TS, rep_max=20)])
+        self.assertIn("G4 recurrence circuit-break TRIGGERED", text)
+        self.assertIn("| G4 recurrence circuit-break | fail |", text)
+
+    def test_g2_judged_from_report_aggregation(self):
+        # flash n=5 cost 1.1 vs flagship n=5 cost 2.2 (ratio 0.5) -> G2 pass
+        rows = [rrow(f"ses_f{i}", HARDENED_TS, model="gemini-flash",
+                     out_tok=440_000) for i in range(5)]
+        rows += [rrow(f"ses_g{i}", HARDENED_TS, model="glm-4.7",
+                      out_tok=1_000_000) for i in range(5)]
+        text = self.render(rows)
+        self.assertIn("| G2 economics L | pass |", text)
+        self.assertIn("| G2 economics (overall) | pass |", text)
+
+    def test_g3_fail_present_without_alarm(self):
+        rows = [rrow(f"ses_f{i}", HARDENED_TS, model="gemini-flash",
+                     dur_min=3.1) for i in range(5)]
+        rows += [rrow(f"ses_g{i}", HARDENED_TS, model="glm-4.7",
+                      dur_min=2.0) for i in range(5)]
+        strata = {r["session"]: "S" for r in rows}
+        text = self.render(rows, strata)
+        self.assertIn("| G3 duration S | fail |", text)
+        self.assertNotIn("ALARM", text)
+        self.assertIn("never triggers rollback alone", text)
+
+
+class GatesCliTests(unittest.TestCase):
+    """End to end: the report command emits the gates section."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = pathlib.Path(self._tmp.name)
+        self.obs = self.dir / "observations.md"
+        self.out = self.dir / "report.md"
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_report_file_contains_window_and_gates(self):
+        lines = list(em.HEADER_LINES)
+        lines.append(em.format_row(rrow("ses_pre", PRE_TS)))
+        self.obs.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        code, _, err = run_cli(["report", "--obs", str(self.obs), "--out",
+                                str(self.out), "--epochs", REAL_EPOCHS])
+        self.assertEqual(code, 0, err)
+        text = self.out.read_text(encoding="utf-8")
+        self.assertIn("- observation window:", text)
+        self.assertIn("## Decision gates", text)
+        self.assertIn("| G1 loop safety (hardened) | insufficient-n |", text)
+
+
+class DecisionTemplateTests(unittest.TestCase):
+    """DECISION.md closeout template exists with the pinned placeholders
+    (ticket 03 Generated artifacts; design d-decision-gates 收口产物)."""
+
+    PATH = (pathlib.Path(__file__).resolve().parents[1]
+            / "docs/proposals/executor-value-measurement/DECISION.md")
+
+    def test_template_exists_with_required_placeholders(self):
+        text = self.PATH.read_text(encoding="utf-8")
+        for option in ("keep-flash", "rollback-flagship", "extend-observation"):
+            self.assertIn(option, text)          # three-way conclusion
+        for gate in ("G1", "G2", "G3", "G4"):
+            self.assertIn(f"| {gate}", text)     # verdict table rows
+        self.assertIn("observations.md", text)   # raw-data reference
+        self.assertIn("date:", text)             # closeout date field
+        self.assertIn("2026-09-20", text)        # window end anchor
+        self.assertIn("d-decision-gates", text)  # rule authority reference
+        self.assertIn("<!--", text)              # placeholder style
 
 
 if __name__ == "__main__":

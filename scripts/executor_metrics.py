@@ -52,6 +52,23 @@ Report semantics (ticket 02; design d-epoch / d-strata / d-cost):
   ``unknown`` and counted in the report.
 - runaway = steps > 150 or rep_max > 10 or dur_min > 30 (any one).
 - medians use statistics.median (even n = mean of the two middle values).
+
+Gate semantics (ticket 03; design d-decision-gates — pre-registered):
+- gates consume observations rows + the aggregation only, never the DB
+  (report stays offline-rerunnable); only the ``hardened`` epoch gates.
+- observation window (local time): 2026-09-14 00:00 -> 2026-09-20 23:59;
+  remaining days = window last day - report run day.
+- G1 loop safety: hardened runaway events = 0 -> pass; any -> fail (alarm);
+  hardened empty -> insufficient-n.
+- G2 economics per stratum: flash cost median < flagship median x 0.7 with
+  n >= 5 per side -> pass; ratio >= 0.7 -> fail (>= 2x -> rollback,
+  otherwise extend observation); n < 5 -> insufficient-n.
+- G3 duration per stratum: flash dur median <= flagship median x 1.5 ->
+  pass; recorded only, never triggers rollback by itself.
+- G4 recurrence circuit-break: hardened session with rep_max >= 20 or
+  steps >= 400 (right-inclusive) -> fail (immediate-rollback alarm).
+- closeout writes DECISION.md (three-way conclusion template) from the
+  final report; rules change only via design d-decision-gates revision.
 """
 
 import argparse
@@ -191,6 +208,32 @@ STRATA_L_MIN_CHANGES = 4   # L: changes >= 4 OR any heavy evidence cmd
 RUNAWAY_STEPS = 150        # runaway: steps > 150 ...
 RUNAWAY_REP_MAX = 10       # ... or rep_max > 10 ...
 RUNAWAY_DUR_MIN = 30.0     # ... or dur_min > 30 (any one)
+
+# --- decision gates (ticket 03; design d-decision-gates — pre-registered) ---
+# Gate rules were registered BEFORE the observation window opened; the report
+# only prints the current verdict against them. Changing a rule means revising
+# the design authority first (d-decision-gates) — never this script alone.
+
+HARDENED_EPOCH = "hardened"  # only the hardened epoch gates (d-epoch: the
+#                             pre-hardening / provider-switch epochs are baselines)
+GATE_MIN_N = 5               # per-side minimum n for a hard verdict
+G2_COST_RATIO = 0.7          # flash cost median < flagship median x 0.7
+G2_ROLLBACK_RATIO = 2.0      # design G2: fail with ratio >= 2x -> rollback
+G3_DUR_RATIO = 1.5           # flash dur median <= flagship median x 1.5
+G4_REP_MAX = 20              # circuit-break: rep_max >= 20 (right-inclusive)
+G4_STEPS = 400               # circuit-break: steps >= 400 (right-inclusive)
+GATE_PASS = "pass"
+GATE_FAIL = "fail"
+GATE_INSUFFICIENT = "insufficient-n"
+GATE_NOT_TRIGGERED = "not-triggered"
+_GATE_SEVERITY = {GATE_PASS: 0, GATE_NOT_TRIGGERED: 0,
+                  GATE_INSUFFICIENT: 1, GATE_FAIL: 2}
+
+# Pre-registered observation window (design d-decision-gates, local time):
+# 2026-09-14 00:00 -> 2026-09-20 23:59; remaining days = last day - run day.
+OBS_WINDOW_START = datetime(2026, 9, 14, 0, 0)
+OBS_WINDOW_END = datetime(2026, 9, 20, 23, 59)
+OBS_WINDOW_LAST_DAY = OBS_WINDOW_END.date()
 
 # ticket-file shape proxies for the strata classification (objective, no human
 # rating): change bullets, inline command code spans, and cmd families.
@@ -451,10 +494,179 @@ def _fmt_cost(x):
     return f"{x:.4f}"
 
 
+# --- decision gate evaluation (consumes observations rows + the ticket 02
+# aggregation only — never the DB, so report stays offline-rerunnable) ---
+
+def _gate(gate, verdict, detail):
+    return {"gate": gate, "verdict": verdict, "detail": detail}
+
+
+def hardened_rows(rows, epochs):
+    """Observation rows inside the hardened epoch — the only gate sample
+    (design d-epoch: earlier epochs are baselines and never gate)."""
+    return [r for r in rows
+            if epochs and report_epoch(ts_ms(r["ts"]), epochs) == HARDENED_EPOCH]
+
+
+def evaluate_g1(hrd):
+    """G1 loop safety: runaway events in the hardened epoch must be 0."""
+    if not hrd:
+        return _gate("G1 loop safety (hardened)", GATE_INSUFFICIENT,
+                     "hardened epoch has 0 session(s) — no valid gate sample yet")
+    bad = [r for r in hrd if is_runaway(r)]
+    if bad:
+        ids = ", ".join(
+            f"{r['session']} (steps={r['steps']}, rep_max={r['rep_max']}, "
+            f"dur={_fmt_dur(r['dur_min'])}min)" for r in bad)
+        return _gate("G1 loop safety (hardened)", GATE_FAIL,
+                     f"{len(bad)} runaway session(s): {ids}")
+    return _gate("G1 loop safety (hardened)", GATE_PASS,
+                 f"{len(hrd)} session(s), 0 runaway "
+                 f"(steps>{RUNAWAY_STEPS} or rep_max>{RUNAWAY_REP_MAX} or "
+                 f"dur>{RUNAWAY_DUR_MIN:g}min)")
+
+
+def _insufficient_sides(label, flash_n, flagship_n):
+    """insufficient-n entry for a per-stratum gate: one side below n>=5."""
+    return _gate(label, GATE_INSUFFICIENT,
+                 f"flash n={flash_n}, flagship n={flagship_n} "
+                 f"(need n>={GATE_MIN_N} per side)")
+
+
+def _overall_gate(entries, label):
+    """Worst per-stratum verdict as one overall row (fail > insufficient-n)."""
+    if not entries:
+        return _gate(label, GATE_INSUFFICIENT,
+                     "no S/M/L session in the hardened epoch yet")
+    verdict = max((e["verdict"] for e in entries),
+                  key=lambda v: _GATE_SEVERITY[v])
+    judged = ", ".join(e["gate"].rsplit(" ", 1)[-1] + "=" + e["verdict"]
+                       for e in entries)
+    return _gate(label, verdict, f"worst of judged strata: {judged}")
+
+
+def evaluate_g2(agg):
+    """G2 economics per stratum, consuming the report aggregation's flash /
+    flagship medians inside the hardened epoch. Returns (rows, overall)."""
+    cells = (agg.get(HARDENED_EPOCH) or {}).get("cells") or {}
+    entries = []
+    for st in ("S", "M", "L"):
+        if st not in cells:
+            continue
+        c = cells[st]
+        label = f"G2 economics {st}"
+        if c["flash_n"] < GATE_MIN_N or c["flagship_n"] < GATE_MIN_N:
+            entries.append(_insufficient_sides(label, c["flash_n"],
+                                               c["flagship_n"]))
+            continue
+        ratio = (c["flash_med"] / c["flagship_med"]) \
+            if c["flagship_med"] else float("inf")
+        base = (f"flash med {_fmt_cost(c['flash_med'])} vs flagship med "
+                f"{_fmt_cost(c['flagship_med'])} x {G2_COST_RATIO} "
+                f"(ratio {ratio:.2f})")
+        if c["flash_med"] < c["flagship_med"] * G2_COST_RATIO:
+            entries.append(_gate(label, GATE_PASS, base))
+        else:
+            consequence = ("rollback flagship (ratio >= "
+                           f"{G2_ROLLBACK_RATIO:g}x)" if ratio >= G2_ROLLBACK_RATIO
+                           else "extend observation (ratio < "
+                                f"{G2_ROLLBACK_RATIO:g}x)")
+            entries.append(_gate(label, GATE_FAIL,
+                                 f"{base} -> {consequence}"))
+    return entries, _overall_gate(entries, "G2 economics (overall)")
+
+
+def evaluate_g3(hrd, strata):
+    """G3 duration per stratum: flash dur median <= flagship median x 1.5
+    (inclusive). Computed from hardened rows; recorded only — a G3 fail never
+    triggers rollback by itself. Returns (rows, overall)."""
+    entries = []
+    for st in ("S", "M", "L"):
+        st_rows = [r for r in hrd if strata.get(r["session"]) == st]
+        if not st_rows:
+            continue
+        flash = [r["dur_min"] for r in st_rows if tier_of(r["model"]) == "flash"]
+        flagship = [r["dur_min"] for r in st_rows
+                    if tier_of(r["model"]) == "flagship"]
+        label = f"G3 duration {st}"
+        if len(flash) < GATE_MIN_N or len(flagship) < GATE_MIN_N:
+            entries.append(_insufficient_sides(label, len(flash), len(flagship)))
+            continue
+        f_med, g_med = statistics.median(flash), statistics.median(flagship)
+        ratio = f_med / g_med if g_med else float("inf")
+        verdict = GATE_PASS if f_med <= g_med * G3_DUR_RATIO else GATE_FAIL
+        entries.append(_gate(
+            label, verdict,
+            f"flash dur med {_fmt_dur(f_med)}min vs flagship med "
+            f"{_fmt_dur(g_med)}min x {G3_DUR_RATIO} (ratio {ratio:.2f})"
+            + ("; recorded only, never triggers rollback alone"
+               if verdict == GATE_FAIL else "")))
+    return entries, _overall_gate(entries, "G3 duration (overall)")
+
+
+def evaluate_g4(hrd):
+    """G4 recurrence circuit-break (pre-hardening shape recurrence):
+    any hardened session with rep_max>=20 or steps>=400 (right-inclusive)
+    -> fail; immediate rollback, not waiting for the window to close."""
+    hits = [r for r in hrd
+            if r["rep_max"] >= G4_REP_MAX or r["steps"] >= G4_STEPS]
+    if hits:
+        ids = ", ".join(f"{r['session']} (rep_max={r['rep_max']}, "
+                        f"steps={r['steps']})" for r in hits)
+        return _gate("G4 recurrence circuit-break", GATE_FAIL,
+                     f"pre-hardening shape recurred: {ids}")
+    return _gate("G4 recurrence circuit-break", GATE_NOT_TRIGGERED,
+                 f"{len(hrd)} session(s), none with rep_max>={G4_REP_MAX} "
+                 f"or steps>={G4_STEPS}")
+
+
+def evaluate_gates(rows, strata, epochs, agg):
+    """All four pre-registered gates over observations + the ticket 02
+    aggregation. Returns {"gates": [row...], "alarms": [str...]} — alarms
+    only for G1 fail / G4 triggered (both mean rollback to flagship)."""
+    hrd = hardened_rows(rows, epochs)
+    g1 = evaluate_g1(hrd)
+    g2_rows, g2_overall = evaluate_g2(agg)
+    g3_rows, g3_overall = evaluate_g3(hrd, strata)
+    g4 = evaluate_g4(hrd)
+    gates = ([g1] + g2_rows + [g2_overall] + g3_rows + [g3_overall] + [g4])
+    alarms = []
+    if g1["verdict"] == GATE_FAIL:
+        alarms.append(f"G1 loop safety FAILED: {g1['detail']} -> rollback to "
+                      "flagship executor and open a Fix ticket "
+                      "(design d-decision-gates)")
+    if g4["verdict"] == GATE_FAIL:
+        alarms.append(f"G4 recurrence circuit-break TRIGGERED: {g4['detail']}"
+                      " -> rollback to flagship immediately, do not wait "
+                      "for the observation window to close")
+    return {"gates": gates, "alarms": alarms}
+
+
+def observation_window(generated):
+    """(window line, remaining days) for the pre-registered observation
+    window. remaining = window last day (2026-09-20, local) - report run
+    day, where the run day is the generated stamp's own local date."""
+    start = OBS_WINDOW_START.astimezone()
+    end = OBS_WINDOW_END.astimezone()
+    run_day = datetime.fromisoformat(generated).date()
+    remaining = (OBS_WINDOW_LAST_DAY - run_day).days
+    if remaining > 0:
+        tail = f"{remaining} day(s) remaining"
+    elif remaining == 0:
+        tail = "window closes today"
+    else:
+        tail = f"window ended {-remaining} day(s) ago"
+    tz = start.strftime("%z")
+    line = (f"- observation window: {start:%Y-%m-%d %H:%M} -> "
+            f"{end:%Y-%m-%d %H:%M} (UTC{tz[:3]}:{tz[3:]}) — {tail}")
+    return line, remaining
+
+
 def render_report(rows, epochs, strata, prices, *, obs_name, epochs_spec,
                   warnings, generated=None, price_note="proxy defaults"):
     """Render the full daily report document (single \\n, UTF-8)."""
     agg = aggregate_cells(rows, epochs, strata, prices)
+    gates = evaluate_gates(rows, strata, epochs, agg)
     epoch_names = [name for name, _, _ in (epochs or [])]
     if UNCLASSIFIED in agg and UNCLASSIFIED not in epoch_names:
         epoch_names.append(UNCLASSIFIED)
@@ -462,6 +674,7 @@ def render_report(rows, epochs, strata, prices, *, obs_name, epochs_spec,
         epoch_names = [UNCLASSIFIED]
     generated = generated or datetime.now().astimezone().isoformat(
         timespec="seconds")
+    window_line, _ = observation_window(generated)
     price_bits = [f"{tier} {'/'.join(str(p) for p in trio)}"
                   for tier, trio in sorted(prices.items())]
 
@@ -477,14 +690,41 @@ def render_report(rows, epochs, strata, prices, *, obs_name, epochs_spec,
         f"- observations: {obs_name} ({len(rows)} sessions)",
         f"- epochs: {epochs_spec if epochs_spec else '(none — all sessions unclassified)'}",
         f"- prices ($/M in/out/cacheR, {price_note}): " + " · ".join(price_bits),
+        window_line,
         "",
     ]
+    for alarm in gates["alarms"]:
+        lines.append(f"> ALARM: {alarm}")
+    if gates["alarms"]:
+        lines.append("")
     for w in warnings:
         lines.append(f"> warning: {w}")
     if warnings:
         lines.append("")
 
     lines += [
+        "## Decision gates (pre-registered, design d-decision-gates)",
+        "",
+        "Verdicts compare the current data against rules registered BEFORE the",
+        "observation window opened — no post-hoc inference. Only the hardened",
+        "epoch gates; pre-hardening and provider-switch stay baselines.",
+        f"insufficient-n = sample below the pinned threshold (n>={GATE_MIN_N}",
+        "per side per stratum).",
+        "",
+        "| gate | verdict | detail |",
+        "|---|---|---|",
+    ]
+    for g in gates["gates"]:
+        lines.append(f"| {g['gate']} | {g['verdict']} | {g['detail']} |")
+    lines += [
+        "",
+        f"Pre-registered consequences: G2 fail with flash/flagship ratio >=",
+        f"{G2_ROLLBACK_RATIO:g}x -> rollback flagship; otherwise -> extend",
+        "observation. G3 fail is recorded only and never triggers rollback by",
+        "itself. G1 fail or G4 triggered -> rollback to flagship (G4",
+        "immediately, without waiting for the window to close). Closeout uses",
+        "DECISION.md (three-way conclusion template).",
+        "",
         "## Epoch × stratum aggregation",
         "",
         "| epoch | stratum | n | dur_med (min) | est_cost_med ($) "
@@ -531,7 +771,8 @@ def render_report(rows, epochs, strata, prices, *, obs_name, epochs_spec,
             g_med = (_fmt_cost(c["flagship_med"])
                      if c["flagship_med"] is not None else "-")
             if c["flash_med"] is not None and c["flagship_med"] is not None:
-                ratio = f"{c['flash_med'] / c['flagship_med']:.2f}"
+                ratio = (f"{c['flash_med'] / c['flagship_med']:.2f}"
+                         if c["flagship_med"] else "inf")
             else:
                 ratio = "-"
             lines.append(f"| {ep} | {st} | {c['flash_n']} | {f_med} | "

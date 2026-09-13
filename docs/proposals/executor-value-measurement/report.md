@@ -5,10 +5,33 @@ do not edit by hand: observations.md is the append-only source, this file is
 fully replaced on each run. est_cost is a tier proxy price estimate, not an
 invoice figure.
 
-- generated: 2026-09-13T20:45:23+08:00
+- generated: 2026-09-13T21:01:42+08:00
 - observations: docs/proposals/executor-value-measurement/observations.md (18 sessions)
 - epochs: pre-hardening:<1789291500000,provider-switch:1789291500000-1789298700000,hardened:>1789298700000
 - prices ($/M in/out/cacheR, proxy defaults): flagship 0.6/2.2/0.113 · flash 0.3/2.5/0.075
+- observation window: 2026-09-14 00:00 -> 2026-09-20 23:59 (UTC+08:00) — 7 day(s) remaining
+
+## Decision gates (pre-registered, design d-decision-gates)
+
+Verdicts compare the current data against rules registered BEFORE the
+observation window opened — no post-hoc inference. Only the hardened
+epoch gates; pre-hardening and provider-switch stay baselines.
+insufficient-n = sample below the pinned threshold (n>=5
+per side per stratum).
+
+| gate | verdict | detail |
+|---|---|---|
+| G1 loop safety (hardened) | insufficient-n | hardened epoch has 0 session(s) — no valid gate sample yet |
+| G2 economics (overall) | insufficient-n | no S/M/L session in the hardened epoch yet |
+| G3 duration (overall) | insufficient-n | no S/M/L session in the hardened epoch yet |
+| G4 recurrence circuit-break | not-triggered | 0 session(s), none with rep_max>=20 or steps>=400 |
+
+Pre-registered consequences: G2 fail with flash/flagship ratio >=
+2x -> rollback flagship; otherwise -> extend
+observation. G3 fail is recorded only and never triggers rollback by
+itself. G1 fail or G4 triggered -> rollback to flagship (G4
+immediately, without waiting for the window to close). Closeout uses
+DECISION.md (three-way conclusion template).
 
 ## Epoch × stratum aggregation
 
