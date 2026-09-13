@@ -1669,3 +1669,185 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 		}
 	})
 }
+
+func TestAgentStatusTreatsPreservedModelAsCurrent(t *testing.T) {
+	t.Run("preserved model reports current", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode", "claude"}
+		if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+
+		// Hand-edit local models into both frontmatter hosts, then
+		// redeploy so the deployed files carry preserve-merged content.
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-analyst")
+		opencodePath := filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md")
+		opencodeData, err := os.ReadFile(opencodePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(opencodePath, []byte(strings.Replace(string(opencodeData), "---\n", "---\nmodel: custom-model/x\n", 1)), 0644); err != nil {
+			t.Fatal(err)
+		}
+		claudePath := filepath.Join(projectRoot, ".claude", "agents", "flowforge-analyst.md")
+		claudeData, err := os.ReadFile(claudePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(claudePath, []byte(strings.Replace(string(claudeData), "model: "+def.ModelProfile.ClaudeModel(), "model: claude-custom/z", 1)), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		result, err := computeSubagentStatus(projectRoot, cfg)
+		if err != nil {
+			t.Fatalf("computeSubagentStatus: %v", err)
+		}
+		if !result.Current {
+			t.Errorf("preserved-model deploy must report current, got entries: %+v", result.Entries)
+		}
+		for _, entry := range result.Entries {
+			if entry.State != string(managedAssetCurrent) {
+				t.Errorf("expected %s to be current, got %s", entry.Target, entry.State)
+			}
+		}
+	})
+
+	t.Run("config pinned model still drifts stale file residue", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		cfg.Agents.Models = map[string]string{"tool-capable": "pinned-by-config/y"}
+		if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+
+		// Replace the pinned model with a stale local residue value.
+		path := filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handEdited := strings.Replace(string(data), "model: pinned-by-config/y", "model: stale-local/x", 1)
+		if handEdited == string(data) {
+			t.Fatal("expected the deployed file to carry the pinned model")
+		}
+		if err := os.WriteFile(path, []byte(handEdited), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		result, err := computeSubagentStatus(projectRoot, cfg)
+		if err != nil {
+			t.Fatalf("computeSubagentStatus: %v", err)
+		}
+		if result.Current {
+			t.Error("config-pinned expectation must drift a stale file residue")
+		}
+		foundDrifted := false
+		for _, entry := range result.Entries {
+			if entry.Target == path && entry.State == string(managedAssetDrifted) {
+				foundDrifted = true
+			}
+		}
+		if !foundDrifted {
+			t.Errorf("expected drifted entry for %s, got entries: %+v", path, result.Entries)
+		}
+
+		// The explicit channel wins: a redeploy writes the config value
+		// and status returns to current.
+		if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+		result, err = computeSubagentStatus(projectRoot, cfg)
+		if err != nil {
+			t.Fatalf("computeSubagentStatus after redeploy: %v", err)
+		}
+		if !result.Current {
+			t.Errorf("redeploy must restore current, got entries: %+v", result.Entries)
+		}
+	})
+
+	t.Run("hand-edited body still drifts", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+
+		// e2e: hand-edit a model, redeploy (preserve-merge) → current.
+		path := filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(strings.Replace(string(data), "---\n", "---\nmodel: custom-model/x\n", 1)), 0644); err != nil {
+			t.Fatal(err)
+		}
+		var deployErr error
+		captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+		result, err := computeSubagentStatus(projectRoot, cfg)
+		if err != nil {
+			t.Fatalf("computeSubagentStatus: %v", err)
+		}
+		if !result.Current {
+			t.Fatalf("preserved-model deploy must report current before body drift, got entries: %+v", result.Entries)
+		}
+
+		// Then hand-edit the body (outside the model line): still drifted.
+		bodyData, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(string(bodyData)+"\nlocal body tweak\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		result, err = computeSubagentStatus(projectRoot, cfg)
+		if err != nil {
+			t.Fatalf("computeSubagentStatus after body drift: %v", err)
+		}
+		if result.Current {
+			t.Error("body hand-edit must still drift")
+		}
+		foundDrifted := false
+		for _, entry := range result.Entries {
+			if entry.Target == path && entry.State == string(managedAssetDrifted) {
+				foundDrifted = true
+			}
+		}
+		if !foundDrifted {
+			t.Errorf("expected drifted entry for %s, got entries: %+v", path, result.Entries)
+		}
+	})
+}
