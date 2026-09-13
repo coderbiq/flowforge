@@ -26,7 +26,8 @@ func newCheckCmd() *cobra.Command {
 3. Self-dependencies
 4. Artifact metadata, authority, semantic-link, waiver, scoped-gap, and completion-evidence diagnostics
 5. Checked-change evidence quadruple diagnostics (missing/incomplete/non-zero exit/absent artifact)
-6. Repeated failure diagnostics (same command reporting non-zero exit 3+ times in one ticket)`,
+6. Repeated failure diagnostics (same command reporting non-zero exit 3+ times in one ticket)
+7. Blocked evidence diagnostics (open ticket still carrying a "## Blocked evidence" section awaiting refine-ticket consumption)`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := checkDir
 			if dir == "" {

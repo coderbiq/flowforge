@@ -50,6 +50,7 @@ const (
 	DiagnosticUntrackedLink               DiagnosticCode = "untracked-upstream"
 	DiagnosticMissingEvidence             DiagnosticCode = "missing-completion-evidence"
 	DiagnosticExecutionContractIncomplete DiagnosticCode = "execution-contract-incomplete"
+	DiagnosticBlockedEvidencePresent      DiagnosticCode = "blocked-evidence-present"
 	DiagnosticEvidenceMissing             DiagnosticCode = "evidence-missing"
 	DiagnosticEvidenceIncomplete          DiagnosticCode = "evidence-incomplete"
 	DiagnosticEvidenceExitNonzero         DiagnosticCode = "evidence-exit-nonzero"
@@ -300,6 +301,9 @@ func discoverArtifact(path string) (*Artifact, []Diagnostic, error) {
 				Source:   SourceLocation{Path: path},
 			})
 		}
+		if issue.Status.IsExecutable() && blockedEvidenceHeading.MatchString(issue.Body) {
+			diagnostics = append(diagnostics, warning(DiagnosticBlockedEvidencePresent, path, "Open ticket carries blocked evidence; run flowforge-refine-ticket to consume it before redispatch"))
+		}
 	}
 
 	return artifact, diagnostics, nil
@@ -309,6 +313,7 @@ var markdownHeading = regexp.MustCompile(`(?m)^#{2,6}\s+(.+?)\s*$`)
 
 var (
 	executionDetailHeading   = regexp.MustCompile(`(?mi)^##\s+Execution detail\s*$`)
+	blockedEvidenceHeading   = regexp.MustCompile(`(?mi)^##\s+Blocked evidence\s*$`)
 	executionDetailBoundary  = regexp.MustCompile(`(?m)^#{1,2}\s+`)
 	executionContractHeading = regexp.MustCompile(`(?m)^#{1,3}\s+`)
 	executionTaskPlaceholder = regexp.MustCompile(`(?m)^\s*[-*]\s+\[[ xX]\]\s*`)

@@ -239,6 +239,128 @@ func TestFrontierJSONCarriesAllGroupsAndDiagnostics(t *testing.T) {
 	}
 }
 
+func TestBlockedEvidenceFrontierClassification(t *testing.T) {
+	clean := &tracker.Issue{ID: "01", FilePath: "01-clean.md"}
+	blockedEvidence := &tracker.Issue{ID: "02", FilePath: "02-blocked.md"}
+	diagnostics := []tracker.Diagnostic{
+		{Code: tracker.DiagnosticBlockedEvidencePresent, Severity: tracker.SeverityWarning, Artifact: blockedEvidence.FilePath},
+	}
+	gotClean, gotWarnings, gotGaps, gotBlocked := classifyReady([]*tracker.Issue{clean, blockedEvidence}, diagnostics)
+	if len(gotClean) != 1 || gotClean[0] != clean || len(gotWarnings) != 1 || gotWarnings[0] != blockedEvidence || len(gotGaps) != 0 || len(gotBlocked) != 0 {
+		t.Fatalf("blocked-evidence warning must land in warnings bucket, not clean ready: clean=%v warnings=%v gaps=%v blocked=%v", gotClean, gotWarnings, gotGaps, gotBlocked)
+	}
+
+	root := blockedEvidenceFrontierFixture(t)
+	ticketPath := filepath.Join(root, "feature", "issues", "01-blocked.md")
+	original, err := os.ReadFile(ticketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restore := func() {
+		if err := os.WriteFile(ticketPath, original, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	cmd := newFrontierCmd()
+	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps = root, true, false, false, false
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("frontier failed: %v stdout=%q", err, stdout.String())
+	}
+	var result struct {
+		Ready            []*tracker.Issue `json:"ready"`
+		ReadyWithWarning []*tracker.Issue `json:"ready_with_warnings"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		t.Fatalf("unmarshal: %v stdout=%q", err, stdout.String())
+	}
+	for _, issue := range result.Ready {
+		if issue.ID == "01" {
+			t.Fatal("blocked-evidence ticket must not enter clean ready")
+		}
+	}
+	var inWarnings bool
+	for _, issue := range result.ReadyWithWarning {
+		if issue.ID == "01" {
+			inWarnings = true
+		}
+	}
+	if !inWarnings {
+		t.Fatalf("blocked-evidence ticket missing from ready_with_warnings: %s", stdout.String())
+	}
+
+	runFrontier := func(strict bool) (string, string, error) {
+		cmd := newFrontierCmd()
+		frontierDir, frontierQuiet, frontierJSON, frontierStrict, frontierIncludeGaps = root, true, false, strict, false
+		var stdout, stderr bytes.Buffer
+		cmd.SetOut(&stdout)
+		cmd.SetErr(&stderr)
+		err := cmd.RunE(cmd, nil)
+		return stdout.String(), stderr.String(), err
+	}
+	stdoutText, stderrText, err := runFrontier(false)
+	if err != nil || !strings.Contains(stdoutText, "01-blocked.md") || !strings.Contains(stderrText, "blocked-evidence-present") {
+		t.Fatalf("default frontier projection failed stdout=%q stderr=%q err=%v", stdoutText, stderrText, err)
+	}
+	stdoutText, stderrText, err = runFrontier(true)
+	if err == nil || strings.Contains(stdoutText, "01-blocked.md") || !strings.Contains(stderrText, "blocked-evidence-present") {
+		t.Fatalf("strict frontier must exclude the blocked-evidence ticket stdout=%q stderr=%q err=%v", stdoutText, stderrText, err)
+	}
+
+	runCheck := func(strict bool) (string, error) {
+		cmd := newCheckCmd()
+		checkDir, checkJSON, checkStrict = root, false, strict
+		var stdout, stderr bytes.Buffer
+		cmd.SetOut(&stdout)
+		cmd.SetErr(&stderr)
+		err := cmd.RunE(cmd, nil)
+		return stderr.String(), err
+	}
+	stderrText, err = runCheck(false)
+	if err != nil || !strings.Contains(stderrText, "blocked-evidence-present") {
+		t.Fatalf("default check must print the diagnostic and stay valid stderr=%q err=%v", stderrText, err)
+	}
+	stderrText, err = runCheck(true)
+	if err == nil || !strings.Contains(stderrText, "blocked-evidence-present") {
+		t.Fatalf("strict check must fail on blocked-evidence warning stderr=%q err=%v", stderrText, err)
+	}
+
+	closed := strings.Replace(string(original), "**Status:** open", "**Status:** closed\n\n## Completion evidence\n\n- go test ./internal/... passed.", 1)
+	if err := os.WriteFile(ticketPath, []byte(closed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if stderrText, err = runCheck(true); err != nil || strings.Contains(stderrText, "blocked-evidence-present") {
+		t.Fatalf("closed ticket must not report blocked evidence stderr=%q err=%v", stderrText, err)
+	}
+
+	consumed := strings.Replace(string(original), "\n## Blocked evidence\n\n- Verbatim: exit status 1\n- cmd: go test ./... (exit 1)\n- Next: inspect the failing package\n", "", 1)
+	if err := os.WriteFile(ticketPath, []byte(consumed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if stderrText, err = runCheck(true); err != nil || strings.Contains(stderrText, "blocked-evidence-present") {
+		t.Fatalf("consumed section must clear the diagnostic stderr=%q err=%v", stderrText, err)
+	}
+	restore()
+}
+
+func blockedEvidenceFrontierFixture(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	execContract := "## Execution detail\n\n### Verified contracts\n\n- catalog.go owns ticket diagnostics.\n\n### Execution scenarios\n\n- Success: open ticket reports blocked evidence.\n- Failure: closed or consumed tickets stay silent.\n\n### Expected tests\n\n- go test ./internal/command/...\n\n### Generated artifacts\n\n- Not applicable — diagnostics are computed at runtime.\n\n### Conventions\n\n- Reuse existing warning projection.\n"
+	blockedSection := "\n## Blocked evidence\n\n- Verbatim: exit status 1\n- cmd: go test ./... (exit 1)\n- Next: inspect the failing package\n"
+	ticket := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n# 01: Blocked\n**Status:** open\n**Blocked by:** None\n\n" + execContract + blockedSection
+	if err := os.WriteFile(filepath.Join(issues, "01-blocked.md"), []byte(ticket), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func frontierGapFixture(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()

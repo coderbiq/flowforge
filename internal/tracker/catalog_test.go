@@ -184,6 +184,65 @@ func TestClosedTicketRequiresObservableCompletionEvidence(t *testing.T) {
 	}
 }
 
+func TestBlockedEvidenceDiagnostic(t *testing.T) {
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fm := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n"
+	blockedSection := "\n## Blocked evidence\n\n- Verbatim: exit status 1\n- cmd: go test ./... (exit 1)\n- Next: inspect the failing package\n"
+
+	writeTicket := func(name, status, body string) string {
+		t.Helper()
+		path := filepath.Join(issues, name)
+		content := fm + "# " + strings.TrimSuffix(name, ".md") + "\n**Status:** " + status + "\n**Blocked by:** None\n" + body
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+
+	reported := writeTicket("01-reported.md", "open", blockedSection)
+	headingOnly := writeTicket("02-heading-only.md", "open", "\n## Blocked evidence\n")
+	caseVariant := writeTicket("03-case-variant.md", "open", "\n##   BLOCKED evidence   \n- fact\n")
+	readyAgent := writeTicket("04-ready-for-agent.md", "ready-for-agent", blockedSection)
+	closedTicket := writeTicket("05-closed.md", "closed", "\n## Completion evidence\n\n- go test ./... passed.\n"+blockedSection)
+	removed := writeTicket("06-removed.md", "open", "\n## Notes\n\n- blocked section was consumed\n")
+	nested := writeTicket("07-nested.md", "open", "\n### Blocked evidence\n- not the pinned heading level\n")
+	suffixed := writeTicket("08-suffixed.md", "open", "\n## Blocked evidence: extra\n- not the exact pinned heading\n")
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, path := range []string{reported, headingOnly, caseVariant, readyAgent} {
+		assertDiagnostic(t, catalog.Diagnostics, tracker.DiagnosticBlockedEvidencePresent, path)
+	}
+	for _, path := range []string{closedTicket, removed, nested, suffixed} {
+		for _, diagnostic := range catalog.Diagnostics {
+			if diagnostic.Code == tracker.DiagnosticBlockedEvidencePresent && diagnostic.Artifact == path {
+				t.Fatalf("unexpected blocked-evidence diagnostic for %s: %#v", path, diagnostic)
+			}
+		}
+	}
+	for _, diagnostic := range catalog.Diagnostics {
+		if diagnostic.Code != tracker.DiagnosticBlockedEvidencePresent || diagnostic.Artifact != reported {
+			continue
+		}
+		if diagnostic.Severity != tracker.SeverityWarning {
+			t.Fatalf("severity = %q, want warning", diagnostic.Severity)
+		}
+		if diagnostic.Source.Path != reported {
+			t.Fatalf("source path = %q, want %s", diagnostic.Source.Path, reported)
+		}
+		if !strings.Contains(diagnostic.Message, "flowforge-refine-ticket") {
+			t.Fatalf("message must point dispatchers at the refine consumption path: %q", diagnostic.Message)
+		}
+	}
+}
+
 func TestExecutionContractCompletenessAppliesOnlyToManagedExecutableTickets(t *testing.T) {
 	root := t.TempDir()
 	issues := filepath.Join(root, "feature", "issues")
