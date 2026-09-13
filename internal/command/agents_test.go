@@ -737,3 +737,351 @@ func TestUpgradeSyncSkipsDisabledSubagents(t *testing.T) {
 		t.Error("disabled subagent file should not exist")
 	}
 }
+
+func TestAgentsDeployHonorsHostSelection(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+
+	deployed, err := deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("deploySubagents: %v", err)
+	}
+	if len(deployed) != 6 {
+		t.Fatalf("expected 6 deployed subagents, got %d", len(deployed))
+	}
+
+	// Selected host received files
+	if _, err := os.Stat(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md")); err != nil {
+		t.Errorf("expected .opencode/agent/flowforge-analyst.md: %v", err)
+	}
+
+	// Deselected host directories must not be created
+	for _, dir := range []string{filepath.Join(projectRoot, ".claude", "agents"), filepath.Join(projectRoot, ".codex", "agents")} {
+		if _, err := os.Stat(dir); err == nil {
+			t.Errorf("deselected host directory %s was created", dir)
+		}
+	}
+}
+
+func TestAgentsDeployCleansDeselectedHosts(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Project-owned file inside a host directory that will be deselected
+	ownedPath := filepath.Join(projectRoot, ".claude", "agents", "my-own-agent.md")
+	if err := os.WriteFile(ownedPath, []byte("# mine\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg.Agents.Hosts = []string{"opencode"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatalf("redeploy with narrowed hosts: %v", err)
+	}
+
+	// Managed files removed from deselected hosts
+	for _, path := range []string{
+		filepath.Join(projectRoot, ".claude", "agents", "flowforge-analyst.md"),
+		filepath.Join(projectRoot, ".codex", "agents", "flowforge-analyst.toml"),
+	} {
+		if _, err := os.Stat(path); err == nil {
+			t.Errorf("managed file %s should have been cleaned from deselected host", path)
+		}
+	}
+
+	// Project-owned file preserved
+	if _, err := os.Stat(ownedPath); err != nil {
+		t.Errorf("project-owned file %s must be preserved: %v", ownedPath, err)
+	}
+}
+
+func TestAgentsHostsValidation(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"vscode"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err == nil {
+		t.Error("unknown host name must fail deployment")
+	}
+
+	cfg.Agents.Hosts = []string{}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err == nil {
+		t.Error("empty host list must fail deployment")
+	}
+}
+
+func TestAgentsStatusScopedToSelectedHosts(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stale managed file in a deselected host must not affect status
+	staleDir := filepath.Join(projectRoot, ".claude", "agents")
+	if err := os.MkdirAll(staleDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staleDir, "flowforge-analyst.md"), []byte("stale"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := computeSubagentStatus(projectRoot, cfg)
+	if err != nil {
+		t.Fatalf("computeSubagentStatus: %v", err)
+	}
+	if !result.Current {
+		t.Error("status must be current when only the selected host is in scope")
+	}
+	for _, entry := range result.Entries {
+		if filepath.Base(filepath.Dir(filepath.Dir(entry.Target))) == ".claude" {
+			t.Errorf("status reported deselected host target %s", entry.Target)
+		}
+	}
+}
+
+func TestAgentsRemoveScopedToSelectedHosts(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	if err := cfg.Save(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// File in a deselected host: remove must not touch it
+	foreignDir := filepath.Join(projectRoot, ".claude", "agents")
+	if err := os.MkdirAll(foreignDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	foreignPath := filepath.Join(foreignDir, "flowforge-analyst.md")
+	if err := os.WriteFile(foreignPath, []byte("stale"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	_, removedPaths, err := removeSubagent(projectRoot, "flowforge-analyst")
+	if err != nil {
+		t.Fatalf("removeSubagent: %v", err)
+	}
+
+	for _, path := range removedPaths {
+		if filepath.Base(filepath.Dir(filepath.Dir(path))) == ".claude" {
+			t.Errorf("remove touched deselected host file %s", path)
+		}
+	}
+	if _, err := os.Stat(foreignPath); err != nil {
+		t.Errorf("deselected host file must be left for deploy-time cleanup, got: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md")); err == nil {
+		t.Error("selected host file was not removed")
+	}
+}
+
+func TestOpenCodeModelPinning(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	cfg.Agents.Models = map[string]string{"tool-capable": "erasebg-gemini/gemini-3.8-flash-high"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	implementer, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(implementer), "model: erasebg-gemini/gemini-3.8-flash-high") {
+		t.Error("tool-capable implementer must carry pinned model when configured")
+	}
+
+	analyst, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(analyst), "model:") {
+		t.Error("unconfigured profile must keep inherit behavior (no model field)")
+	}
+
+	// Without Models config nothing carries a model field
+	root2 := t.TempDir()
+	if err := initializeTestProject(root2); err != nil {
+		t.Fatal(err)
+	}
+	cfg2, err := config.Load(root2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg2.Agents.Hosts = []string{"opencode"}
+	if _, err := deploySubagents(root2, cfg2, ""); err != nil {
+		t.Fatal(err)
+	}
+	impl2, err := os.ReadFile(filepath.Join(root2, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(impl2), "model:") {
+		t.Error("unconfigured Models must produce byte-compatible output (no model field)")
+	}
+}
+
+func TestOpenCodeTestGuardDefaults(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	implementer, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, needle := range []string{"permission:", "edit:", "'**/*_test.go': deny", "'**/src/test/**': deny", "'**/src/integrationTest/**': deny"} {
+		if !strings.Contains(string(implementer), needle) {
+			t.Errorf("implementer default test guard missing %q", needle)
+		}
+	}
+
+	analyst, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(analyst), "permission:") {
+		t.Error("guard applies only to flowforge-implementer")
+	}
+}
+
+func TestOpenCodeTestGuardDisabledAndCustom(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	cfg.Agents.DisableTestGuard = true
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	impl, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(impl), "permission:") {
+		t.Error("DisableTestGuard must remove the permission block")
+	}
+
+	root2 := t.TempDir()
+	if err := initializeTestProject(root2); err != nil {
+		t.Fatal(err)
+	}
+	cfg2, err := config.Load(root2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg2.Agents.Hosts = []string{"opencode"}
+	cfg2.Agents.TestFileGlobs = []string{"**/custom/**"}
+	if _, err := deploySubagents(root2, cfg2, ""); err != nil {
+		t.Fatal(err)
+	}
+	impl2, err := os.ReadFile(filepath.Join(root2, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(impl2), "'**/custom/**': deny") || strings.Contains(string(impl2), "_test.go") {
+		t.Error("TestFileGlobs must override the default glob set")
+	}
+}
+
+func TestAgentsModelsValidation(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Models = map[string]string{"sonnet": "x"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err == nil {
+		t.Error("unknown agents.models key must fail")
+	}
+}
+
+func TestStatusUsesSameCompileOptions(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	cfg.Agents.Models = map[string]string{"tool-capable": "erasebg-gemini/gemini-3.8-flash-high"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	result, err := computeSubagentStatus(projectRoot, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Current {
+		t.Error("status must use the same compile options as deploy (no false drift)")
+	}
+}

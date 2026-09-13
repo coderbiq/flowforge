@@ -71,6 +71,7 @@ flowforge:
 
 **Blocked by:** None
 **Status:** open
+**Mode:** lightweight
 
 ## Delivery
 
@@ -130,6 +131,8 @@ See the design authority at `../design.md#<anchor>`.
 </ticket-template>
 
 Keep `Blocked by` human-visible even when metadata carries consumption. Omit empty roles; do not impose word counts or repeat upstream rationale. A small existing-seam change stays one compact ticket when splitting would add no independent delivery or real edge.
+
+`**Mode:**` declares who chose the execution mode so the implementer never self-selects: write `**Mode:** lightweight` for mechanical tickets aimed at a lightweight executor (unchecked mechanical Changes + Write set + Execution detail); omit the line or write `**Mode:** full` when the ticket expects a capable agent that owns implement-review-close. The dispatcher prompt may also declare the mode explicitly and overrides the ticket line.
 
 ### 4. Validate the published graph
 

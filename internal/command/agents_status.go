@@ -40,49 +40,43 @@ func computeSubagentStatus(projectRoot string, cfg *config.Config) (subagentStat
 		}
 	}
 
-	// Build expected content maps for each host directory
-	claudeDir := filepath.Join(projectRoot, ".claude", "agents")
-	opencodeDir := filepath.Join(projectRoot, ".opencode", "agent")
-	codexDir := filepath.Join(projectRoot, ".codex", "agents")
+	// Resolve enabled hosts; deselected hosts are out of scope entirely
+	hosts, err := resolveHostTargets(cfg)
+	if err != nil {
+		return subagentStatusResult{}, err
+	}
 
-	claudeExpected := make(map[string][]byte)
-	opencodeExpected := make(map[string][]byte)
-	codexExpected := make(map[string][]byte)
+	// Build expected content maps per enabled host
+	type hostExpectation struct {
+		dir      string
+		expected map[string][]byte
+	}
+	expectations := make([]hostExpectation, 0, len(hosts))
+	for _, h := range hosts {
+		expectations = append(expectations, hostExpectation{
+			dir:      filepath.Join(projectRoot, h.relDir),
+			expected: make(map[string][]byte),
+		})
+	}
 
 	for _, def := range active {
-		// Claude Code
-		cc, err := subagent.CompileClaudeCode(def)
+		opts, err := resolveCompileOptions(cfg, def)
 		if err != nil {
-			return subagentStatusResult{}, fmt.Errorf("compiling %s for Claude Code: %w", def.Name, err)
+			return subagentStatusResult{}, err
 		}
-		claudeExpected[filepath.Join(claudeDir, def.Name+".md")] = cc
-
-		// OpenCode
-		oc, err := subagent.CompileOpenCode(def)
-		if err != nil {
-			return subagentStatusResult{}, fmt.Errorf("compiling %s for OpenCode: %w", def.Name, err)
+		for i, h := range hosts {
+			content, err := h.compile(def, opts)
+			if err != nil {
+				return subagentStatusResult{}, fmt.Errorf("compiling %s for %s: %w", def.Name, h.key, err)
+			}
+			expectations[i].expected[filepath.Join(expectations[i].dir, def.Name+h.ext)] = content
 		}
-		opencodeExpected[filepath.Join(opencodeDir, def.Name+".md")] = oc
-
-		// Codex
-		cx, err := subagent.CompileCodex(def)
-		if err != nil {
-			return subagentStatusResult{}, fmt.Errorf("compiling %s for Codex: %w", def.Name, err)
-		}
-		codexExpected[filepath.Join(codexDir, def.Name+".toml")] = cx
 	}
 
 	result := subagentStatusResult{Current: true}
 
-	// Compare each host directory
-	for _, tc := range []struct {
-		dir      string
-		expected map[string][]byte
-	}{
-		{claudeDir, claudeExpected},
-		{opencodeDir, opencodeExpected},
-		{codexDir, codexExpected},
-	} {
+	// Compare each enabled host directory
+	for _, tc := range expectations {
 		entries, err := compareExpectedContent(tc.expected, tc.dir)
 		if err != nil {
 			return subagentStatusResult{}, fmt.Errorf("comparing %s: %w", tc.dir, err)

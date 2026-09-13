@@ -51,7 +51,11 @@ If [name] is specified, deploys only that subagent. Otherwise, deploys all non-d
 				return nil
 			}
 
-			cmd.Printf("✓ Deployed %d subagent(s) to .claude/agents/, .opencode/agent/, .codex/agents/\n", len(deployed))
+			hosts, err := resolveHostTargets(cfg)
+			if err != nil {
+				return err
+			}
+			cmd.Printf("✓ Deployed %d subagent(s) to %s\n", len(deployed), describeHostDirs(hosts))
 			for _, name := range deployed {
 				cmd.Printf("  - %s\n", name)
 			}
@@ -146,15 +150,151 @@ against the expected compiled content. Reports current/missing/drifted/project-o
 	return agents
 }
 
-// deploySubagents discovers, compiles, and writes subagent definitions to host directories.
-// If targetName is non-empty, deploys only that subagent. Otherwise deploys all non-disabled.
-// Returns the list of deployed subagent names.
+// hostTarget describes one deployable agent host: its config key, agent
+// directory relative to the project root, compiled file extension, and the
+// compiler that produces host-native content. Compilers receive resolved
+// per-definition options; hosts that cannot express an option ignore it.
+type hostTarget struct {
+	key     string
+	relDir  string
+	ext     string
+	compile func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error)
+}
+
+func allHostTargets() []hostTarget {
+	return []hostTarget{
+		{"claude", filepath.Join(".claude", "agents"), ".md", func(def *subagent.Definition, _ subagent.CompileOptions) ([]byte, error) {
+			return subagent.CompileClaudeCode(def)
+		}},
+		{"opencode", filepath.Join(".opencode", "agent"), ".md", func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error) {
+			return subagent.CompileOpenCodeWithOptions(def, opts)
+		}},
+		{"codex", filepath.Join(".codex", "agents"), ".toml", func(def *subagent.Definition, _ subagent.CompileOptions) ([]byte, error) {
+			return subagent.CompileCodex(def)
+		}},
+	}
+}
+
+// resolveHostTargets returns the enabled host targets for a config. A nil
+// agents.hosts entry means "all hosts" (backward compatibility); an explicit
+// empty list or an unknown host name is a configuration error.
+func resolveHostTargets(cfg *config.Config) ([]hostTarget, error) {
+	all := allHostTargets()
+	if cfg.Agents.Hosts == nil {
+		return all, nil
+	}
+	if len(cfg.Agents.Hosts) == 0 {
+		return nil, fmt.Errorf("agents.hosts must name at least one of claude, opencode, codex")
+	}
+	byKey := make(map[string]hostTarget, len(all))
+	for _, h := range all {
+		byKey[h.key] = h
+	}
+	seen := make(map[string]bool, len(cfg.Agents.Hosts))
+	var selected []hostTarget
+	for _, name := range cfg.Agents.Hosts {
+		if seen[name] {
+			continue
+		}
+		h, ok := byKey[name]
+		if !ok {
+			return nil, fmt.Errorf("agents.hosts: unknown host %q (supported: claude, opencode, codex)", name)
+		}
+		seen[name] = true
+		selected = append(selected, h)
+	}
+	return selected, nil
+}
+
+// describeHostDirs renders the enabled host directories for user messages.
+func describeHostDirs(hosts []hostTarget) string {
+	parts := make([]string, len(hosts))
+	for i, h := range hosts {
+		parts[i] = h.relDir + string(filepath.Separator)
+	}
+	return strings.Join(parts, ", ")
+}
+
+// defaultTestFileGlobs is the default write-protection set for the
+// flowforge-implementer agent (test author / implementer separation).
+var defaultTestFileGlobs = []string{
+	"**/*_test.go",
+	"**/src/test/**",
+	"**/src/integrationTest/**",
+	"**/__tests__/**",
+	"**/*.test.ts",
+	"**/*.test.tsx",
+	"**/*.spec.ts",
+}
+
+// validModelProfileKeys are the agents.models config keys the CLI accepts.
+var validModelProfileKeys = map[string]bool{
+	"tool-capable":           true,
+	"tool-capable-read-only": true,
+}
+
+// resolveCompileOptions builds the OpenCode compile options for one
+// definition from project config: pinned model per model profile, and the
+// implementer's test-file guard (default on, configurable).
+func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subagent.CompileOptions, error) {
+	var opts subagent.CompileOptions
+	for key := range cfg.Agents.Models {
+		if !validModelProfileKeys[key] {
+			return opts, fmt.Errorf("agents.models: unknown profile key %q (supported: tool-capable, tool-capable-read-only)", key)
+		}
+	}
+	opts.Model = cfg.Agents.Models[string(def.ModelProfile)]
+	if !cfg.Agents.DisableTestGuard && def.Name == "flowforge-implementer" {
+		if len(cfg.Agents.TestFileGlobs) > 0 {
+			opts.EditDeny = cfg.Agents.TestFileGlobs
+		} else {
+			opts.EditDeny = defaultTestFileGlobs
+		}
+	}
+	return opts, nil
+}
+
+// cleanDeselectedHosts removes managed subagent files from hosts that are not
+// selected. Only files matching a discoverable definition name are removed;
+// project-owned files and the host directories themselves are preserved.
+func cleanDeselectedHosts(projectRoot string, selected []hostTarget, allDefs []*subagent.Definition) error {
+	selectedKeys := make(map[string]bool, len(selected))
+	for _, h := range selected {
+		selectedKeys[h.key] = true
+	}
+	for _, h := range allHostTargets() {
+		if selectedKeys[h.key] {
+			continue
+		}
+		dir := filepath.Join(projectRoot, h.relDir)
+		for _, def := range allDefs {
+			path := filepath.Join(dir, def.Name+h.ext)
+			if _, err := os.Stat(path); err == nil {
+				if err := os.Remove(path); err != nil {
+					return fmt.Errorf("cleaning %s: %w", path, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// deploySubagents discovers, compiles, and writes subagent definitions to the
+// enabled host directories. If targetName is non-empty, deploys only that
+// subagent. Otherwise deploys all non-disabled. Managed files in deselected
+// hosts are cleaned. Returns the list of deployed subagent names.
 func deploySubagents(projectRoot string, cfg *config.Config, targetName string) ([]string, error) {
+	hosts, err := resolveHostTargets(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	// Discover sources (built-in + project-custom)
 	definitions, err := discoverSubagentSources(projectRoot)
 	if err != nil {
 		return nil, err
 	}
+	allDefs := definitions
 
 	// Filter by targetName if specified
 	if targetName != "" {
@@ -188,51 +328,35 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 		return nil, nil
 	}
 
-	// Create host directories
-	claudeDir := filepath.Join(projectRoot, ".claude", "agents")
-	opencodeDir := filepath.Join(projectRoot, ".opencode", "agent")
-	codexDir := filepath.Join(projectRoot, ".codex", "agents")
-
-	for _, dir := range []string{claudeDir, opencodeDir, codexDir} {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return nil, fmt.Errorf("creating directory %s: %w", dir, err)
+	// Create enabled host directories
+	for _, h := range hosts {
+		if err := os.MkdirAll(filepath.Join(projectRoot, h.relDir), 0755); err != nil {
+			return nil, fmt.Errorf("creating directory %s: %w", h.relDir, err)
 		}
 	}
 
-	// Compile and write to each host
+	// Compile and write to each enabled host
 	var deployed []string
 	for _, def := range definitions {
-		// Claude Code
-		claudeContent, err := subagent.CompileClaudeCode(def)
+		opts, err := resolveCompileOptions(cfg, def)
 		if err != nil {
-			return nil, fmt.Errorf("compiling %s for Claude Code: %w", def.Name, err)
+			return nil, err
 		}
-		claudePath := filepath.Join(claudeDir, def.Name+".md")
-		if err := os.WriteFile(claudePath, claudeContent, 0644); err != nil {
-			return nil, fmt.Errorf("writing %s: %w", claudePath, err)
+		for _, h := range hosts {
+			content, err := h.compile(def, opts)
+			if err != nil {
+				return nil, fmt.Errorf("compiling %s for %s: %w", def.Name, h.key, err)
+			}
+			path := filepath.Join(projectRoot, h.relDir, def.Name+h.ext)
+			if err := os.WriteFile(path, content, 0644); err != nil {
+				return nil, fmt.Errorf("writing %s: %w", path, err)
+			}
 		}
-
-		// OpenCode
-		opencodeContent, err := subagent.CompileOpenCode(def)
-		if err != nil {
-			return nil, fmt.Errorf("compiling %s for OpenCode: %w", def.Name, err)
-		}
-		opencodePath := filepath.Join(opencodeDir, def.Name+".md")
-		if err := os.WriteFile(opencodePath, opencodeContent, 0644); err != nil {
-			return nil, fmt.Errorf("writing %s: %w", opencodePath, err)
-		}
-
-		// Codex
-		codexContent, err := subagent.CompileCodex(def)
-		if err != nil {
-			return nil, fmt.Errorf("compiling %s for Codex: %w", def.Name, err)
-		}
-		codexPath := filepath.Join(codexDir, def.Name+".toml")
-		if err := os.WriteFile(codexPath, codexContent, 0644); err != nil {
-			return nil, fmt.Errorf("writing %s: %w", codexPath, err)
-		}
-
 		deployed = append(deployed, def.Name)
+	}
+
+	if err := cleanDeselectedHosts(projectRoot, hosts, allDefs); err != nil {
+		return nil, err
 	}
 
 	return deployed, nil
@@ -313,12 +437,14 @@ func removeSubagent(projectRoot, name string) (bool, []string, error) {
 
 	var removedPaths []string
 
-	// Remove compiled files from all three host directories
-	claudePath := filepath.Join(projectRoot, ".claude", "agents", name+".md")
-	opencodePath := filepath.Join(projectRoot, ".opencode", "agent", name+".md")
-	codexPath := filepath.Join(projectRoot, ".codex", "agents", name+".toml")
-
-	for _, path := range []string{claudePath, opencodePath, codexPath} {
+	// Remove compiled files from enabled host directories only; deselected
+	// hosts are converged by deploy-time cleanup.
+	hosts, err := resolveHostTargets(cfg)
+	if err != nil {
+		return false, nil, err
+	}
+	for _, h := range hosts {
+		path := filepath.Join(projectRoot, h.relDir, name+h.ext)
 		if _, err := os.Stat(path); err == nil {
 			if err := os.Remove(path); err != nil {
 				return false, nil, fmt.Errorf("removing %s: %w", path, err)

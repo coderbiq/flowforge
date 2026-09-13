@@ -125,6 +125,10 @@ func syncProjectAssets(cmd *cobra.Command, successMessage string) {
 		return
 	}
 
+	if len(cfg.Evidence.ExemptProposals) == 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), "Hint: `flowforge check --strict` now validates checked-change evidence quadruples; legacy proposals can opt out via `evidence.exempt_proposals` in .flowforge/config.yaml.")
+	}
+
 	fmt.Fprintln(cmd.OutOrStdout(), successMessage)
 }
 

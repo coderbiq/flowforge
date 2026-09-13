@@ -36,6 +36,8 @@ Do not duplicate the `Write set` — verify it exists in Constraints, is narrow 
 
 Run `flowforge check --dir <proposal-dir>` on the refined ticket. The `execution-contract-incomplete` gap must clear. If it persists, the contract is still incomplete — re-read the diagnostic and fix the specific missing section or placeholder.
 
+Verify the ticket carries a `**Mode:** lightweight` line (write it when Plan omitted it and the ticket is mechanical): the mode is declared here for the dispatcher, never self-selected by the implementer.
+
 Do not introduce a persisted `ready` or `execution-ready` status. Readiness is derived from the current Markdown and diagnostics.
 
 ### 5. Return

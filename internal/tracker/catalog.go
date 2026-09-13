@@ -50,6 +50,10 @@ const (
 	DiagnosticUntrackedLink               DiagnosticCode = "untracked-upstream"
 	DiagnosticMissingEvidence             DiagnosticCode = "missing-completion-evidence"
 	DiagnosticExecutionContractIncomplete DiagnosticCode = "execution-contract-incomplete"
+	DiagnosticEvidenceMissing             DiagnosticCode = "evidence-missing"
+	DiagnosticEvidenceIncomplete          DiagnosticCode = "evidence-incomplete"
+	DiagnosticEvidenceExitNonzero         DiagnosticCode = "evidence-exit-nonzero"
+	DiagnosticEvidenceArtifactMissing     DiagnosticCode = "evidence-artifact-missing"
 	DiagnosticDanglingRepairReference     DiagnosticCode = "dangling-repair-reference"
 	DiagnosticMissingReciprocalRepair     DiagnosticCode = "missing-reciprocal-repair"
 )
@@ -177,10 +181,22 @@ type catalogMetadata struct {
 }
 
 func DiscoverArtifacts(root string) (*Catalog, error) {
+	return DiscoverArtifactsWithConfig(root, Options{})
+}
+
+// DiscoverArtifactsWithConfig walks proposal artifacts with discovery
+// options (evidence exemptions) applied.
+func DiscoverArtifactsWithConfig(root string, opts Options) (*Catalog, error) {
 	catalog := &Catalog{Artifacts: []*Artifact{}, Tickets: []*Issue{}, Diagnostics: []Diagnostic{}}
 	if _, err := os.Stat(root); os.IsNotExist(err) {
 		return catalog, nil
 	}
+
+	exempt := make(map[string]bool, len(opts.ExemptProposals))
+	for _, name := range opts.ExemptProposals {
+		exempt[name] = true
+	}
+	artifactBase := resolveArtifactBase(root)
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
@@ -192,6 +208,9 @@ func DiscoverArtifacts(root string) (*Catalog, error) {
 		artifact, diagnostics, err := discoverArtifact(path)
 		if err != nil {
 			return err
+		}
+		if artifact.Executable && !exempt[featureForPath(path)] {
+			diagnostics = append(diagnostics, discoverEvidenceDiagnostics(artifactBase, path, artifact.Body)...)
 		}
 		catalog.Artifacts = append(catalog.Artifacts, artifact)
 		if artifact.Executable && artifact.Ticket != nil {

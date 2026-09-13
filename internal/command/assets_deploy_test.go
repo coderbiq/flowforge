@@ -270,6 +270,25 @@ func TestPlanPublishesExecutionDetailSkeleton(t *testing.T) {
 	}
 }
 
+func TestImplementSkillCarriesWeakExecutorContract(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("flowforge-implement", "SKILL.md"))
+	for _, needle := range []string{
+		"**Mode:** lightweight",
+		"STATUS: BLOCKED",
+		"Restate before executing",
+		"at most 2 times",
+		"5 failed repair rounds",
+		"exit: 0",
+		"same edit",
+		"verbatim",
+		"Execution scenario (both Success and Failure)",
+	} {
+		if !strings.Contains(body, needle) {
+			t.Errorf("flowforge-implement weak-executor contract missing %q", needle)
+		}
+	}
+}
+
 func TestImplementPreflightRejectsIncompleteExecutionContract(t *testing.T) {
 	body := readSkillBody(t, filepath.Join("flowforge-implement", "SKILL.md"))
 	if !strings.Contains(body, "execution-contract-incomplete") {
@@ -285,6 +304,59 @@ func TestArtifactContractDocumentsExecutionContractSections(t *testing.T) {
 	for _, section := range []string{"Verified contracts", "Execution scenarios", "Expected tests", "Generated artifacts", "Conventions"} {
 		if !strings.Contains(body, section) {
 			t.Errorf("ARTIFACT-CONTRACT.md must document execution-contract section %q", section)
+		}
+	}
+}
+
+func TestAgentsBlockContainsExecutionUnitPolicy(t *testing.T) {
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	data, err := os.ReadFile(filepath.Join(repoRoot, "assets", "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("assets/AGENTS.md not found: %v", err)
+	}
+	body := string(data)
+	for _, needle := range []string{
+		"## Execution unit policy",
+		"One ticket, one fresh execution context",
+		"artifacts, not conversation history",
+		"permission",
+		"disallowedTools",
+	} {
+		if !strings.Contains(body, needle) {
+			t.Errorf("assets/AGENTS.md execution unit policy missing %q", needle)
+		}
+	}
+}
+
+func TestPlanSkillDeclaresModeLine(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("flowforge-plan", "SKILL.md"))
+	if !strings.Contains(body, "**Mode:** lightweight") {
+		t.Fatal("Plan ticket template must declare **Mode:** lightweight for mechanical tickets")
+	}
+	if !strings.Contains(body, "never self-selects") {
+		t.Fatal("Plan must state the mode is declared, not self-selected by the implementer")
+	}
+	refine := readSkillBody(t, filepath.Join("flowforge-refine-ticket", "SKILL.md"))
+	if !strings.Contains(refine, "**Mode:** lightweight") {
+		t.Fatal("refine-ticket must backfill **Mode:** lightweight when Plan omitted it")
+	}
+}
+
+func TestReviewSkillCarriesRound0Audit(t *testing.T) {
+	body := readSkillBody(t, filepath.Join("flowforge-review", "SKILL.md"))
+	for _, needle := range []string{
+		"Round 0",
+		"converge audit",
+		"missing",
+		"partial",
+		"contradicts",
+		"unrequested",
+		"file:line",
+		"zero Round 0 gaps",
+		"affect an acceptance term",
+	} {
+		if !strings.Contains(body, needle) {
+			t.Errorf("flowforge-review Round 0 audit missing %q", needle)
 		}
 	}
 }

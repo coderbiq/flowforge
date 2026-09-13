@@ -37,7 +37,7 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 				}
 			}
 
-			catalog, err := tracker.DiscoverArtifacts(dir)
+			catalog, err := discoverProposalCatalog(dir)
 			if err != nil {
 				return fmt.Errorf("discovering issues in %s: %w", dir, err)
 			}

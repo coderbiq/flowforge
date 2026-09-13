@@ -63,7 +63,21 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 - **Middle Man**: a class or function that mostly just delegates onward. → cut it, call the real target direct.
 - **Refused Bequest**: a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
 
+### 3b. Round 0: converge audit (serial, before the dual axes)
+
+Run one read-only converge-audit pass before spawning the dual-axis sub-agents. The auditor runs with a fresh context (the agent doing the work is never the one grading it) and a mid-tier read-only model profile.
+
+- **Intent source (the only source of truth):** the ticket's Changes, Constraints, and Done and verify, plus the linked effective-specification authorities from step 2. Do **not** trust the Implementation note's self-report; cross-check any evidence quadruple in the ticket against the actual diff (content honesty — the CLI already checks format honesty).
+- **Object:** the fixed diff captured in step 1. **Unit of audit:** every Change, one at a time.
+- **Output:** a gap list; each gap is classified exactly one of `missing` (spec asked, diff has none), `partial` (delivered incompletely), `contradicts` (delivered opposite to the authority's meaning), or `unrequested` (in the diff, not asked for), and each carries `file:line` evidence.
+- **Noise control:** only report gaps that affect an acceptance term. You may dismiss a candidate gap, but you must record the reason — never silently.
+- **Disposition:** `missing`/`partial` gaps are mechanical — translate them into `Fix:` Changes per step 6 and return to the implementer; this round does not escalate to the dual axes. A `contradicts` gap that turns on authority meaning goes through the existing design-return channel.
+
+Proceed to step 4 only when the round reports **zero Round 0 gaps**. In the ticket's Review rounds section, record a Round 0 line: gap count, classification distribution, and disposition (Fix Changes created / design returns).
+
 ### 4. Spawn both sub-agents in parallel
+
+Round 0 has already verified per-Change delivery; both briefs below must not re-falsify those verified items and should focus on standards conformance and specification semantics.
 
 **Standards sub-agent prompt** should include:
 
@@ -114,6 +128,12 @@ Then record the round in the ticket's Review rounds section (after the `---` sep
 
 ```markdown
 ## Review rounds
+
+### Round 0
+
+- Gaps: <count — missing / partial / contradicts / unrequested distribution, or "none">
+- Disposition: <Fix Changes created / design returns, or "none">
+- Escalated to dual axes: <yes only when zero gaps, else "no — returned to implementer">
 
 ### Round N
 

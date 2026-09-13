@@ -24,7 +24,8 @@ func newCheckCmd() *cobra.Command {
 1. Circular dependencies (deadlocks)
 2. Dangling references (blocked by non-existent tickets)
 3. Self-dependencies
-4. Artifact metadata, authority, semantic-link, waiver, scoped-gap, and completion-evidence diagnostics`,
+4. Artifact metadata, authority, semantic-link, waiver, scoped-gap, and completion-evidence diagnostics
+5. Checked-change evidence quadruple diagnostics (missing/incomplete/non-zero exit/absent artifact)`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := checkDir
 			if dir == "" {
@@ -35,7 +36,7 @@ func newCheckCmd() *cobra.Command {
 				}
 			}
 
-			catalog, err := tracker.DiscoverArtifacts(dir)
+			catalog, err := discoverProposalCatalog(dir)
 			if err != nil {
 				return fmt.Errorf("discovering artifacts in %s: %w", dir, err)
 			}

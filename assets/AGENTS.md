@@ -35,3 +35,26 @@ return to this session and re-delegate based on each subagent's `Next Action`.
 | Any code review, implementation audit, or completed-work review | `flowforge-reviewer` | `flowforge-review` |
 | A bounded research/diagnosis question blocks a decision | `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` |
 
+
+## Execution unit policy
+
+**One ticket, one fresh execution context.** When executing frontier tickets in
+batches, dispatch each ticket to a fresh subagent or a new session — never
+continue a whole proposal inside one long-lived session. Within one batch keep
+the same model and tool set for all tickets (cache-friendly). Cross-ticket
+state travels via artifacts, not conversation history: the ticket file, the
+`STATUS:` result contract, and `flowforge frontier` — a new execution context
+loses nothing it needs.
+
+**Entry reading list.** A fresh execution context starts from artifacts, not
+free exploration: this AGENTS.md, the ticket, its linked requirement/design
+authorities, and the evidence left by prior tickets in the same proposal.
+
+**Test separation.** Acceptance tests are preset by Plan/refine-ticket
+(`Expected tests`); a lightweight executor must not modify preset test files
+unless a Change explicitly targets them. Host-level enforcement examples:
+
+- opencode agent definition (`.opencode/agent/*.md`):
+  `permission: {edit: {"**/*_test.go": "deny", "**/src/test/**": "deny"}}`
+- Claude Code: `disallowedTools` restrictions or a PostToolUse/Stop hook that
+  runs the preset tests.

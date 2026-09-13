@@ -26,11 +26,23 @@ Do not advance status to express readiness. Begin only when the ticket's Deliver
 
 ### 2. Determine execution mode
 
-If the ticket has unchecked `- [ ]` Changes with mechanical steps, a `Write set:` in Constraints, and an `Execution detail` section, use **lightweight mode** (step 3). This mode is for implementers that follow explicit instructions but cannot reliably search the codebase or self-review.
+If the ticket body declares `**Mode:** lightweight`, or the dispatch prompt explicitly declares lightweight mode, use **lightweight mode** (step 3). Otherwise, if the ticket has unchecked `- [ ]` Changes with mechanical steps, a `Write set:` in Constraints, and an `Execution detail` section, also use **lightweight mode** (step 3). This mode is for implementers that follow explicit instructions but cannot reliably search the codebase or self-review.
+
+The implementer never self-selects or switches modes; mode is declared by the ticket (Plan/refine-ticket writes `**Mode:**`) or by the dispatcher.
 
 Otherwise, use **full mode** (step 4). This mode is for capable agents that own the entire turn: implement, review, resolve findings, write evidence, and close.
 
 ### 3. Lightweight mode
+
+You are an editor, not a designer: every decision has already been made in the ticket. Execute mechanically and report honestly. When an instruction is ambiguous, a repository fact contradicts the ticket, or completing a Change would require a design judgement, the only legal exit is `STATUS: BLOCKED` with the reason and the current state preserved — never improvise.
+
+#### Phase 0: Restate before executing
+
+Before touching any file, write the execution restatement at the top of the Implementation note: for every unchecked Change, one line restating the action plus the acceptance command that will verify it (from Done and verify or Expected tests). If any restatement does not match the ticket, stop with `STATUS: BLOCKED` instead of guessing.
+
+#### Phase 0b: Preflight traversal
+
+List every Constraint and every Execution scenario (both Success and Failure) from the ticket as a checklist, and mark each with its implementation landing point (file and symbol) or a blocker note. A Change that cannot honor a Constraint it must satisfy is a `STATUS: BLOCKED` return, not a silent deviation. Do not modify files outside the ticket's `Write set:`.
 
 Execute unchecked Changes mechanically, self-check, and stop. Do not review, close the ticket, or make design decisions.
 
@@ -45,17 +57,21 @@ Work through each `- [ ]` item in order. For each Change:
 
 If a Change cannot be completed (file not found, symbol moved, build fails after the change), stop, leave the Change unchecked, and note the blocker in the Implementation note.
 
+Fail fast: retry a failed Change's verification command at most 2 times; once the ticket accumulates 5 failed repair rounds, stop and return `STATUS: BLOCKED` with the scene preserved. Do not attempt unbounded self-healing — agents succeed quickly and fail slowly.
+
 If a Change requires a design decision (the action is ambiguous, or completing it would change a responsibility, interface, seam, or ordering), stop, leave the Change unchecked, and note it as a **design return** in the Implementation note.
 
 Do not modify files outside the ticket's `Write set:`.
 
 #### 3b. Mechanical self-check
 
-Run all commands listed in Done and verify. Record pass/fail and observed output for each. If any command fails, stop and report the failure in the Implementation note—do not attempt to debug or fix.
+Run all commands listed in Done and verify. Record pass/fail and observed output for each. If any command fails, stop, and report the failure in the Implementation note—do not attempt to debug or fix.
+
+When a command fails, paste the failing command, its exit code, and the relevant error output verbatim into the Implementation note. Never paraphrase or summarize errors — the verbatim output is the feedback signal for the next agent.
 
 #### 3c. Check off completed Changes
 
-Change `- [ ]` to `- [x]` for each completed Change in the ticket. Leave unchecked any Change that could not be completed.
+Change `- [ ]` to `- [x]` for each completed Change in the ticket, in the same edit as its evidence quadruple: an indented block under the checked item carrying `- cmd:` (the exact command), `- exit: 0`, `- output:` (1–3 key result lines quoted verbatim, e.g. `N tests completed, 0 failed`), and `- artifact:` (repository-relative path of the delivered file). If the exit code is not `0` — including environment-related failures — the Change stays unchecked; record the disposition, and return `STATUS: BLOCKED` when it blocks completion. Leave unchecked any Change that could not be completed.
 
 #### 3d. Write Implementation note
 

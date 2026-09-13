@@ -26,14 +26,23 @@ type Config struct {
 	KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty" mapstructure:"knowledge_sources"`
 	Agents           AgentsConfig            `yaml:"agents,omitempty" mapstructure:"agents"`
 	Standards        StandardsConfig         `yaml:"standards,omitempty" mapstructure:"standards"`
+	Evidence         EvidenceConfig          `yaml:"evidence,omitempty" mapstructure:"evidence"`
 }
 
 type StandardsConfig struct {
 	Guide string `yaml:"guide,omitempty" mapstructure:"guide"`
 }
 
+type EvidenceConfig struct {
+	ExemptProposals []string `yaml:"exempt_proposals,omitempty" mapstructure:"exempt_proposals"`
+}
+
 type AgentsConfig struct {
-	Disabled []string `yaml:"disabled,omitempty" mapstructure:"disabled"`
+	Disabled         []string          `yaml:"disabled,omitempty" mapstructure:"disabled"`
+	Hosts            []string          `yaml:"hosts,omitempty" mapstructure:"hosts"`
+	Models           map[string]string `yaml:"models,omitempty" mapstructure:"models"`
+	TestFileGlobs    []string          `yaml:"test_file_globs,omitempty" mapstructure:"test_file_globs"`
+	DisableTestGuard bool              `yaml:"disable_test_guard,omitempty" mapstructure:"disable_test_guard"`
 }
 
 type ProjectConfig struct {
@@ -89,6 +98,7 @@ func (c *Config) Save(projectRoot string) error {
 		KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty"`
 		Agents           AgentsConfig            `yaml:"agents,omitempty"`
 		Standards        StandardsConfig         `yaml:"standards,omitempty"`
+		Evidence         EvidenceConfig          `yaml:"evidence,omitempty"`
 	}
 
 	payload := fileConfig{
@@ -100,6 +110,7 @@ func (c *Config) Save(projectRoot string) error {
 		KnowledgeSources: c.KnowledgeSources,
 		Agents:           c.Agents,
 		Standards:        c.Standards,
+		Evidence:         c.Evidence,
 	}
 
 	data, err := yaml.Marshal(payload)
