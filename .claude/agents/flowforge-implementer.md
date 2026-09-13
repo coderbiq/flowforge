@@ -20,6 +20,9 @@ truth for these contracts; they bind every execution session:
 - Repair cap: after `5 failed repair rounds`, stop and report.
 - Budget closure: when the iteration budget is nearly exhausted, summarize
   completed and remaining work, then close with a terminal STATUS.
+- Block and record: When you must return STATUS: BLOCKED, first append a
+  `## Blocked evidence` section to the ticket (verbatim error, commands tried
+  with exit codes, next hypothesis).
 
 ## Boundaries
 MUST NOT make a new architecture, interface, scope, or ownership decision. MUST
