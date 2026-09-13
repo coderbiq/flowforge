@@ -128,6 +128,56 @@ func TestCompileOpenCodeOmitsModelField(t *testing.T) {
 	}
 }
 
+func TestCompileOpenCodeStepsBudget(t *testing.T) {
+	dir := testAssetsDir(t)
+	definitions, err := ParseDir(dir)
+	if err != nil {
+		t.Fatalf("ParseDir: %v", err)
+	}
+	for _, def := range definitions {
+		// Nil MaxSteps: no steps field, byte-identical to the zero-options
+		// CompileOpenCode delegate (pre-option behavior).
+		base, err := CompileOpenCode(def)
+		if err != nil {
+			t.Fatalf("CompileOpenCode(%s): %v", def.Name, err)
+		}
+		zero, err := CompileOpenCodeWithOptions(def, CompileOptions{})
+		if err != nil {
+			t.Fatalf("CompileOpenCodeWithOptions(%s, zero): %v", def.Name, err)
+		}
+		if !bytes.Equal(zero, base) {
+			t.Errorf("CompileOpenCodeWithOptions(%s, zero) must equal CompileOpenCode byte for byte", def.Name)
+		}
+		fm, _, ok := splitFrontmatter(zero)
+		if !ok {
+			t.Fatalf("CompileOpenCodeWithOptions(%s, zero): frontmatter delimiters missing", def.Name)
+		}
+		if strings.Contains(string(fm), "steps:") {
+			t.Errorf("CompileOpenCodeWithOptions(%s, zero): unexpected 'steps:' field", def.Name)
+		}
+
+		// Set MaxSteps: frontmatter carries the value.
+		steps := 321
+		withBudget, err := CompileOpenCodeWithOptions(def, CompileOptions{MaxSteps: &steps})
+		if err != nil {
+			t.Fatalf("CompileOpenCodeWithOptions(%s, steps): %v", def.Name, err)
+		}
+		fm, _, ok = splitFrontmatter(withBudget)
+		if !ok {
+			t.Fatalf("CompileOpenCodeWithOptions(%s, steps): frontmatter delimiters missing", def.Name)
+		}
+		if !strings.Contains(string(fm), "steps: 321") {
+			t.Errorf("CompileOpenCodeWithOptions(%s, steps): missing 'steps: 321'", def.Name)
+		}
+		var parsed map[string]interface{}
+		if err := yaml.Unmarshal(fm, &parsed); err != nil {
+			t.Errorf("CompileOpenCodeWithOptions(%s, steps): frontmatter invalid YAML: %v", def.Name, err)
+		} else if got, ok := parsed["steps"].(int); !ok || got != 321 {
+			t.Errorf("CompileOpenCodeWithOptions(%s, steps): parsed steps = %v (want int 321)", def.Name, parsed["steps"])
+		}
+	}
+}
+
 func TestCompileCodexReplacesSkillInvocation(t *testing.T) {
 	dir := testAssetsDir(t)
 	definitions, err := ParseDir(dir)

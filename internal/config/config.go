@@ -40,6 +40,7 @@ type EvidenceConfig struct {
 type AgentsConfig struct {
 	Disabled         []string          `yaml:"disabled,omitempty" mapstructure:"disabled"`
 	Hosts            []string          `yaml:"hosts,omitempty" mapstructure:"hosts"`
+	MaxSteps         int               `yaml:"max_steps,omitempty" mapstructure:"max_steps"`
 	Models           map[string]string `yaml:"models,omitempty" mapstructure:"models"`
 	TestFileGlobs    []string          `yaml:"test_file_globs,omitempty" mapstructure:"test_file_globs"`
 	DisableTestGuard bool              `yaml:"disable_test_guard,omitempty" mapstructure:"disable_test_guard"`

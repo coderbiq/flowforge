@@ -7,11 +7,13 @@ import (
 )
 
 // CompileOptions carries per-deployment compilation parameters resolved from
-// project config: an explicit model to pin (otherwise inherit) and edit-deny
-// globs for host-level file protection.
+// project config: an explicit model to pin (otherwise inherit), edit-deny
+// globs for host-level file protection, and an optional host-level execution
+// budget (OpenCode `steps`, nil = inherit host behavior).
 type CompileOptions struct {
 	Model    string
 	EditDeny []string
+	MaxSteps *int
 }
 
 // CompileOpenCode generates an OpenCode native agent definition file with
@@ -28,6 +30,7 @@ func CompileOpenCodeWithOptions(def *Definition, opts CompileOptions) ([]byte, e
 		Description string                       `yaml:"description"`
 		Mode        string                       `yaml:"mode"`
 		Model       string                       `yaml:"model,omitempty"`
+		Steps       *int                         `yaml:"steps,omitempty"`
 		Permission  map[string]map[string]string `yaml:"permission,omitempty"`
 	}
 
@@ -35,6 +38,7 @@ func CompileOpenCodeWithOptions(def *Definition, opts CompileOptions) ([]byte, e
 		Description: def.Description,
 		Mode:        "subagent",
 		Model:       opts.Model,
+		Steps:       opts.MaxSteps,
 	}
 	if len(opts.EditDeny) > 0 {
 		deny := make(map[string]string, len(opts.EditDeny))

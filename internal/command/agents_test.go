@@ -1048,6 +1048,97 @@ func TestOpenCodeTestGuardDisabledAndCustom(t *testing.T) {
 	}
 }
 
+func TestOpenCodeStepsBudget(t *testing.T) {
+	// deployOpenCode deploys all subagents to the opencode host with the given
+	// agents.max_steps value and returns the implementer and analyst artifacts.
+	deployOpenCode := func(t *testing.T, maxSteps int) (string, string) {
+		t.Helper()
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		cfg.Agents.MaxSteps = maxSteps
+		if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+			t.Fatalf("deploySubagents(maxSteps=%d): %v", maxSteps, err)
+		}
+		readArtifact := func(name string) string {
+			t.Helper()
+			data, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", name+".md"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return string(data)
+		}
+		return readArtifact("flowforge-implementer"), readArtifact("flowforge-analyst")
+	}
+
+	t.Run("unconfigured defaults to 200 on implementer", func(t *testing.T) {
+		impl, _ := deployOpenCode(t, 0)
+		if !strings.Contains(impl, "steps: 200") {
+			t.Error("unconfigured max_steps must compile implementer with default steps: 200")
+		}
+	})
+
+	t.Run("positive value is passed through", func(t *testing.T) {
+		impl, _ := deployOpenCode(t, 500)
+		if !strings.Contains(impl, "steps: 500") {
+			t.Error("max_steps: 500 must compile implementer with steps: 500")
+		}
+	})
+
+	t.Run("minus one disables the steps field", func(t *testing.T) {
+		impl, _ := deployOpenCode(t, -1)
+		if strings.Contains(impl, "steps:") {
+			t.Error("max_steps: -1 must not produce a steps field")
+		}
+	})
+
+	t.Run("other negative values are config errors", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		cfg.Agents.MaxSteps = -5
+		if _, err := deploySubagents(projectRoot, cfg, ""); err == nil {
+			t.Error("max_steps: -5 must fail deployment with a config error")
+		} else if !strings.Contains(err.Error(), "max_steps") {
+			t.Errorf("error must name the config key: %v", err)
+		}
+		if _, err := computeSubagentStatus(projectRoot, cfg); err == nil {
+			t.Error("max_steps: -5 must fail status with the same config error")
+		}
+	})
+
+	t.Run("non-implementer agents never carry steps", func(t *testing.T) {
+		_, analyst := deployOpenCode(t, 500)
+		if strings.Contains(analyst, "steps:") {
+			t.Error("max_steps must not affect non-implementer subagents")
+		}
+	})
+
+	t.Run("unconfigured implementer differs from legacy by exactly the steps line", func(t *testing.T) {
+		implDefault, analystDefault := deployOpenCode(t, 0)
+		implOff, analystOff := deployOpenCode(t, -1)
+		stripped := strings.Replace(implDefault, "steps: 200\n", "", 1)
+		if stripped != implOff {
+			t.Error("unconfigured implementer output must differ from max_steps: -1 output by exactly one 'steps: 200' line")
+		}
+		if analystDefault != analystOff {
+			t.Error("non-implementer artifacts must be byte-identical regardless of max_steps")
+		}
+	})
+}
+
 func TestAgentsModelsValidation(t *testing.T) {
 	projectRoot := t.TempDir()
 	if err := initializeTestProject(projectRoot); err != nil {
@@ -1074,6 +1165,7 @@ func TestStatusUsesSameCompileOptions(t *testing.T) {
 	}
 	cfg.Agents.Hosts = []string{"opencode"}
 	cfg.Agents.Models = map[string]string{"tool-capable": "erasebg-gemini/gemini-3.8-flash-high"}
+	cfg.Agents.MaxSteps = 200
 	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
 		t.Fatal(err)
 	}

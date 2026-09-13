@@ -233,9 +233,19 @@ var validModelProfileKeys = map[string]bool{
 	"tool-capable-read-only": true,
 }
 
+// defaultImplementerMaxSteps is the execution budget compiled into the
+// flowforge-implementer OpenCode agent when agents.max_steps is unconfigured.
+// Rationale (executor-loop-hardening design d-execution-budget): an incident
+// outlier session burned 893 tool calls while normal sessions stay in the
+// 51-149 range; 200 covers the normal upper bound and truncates the outlier
+// tail via the host's native `steps` limit.
+const defaultImplementerMaxSteps = 200
+
 // resolveCompileOptions builds the OpenCode compile options for one
-// definition from project config: pinned model per model profile, and the
-// implementer's test-file guard (default on, configurable).
+// definition from project config: pinned model per model profile, the
+// implementer's test-file guard (default on, configurable), and the
+// implementer's execution budget (agents.max_steps: 0 = default 200,
+// -1 = unlimited/no field, N = N; other negatives are config errors).
 func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subagent.CompileOptions, error) {
 	var opts subagent.CompileOptions
 	for key := range cfg.Agents.Models {
@@ -243,12 +253,27 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subage
 			return opts, fmt.Errorf("agents.models: unknown profile key %q (supported: tool-capable, tool-capable-read-only)", key)
 		}
 	}
+	if cfg.Agents.MaxSteps < -1 {
+		return opts, fmt.Errorf("agents.max_steps: invalid value %d (supported: positive budget, 0 = default %d, -1 = unlimited)", cfg.Agents.MaxSteps, defaultImplementerMaxSteps)
+	}
 	opts.Model = cfg.Agents.Models[string(def.ModelProfile)]
 	if !cfg.Agents.DisableTestGuard && def.Name == "flowforge-implementer" {
 		if len(cfg.Agents.TestFileGlobs) > 0 {
 			opts.EditDeny = cfg.Agents.TestFileGlobs
 		} else {
 			opts.EditDeny = defaultTestFileGlobs
+		}
+	}
+	if def.Name == "flowforge-implementer" {
+		switch cfg.Agents.MaxSteps {
+		case 0:
+			steps := defaultImplementerMaxSteps
+			opts.MaxSteps = &steps
+		case -1:
+			// Explicit unlimited: no steps field, host default behavior.
+		default:
+			steps := cfg.Agents.MaxSteps
+			opts.MaxSteps = &steps
 		}
 	}
 	return opts, nil
