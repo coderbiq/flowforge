@@ -266,6 +266,13 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subage
 			opts.EditDeny = defaultTestFileGlobs
 		}
 	}
+	// The question tool pause is structurally incompatible with fresh
+	// execution contexts: a subagent blocking on human input freezes the
+	// dispatching batch (incident: 537min session, 530min spent waiting on
+	// two question calls). The only ambiguity exit is STATUS: BLOCKED.
+	if def.Name == "flowforge-implementer" {
+		opts.DenyQuestion = true
+	}
 	if def.Name == "flowforge-implementer" {
 		switch cfg.Agents.MaxSteps {
 		case 0:

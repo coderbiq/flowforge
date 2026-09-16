@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+
 	"flowforge/internal/config"
 	"flowforge/internal/subagent"
 )
@@ -1024,8 +1026,11 @@ func TestOpenCodeTestGuardDisabledAndCustom(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(impl), "permission:") {
-		t.Error("DisableTestGuard must remove the permission block")
+	if strings.Contains(string(impl), "edit:") {
+		t.Error("DisableTestGuard must remove the edit permission block")
+	}
+	if !strings.Contains(string(impl), "question: deny") {
+		t.Error("implementer must always carry question: deny (subagents never pause for input)")
 	}
 
 	root2 := t.TempDir()
@@ -1848,6 +1853,60 @@ func TestAgentStatusTreatsPreservedModelAsCurrent(t *testing.T) {
 		}
 		if !foundDrifted {
 			t.Errorf("expected drifted entry for %s, got entries: %+v", path, result.Entries)
+		}
+	})
+}
+
+func TestOpenCodeQuestionDeny(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	impl, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	analyst, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-analyst.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("implementer carries question deny", func(t *testing.T) {
+		if !strings.Contains(string(impl), "question: deny") {
+			t.Error("implementer must carry question: deny in frontmatter")
+		}
+	})
+
+	t.Run("non-implementer subagents do not", func(t *testing.T) {
+		if strings.Contains(string(analyst), "question") {
+			t.Error("analyst must not carry question deny (implementer-scoped only)")
+		}
+	})
+
+	t.Run("edit deny and question deny coexist", func(t *testing.T) {
+		// Default test guard is on: implementer must carry both edit globs
+		// and question deny under one permission block.
+		if !strings.Contains(string(impl), "edit:") || !strings.Contains(string(impl), "question: deny") {
+			t.Error("implementer with default test guard must carry both edit deny globs and question: deny")
+		}
+		// Frontmatter must still be valid YAML.
+		content := string(impl)
+		start := strings.Index(content, "---\n")
+		end := strings.Index(content[start+4:], "---\n")
+		if start == -1 || end == -1 {
+			t.Fatal("frontmatter delimiters missing")
+		}
+		var parsed map[string]interface{}
+		if err := yaml.Unmarshal([]byte(content[start+4:start+4+end]), &parsed); err != nil {
+			t.Errorf("frontmatter invalid YAML after adding question deny: %v", err)
 		}
 	})
 }

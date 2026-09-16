@@ -10,13 +10,16 @@ import (
 // project config and existing deployed files: an explicit model to pin
 // (otherwise inherit), a fallback model preserved from a prior deployment
 // (used only when Model is empty), edit-deny globs for host-level file
-// protection, and an optional host-level execution budget (OpenCode `steps`,
-// nil = inherit host behavior).
+// protection, an optional host-level execution budget (OpenCode `steps`,
+// nil = inherit host behavior), and a question-tool deny (subagents must
+// never pause for human input mid-session — STATUS: BLOCKED is the only
+// exit for ambiguity).
 type CompileOptions struct {
 	Model         string
 	FallbackModel string
 	EditDeny      []string
 	MaxSteps      *int
+	DenyQuestion  bool
 }
 
 // resolveModel applies the model precedence: config-pinned Model first, then
@@ -39,11 +42,11 @@ func CompileOpenCode(def *Definition) ([]byte, error) {
 // file with explicit compile options applied.
 func CompileOpenCodeWithOptions(def *Definition, opts CompileOptions) ([]byte, error) {
 	type opencodeFrontmatter struct {
-		Description string                       `yaml:"description"`
-		Mode        string                       `yaml:"mode"`
-		Model       string                       `yaml:"model,omitempty"`
-		Steps       *int                         `yaml:"steps,omitempty"`
-		Permission  map[string]map[string]string `yaml:"permission,omitempty"`
+		Description string                 `yaml:"description"`
+		Mode        string                 `yaml:"mode"`
+		Model       string                 `yaml:"model,omitempty"`
+		Steps       *int                   `yaml:"steps,omitempty"`
+		Permission  map[string]interface{} `yaml:"permission,omitempty"`
 	}
 
 	fm := opencodeFrontmatter{
@@ -57,7 +60,16 @@ func CompileOpenCodeWithOptions(def *Definition, opts CompileOptions) ([]byte, e
 		for _, glob := range opts.EditDeny {
 			deny[glob] = "deny"
 		}
-		fm.Permission = map[string]map[string]string{"edit": deny}
+		if fm.Permission == nil {
+			fm.Permission = make(map[string]interface{})
+		}
+		fm.Permission["edit"] = deny
+	}
+	if opts.DenyQuestion {
+		if fm.Permission == nil {
+			fm.Permission = make(map[string]interface{})
+		}
+		fm.Permission["question"] = "deny"
 	}
 
 	fmBytes, err := yaml.Marshal(fm)
