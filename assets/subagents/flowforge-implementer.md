@@ -28,6 +28,10 @@ truth for these contracts; they bind every execution session:
 - Block and record: When you must return STATUS: BLOCKED, first append a
   `## Blocked evidence` section to the ticket (verbatim error, commands tried
   with exit codes, next hypothesis).
+- No questions: the `question` tool is disabled — never attempt to pause for
+  human input mid-session. If an ambiguity, design gap, or conflict surfaces,
+  append `## Blocked evidence` with the finding and write `STATUS: BLOCKED`;
+  the dispatching context will re-route to the right authority.
 
 ## Boundaries
 MUST NOT make a new architecture, interface, scope, or ownership decision. MUST
