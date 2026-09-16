@@ -5,11 +5,16 @@ do not edit by hand: observations.md is the append-only source, this file is
 fully replaced on each run. est_cost is a tier proxy price estimate, not an
 invoice figure.
 
-- generated: 2026-09-13T21:01:42+08:00
-- observations: docs/proposals/executor-value-measurement/observations.md (18 sessions)
+- generated: 2026-09-15T17:50:15+08:00
+- observations: docs/proposals/executor-value-measurement/observations.md (31 sessions)
 - epochs: pre-hardening:<1789291500000,provider-switch:1789291500000-1789298700000,hardened:>1789298700000
 - prices ($/M in/out/cacheR, proxy defaults): flagship 0.6/2.2/0.113 · flash 0.3/2.5/0.075
-- observation window: 2026-09-14 00:00 -> 2026-09-20 23:59 (UTC+08:00) — 7 day(s) remaining
+- observation window: 2026-09-14 00:00 -> 2026-09-20 23:59 (UTC+08:00) — 5 day(s) remaining
+
+> ALARM: G1 loop safety FAILED: 7 runaway session(s): ses_f5f6837e2ffeaoc6ksVzi1eaYQ (steps=523, rep_max=30, dur=210.7min), ses_f5f682ab6ffeF5KBSHHOrTYEOI (steps=871, rep_max=18, dur=283.1min), ses_f5e4d9c14ffew6nq249bJNTXxB (steps=356, rep_max=5, dur=29.7min), ses_f5e324842ffe03u6o4mM5IjX81 (steps=700, rep_max=2, dur=62.2min), ses_f5e3236baffeLHLVPwU99uvrDt (steps=263, rep_max=17, dur=16.9min), ses_f5df9091bfferWkoD6zxgdBFRf (steps=916, rep_max=11, dur=68.4min), ses_f5cf8f0e6ffed8oGPXUeL9w9Hu (steps=129, rep_max=12, dur=29.2min) -> rollback to flagship executor and open a Fix ticket (design d-decision-gates)
+> ALARM: G4 recurrence circuit-break TRIGGERED: pre-hardening shape recurred: ses_f5f6837e2ffeaoc6ksVzi1eaYQ (rep_max=30, steps=523), ses_f5f682ab6ffeF5KBSHHOrTYEOI (rep_max=18, steps=871), ses_f5e324842ffe03u6o4mM5IjX81 (rep_max=2, steps=700), ses_f5df9091bfferWkoD6zxgdBFRf (rep_max=11, steps=916) -> rollback to flagship immediately, do not wait for the observation window to close
+
+> warning: 3 session(s) with unresolvable ticket path -> stratum unknown
 
 ## Decision gates (pre-registered, design d-decision-gates)
 
@@ -21,10 +26,12 @@ per side per stratum).
 
 | gate | verdict | detail |
 |---|---|---|
-| G1 loop safety (hardened) | insufficient-n | hardened epoch has 0 session(s) — no valid gate sample yet |
-| G2 economics (overall) | insufficient-n | no S/M/L session in the hardened epoch yet |
-| G3 duration (overall) | insufficient-n | no S/M/L session in the hardened epoch yet |
-| G4 recurrence circuit-break | not-triggered | 0 session(s), none with rep_max>=20 or steps>=400 |
+| G1 loop safety (hardened) | fail | 7 runaway session(s): ses_f5f6837e2ffeaoc6ksVzi1eaYQ (steps=523, rep_max=30, dur=210.7min), ses_f5f682ab6ffeF5KBSHHOrTYEOI (steps=871, rep_max=18, dur=283.1min), ses_f5e4d9c14ffew6nq249bJNTXxB (steps=356, rep_max=5, dur=29.7min), ses_f5e324842ffe03u6o4mM5IjX81 (steps=700, rep_max=2, dur=62.2min), ses_f5e3236baffeLHLVPwU99uvrDt (steps=263, rep_max=17, dur=16.9min), ses_f5df9091bfferWkoD6zxgdBFRf (steps=916, rep_max=11, dur=68.4min), ses_f5cf8f0e6ffed8oGPXUeL9w9Hu (steps=129, rep_max=12, dur=29.2min) |
+| G2 economics L | insufficient-n | flash n=10, flagship n=0 (need n>=5 per side) |
+| G2 economics (overall) | insufficient-n | worst of judged strata: L=insufficient-n |
+| G3 duration L | insufficient-n | flash n=10, flagship n=0 (need n>=5 per side) |
+| G3 duration (overall) | insufficient-n | worst of judged strata: L=insufficient-n |
+| G4 recurrence circuit-break | fail | pre-hardening shape recurred: ses_f5f6837e2ffeaoc6ksVzi1eaYQ (rep_max=30, steps=523), ses_f5f682ab6ffeF5KBSHHOrTYEOI (rep_max=18, steps=871), ses_f5e324842ffe03u6o4mM5IjX81 (rep_max=2, steps=700), ses_f5df9091bfferWkoD6zxgdBFRf (rep_max=11, steps=916) |
 
 Pre-registered consequences: G2 fail with flash/flagship ratio >=
 2x -> rollback flagship; otherwise -> extend
@@ -39,7 +46,8 @@ DECISION.md (three-way conclusion template).
 |---|---|---|---|---|---|---|
 | pre-hardening | L | 8 | 16.6 | 0.7374 | 49.4% | 2 |
 | provider-switch | L | 10 | 1.45 | 0.0975 | 64.0% | 0 |
-| hardened | - | 0 | - | - | - | 0 |
+| hardened | L | 10 | 15.2 | 1.1553 | 53.5% | 4 |
+| hardened | unknown | 3 | 62.2 | 7.1340 | 48.7% | 3 |
 
 runaway_n: sessions with steps > 150 or rep_max > 10 or dur_min > 30 (any one).
 cacheR_cost_share: cache-read cost share of the cell's est_cost (Σ cacheR·P_cacheR / Σ est_cost).
@@ -52,6 +60,8 @@ values), recomputed from token columns with the price table above.
 |---|---|---|---|---|---|---|
 | pre-hardening | L | 5 | 0.8635 | 3 | 0.6113 | 1.41 |
 | provider-switch | L | 9 | 0.1051 | 1 | 0.0239 | 4.40 |
+| hardened | L | 10 | 1.1553 | 0 | - | - |
+| hardened | unknown | 3 | 7.1340 | 0 | - | - |
 
 ## Session status by epoch
 
@@ -59,4 +69,4 @@ values), recomputed from token columns with the price table above.
 |---|---|---|---|---|---|
 | pre-hardening | 8 | 3 | 4 | 1 | 0 |
 | provider-switch | 10 | 4 | 0 | 6 | 0 |
-| hardened | 0 | 0 | 0 | 0 | 0 |
+| hardened | 13 | 10 | 2 | 1 | 0 |
