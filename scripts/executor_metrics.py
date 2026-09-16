@@ -502,25 +502,32 @@ def _gate(gate, verdict, detail):
 
 
 def hardened_rows(rows, epochs):
-    """Observation rows inside the hardened epoch — the only gate sample
-    (design d-epoch: earlier epochs are baselines and never gate)."""
-    return [r for r in rows
-            if epochs and report_epoch(ts_ms(r["ts"]), epochs) == HARDENED_EPOCH]
+    """Observation rows inside any hardened-* epoch, tagged with _epoch.
+    Only hardened-* epochs gate (d-epoch: earlier epochs are baselines)."""
+    result = []
+    for r in rows:
+        if not epochs:
+            continue
+        label = report_epoch(ts_ms(r["ts"]), epochs)
+        if label and label.startswith(HARDENED_EPOCH):
+            result.append(dict(r, _epoch=label))
+    return result
 
 
-def evaluate_g1(hrd):
-    """G1 loop safety: runaway events in the hardened epoch must be 0."""
+def evaluate_g1(hrd, epoch_label=None):
+    """G1 loop safety: runaway events in this epoch must be 0."""
+    label = epoch_label or HARDENED_EPOCH
     if not hrd:
-        return _gate("G1 loop safety (hardened)", GATE_INSUFFICIENT,
-                     "hardened epoch has 0 session(s) — no valid gate sample yet")
+        return _gate(f"G1 loop safety ({label})", GATE_INSUFFICIENT,
+                     f"{label} epoch has 0 session(s) — no valid gate sample yet")
     bad = [r for r in hrd if is_runaway(r)]
     if bad:
         ids = ", ".join(
             f"{r['session']} (steps={r['steps']}, rep_max={r['rep_max']}, "
             f"dur={_fmt_dur(r['dur_min'])}min)" for r in bad)
-        return _gate("G1 loop safety (hardened)", GATE_FAIL,
+        return _gate(f"G1 loop safety ({label})", GATE_FAIL,
                      f"{len(bad)} runaway session(s): {ids}")
-    return _gate("G1 loop safety (hardened)", GATE_PASS,
+    return _gate(f"G1 loop safety ({label})", GATE_PASS,
                  f"{len(hrd)} session(s), 0 runaway "
                  f"(steps>{RUNAWAY_STEPS} or rep_max>{RUNAWAY_REP_MAX} or "
                  f"dur>{RUNAWAY_DUR_MIN:g}min)")
@@ -545,10 +552,11 @@ def _overall_gate(entries, label):
     return _gate(label, verdict, f"worst of judged strata: {judged}")
 
 
-def evaluate_g2(agg):
+def evaluate_g2(agg, epoch_label=None):
     """G2 economics per stratum, consuming the report aggregation's flash /
     flagship medians inside the hardened epoch. Returns (rows, overall)."""
-    cells = (agg.get(HARDENED_EPOCH) or {}).get("cells") or {}
+    label = epoch_label or HARDENED_EPOCH
+    cells = (agg.get(label) or {}).get("cells") or {}
     entries = []
     for st in ("S", "M", "L"):
         if st not in cells:
@@ -604,18 +612,19 @@ def evaluate_g3(hrd, strata):
     return entries, _overall_gate(entries, "G3 duration (overall)")
 
 
-def evaluate_g4(hrd):
+def evaluate_g4(hrd, epoch_label=None):
     """G4 recurrence circuit-break (pre-hardening shape recurrence):
     any hardened session with rep_max>=20 or steps>=400 (right-inclusive)
     -> fail; immediate rollback, not waiting for the window to close."""
+    label = epoch_label or HARDENED_EPOCH
     hits = [r for r in hrd
             if r["rep_max"] >= G4_REP_MAX or r["steps"] >= G4_STEPS]
     if hits:
         ids = ", ".join(f"{r['session']} (rep_max={r['rep_max']}, "
                         f"steps={r['steps']})" for r in hits)
-        return _gate("G4 recurrence circuit-break", GATE_FAIL,
+        return _gate(f"G4 circuit-break ({label})", GATE_FAIL,
                      f"pre-hardening shape recurred: {ids}")
-    return _gate("G4 recurrence circuit-break", GATE_NOT_TRIGGERED,
+    return _gate(f"G4 circuit-break ({label})", GATE_NOT_TRIGGERED,
                  f"{len(hrd)} session(s), none with rep_max>={G4_REP_MAX} "
                  f"or steps>={G4_STEPS}")
 
@@ -623,22 +632,43 @@ def evaluate_g4(hrd):
 def evaluate_gates(rows, strata, epochs, agg):
     """All four pre-registered gates over observations + the ticket 02
     aggregation. Returns {"gates": [row...], "alarms": [str...]} — alarms
-    only for G1 fail / G4 triggered (both mean rollback to flagship)."""
+    only for G1 fail / G4 triggered on the latest hardened sub-epoch."""
     hrd = hardened_rows(rows, epochs)
-    g1 = evaluate_g1(hrd)
-    g2_rows, g2_overall = evaluate_g2(agg)
-    g3_rows, g3_overall = evaluate_g3(hrd, strata)
-    g4 = evaluate_g4(hrd)
-    gates = ([g1] + g2_rows + [g2_overall] + g3_rows + [g3_overall] + [g4])
+    epoch_groups = {}
+    for r in hrd:
+        ep = r.get("_epoch", HARDENED_EPOCH)
+        epoch_groups.setdefault(ep, []).append(r)
+    epoch_order = [name for name, _, _ in (epochs or [])
+                   if name and name.startswith(HARDENED_EPOCH)]
+    for ep in sorted(epoch_groups):
+        if ep not in epoch_order:
+            epoch_order.append(ep)
+    last_epoch = epoch_order[-1] if epoch_order else None
+
+    gates = []
     alarms = []
-    if g1["verdict"] == GATE_FAIL:
-        alarms.append(f"G1 loop safety FAILED: {g1['detail']} -> rollback to "
-                      "flagship executor and open a Fix ticket "
-                      "(design d-decision-gates)")
-    if g4["verdict"] == GATE_FAIL:
-        alarms.append(f"G4 recurrence circuit-break TRIGGERED: {g4['detail']}"
-                      " -> rollback to flagship immediately, do not wait "
-                      "for the observation window to close")
+    for ep in epoch_order:
+        ep_rows = epoch_groups.get(ep, [])
+        g1 = evaluate_g1(ep_rows, ep)
+        g4 = evaluate_g4(ep_rows, ep)
+        gates.append(g1)
+        if ep == last_epoch:
+            g2_rows, g2_overall = evaluate_g2(agg, ep)
+            g3_rows, g3_overall = evaluate_g3(ep_rows, strata)
+            gates += g2_rows + [g2_overall] + g3_rows + [g3_overall]
+            gates.append(g4)
+            if g1["verdict"] == GATE_FAIL:
+                alarms.append(f"G1 loop safety FAILED ({ep}): "
+                              f"{g1['detail']} -> rollback to flagship "
+                              "executor and open a Fix ticket "
+                              "(design d-decision-gates)")
+            if g4["verdict"] == GATE_FAIL:
+                alarms.append(f"G4 circuit-break TRIGGERED ({ep}): "
+                              f"{g4['detail']} -> rollback to flagship "
+                              "immediately, do not wait for the "
+                              "observation window to close")
+        else:
+            gates.append(g4)
     return {"gates": gates, "alarms": alarms}
 
 
@@ -705,10 +735,10 @@ def render_report(rows, epochs, strata, prices, *, obs_name, epochs_spec,
     lines += [
         "## Decision gates (pre-registered, design d-decision-gates)",
         "",
-        "Verdicts compare the current data against rules registered BEFORE the",
-        "observation window opened — no post-hoc inference. Only the hardened",
-        "epoch gates; pre-hardening and provider-switch stay baselines.",
-        f"insufficient-n = sample below the pinned threshold (n>={GATE_MIN_N}",
+    "Verdicts compare the current data against rules registered BEFORE the",
+    "observation window opened — no post-hoc inference. G1/G4 are per",
+    "hardened sub-epoch; G2/G3 evaluate the latest sub-epoch only.",
+    f"insufficient-n = sample below the pinned threshold (n>={GATE_MIN_N}",
         "per side per stratum).",
         "",
         "| gate | verdict | detail |",

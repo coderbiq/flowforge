@@ -1070,7 +1070,7 @@ class GateG3Tests(unittest.TestCase):
 
 
 class GateG4Tests(unittest.TestCase):
-    """G4 recurrence circuit-break (design d-decision-gates): hardened row
+    """G4 circuit-break (design d-decision-gates): hardened row
     with rep_max>=20 or steps>=400 (right-inclusive) -> fail + rollback alarm."""
 
     def g4(self, **kw):
@@ -1193,7 +1193,7 @@ class GatesRenderTests(unittest.TestCase):
         self.assertIn("| G1 loop safety (hardened) | insufficient-n |", text)
         self.assertIn("| G2 economics (overall) | insufficient-n |", text)
         self.assertIn("| G3 duration (overall) | insufficient-n |", text)
-        self.assertIn("| G4 recurrence circuit-break | not-triggered |", text)
+        self.assertIn("| G4 circuit-break (hardened) | not-triggered |", text)
         self.assertNotIn("ALARM", text)
 
     def test_gates_section_sits_above_aggregation(self):
@@ -1211,8 +1211,8 @@ class GatesRenderTests(unittest.TestCase):
 
     def test_g4_triggered_puts_alarm_at_top(self):
         text = self.render([rrow("ses_cb", HARDENED_TS, rep_max=20)])
-        self.assertIn("G4 recurrence circuit-break TRIGGERED", text)
-        self.assertIn("| G4 recurrence circuit-break | fail |", text)
+        self.assertIn("G4 circuit-break TRIGGERED", text)
+        self.assertIn("| G4 circuit-break (hardened) | fail |", text)
 
     def test_g2_judged_from_report_aggregation(self):
         # flash n=5 cost 1.1 vs flagship n=5 cost 2.2 (ratio 0.5) -> G2 pass

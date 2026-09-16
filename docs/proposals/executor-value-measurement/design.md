@@ -101,7 +101,7 @@ est_cost = in_tok/1e6*P_in + out_tok/1e6*P_out + cacheR_tok/1e6*P_cacheR
 
 ```bash
 python3 scripts/executor_metrics.py extract --project tangram-v2 \
-  --epochs "pre-hardening:<1789291500000,provider-switch:1789291500000-1789298700000,hardened:>1789298700000"
+  --epochs "pre-hardening:<1789291500000,provider-switch:1789291500000-1789298700000,hardened-gemini:1789298700001-1789440229045,hardened-deepseek-guard:1789440229046-1789524389000,hardened-deepseek-open:>1789524389000"
 python3 scripts/executor_metrics.py report --obs docs/proposals/executor-value-measurement/observations.md
 ```
 
