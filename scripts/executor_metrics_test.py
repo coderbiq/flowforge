@@ -308,9 +308,9 @@ class CliExtractTests(unittest.TestCase):
             content = f.read()
         self.assertTrue(content.endswith("\n"))
         lines = content.splitlines()
-        self.assertIn("| session | ts | dur_min | model | provider | ticket | epoch | "
-                      "steps | tools | bash_n | rep_max | fail_streak | in_tok | out_tok | "
-                      "cacheR_tok | est_cost | status |", lines)
+        self.assertIn("| session | agent | ts | dur_min | model | provider | ticket | "
+                      "epoch | steps | tools | bash_n | rep_max | fail_streak | in_tok | "
+                      "out_tok | cacheR_tok | est_cost | status |", lines)
         rows = [ln for ln in lines if ln.startswith("| ses_")]
         self.assertEqual(len(rows), 3)
         row1 = next(ln for ln in rows if "ses_x1" in ln)
@@ -636,13 +636,18 @@ def iso(ms):
 
 def rrow(session, ts, dur_min=5.0, model="gemini-3.8-flash-high",
          ticket="proposals/p/issues/01-x.md", steps=10, rep_max=1,
-         in_tok=0, out_tok=0, cacheR_tok=0, status="COMPLETED"):
-    """A parsed-observations-row fixture (shape of em.parse_obs_rows output)."""
-    return {"session": session, "ts": iso(ts), "dur_min": dur_min, "model": model,
-            "provider": "prov", "ticket": ticket, "epoch": "-", "steps": steps,
-            "tools": steps, "bash_n": 0, "rep_max": rep_max, "fail_streak": 0,
-            "in_tok": in_tok, "out_tok": out_tok, "cacheR_tok": cacheR_tok,
-            "est_cost": 0.0, "status": status}
+         in_tok=0, out_tok=0, cacheR_tok=0, status="COMPLETED", agent=None):
+    """A parsed-observations-row fixture (shape of em.parse_obs_rows output).
+    agent=None keeps the key absent — the legacy pre-agent-format row shape;
+    passing agent="..." mirrors a row from a multi-agent table."""
+    row = {"session": session, "ts": iso(ts), "dur_min": dur_min, "model": model,
+           "provider": "prov", "ticket": ticket, "epoch": "-", "steps": steps,
+           "tools": steps, "bash_n": 0, "rep_max": rep_max, "fail_streak": 0,
+           "in_tok": in_tok, "out_tok": out_tok, "cacheR_tok": cacheR_tok,
+           "est_cost": 0.0, "status": status}
+    if agent is not None:
+        row["agent"] = agent
+    return row
 
 
 class RunawayTests(unittest.TestCase):
@@ -1257,6 +1262,227 @@ class GatesCliTests(unittest.TestCase):
         self.assertIn("- observation window:", text)
         self.assertIn("## Decision gates", text)
         self.assertIn("| G1 loop safety (hardened) | insufficient-n |", text)
+
+
+LEGACY_COLUMNS = tuple(c for c in em.COLUMNS if c != "agent")
+
+
+def legacy_obs_text(*rows):
+    """An old-format observations file: 17-column table without agent."""
+    lines = ["# Executor value observations", "",
+             "Legacy pre-agent-format table (compat fixture).", "",
+             "| " + " | ".join(LEGACY_COLUMNS) + " |",
+             "|" + "---|" * len(LEGACY_COLUMNS)]
+    for r in rows:
+        lines.append(em.format_row(r, LEGACY_COLUMNS))
+    return "\n".join(lines) + "\n"
+
+
+class MultiAgentCollectTests(unittest.TestCase):
+    """collect_metrics: agent IN (?,...) filter + agent field per row
+    (ticket 01 Change 1; default keeps the implementer-only semantics)."""
+
+    def add_all(self, conn):
+        add_session(conn, "ses_ma1", tc=BASE_TS + 10)
+        add_session(conn, "ses_ma2", tc=BASE_TS + 20, agent="flowforge-investigator")
+        add_session(conn, "ses_ma3", tc=BASE_TS + 30, agent="explore")
+        add_session(conn, "ses_ma4", tc=BASE_TS + 40, agent="flowforge-reviewer")
+        for sid in ("ses_ma1", "ses_ma2", "ses_ma3", "ses_ma4"):
+            add_part(conn, sid, dispatch_and_report_parts()[1])
+
+    def test_agents_filter_returns_each_agents_rows(self):
+        conn = make_conn()
+        self.add_all(conn)
+        rows, corrupt = em.collect_metrics(conn, "tangram-v2",
+                                           agents=("flowforge-investigator",
+                                                   "explore"))
+        self.assertEqual(corrupt, 0)
+        self.assertEqual([r["session"] for r in rows], ["ses_ma2", "ses_ma3"])
+        self.assertEqual([r["agent"] for r in rows],
+                         ["flowforge-investigator", "explore"])
+
+    def test_default_agents_is_implementer_only(self):
+        conn = make_conn()
+        self.add_all(conn)
+        rows, _ = em.collect_metrics(conn, "tangram-v2")
+        self.assertEqual([r["session"] for r in rows], ["ses_ma1"])
+        self.assertEqual(rows[0]["agent"], "flowforge-implementer")
+
+    def test_empty_agents_matches_nothing(self):
+        conn = make_conn()
+        self.add_all(conn)
+        rows, _ = em.collect_metrics(conn, "tangram-v2", agents=())
+        self.assertEqual(rows, [])
+
+
+class MultiAgentCliTests(unittest.TestCase):
+    """extract --agents: multi-agent extraction writes the agent column and
+    stays idempotent; an agent with no sessions is an empty success."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = self._tmp.name
+        self.db = os.path.join(self.dir, "fixture.db")
+        self.out = os.path.join(self.dir, "obs.md")
+        self.addCleanup(self._tmp.cleanup)
+
+    def populate(self, conn):
+        add_session(conn, "ses_ag1", tc=BASE_TS + 10,
+                    agent="flowforge-investigator")
+        add_session(conn, "ses_ag2", tc=BASE_TS + 20, agent="explore")
+        add_session(conn, "ses_ag3", tc=BASE_TS + 30)  # implementer: excluded
+        for sid in ("ses_ag1", "ses_ag2", "ses_ag3"):
+            for p in dispatch_and_report_parts():
+                add_part(conn, sid, p)
+
+    def extract_args(self):
+        return ["extract", "--db", self.db, "--project", "tangram-v2",
+                "--agents", "flowforge-investigator,explore", "--out", self.out]
+
+    def test_extract_multiple_agents_writes_agent_column(self):
+        write_db_file(self.db, self.populate)
+        code, _, err = run_cli(self.extract_args())
+        self.assertEqual(code, 0, err)
+        with open(self.out, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        header = next(ln for ln in lines if ln.startswith("| session "))
+        self.assertEqual(
+            header,
+            "| session | agent | ts | dur_min | model | provider | ticket | "
+            "epoch | steps | tools | bash_n | rep_max | fail_streak | in_tok | "
+            "out_tok | cacheR_tok | est_cost | status |")
+        rows = [ln for ln in lines if ln.startswith("| ses_")]
+        self.assertEqual(len(rows), 2)
+        self.assertIn("ses_ag1", rows[0])
+        self.assertIn("| flowforge-investigator |", rows[0])
+        self.assertIn("ses_ag2", rows[1])
+        self.assertIn("| explore |", rows[1])
+        self.assertNotIn("ses_ag3", "\n".join(rows))
+
+    def test_multi_agent_rerun_idempotent(self):
+        write_db_file(self.db, self.populate)
+        self.assertEqual(run_cli(self.extract_args())[0], 0)
+        with open(self.out, encoding="utf-8") as f:
+            first = f.read()
+        code, _, err = run_cli(self.extract_args())
+        self.assertEqual(code, 0, err)
+        with open(self.out, encoding="utf-8") as f:
+            second = f.read()
+        self.assertEqual(first, second, "rerun must not change observations.md")
+
+    def test_agent_with_no_sessions_is_empty_success(self):
+        write_db_file(self.db, self.populate)
+        code, out, err = run_cli(["extract", "--db", self.db,
+                                  "--project", "tangram-v2",
+                                  "--agents", "nosuch-agent", "--out", self.out])
+        self.assertEqual(code, 0, err)
+        with open(self.out, encoding="utf-8") as f:
+            rows = [ln for ln in f.read().splitlines()
+                    if ln.startswith("| ses_")]
+        self.assertEqual(rows, [])
+        self.assertIn("0 session(s) matched", out)
+
+
+class LegacyObsFormatTests(unittest.TestCase):
+    """Old-format observations (17 columns, no agent): report backfills
+    flowforge-implementer; extract appends in the file's own column format
+    so the running executor-value-measurement window stays valid."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dir = pathlib.Path(self._tmp.name)
+        self.obs = self.dir / "observations.md"
+        self.out = self.dir / "report.md"
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_parse_backfills_default_agent(self):
+        rows = em.parse_obs_rows(
+            legacy_obs_text(rrow("ses_lg1", 500), rrow("ses_lg2", 600)))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([r["agent"] for r in rows],
+                         ["flowforge-implementer"] * 2)
+
+    def test_parse_keeps_agent_values_when_column_present(self):
+        lines = list(em.HEADER_LINES)
+        lines.append(em.format_row(rrow("ses_lg3", 500, agent="explore")))
+        lines.append(em.format_row(rrow("ses_lg4", 600,
+                                        agent="flowforge-investigator")))
+        rows = em.parse_obs_rows("\n".join(lines) + "\n")
+        self.assertEqual([r["agent"] for r in rows],
+                         ["explore", "flowforge-investigator"])
+
+    def test_report_on_legacy_obs_groups_under_default_agent(self):
+        self.obs.write_text(
+            legacy_obs_text(rrow("ses_lg5", HARDENED_TS, steps=10)),
+            encoding="utf-8")
+        code, _, err = run_cli(["report", "--obs", str(self.obs), "--out",
+                                str(self.out), "--epochs", REAL_EPOCHS])
+        self.assertEqual(code, 0, err)
+        text = self.out.read_text(encoding="utf-8")
+        self.assertIn("- agents (1): flowforge-implementer", text)
+        self.assertIn("| G1 loop safety (hardened) | pass |", text)
+        self.assertIn("| hardened | unknown | 1 |", text)  # no --project-root
+        self.assertNotIn("###", text)  # single agent: no per-agent subsections
+
+    def test_extract_appends_in_legacy_files_own_columns(self):
+        db = self.dir / "fixture.db"
+
+        def populate(conn):
+            add_session(conn, "ses_lg6", tc=BASE_TS + 10)
+
+        write_db_file(str(db), populate)
+        self.obs.write_text(legacy_obs_text(rrow("ses_lg_old", 500)),
+                            encoding="utf-8")
+        code, _, err = run_cli(["extract", "--db", str(db), "--project",
+                                "tangram-v2", "--out", str(self.obs)])
+        self.assertEqual(code, 0, err)
+        text = self.obs.read_text(encoding="utf-8")
+        header = next(ln for ln in text.splitlines()
+                      if ln.startswith("| session "))
+        self.assertNotIn("agent", header)  # legacy header preserved as-is
+        new_line = next(ln for ln in text.splitlines() if "ses_lg6" in ln)
+        self.assertEqual(len(em._split_table_line(new_line)),
+                         len(LEGACY_COLUMNS))
+        rows = em.parse_obs_rows(text)  # appended rows keep the table parseable
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(r["agent"] == "flowforge-implementer"
+                            for r in rows))
+
+
+class PerAgentGateTests(unittest.TestCase):
+    """Multi-agent report: gates judged per agent (G1/G4 per role, thresholds
+    unchanged); one role's runaway never fails another role's gate."""
+
+    def render(self, rows, strata):
+        return em.render_report(
+            rows, em.parse_epochs(REAL_EPOCHS), strata, em.DEFAULT_PRICES,
+            obs_name="observations.md", epochs_spec=REAL_EPOCHS,
+            warnings=[], generated="2026-09-13T21:00:00+08:00")
+
+    def test_g1_fail_of_one_agent_does_not_fail_the_other(self):
+        rows = [
+            rrow("ses_impl_ok", HARDENED_TS, steps=10, rep_max=1),
+            rrow("ses_inv_bad", HARDENED_TS, steps=999, rep_max=30,
+                 dur_min=60.0, agent="flowforge-investigator"),
+        ]
+        strata = {"ses_impl_ok": "L", "ses_inv_bad": "L"}
+        text = self.render(rows, strata)
+        self.assertIn("### flowforge-implementer", text)
+        self.assertIn("### flowforge-investigator", text)
+        g1 = [ln for ln in text.splitlines()
+              if ln.startswith("| G1 loop safety")]
+        self.assertEqual(len(g1), 2)  # one G1 verdict per agent
+        self.assertIn("| pass |", g1[0])  # implementer (first appearance) clean
+        self.assertIn("ses_inv_bad", g1[1])
+        self.assertIn("| fail |", g1[1])
+        self.assertIn("> ALARM: [flowforge-investigator] G1 loop safety FAILED",
+                      text)
+        self.assertNotIn("[flowforge-implementer] G1 loop safety FAILED", text)
+        agg_section = text[text.index("## Epoch × stratum aggregation"):
+                           text.index("runaway_n:")]
+        hardened = [ln for ln in agg_section.splitlines()
+                    if ln.startswith("| hardened | L | 1 |")]
+        self.assertEqual(len(hardened), 2)  # one aggregation row per agent
 
 
 class DecisionTemplateTests(unittest.TestCase):
