@@ -28,6 +28,12 @@ func computeSubagentStatus(projectRoot string, cfg *config.Config) (subagentStat
 		return subagentStatusResult{}, err
 	}
 
+	// Same config validation as deploySubagents: an unknown
+	// agents.models_by_name key must fail status with the deploy error.
+	if err := validateModelOverrides(cfg, definitions); err != nil {
+		return subagentStatusResult{}, err
+	}
+
 	// Filter out disabled
 	disabled := make(map[string]bool)
 	for _, name := range cfg.Agents.Disabled {

@@ -244,10 +244,11 @@ var validModelProfileKeys = map[string]bool{
 const defaultImplementerMaxSteps = 200
 
 // resolveCompileOptions builds the OpenCode compile options for one
-// definition from project config: pinned model per model profile, the
-// implementer's test-file guard (default on, configurable), and the
-// implementer's execution budget (agents.max_steps: 0 = default 200,
-// -1 = unlimited/no field, N = N; other negatives are config errors).
+// definition from project config: pinned model per agent name or model
+// profile (name wins over profile), the implementer's test-file guard
+// (default on, configurable), and the implementer's execution budget
+// (agents.max_steps: 0 = default 200, -1 = unlimited/no field, N = N;
+// other negatives are config errors).
 func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subagent.CompileOptions, error) {
 	var opts subagent.CompileOptions
 	for key := range cfg.Agents.Models {
@@ -258,7 +259,14 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subage
 	if cfg.Agents.MaxSteps < -1 {
 		return opts, fmt.Errorf("agents.max_steps: invalid value %d (supported: positive budget, 0 = default %d, -1 = unlimited)", cfg.Agents.MaxSteps, defaultImplementerMaxSteps)
 	}
-	opts.Model = cfg.Agents.Models[string(def.ModelProfile)]
+	// Precedence: agents.models_by_name[<agent-name>] beats the profile
+	// key in agents.models, which in turn beats the preserve-merge
+	// fallback resolved inside the compilers (resolveModel).
+	if model := cfg.Agents.ModelOverrides[def.Name]; model != "" {
+		opts.Model = model
+	} else {
+		opts.Model = cfg.Agents.Models[string(def.ModelProfile)]
+	}
 	if !cfg.Agents.DisableTestGuard && def.Name == "flowforge-implementer" {
 		if len(cfg.Agents.TestFileGlobs) > 0 {
 			opts.EditDeny = cfg.Agents.TestFileGlobs
@@ -286,6 +294,27 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subage
 		}
 	}
 	return opts, nil
+}
+
+// validateModelOverrides checks that every agents.models_by_name key names a
+// discovered subagent definition. resolveCompileOptions sees one definition
+// at a time and cannot tell "not pinned by this key" from "key matches no
+// known agent", so the check needs the full discovered set; a key that
+// matched nothing would otherwise be silently ineffective.
+func validateModelOverrides(cfg *config.Config, defs []*subagent.Definition) error {
+	if len(cfg.Agents.ModelOverrides) == 0 {
+		return nil
+	}
+	known := make(map[string]bool, len(defs))
+	for _, def := range defs {
+		known[def.Name] = true
+	}
+	for name := range cfg.Agents.ModelOverrides {
+		if !known[name] {
+			return fmt.Errorf("agents.models_by_name: unknown agent %q", name)
+		}
+	}
+	return nil
 }
 
 // cleanDeselectedHosts removes managed subagent files from hosts that are not
@@ -332,6 +361,12 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 		return nil, err
 	}
 	allDefs := definitions
+
+	// Validate agents.models_by_name keys against the full discovered set
+	// before any directory or artifact write.
+	if err := validateModelOverrides(cfg, allDefs); err != nil {
+		return nil, err
+	}
 
 	// Filter by targetName if specified
 	if targetName != "" {

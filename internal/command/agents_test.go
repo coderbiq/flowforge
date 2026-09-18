@@ -1161,6 +1161,145 @@ func TestAgentsModelsValidation(t *testing.T) {
 	}
 }
 
+func TestAgentsModelByNameOverridesProfile(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	cfg.Agents.Models = map[string]string{"tool-capable": "profile-model/x"}
+	cfg.Agents.ModelOverrides = map[string]string{"flowforge-planner": "name-model/y"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// The name key wins over the profile key for the pinned agent.
+	planner, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-planner.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(planner), "model: name-model/y") {
+		t.Error("models_by_name key must override the profile key for that agent")
+	}
+	if strings.Contains(string(planner), "profile-model/x") {
+		t.Error("profile model must not leak into a name-pinned agent")
+	}
+
+	// A same-profile neighbor keeps the profile-pinned model.
+	impl, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(impl), "model: profile-model/x") {
+		t.Error("same-profile neighbor without a name key must keep the profile model")
+	}
+}
+
+func TestAgentsModelByNameUnknownErrors(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	cfg.Agents.ModelOverrides = map[string]string{"no-such-agent": "m/x"}
+	_, err = deploySubagents(projectRoot, cfg, "")
+	if err == nil {
+		t.Fatal("expected error for unknown models_by_name key, got nil")
+	}
+	if !strings.Contains(err.Error(), `agents.models_by_name: unknown agent "no-such-agent"`) {
+		t.Errorf("unexpected error message: %v", err)
+	}
+
+	// The failure must precede any artifact write: not even the host
+	// directory may exist.
+	if _, err := os.Stat(filepath.Join(projectRoot, ".opencode", "agent")); err == nil {
+		t.Error("failed deploy must not create host directories or artifacts")
+	}
+
+	// Status reports the same config error as deploy (parity with the
+	// max_steps unknown-value convention).
+	if _, err := computeSubagentStatus(projectRoot, cfg); err == nil {
+		t.Error("unknown models_by_name key must fail status with the same config error")
+	} else if !strings.Contains(err.Error(), `agents.models_by_name: unknown agent "no-such-agent"`) {
+		t.Errorf("status error must match deploy error, got: %v", err)
+	}
+}
+
+func TestAgentsProfileKeyOnlyUnchanged(t *testing.T) {
+	deployProfileOnly := func(t *testing.T, overrides map[string]string) string {
+		t.Helper()
+		root := t.TempDir()
+		if err := initializeTestProject(root); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"opencode"}
+		cfg.Agents.Models = map[string]string{"tool-capable": "profile-model/x"}
+		cfg.Agents.ModelOverrides = overrides
+		if _, err := deploySubagents(root, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+		data, err := os.ReadFile(filepath.Join(root, ".opencode", "agent", "flowforge-implementer.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
+	}
+
+	nilOverrides := deployProfileOnly(t, nil)
+	emptyOverrides := deployProfileOnly(t, map[string]string{})
+	if nilOverrides != emptyOverrides {
+		t.Error("empty models_by_name must behave like an absent one (no output change)")
+	}
+
+	// Profile-only artifacts must equal a direct config-driven compile
+	// byte for byte: adding the models_by_name mechanism is regression-free
+	// for configurations that do not use it.
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"opencode"}
+	cfg.Agents.Models = map[string]string{"tool-capable": "profile-model/x"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	def := findDiscoveredDefinition(t, projectRoot, "flowforge-implementer")
+	opts, err := resolveCompileOptions(cfg, def)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := subagent.CompileOpenCodeWithOptions(def, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(projectRoot, ".opencode", "agent", "flowforge-implementer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Errorf("profile-only deploy must equal the config-driven compile\n got: %q\nwant: %q", got, want)
+	}
+	if nilOverrides != string(want) {
+		t.Error("profile-only output must be identical with and without the new config field")
+	}
+}
+
 func TestStatusUsesSameCompileOptions(t *testing.T) {
 	projectRoot := t.TempDir()
 	if err := initializeTestProject(projectRoot); err != nil {
