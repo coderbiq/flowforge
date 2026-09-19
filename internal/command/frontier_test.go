@@ -492,3 +492,77 @@ func TestFrontierExcludesNeedsRepairAndDispatchesRepair(t *testing.T) {
 		t.Fatal("downstream ticket 03 should be blocked waiting on repair 02")
 	}
 }
+
+func TestRenderPiWorkflow(t *testing.T) {
+	// Titles/paths carry quotes, backticks, and newlines to prove every dynamic
+	// string lands in JSON-encoded form and cannot break the script syntax.
+	nastyTitle := "quote \" backtick ` newline\nand 'single'"
+	nastyPath := "docs/proposals/x\"y/issues/01-a`b.md"
+	ready := []*tracker.Issue{
+		{ID: "01", FilePath: nastyPath, Title: nastyTitle},
+		{ID: "02", FilePath: "docs/proposals/demo/issues/02-clean.md", Title: "Clean title"},
+	}
+	out := renderPiWorkflow(ready, "docs/proposals")
+
+	if !strings.HasPrefix(out, "const tickets = [") {
+		t.Fatalf("output must start with the tickets array, got: %q", out)
+	}
+	if strings.Contains(out, "function") || strings.Contains(out, "=>") {
+		t.Fatalf("workflowScript must not contain function or arrow tokens: %q", out)
+	}
+	if got := strings.Count(out, "runs.run("); got != len(ready) {
+		t.Fatalf("expected exactly %d runs.run calls, got %d", len(ready), got)
+	}
+	if got := strings.Count(out, `agent: "flowforge-implementer"`); got != len(ready) {
+		t.Fatalf("expected each runs.run to pin the flowforge-implementer agent, got %d occurrences", got)
+	}
+	// context: "fresh" must be pinned on every launch: omitting it lets
+	// pi-subagents global defaultSubagentContext/defaultContext settings fork
+	// the parent session instead of guaranteeing a fresh execution context.
+	if got := strings.Count(out, `context: "fresh"`); got != len(ready) {
+		t.Fatalf("expected each runs.run to pin context: \"fresh\", got %d occurrences", got)
+	}
+	if got := strings.Count(out, `gate: { command: "flowforge check --dir docs/proposals" }`); got != len(ready) {
+		t.Fatalf("expected each runs.run to carry the structural gate, got %d occurrences", got)
+	}
+	// Nasty strings must appear exactly in json.Marshal encoded form.
+	for _, s := range []string{nastyTitle, nastyPath, "01", "02"} {
+		encoded, err := json.Marshal(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out, string(encoded)) {
+			t.Fatalf("expected encoded form %s of %q to appear verbatim in output:\n%s", encoded, s, out)
+		}
+	}
+	// A raw newline inside a string literal would break JS syntax; the encoded
+	// title must sit on one line, so line count matches structural newlines only.
+	if !strings.Contains(out, "newline\\nand") {
+		t.Fatalf("newline in title must be encoded as \\n, got:\n%s", out)
+	}
+	// Guidance bracketing: static prefix/suffix concatenated with the indexed path.
+	if !strings.Contains(out, jsString(piWorkflowTaskPrefix)+" + tickets[0].path + "+jsString(piWorkflowTaskSuffix)) {
+		t.Fatalf("task must compose prefix + ticket path + suffix, got:\n%s", out)
+	}
+	// Fail-fast return and final success return are explicit.
+	if !strings.Contains(out, "return \"STOPPED at ticket \" + tickets[0].key") {
+		t.Fatalf("missing fail-fast STOPPED return:\n%s", out)
+	}
+	if !strings.HasSuffix(strings.TrimSpace(out), "ticket(s) dispatched and verified.\";") {
+		t.Fatalf("missing explicit success return:\n%s", out)
+	}
+	// Idempotent rendering.
+	if again := renderPiWorkflow(ready, "docs/proposals"); again != out {
+		t.Fatal("renderPiWorkflow must be deterministic for identical input")
+	}
+}
+
+func TestRenderPiWorkflowEmptyBatch(t *testing.T) {
+	out := renderPiWorkflow(nil, "docs/proposals")
+	if !strings.HasPrefix(out, "return 'No ready tickets") {
+		t.Fatalf("empty batch must start with the no-ready return, got: %q", out)
+	}
+	if strings.Contains(out, "for") || strings.Contains(out, "runs.run") {
+		t.Fatalf("empty batch must not emit the loop skeleton, got: %q", out)
+	}
+}

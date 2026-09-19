@@ -355,3 +355,100 @@ func TestCompileIsIdempotent(t *testing.T) {
 		}
 	}
 }
+
+func TestCompilePiFields(t *testing.T) {
+	dir := testAssetsDir(t)
+	definitions, err := ParseDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, def := range definitions {
+		compiled, err := CompilePi(def)
+		if err != nil {
+			t.Errorf("CompilePi(%s): %v", def.Name, err)
+			continue
+		}
+		fm, body, ok := splitFrontmatter(compiled)
+		if !ok {
+			t.Errorf("CompilePi(%s): frontmatter delimiters missing", def.Name)
+			continue
+		}
+		var parsed map[string]interface{}
+		if err := yaml.Unmarshal(fm, &parsed); err != nil {
+			t.Errorf("CompilePi(%s): frontmatter invalid YAML: %v", def.Name, err)
+			continue
+		}
+		if s, ok := parsed["name"].(string); !ok || s != def.Name {
+			t.Errorf("CompilePi(%s): name = %v (want %q)", def.Name, parsed["name"], def.Name)
+		}
+		if s, ok := parsed["description"].(string); !ok || s != def.Description {
+			t.Errorf("CompilePi(%s): description mismatch", def.Name)
+		}
+		// thinking maps the model profile (high-capability → high, rest → medium).
+		wantThinking := "medium"
+		if def.ModelProfile == ModelProfileHighCapability {
+			wantThinking = "high"
+		}
+		if s, ok := parsed["thinking"].(string); !ok || s != wantThinking {
+			t.Errorf("CompilePi(%s): thinking = %v (want %q)", def.Name, parsed["thinking"], wantThinking)
+		}
+		// PI omits model: the child inherits the parent session model.
+		if _, present := parsed["model"]; present {
+			t.Errorf("CompilePi(%s): unexpected 'model' field", def.Name)
+		}
+		// read-only permission compiles to a strict read-tool allowlist.
+		tools, hasTools := parsed["tools"].([]interface{})
+		if def.Permission == "read-only" {
+			if !hasTools || len(tools) != 4 {
+				t.Errorf("CompilePi(%s): read-only tools allowlist = %v", def.Name, parsed["tools"])
+			} else {
+				if s, ok := tools[0].(string); !ok || s != "read" {
+					t.Errorf("CompilePi(%s): tools[0] = %v (want read)", def.Name, tools[0])
+				}
+			}
+		} else if hasTools {
+			t.Errorf("CompilePi(%s): unexpected tools allowlist %v", def.Name, parsed["tools"])
+		}
+		// skills: default skill first, then detour skills.
+		skills, ok := parsed["skills"].([]interface{})
+		if !ok || len(skills) == 0 {
+			t.Errorf("CompilePi(%s): missing skills list", def.Name)
+			continue
+		}
+		if s, ok := skills[0].(string); !ok || s != def.DefaultSkill {
+			t.Errorf("CompilePi(%s): skills[0] = %v (want default skill %q)", def.Name, skills[0], def.DefaultSkill)
+		}
+		for _, detour := range def.DetourSkills {
+			found := false
+			for _, s := range skills {
+				if v, _ := s.(string); v == detour {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("CompilePi(%s): detour skill %q missing from skills %v", def.Name, detour, parsed["skills"])
+			}
+		}
+		if v, ok := parsed["inheritSkills"].(bool); !ok || v {
+			t.Errorf("CompilePi(%s): inheritSkills = %v (want false)", def.Name, parsed["inheritSkills"])
+		}
+		// Body is preserved byte for byte.
+		if string(body) != def.Body {
+			t.Errorf("CompilePi(%s): body not byte-identical to Definition.Body", def.Name)
+		}
+		// Idempotence and zero-options equivalence.
+		second, err := CompilePi(def)
+		if err != nil {
+			t.Errorf("CompilePi(%s) second call: %v", def.Name, err)
+		} else if !bytes.Equal(compiled, second) {
+			t.Errorf("CompilePi(%s) not idempotent", def.Name)
+		}
+		withOpts, err := CompilePiWithOptions(def, CompileOptions{Model: "ignored", FallbackModel: "ignored", EditDeny: []string{"ignored"}, DenyQuestion: true})
+		if err != nil {
+			t.Errorf("CompilePiWithOptions(%s, inexpressible opts): %v", def.Name, err)
+		} else if !bytes.Equal(compiled, withOpts) {
+			t.Errorf("CompilePiWithOptions(%s): inexpressible options must not change output", def.Name)
+		}
+	}
+}

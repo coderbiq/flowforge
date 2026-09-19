@@ -18,13 +18,13 @@ import (
 func newAgentsCmd() *cobra.Command {
 	agents := &cobra.Command{
 		Use:   "agents",
-		Short: "Manage subagent definitions for Claude Code, OpenCode, and Codex",
+		Short: "Manage subagent definitions for Claude Code, OpenCode, Codex, and PI",
 	}
 
 	deploy := &cobra.Command{
 		Use:   "deploy [name]",
 		Short: "Deploy subagent definitions to host-specific directories",
-		Long: `Deploy subagent definitions to .claude/agents/, .opencode/agent/, and .codex/agents/.
+		Long: `Deploy subagent definitions to .claude/agents/, .opencode/agent/, .codex/agents/, and .pi/agents/.
 If [name] is specified, deploys only that subagent. Otherwise, deploys all non-disabled subagents.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -68,7 +68,7 @@ If [name] is specified, deploys only that subagent. Otherwise, deploys all non-d
 	remove := &cobra.Command{
 		Use:   "remove <name>",
 		Short: "Remove a subagent from all host directories",
-		Long: `Remove a subagent from .claude/agents/, .opencode/agent/, and .codex/agents/.
+		Long: `Remove a subagent from .claude/agents/, .opencode/agent/, .codex/agents/, and .pi/agents/.
 For built-in subagents, marks them as disabled in config to prevent redeployment.
 For custom subagents, deletes the source definition from .flowforge/subagents/.`,
 		Args: cobra.ExactArgs(1),
@@ -104,7 +104,7 @@ For custom subagents, deletes the source definition from .flowforge/subagents/.`
 	statusCmd := &cobra.Command{
 		Use:   "status",
 		Short: "Compare deployed subagent files against expected compiled content",
-		Long: `Compare deployed subagent files in .claude/agents/, .opencode/agent/, and .codex/agents/
+		Long: `Compare deployed subagent files in .claude/agents/, .opencode/agent/, .codex/agents/, and .pi/agents/
 against the expected compiled content. Reports current/missing/drifted/project-owned states.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -174,6 +174,9 @@ func allHostTargets() []hostTarget {
 		{"codex", filepath.Join(".codex", "agents"), ".toml", func(def *subagent.Definition, _ subagent.CompileOptions) ([]byte, error) {
 			return subagent.CompileCodex(def)
 		}},
+		{"pi", filepath.Join(".pi", "agents"), ".md", func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error) {
+			return subagent.CompilePiWithOptions(def, opts)
+		}},
 	}
 }
 
@@ -186,7 +189,7 @@ func resolveHostTargets(cfg *config.Config) ([]hostTarget, error) {
 		return all, nil
 	}
 	if len(cfg.Agents.Hosts) == 0 {
-		return nil, fmt.Errorf("agents.hosts must name at least one of claude, opencode, codex")
+		return nil, fmt.Errorf("agents.hosts must name at least one of claude, opencode, codex, pi")
 	}
 	byKey := make(map[string]hostTarget, len(all))
 	for _, h := range all {
@@ -200,7 +203,7 @@ func resolveHostTargets(cfg *config.Config) ([]hostTarget, error) {
 		}
 		h, ok := byKey[name]
 		if !ok {
-			return nil, fmt.Errorf("agents.hosts: unknown host %q (supported: claude, opencode, codex)", name)
+			return nil, fmt.Errorf("agents.hosts: unknown host %q (supported: claude, opencode, codex, pi)", name)
 		}
 		seen[name] = true
 		selected = append(selected, h)
@@ -317,6 +320,47 @@ func validateModelOverrides(cfg *config.Config, defs []*subagent.Definition) err
 	return nil
 }
 
+// piExtensionRelPath is the host-scoped pi extension deployed alongside
+// the .pi/agents files whenever the pi host is enabled. It provides the
+// implementer's test-file guard and the flowforge_frontier/flowforge_check
+// native tools for the whole project, so its lifecycle is bound to the host
+// selection, not to any single subagent definition.
+var piExtensionRelPath = filepath.Join(".pi", "extensions", "flowforge.ts")
+
+// deployPiExtension writes the managed flowforge extension from assets to
+// .pi/extensions/flowforge.ts when pi is an enabled host. The write is
+// deterministic (managed source always wins), matching the semantics of
+// other host-scoped managed assets.
+func deployPiExtension(projectRoot string, hosts []hostTarget) error {
+	enabled := false
+	for _, h := range hosts {
+		if h.key == "pi" {
+			enabled = true
+			break
+		}
+	}
+	if !enabled {
+		return nil
+	}
+	assetsDir, cleanup, err := locateAssetsDir()
+	if err != nil {
+		return fmt.Errorf("locating assets: %w", err)
+	}
+	defer cleanup()
+	src, err := os.ReadFile(filepath.Join(assetsDir, "pi", "flowforge.ts"))
+	if err != nil {
+		return fmt.Errorf("reading pi extension source: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectRoot, ".pi", "extensions"), 0755); err != nil {
+		return fmt.Errorf("creating .pi/extensions directory: %w", err)
+	}
+	dst := filepath.Join(projectRoot, piExtensionRelPath)
+	if err := os.WriteFile(dst, src, 0644); err != nil {
+		return fmt.Errorf("writing %s: %w", dst, err)
+	}
+	return nil
+}
+
 // cleanDeselectedHosts removes managed subagent files from hosts that are not
 // selected. Only files matching a discoverable definition name are removed;
 // project-owned files and the host directories themselves are preserved.
@@ -336,6 +380,16 @@ func cleanDeselectedHosts(projectRoot string, selected []hostTarget, allDefs []*
 				if err := os.Remove(path); err != nil {
 					return fmt.Errorf("cleaning %s: %w", path, err)
 				}
+			}
+		}
+	}
+	// The pi extension is a host-scoped managed resource: converge it the
+	// same way per-agent files converge — present iff pi is selected.
+	if !selectedKeys["pi"] {
+		ext := filepath.Join(projectRoot, piExtensionRelPath)
+		if _, err := os.Stat(ext); err == nil {
+			if err := os.Remove(ext); err != nil {
+				return fmt.Errorf("cleaning %s: %w", ext, err)
 			}
 		}
 	}
@@ -442,6 +496,10 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 			}
 		}
 		deployed = append(deployed, def.Name)
+	}
+
+	if err := deployPiExtension(projectRoot, hosts); err != nil {
+		return nil, err
 	}
 
 	if err := cleanDeselectedHosts(projectRoot, hosts, allDefs); err != nil {

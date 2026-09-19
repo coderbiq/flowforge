@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -299,8 +300,8 @@ func TestAgentsRemoveBuiltinPersistsDisabled(t *testing.T) {
 		t.Error("expected flowforge-analyst to be identified as built-in")
 	}
 
-	if len(removedPaths) != 3 {
-		t.Errorf("expected 3 removed paths, got %d", len(removedPaths))
+	if len(removedPaths) != 4 {
+		t.Errorf("expected 4 removed paths, got %d", len(removedPaths))
 	}
 
 	// Verify files were removed
@@ -415,9 +416,9 @@ Test.
 		t.Error("expected my-custom to be identified as custom (not built-in)")
 	}
 
-	// Should remove 3 host files + 1 source file = 4 total
-	if len(removedPaths) != 4 {
-		t.Errorf("expected 4 removed paths (3 hosts + source), got %d", len(removedPaths))
+	// Should remove 4 host files + 1 source file = 5 total
+	if len(removedPaths) != 5 {
+		t.Errorf("expected 5 removed paths (4 hosts + source), got %d", len(removedPaths))
 	}
 
 	// Verify source file was deleted
@@ -742,6 +743,94 @@ func TestUpgradeSyncSkipsDisabledSubagents(t *testing.T) {
 	}
 }
 
+// piExtensionSource returns the managed extension source from the located
+// assets dir, mirroring what deployPiExtension reads.
+func piExtensionSource(t *testing.T) []byte {
+	t.Helper()
+	assetsDir, cleanup, err := locateAssetsDir()
+	if err != nil {
+		t.Fatalf("locating assets: %v", err)
+	}
+	defer cleanup()
+	data, err := os.ReadFile(filepath.Join(assetsDir, "pi", "flowforge.ts"))
+	if err != nil {
+		t.Fatalf("reading pi extension source: %v", err)
+	}
+	return data
+}
+
+func TestAgentsDeployPiExtension(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"pi"}
+
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatalf("deploySubagents: %v", err)
+	}
+
+	extPath := filepath.Join(projectRoot, ".pi", "extensions", "flowforge.ts")
+	deployedContent, err := os.ReadFile(extPath)
+	if err != nil {
+		t.Fatalf("expected %s after pi deploy: %v", extPath, err)
+	}
+	if want := piExtensionSource(t); !bytes.Equal(deployedContent, want) {
+		t.Error("deployed extension content differs from assets/pi/flowforge.ts source")
+	}
+
+	// Idempotent redeploy
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatalf("redeploy: %v", err)
+	}
+	again, err := os.ReadFile(extPath)
+	if err != nil {
+		t.Fatalf("re-reading %s: %v", extPath, err)
+	}
+	if !bytes.Equal(again, deployedContent) {
+		t.Error("extension deploy is not idempotent")
+	}
+}
+
+func TestAgentsDeployCleansDeselectedPiExtension(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Project-owned file inside .pi/extensions must survive host cleanup
+	ownedPath := filepath.Join(projectRoot, ".pi", "extensions", "my-own-extension.ts")
+	if err := os.WriteFile(ownedPath, []byte("// mine\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg.Agents.Hosts = []string{"opencode"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatalf("redeploy without pi host: %v", err)
+	}
+
+	managed := filepath.Join(projectRoot, ".pi", "extensions", "flowforge.ts")
+	if _, err := os.Stat(managed); err == nil {
+		t.Errorf("managed extension %s should have been cleaned from deselected host", managed)
+	}
+	if _, err := os.Stat(ownedPath); err != nil {
+		t.Errorf("project-owned file %s must be preserved: %v", ownedPath, err)
+	}
+}
+
 func TestAgentsDeployHonorsHostSelection(t *testing.T) {
 	projectRoot := t.TempDir()
 	if err := initializeTestProject(projectRoot); err != nil {
@@ -807,6 +896,127 @@ func TestAgentsDeployCleansDeselectedHosts(t *testing.T) {
 	} {
 		if _, err := os.Stat(path); err == nil {
 			t.Errorf("managed file %s should have been cleaned from deselected host", path)
+		}
+	}
+
+	// Project-owned file preserved
+	if _, err := os.Stat(ownedPath); err != nil {
+		t.Errorf("project-owned file %s must be preserved: %v", ownedPath, err)
+	}
+}
+
+func TestAgentsDeployPiHost(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"pi"}
+
+	deployed, err := deploySubagents(projectRoot, cfg, "")
+	if err != nil {
+		t.Fatalf("deploySubagents: %v", err)
+	}
+	if len(deployed) != 6 {
+		t.Fatalf("expected 6 deployed subagents, got %d", len(deployed))
+	}
+
+	// .pi/agents/ holds one native file per definition
+	piDir := filepath.Join(projectRoot, ".pi", "agents")
+	entries, err := os.ReadDir(piDir)
+	if err != nil {
+		t.Fatalf("reading %s: %v", piDir, err)
+	}
+	if len(entries) != 6 {
+		t.Errorf("expected 6 files in .pi/agents, got %d", len(entries))
+	}
+
+	// Non-read-only role: thinking + skills binding, no tools allowlist
+	analystPath := filepath.Join(piDir, "flowforge-analyst.md")
+	analystContent, err := os.ReadFile(analystPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	analyst := string(analystContent)
+	if !strings.Contains(analyst, "name: flowforge-analyst") {
+		t.Error("PI file missing 'name: flowforge-analyst'")
+	}
+	if !strings.Contains(analyst, "thinking: high") {
+		t.Error("PI analyst file missing 'thinking: high'")
+	}
+	if !strings.Contains(analyst, "inheritSkills: false") {
+		t.Error("PI analyst file missing 'inheritSkills: false'")
+	}
+	if strings.Contains(analyst, "tools:") {
+		t.Error("PI analyst file must not carry a tools allowlist")
+	}
+	if strings.Contains(analyst, "model:") {
+		t.Error("PI file must not carry a model field (inherit parent session model)")
+	}
+
+	// Read-only role carries the strict read-tool allowlist
+	investigatorContent, err := os.ReadFile(filepath.Join(piDir, "flowforge-investigator.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	investigator := string(investigatorContent)
+	if !strings.Contains(investigator, "tools:") {
+		t.Error("PI investigator file missing tools allowlist")
+	}
+	if !strings.Contains(investigator, "- read") {
+		t.Error("PI investigator file tools allowlist missing 'read'")
+	}
+	if !strings.Contains(investigator, "skills:") {
+		t.Error("PI investigator file missing skills binding")
+	}
+
+	// Other host directories must not be created
+	for _, dir := range []string{
+		filepath.Join(projectRoot, ".claude", "agents"),
+		filepath.Join(projectRoot, ".opencode", "agent"),
+		filepath.Join(projectRoot, ".codex", "agents"),
+	} {
+		if _, err := os.Stat(dir); err == nil {
+			t.Errorf("deselected host directory %s was created", dir)
+		}
+	}
+}
+
+func TestAgentsDeployCleansPiWhenDeselected(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Default nil hosts deploys all hosts including pi.
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Project-owned file inside .pi/agents that will be deselected
+	ownedPath := filepath.Join(projectRoot, ".pi", "agents", "my-own-agent.md")
+	if err := os.WriteFile(ownedPath, []byte("# mine\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg.Agents.Hosts = []string{"opencode"}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatalf("redeploy with narrowed hosts: %v", err)
+	}
+
+	// Managed .pi/agents files removed
+	for _, role := range []string{"flowforge-analyst", "flowforge-investigator"} {
+		path := filepath.Join(projectRoot, ".pi", "agents", role+".md")
+		if _, err := os.Stat(path); err == nil {
+			t.Errorf("managed file %s should have been cleaned from deselected pi host", path)
 		}
 	}
 

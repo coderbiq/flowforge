@@ -31,7 +31,7 @@ flowforge check [--dir <path>] [--json] [--strict]
 ## `flowforge frontier`
 
 ```bash
-flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
+flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps] [--pi-workflow]
 ```
 
 先计算 DAG 的无阻塞 open ticket，再按内容诊断投影：
@@ -42,17 +42,25 @@ flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
 - blocker ticket 始终排除；
 - `--strict` 只输出 clean ticket，并优先于 `--include-gaps`。
 
-`--quiet` 只把可执行路径写到 stdout，诊断写到 stderr；`--json` 保留 clean、warning、gap、claimed、blocked 分组，适合 Agent 或自动化消费。
+`--quiet` 只把可执行路径写到 stdout，诊断写到 stderr；`--json` 保留 clean、warning、gap、claimed、blocked 分组，适合 Agent 或自动化消费；`--pi-workflow` 把当前 ready 批次渲染为 pi-subagents workflowScript（顺序 fail-fast，每票一个 fresh 上下文的 `flowforge-implementer` 派发并携带 `flowforge check` gate），优先于 `--json`/`--quiet`，供已安装 pi-subagents 的 PI 会话消费。
 
 ## 其他命令
 
 - `flowforge status [--dir <path>]`：按 feature 汇总 ticket 生命周期和 DAG 状态。
-- `flowforge agents deploy [name]`：将权威 subagent 定义编译并部署到宿主原生目录（`.claude/agents/`、`.opencode/agent/`、`.codex/agents/`）。
+- `flowforge agents deploy [name]`：将权威 subagent 定义编译并部署到宿主原生目录（`.claude/agents/`、`.opencode/agent/`、`.codex/agents/`、`.pi/agents/`）。
 - `flowforge agents remove <name>`：移除 subagent 部署文件；内置角色写入 `.flowforge/config.yaml` 的 `agents.disabled` 持久化停用，自定义角色删除源文件。
 - `flowforge agents status [--json]`：报告各 subagent 在各宿主目录中的状态（`current`、`missing`、`drifted`、`project-owned`）。
 - `flowforge config get|set|list`：读取或修改 `docs_dir`、`standards.guide`、version check 及兼容项目配置。
 - `flowforge upgrade`：更新 CLI；已经是相同版本时仍同步当前项目的受管资产与 subagent，降级返回独立错误。
 - `flowforge version`：显示构建注入版本。
+
+PI 宿主说明：
+
+- 前提：PI 核心不含子代理，需先安装 pi-subagents 扩展（`pi install npm:pi-subagents`），PI 才会发现 `.pi/agents/` 下的原生 agent 文件。
+- 部署产物：`agents deploy` 在 `pi` 宿主启用（`agents.hosts` 含 `pi`，默认启用）时写入两处——`.pi/agents/<name>.md`（子代理定义，含 `thinking` 档位、只读角色工具白名单、`skills` 绑定）与 `.pi/extensions/flowforge.ts`（项目级扩展：拦截对 `agents.test_file_globs` 匹配文件的 write/edit，注册 `flowforge_frontier`/`flowforge_check` 原生工具，PATH 优先回退 `bin/flowforge`）。扩展是宿主级受管资源，随 `pi` 宿主选中与否收敛（移出 `agents.hosts` 后再次 deploy 即删除），不随单个 subagent 的 remove 变化。
+- 作用范围：前台（`async: false`）子代理不加载 ambient extensions（pi-subagents "Ambient extensions depend on where the child runs"），写拦截与 `flowforge_frontier`/`flowforge_check` 在主会话与后台/workflow 子代理（默认路径）生效。
+- 逃生阀：`.flowforge/config.yaml` 设 `agents.disable_test_guard: true` 时扩展不注册写拦截（与 opencode 宿主同语义）。
+- 手工冒烟：`pi -e ./assets/pi/flowforge.ts` 会话中尝试 write 任意 `*_test.go` 应被 block 并显示原因；修改扩展文件后用 `/reload` 重新加载。
 
 ## 稳定边界
 

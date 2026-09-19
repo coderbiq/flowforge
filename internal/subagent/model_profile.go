@@ -32,3 +32,17 @@ func (m ModelProfile) CodexReasoningEffort() string {
 		return "medium"
 	}
 }
+
+// PiThinking maps the profile to the pi-subagents `thinking` frontmatter
+// field. PI agent files omit `model`, so the child inherits the parent
+// session model; `thinking` is the only capability-tier expression.
+func (m ModelProfile) PiThinking() string {
+	switch m {
+	case ModelProfileHighCapability:
+		return "high"
+	case ModelProfileToolCapable, ModelProfileToolCapableReadOnly:
+		return "medium"
+	default:
+		return "medium"
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -19,6 +20,7 @@ var (
 	frontierQuiet       bool
 	frontierStrict      bool
 	frontierIncludeGaps bool
+	frontierPiWorkflow  bool
 )
 
 func newFrontierCmd() *cobra.Command {
@@ -50,6 +52,11 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 				frontier.Blocked = append(frontier.Blocked, tracker.BlockedInfo{Issue: issue, WaitingOn: []string{"content-blocker"}})
 			}
 			frontier.Ready = effectiveReady(ready, readyWarnings, gaps, frontierStrict, frontierIncludeGaps)
+
+			if frontierPiWorkflow {
+				cmd.Println(renderPiWorkflow(frontier.Ready, dir))
+				return catalogPolicyError(catalog.Diagnostics, frontierStrict)
+			}
 
 			if frontierJSON {
 				out := map[string]interface{}{"ready": ready, "ready_with_warnings": readyWarnings, "gaps": gaps, "claimed": frontier.Claimed, "blocked": frontier.Blocked, "diagnostics": catalog.Diagnostics}
@@ -129,6 +136,7 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 	cmd.Flags().BoolVarP(&frontierQuiet, "quiet", "q", false, "Output only ready file paths")
 	cmd.Flags().BoolVar(&frontierStrict, "strict", false, "Emit only clean ready tickets")
 	cmd.Flags().BoolVar(&frontierIncludeGaps, "include-gaps", false, "Include gap tickets while preserving diagnostics")
+	cmd.Flags().BoolVar(&frontierPiWorkflow, "pi-workflow", false, "Output a pi-subagents workflowScript for the ready batch (takes precedence over --json and --quiet)")
 
 	return cmd
 }
@@ -188,6 +196,53 @@ func effectiveReady(clean, warnings, gaps []*tracker.Issue, strict, includeGaps 
 		ready = append(ready, gaps...)
 	}
 	return ready
+}
+
+// piWorkflowTaskPrefix and piWorkflowTaskSuffix bracket the ticket file path in
+// the generated task text: read AGENTS.md and the ticket, deliver per its
+// Changes/Constraints/Done-and-verify, and close with the STATUS result
+// contract. The guidance is fixed render-time text; only t.path is appended
+// at runtime as a variable reference, so no dynamic text can break the script.
+const (
+	piWorkflowTaskPrefix = "Read AGENTS.md at the repo root, then the FlowForge ticket file completely, then its linked requirement and design authorities. Deliver the ticket at "
+	piWorkflowTaskSuffix = " by implementing every unchecked Change exactly, honoring its Constraints (Write set; keep new helpers pure where the ticket requires it). Run each command in the ticket's Done and verify section (at most 2 attempts per failing command). When done, mark each Change checkbox, append an Implementation note with verification evidence, and set Status: closed in the ticket. Close with the STATUS result contract: STATUS: COMPLETED or STATUS: BLOCKED, then Summary, Changed Artifacts, Verification, Findings or Blocker, Next Action."
+)
+
+// renderPiWorkflow renders the ready batch as a pi-subagents workflowScript
+// statement body: one unrolled top-level await runs.run per ticket, strictly
+// sequential, fail-fast on the first non-completed run. Every dynamic
+// render-time string (key/path/title/gate command/task guidance) is embedded
+// as a JSON-encoded JS string literal; runtime composition uses only variable
+// references and JSON.stringify, and the body declares no functions/arrows.
+func renderPiWorkflow(ready []*tracker.Issue, proposalsDir string) string {
+	if len(ready) == 0 {
+		return "return 'No ready tickets; nothing to dispatch.';"
+	}
+	var sb strings.Builder
+	sb.WriteString("const tickets = [\n")
+	for _, issue := range ready {
+		fmt.Fprintf(&sb, "  { key: %s, path: %s, title: %s },\n", jsString(issue.ID), jsString(issue.FilePath), jsString(issue.Title))
+	}
+	sb.WriteString("]\n")
+	for i := range ready {
+		fmt.Fprintf(&sb, "const result%d = await runs.run(tickets[%d].key, { agent: %s, task: %s + tickets[%d].path + %s, context: %s, gate: { command: %s } });\n",
+			i, i, jsString("flowforge-implementer"), jsString(piWorkflowTaskPrefix), i, jsString(piWorkflowTaskSuffix), jsString("fresh"), jsString("flowforge check --dir "+proposalsDir))
+		fmt.Fprintf(&sb, "if (!result%d || (result%d.status && result%d.status !== \"complete\") || (!result%d.status && result%d.ok !== true)) return \"STOPPED at ticket \" + tickets[%d].key + \": \" + JSON.stringify(result%d);\n", i, i, i, i, i, i, i)
+	}
+	sb.WriteString("return \"Batch complete: \" + tickets.length + \" ticket(s) dispatched and verified.\";\n")
+	return sb.String()
+}
+
+// jsString encodes s as a JavaScript string literal via JSON encoding; a JSON
+// string is a valid JS string literal and JSON escaping neutralizes quotes,
+// newlines, and control characters.
+func jsString(s string) string {
+	data, err := json.Marshal(s)
+	if err != nil {
+		// Unreachable for any string input; degrade to an empty literal.
+		return `""`
+	}
+	return string(data)
 }
 
 func printDiagnostics(cmd *cobra.Command, diagnostics []tracker.Diagnostic) {
