@@ -7,6 +7,10 @@ flowforge:
       pi-host-integration-requirements: 1
     design:
       pi-host-integration-design: 1
+  waivers:
+    - diagnostic: upstream-changed
+      target: pi-host-integration-design
+      reason: "Revision 2 (2026-09-24) revises §一 model row to conditional injection only; this ticket's delivered scope under revision 1 remains valid, superseding behavior is tracked in deploy-artifact-localization."
 ---
 
 # 02: frontier 输出 pi-subagents workflowScript（--pi-workflow）
