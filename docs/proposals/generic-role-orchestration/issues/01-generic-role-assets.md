@@ -27,18 +27,20 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 ## Touch points
 
-- `assets/subagents/flowforge-batch-analyst.md` — 新建（结构参照 `assets/subagents/flowforge-investigator.md`）
+- `assets/subagents/flowforge-batch-analyst.md` — 新建（结构参照 `assets/subagents/flowforge-investigator.md`，五段 Body schema 见 Execution detail）
 - `assets/subagents/flowforge-scribe.md` — 新建（同上）
 - `assets/subagents/flowforge-executor.md` — 新建（同上）
-- `internal/command/subagent_source_test.go` — builtin 名单数组（L14-18 附近）；`TestSubagentSourceDefaultSkillResolves`（L126 起，遍历式校验自动覆盖新资产）
-- `internal/command/assets_deploy_test.go` — builtin 名单数组（L80-84 附近）
+- `internal/command/subagent_source_test.go` — `expectedSubagentNames` 名单（精确全集断言）、`TestSubagentSourceDefaultSkillResolves`（遍历式）、`requiredSubagentSections`
+- `internal/command/assets_deploy_test.go` — `TestAgentRulesDescribeSubagentDelegation` 的 `requiredSubagents`（子集 Contains 断言，无需必改）
+- `internal/command/agents_test.go` — builtin 基数计数断言与 `expectedRoles` 名单（L33/L36、L231、L641、L651、L678）
 
 ## Changes
 
-- [ ] 1. 新建 `assets/subagents/flowforge-batch-analyst.md`：frontmatter `flowforge_agent`（name 同文件名；description 英文、能力表述："Batch extraction, comparison, and summarization across parallelizable analysis units; produces cited workbench documents; no decisions, no cross-group synthesis"；`model_profile: tool-capable`；`default_skill: flowforge-research`；`permission: workspace-write`）；Body 三段——Identity（能力契约）、Boundaries（MUST NOT 做决策/综合跨组结论/修改代码，每条产出带可验证引用 file path+line or command output）、Default Skill（"or read `.agents/skills/flowforge-research/SKILL.md` directly" 双通道句，与既有角色同构）。
-- [ ] 2. 新建 `assets/subagents/flowforge-scribe.md`：同构 frontmatter（description："Templated writing and backfill of structured documents from provided material; format and given content only, no new semantics"；`default_skill: flowforge-writing-for-agents`；`model_profile: tool-capable`；`permission: workspace-write`）；Body 三段同构。
-- [ ] 3. 新建 `assets/subagents/flowforge-executor.md`：同构 frontmatter（description："Mechanical execution of existing commands and generator batches with verbatim output reporting; no new tool development, no code changes"；`default_skill: flowforge-implement`；`model_profile: tool-capable`；`permission: workspace-write`）；Boundaries 增写"does not enter ticket workflow; the implement skill is loaded only for its fail-fast and evidence discipline"。
-- [ ] 4. 扩展 `internal/command/subagent_source_test.go` 与 `internal/command/assets_deploy_test.go` 的 builtin 名单断言，加入三个新角色名（若断言为子集式则确认无需改动并记录）。
+- [ ] 1. 新建 `assets/subagents/flowforge-batch-analyst.md`：frontmatter `flowforge_agent`（name 同文件名；description 英文、能力表述："Batch extraction, comparison, and summarization across parallelizable analysis units; produces cited workbench documents; no decisions, no cross-group synthesis"；`model_profile: tool-capable`；`default_skill: flowforge-research`；`detour_skills: []`；`permission: workspace-write`；`after: []`；`before: []`；`returns_to: []`）；Body 五段（Identity 能力契约 / Boundaries MUST NOT 决策、MUST NOT 跨组综合、MUST NOT 改代码，每条产出带可验证引用 / Workflow Position：无 flowforge 流程位，由编排会话按 AGENTS 通用调度段派发 / Default Skill 双通道句 / Result Contract：与 investigator 同款 STATUS 首行契约）。
+- [ ] 2. 新建 `assets/subagents/flowforge-scribe.md`：同构 frontmatter（description："Templated writing and backfill of structured documents from provided material; format and given content only, no new semantics"；`default_skill: flowforge-writing-for-agents`）；Body 五段同构。
+- [ ] 3. 新建 `assets/subagents/flowforge-executor.md`：同构 frontmatter（description："Mechanical execution of existing commands and generator batches with verbatim output reporting; no new tool development, no code changes"；`default_skill: flowforge-implement`）；Boundaries 增写"does not enter ticket workflow; the implement skill is loaded only for its fail-fast and evidence discipline"；Body 五段同构。
+- [ ] 4. 扩展 `internal/command/subagent_source_test.go` 的 `expectedSubagentNames`（精确全集断言，加入三个新名，否则 `TestSubagentSourceFilesExist` 长度失配）；确认 `TestAgentRulesDescribeSubagentDelegation` 为子集 Contains 断言无需改动。
+- [ ] 5. 扩展 `internal/command/agents_test.go` 的 builtin 基数断言与 `expectedRoles` 名单：6→9（L33-36）、disabled 用例基数同步（L231）、init/upgrade 部署基数（L641、L651、L678），以 `go test ./internal/command/` 失败定位为准补齐所有绑定名册基数的断言。
 
 ## Constraints
 
@@ -46,7 +48,7 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 - must 不改 CLI 命令签名与 Issue Schema 头规范；不改编译器行为（`workspace-write` 不进任何 compile 特殊分支）。
 - must `assets/` 只放部署内容。
 - preset 测试授权：本票 Write set 内的 `*_test.go` 名册断言扩展已经用户在规划评审中显式授权（2026-09-24 会话），执行者可修改名册断言，不得改动断言逻辑本身。
-- Write set: `assets/subagents/`、`internal/command/subagent_source_test.go`、`internal/command/assets_deploy_test.go`、`docs/proposals/generic-role-orchestration/`
+- Write set: `assets/subagents/`、`internal/command/subagent_source_test.go`、`internal/command/assets_deploy_test.go`、`internal/command/agents_test.go`、`docs/proposals/generic-role-orchestration/`
 
 ## Done and verify
 
@@ -61,22 +63,31 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 ### Verified contracts
 
-- <filled by flowforge-refine-ticket>
+- 资产 schema 五段强制：`internal/command/subagent_source_test.go` `requiredSubagentSections` = `## Identity` / `## Boundaries` / `## Workflow Position` / `## Default Skill` / `## Result Contract`（设计 d-roster 的"三段"是内容要求，落地必须补齐 Workflow Position 与 Result Contract 两段；generic 语义：Workflow Position 声明无流程位、由编排会话按通用调度段派发，Result Contract 复用 investigator 的 STATUS 首行契约句式，见 `assets/subagents/flowforge-investigator.md` Result Contract 节）。
+- frontmatter 校验：`TestSubagentSourceFrontmatterValid` 断言 name==文件名、description 非空、model_profile ∈ {high-capability, tool-capable, tool-capable-read-only}（`tool-capable` 合法）、default_skill 非空；`TestSubagentSourceDefaultSkillResolves` 断言 default_skill 与 detour_skills 解析到 `assets/skills/<name>/SKILL.md`（flowforge-research / flowforge-writing-for-agents / flowforge-implement 三目录均存在，已核实）。
+- 名册断言形状：`expectedSubagentNames`（subagent_source_test.go）是**精确全集**比对（`TestSubagentSourceFilesExist` 长度+逐名相等），必须扩 3；`TestAgentRulesDescribeSubagentDelegation`（assets_deploy_test.go）是子集 Contains，新名自动覆盖、无需改。
+- 部署基数断言：`agents_test.go` 5 处绑定 builtin 基数 6——L33（expectedRoles 名单 L36 起）、L231（disabled 场景 6-2=4）、L641、L651（宿主目录文件数）、L678；执行以 `go test ./internal/command/` 失败定位为准补齐（status/remove 系列如也绑定基数一并更新）。
+- `permission: workspace-write` 是纯语义标签：`internal/subagent` 编译器仅特殊化 `"read-only"`（compile_pi.go L46、compile_codex.go L11），其余值零分支，无需改编译器。
+- `after`/`before`/`returns_to` 均可空列表（investigator 用流程位列表，generic 角色无流程位取 `[]`）。
 
 ### Execution scenarios
 
-- <filled by flowforge-refine-ticket>
+- Success：三资产落盘且名册/基数断言扩齐后 `GOPROXY=https://goproxy.cn,direct go test ./internal/command/ ./internal/subagent/` 全绿；`flowforge agents deploy`（临时 fixture）产出三新文件且 frontmatter 无 `model:` 字段（未钉扎继承默认）。
+- Failure：若 Body 缺 `## Workflow Position` / `## Result Contract` 段，`TestSubagentSourceFrontmatterValid`（或名册段断言）报 missing section；若 `expectedSubagentNames` 未扩，`TestSubagentSourceFilesExist` 报 "expected 6 subagent source files, found 9"。
 
 ### Expected tests
 
-- <filled by flowforge-refine-ticket>
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/command/ -run 'TestSubagentSource'` — ok（FilesExist/FrontmatterValid/DefaultSkillResolves 全子测试）。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/command/ -run 'TestAgentsDeploy|TestAgentsStatus|TestAgentsRemove|TestInitDeploys|TestUpgradeSync'` — ok（基数同步后）。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...` — 全部 ok。
 
 ### Generated artifacts
 
-- <filled by flowforge-refine-ticket>
+- producer `assets/subagents/*.md` → consumer `flowforge agents deploy` 编译产物（四宿主）→ consumer `internal/command` 部署测试；无代码生成物。
 
 ### Conventions
 
 - must 变更后运行 `go test ./internal/...`（转录自设计 Standards clauses）。
-- must 通用角色 description 按能力书写、不含流程术语。
-- must flash 档角色产出必须带可验证引用（Boundaries 承载）。
+- must 通用角色 description 按能力书写、不含流程术语（frontmatter 与 Workflow Position 段同理）。
+- must flash 档角色产出必须带可验证引用（Boundaries 段承载）。
+- 资产英文书写（description/Boundaries 锚点句式与既有六资产一致）；文件名 = frontmatter name（parser 强制）。

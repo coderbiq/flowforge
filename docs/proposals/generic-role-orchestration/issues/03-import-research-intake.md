@@ -54,20 +54,27 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 ### Verified contracts
 
-- <filled by flowforge-refine-ticket>
+- `assets/skills/flowforge-import/SKILL.md` `## Inputs` 节现文（本票在其末尾追加一句）：“Resolve the supplied local source paths, target feature, optional target language, and current project authority. Read only the material needed to establish the current request; retain the source path and nearest heading for each fact that survives.”
+- dogfood 部署现状（已核实）：本仓 `.agents/skills/` 仅含 7 个目录（flowforge-align/curate/diagnose/explore/implement/plan/review），**无 flowforge-import、无 `_shared`**——落后于 `assets/skills/` 的全量集合；已部署副本引用的 `../_shared/ARTIFACT-CONTRACT.md` 在 dogfood 侧不存在（既有断链，非本票引入）。
+- 同步通道：`flowforge upgrade` 的 `syncProjectAssets`（internal/command/upgrade.go L95 起）会把 `assets/skills/` **全量**收敛到 `.agents/skills/`（含约 27 个目录与 `_shared`），副作用远大于本票增量。
+- 窄增量路径（推荐）：手工同步两目录——`mkdir -p .agents/skills/flowforge-import && cp assets/skills/flowforge-import/SKILL.md .agents/skills/flowforge-import/`，以及 `cp -R assets/skills/_shared .agents/skills/`（SKILL 引用 `../_shared/ARTIFACT-CONTRACT.md`，不带 _shared 部署后仍断链）；在 Implementation note 记录选择理由。
+- `TestAgentRulesDescribeSubagentDelegation` 等资产测试不触碰 skills 目录内容；`go test` 无断言绑定 import SKILL 文本，改动零测试风险。
 
 ### Execution scenarios
 
-- <filled by flowforge-refine-ticket>
+- Success：`grep -n "research/" assets/skills/flowforge-import/SKILL.md` 命中含 `<docs_dir>` 表述；dogfood 副本存在且与源一致（diff 空）；`go test ./internal/...` 全绿。
+- Failure：只拷 SKILL.md 不拷 `_shared` → 部署副本引用断链依旧（人工核验项，无自动测试拦截，需在 Implementation note 自检确认）。
 
 ### Expected tests
 
-- <filled by flowforge-refine-ticket>
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...` — 全部 ok（本票无代码改动，回归确认）。
+- `diff assets/skills/flowforge-import/SKILL.md .agents/skills/flowforge-import/SKILL.md` — 无差异。
 
 ### Generated artifacts
 
-- <filled by flowforge-refine-ticket>
+- producer `assets/skills/flowforge-import/SKILL.md` → consumer `.agents/skills/flowforge-import/SKILL.md`（dogfood 部署副本）＋后续 `flowforge upgrade` 全量收敛通道。
 
 ### Conventions
 
 - must 变更后运行 `go test ./internal/...`（转录自设计 Standards clauses）。
+- 增补句保持英文（SKILL 正文语言一致）；不新增分类、不改 hand-off 逻辑（约束重申）。
