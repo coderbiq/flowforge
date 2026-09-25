@@ -15,6 +15,8 @@ Resolve the requirement authority and revision, applicable project context and A
 
 Return a question to Align only when different answers change the externally observable outcome, scope, scenario, constraint, or meaning. Choosing a module owner, interface shape, seam, internal flow, migration order, or verification seam remains solution design work.
 
+The entry reading list may and is encouraged to include one **design fact brief** (设计事实简报) — the `flowforge-research` output that gathers pre-ruling facts. Rule on the brief plus targeted spot-checks of its cited sources instead of reading the codebase end to end; the brief's open items are exactly the ruling checklist for this run. The brief gathers facts only — decisions and design rulings stay here.
+
 ## Process
 
 ### 1. Establish the decision frontier
