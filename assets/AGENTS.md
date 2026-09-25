@@ -99,3 +99,7 @@ unless a Change explicitly targets them. Host-level enforcement examples:
   `permission: {edit: {"**/*_test.go": "deny", "**/src/test/**": "deny"}}`
 - Claude Code: `disallowedTools` restrictions or a PostToolUse/Stop hook that
   runs the preset tests.
+
+## Per-machine deploy artifacts
+
+Deploy artifacts (`.claude/agents/`, `.opencode/agent/`, `.codex/agents/`, `.pi/agents/`, `.pi/extensions/`, `.agents/`) and `.flowforge/config.yaml` are per-machine files: `flowforge init` records them in `.gitignore` automatically; user-authored agents meant for the repository opt in with `git add -f`.

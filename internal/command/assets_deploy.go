@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -62,6 +63,102 @@ func deployManagedAssets(targetDir string, docsRoot string) error {
 	}
 
 	return nil
+}
+
+// managedDeployArtifactEntries lists the deploy artifact paths flowforge
+// manages on every machine, pinned by the deploy-artifact-localization
+// design (d-artifact-localization): the per-host agent directories, the pi
+// extension directory, the skills directory, and the .flowforge/config.yaml
+// single-file entry. The config entry stays single-file on purpose: the
+// rest of .flowforge/ (e.g. subagents/ custom sources) stays committable.
+var managedDeployArtifactEntries = []string{
+	".claude/agents/",
+	".opencode/agent/",
+	".codex/agents/",
+	".pi/agents/",
+	".pi/extensions/",
+	".agents/",
+	".flowforge/config.yaml",
+}
+
+// gitignoreBlockMarker labels the block ensureDeployArtifactGitignore
+// appends so the managed entries stay identifiable as flowforge-owned.
+const gitignoreBlockMarker = "# flowforge: managed deploy artifacts (per-machine)"
+
+// ensureDeployArtifactGitignore appends the managed deploy artifact
+// entries to the project root .gitignore, creating the file when absent.
+// The append is idempotent: an entry already present as a line (any
+// surrounding whitespace) counts as satisfied and is never rewritten, and
+// user content is preserved verbatim.
+func ensureDeployArtifactGitignore(projectRoot string) error {
+	gitignorePath := filepath.Join(projectRoot, ".gitignore")
+	data, err := os.ReadFile(gitignorePath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading .gitignore: %w", err)
+	}
+	content := string(data)
+
+	present := make(map[string]bool)
+	for _, line := range strings.Split(content, "\n") {
+		present[strings.TrimSpace(line)] = true
+	}
+	var missing []string
+	for _, entry := range managedDeployArtifactEntries {
+		if !present[entry] {
+			missing = append(missing, entry)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+
+	var block strings.Builder
+	if content != "" {
+		block.WriteString(content)
+		if !strings.HasSuffix(content, "\n") {
+			block.WriteString("\n")
+		}
+	}
+	block.WriteString(gitignoreBlockMarker + "\n")
+	for _, entry := range missing {
+		block.WriteString(entry + "\n")
+	}
+	if err := os.WriteFile(gitignorePath, []byte(block.String()), 0o644); err != nil {
+		return fmt.Errorf("writing .gitignore: %w", err)
+	}
+	return nil
+}
+
+// reportTrackedDeployArtifacts checks each managed deploy artifact path
+// against the local git index via `git ls-files --error-unmatch` (a
+// read-only local query; exit 0 = tracked, non-zero = not tracked) and,
+// for tracked paths, writes copy-paste ready `git rm --cached -r <path>`
+// guidance plus a one-line reason to w. The git index is never modified;
+// environments without a git binary or outside a repository are skipped
+// silently.
+func reportTrackedDeployArtifacts(w io.Writer, projectRoot string) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		return
+	}
+	var tracked []string
+	for _, entry := range managedDeployArtifactEntries {
+		cmd := exec.Command(gitPath, "ls-files", "--error-unmatch", "--", entry)
+		cmd.Dir = projectRoot
+		cmd.Stdout = io.Discard
+		cmd.Stderr = io.Discard
+		if err := cmd.Run(); err == nil {
+			tracked = append(tracked, entry)
+		}
+	}
+	if len(tracked) == 0 {
+		return
+	}
+	fmt.Fprintln(w, "warning: some flowforge deploy artifacts are tracked by git, but deploy artifacts are per-machine files and should not travel via git")
+	fmt.Fprintln(w, "untrack each path (the working-tree copies are kept) with:")
+	for _, entry := range tracked {
+		fmt.Fprintf(w, "  git rm --cached -r %s\n", entry)
+	}
 }
 
 func applyAgentsBlock(targetPath string, newBlock []byte) error {

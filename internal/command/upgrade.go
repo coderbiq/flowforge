@@ -105,8 +105,15 @@ func syncProjectAssets(cmd *cobra.Command, successMessage string) {
 		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to load project configuration: %v\n", err)
 		return
 	}
+	// Localize deploy artifacts before deploying: surface already-tracked
+	// managed paths with copy-paste untrack guidance (the git index is never
+	// modified automatically), then record the managed per-machine paths in
+	// .gitignore (idempotent).
+	reportTrackedDeployArtifacts(cmd.ErrOrStderr(), projectRoot)
+	if err := ensureDeployArtifactGitignore(projectRoot); err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to manage .gitignore deploy artifact entries: %v\n", err)
+	}
 	if err := deployManagedAssets(projectRoot, cfg.DocsRoot(projectRoot)); err != nil {
-		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: failed to synchronize project assets: %v\n", err)
 		return
 	}
 	comparison, err := verifyManagedAssets(projectRoot)

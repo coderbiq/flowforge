@@ -78,7 +78,16 @@ sets up <docs_dir>/agents/ rules, creates .flowforge/ configuration, and sets up
 				return fmt.Errorf("checking context file: %w", err)
 			}
 
-			// 4. Deploy managed assets (skills, agent docs, AGENTS.md)
+			// 4. Localize deploy artifacts: surface already-tracked managed
+			// paths with copy-paste untrack guidance (the git index is never
+			// modified automatically; non-git environments are skipped), then
+			// record the managed per-machine paths in .gitignore (idempotent).
+			reportTrackedDeployArtifacts(cmd.ErrOrStderr(), absTarget)
+			if err := ensureDeployArtifactGitignore(absTarget); err != nil {
+				return fmt.Errorf("managing .gitignore: %w", err)
+			}
+
+			// 5. Deploy managed assets (skills, agent docs, AGENTS.md)
 			if err := deployManagedAssets(absTarget, docsRoot); err != nil {
 				return fmt.Errorf("deploying assets: %w", err)
 			}
@@ -90,7 +99,7 @@ sets up <docs_dir>/agents/ rules, creates .flowforge/ configuration, and sets up
 				return fmt.Errorf("deployed assets remain missing or drifted: %s", comparison.DivergenceMessage())
 			}
 
-			// 5. Deploy subagents to host directories
+			// 6. Deploy subagents to host directories
 			if _, err := deploySubagents(absTarget, cfg, ""); err != nil {
 				return fmt.Errorf("deploying subagents: %w", err)
 			}
