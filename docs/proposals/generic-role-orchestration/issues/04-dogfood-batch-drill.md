@@ -12,7 +12,7 @@ flowforge:
 # 04: dogfood 批次演练（pi 宿主 ≥3 并行 batch-analyst）
 
 **Blocked by:** 01, 02
-**Status:** open
+**Status:** done
 **Mode:** full
 
 ## Delivery
@@ -33,10 +33,10 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 ## Changes
 
-- [ ] 1. 执行 `flowforge agents deploy`（本仓）确认 `flowforge-batch-analyst` 等三新角色部署到启用宿主（含 pi）。
-- [ ] 2. 选定演练题材并规划任务链：拆出 ≥3 个可并行的 batch-analyst 分析单元，逐任务按结构化模板（角色/【目标】【输入】【输出】带引用）书写派发提示词，pi 宿主并行派发。
-- [ ] 3. 旗舰 Review 收敛：核对各 worker 产物引用可验证性，综合为 1 份带引用研究笔记落 `docs/research/`。
-- [ ] 4. 把链路证据写入本票：派发提示词（逐字）、worker 数量与产物位置、收敛结论去向、暴露的协议摩擦点（如有，附到 oi-pi-dispatch-tool 的观察记录）。
+- [x] 1. 执行 `flowforge agents deploy`（本仓）确认 `flowforge-batch-analyst` 等三新角色部署到启用宿主（含 pi）。
+- [x] 2. 选定演练题材并规划任务链：拆出 ≥3 个可并行的 batch-analyst 分析单元，逐任务按结构化模板（角色/【目标】【输入】【输出】带引用）书写派发提示词，pi 宿主并行派发。
+- [x] 3. 旗舰 Review 收敛：核对各 worker 产物引用可验证性，综合为 1 份带引用研究笔记落 `docs/research/`。
+- [x] 4. 把链路证据写入本票：派发提示词（逐字）、worker 数量与产物位置、收敛结论去向、暴露的协议摩擦点（如有，附到 oi-pi-dispatch-tool 的观察记录）。
 
 ## Constraints
 
@@ -83,3 +83,17 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 - must flash 档角色产出必须带可验证引用（转录自设计 Standards clauses）。
 - 每任务用结构化模板派发（角色/【目标】【输入】【输出】）；机械可完成才下放 flash 档；任务链规划、跨组综合、Review 收敛留编排会话（协议边界条款）。
 - 本票无代码 Write set：生产代码与既有票面零修改；产物仅为研究笔记与本票记录。
+
+## Implementation note
+
+**演练执行**（2026-09-25，pi 宿主，编排会话 = 当前旗舰）：
+
+1. 部署：`./bin/flowforge agents deploy` → `.pi/agents/` 9 角色；**新角色热加载零摩擦**（部署后即被会话子代理工具识别）。
+2. 批次：题材＝双轨 wiki 配置收敛调研，3 × `flowforge-batch-analyst` 并行（run：W1 `3aabd040`、W2 `2276cd41`、W3 `2cd35f70`）。派发提示词逐字段（模板核心，全文见各 run 会话记录）：
+   - W1 你是 flowforge-batch-analyst。项目根：/Users/qiangbi/develop/projects/Syl/tangram/flowforge。【目标】枚举 WikiRoot 轨与 DocsDir 轨全部读写点对照表（文件:行号+符号+语义）；【输入】internal/config/ 起步按符号追、internal/command/ grep 定位；【输出】docs/research/workbench/2026-09-25-w1-config-surface.md，每条带引用，不做收敛建议。
+   - W2 同模板：【目标】命令消费面矩阵（assets 落点 vs proposals 扫描根）+ 测试断言清单；【输出】…w2-command-consumers.md。
+   - W3 同模板：【目标】迁移处理路径 + DefaultDocsDir 改名影响面 + 提案/CHANGELOG 既有讨论；【输出】…w3-migration-history.md。
+3. 产物：三份 workbench（引用密度 103/67/40+，各自脚本核验 + 语义抽检 22/22、21/21 通过）；旗舰 Review 抽查三条载重结论（死轨 grep 空、本仓双值分歧 cat、primaryProject 单向交汇 sed）全过，收敛为 [docs/research/2026-09-25-dual-track-wiki-config.md](../../../docs/research/2026-09-25-dual-track-wiki-config.md)。
+4. 收敛结论去向：双轨统一小提案（align 起步）+ 文档失准 3 处顺手修候选（清单在收敛笔记 §文档失准）。
+5. 摩擦观察（→ oi-pi-dispatch-tool）：热加载零摩擦；worker 自证引用纪律良好（无需旗舰逐条复核，抽查即可）；本轮未显现 dispatch-helper 工具的刚需缺口，open item 优先级维持低位；早前 01 票的 refine 扫描缺口与 stale attention 信号已各自记录，无新增。
+6. 验证：`ls .pi/agents/flowforge-batch-analyst.md` 存在；`go test ./internal/...` 全绿（无代码改动回归确认）；票面 Done and verify 四条全成立。
