@@ -3,7 +3,7 @@ flowforge:
   schema: 1
   role: requirement
   id: wiki-config-single-track-requirements
-  revision: 2
+  revision: 3
 ---
 
 <a id="wiki-config-single-track-requirements"></a>
@@ -45,5 +45,5 @@ flowforge:
 ## 待裁决（设计前回收）
 
 - ~~Q1 轨道消亡形态~~ **已裁决（2026-09-25，用户同意推荐）：硬删 + load 告警忽略**。
-- Q2 提示通道：load 时 stderr、`flowforge config` 命令输出、或静默（告警的触达面归设计）。
-- Q3 顶层 `wiki.root` 与 `projects[].wikiRoot` 是否区别对待（后者被 primaryProject 消费过）：**拟随 Q1 关闭**——两键同死同告警、不区别对待（primaryProject→ProjectConfig.WikiRoot 整链无生产消费，无区分价值），除非反对，设计阶段按此定。
+- ~~Q2 提示通道~~ **已裁决（2026-09-25，用户同意推荐）：load 时 stderr**——本地开发工具噪声成本极低（清理配置即消失），不污染 stdout 管道；静默弱化违背 Q1 初衷；“首次判定”需状态文件不值。
+- ~~Q3 两键区别对待~~ **已随 Q1/Q2 关闭（2026-09-25）**：顶层 `wiki.root` 与 `projects[].wikiRoot` 同死同告警、不区别对待（primaryProject→ProjectConfig.WikiRoot 整链无生产消费）。
