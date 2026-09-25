@@ -12,7 +12,7 @@ flowforge:
 # 01: 通用角色资产三件套（batch-analyst/scribe/executor）+ 名册扩展
 
 **Blocked by:** None
-**Status:** done
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery

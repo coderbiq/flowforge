@@ -12,7 +12,7 @@ flowforge:
 # 05: reviewer-lite 承担 Standards 轴（资产 + 双轴派发契约 + 钉扎）
 
 **Blocked by:** 04
-**Status:** done
+**Status:** closed
 **Mode:** full
 
 ## Delivery

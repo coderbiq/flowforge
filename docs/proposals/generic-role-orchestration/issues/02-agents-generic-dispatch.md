@@ -12,7 +12,7 @@ flowforge:
 # 02: AGENTS.md 通用调度段（能力表 + 任务链协议 + pi 提示）
 
 **Blocked by:** 01
-**Status:** done
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery

@@ -12,7 +12,7 @@ flowforge:
 # 01: models_by_host 配置层 + 六级优先级链 + 格式级校验
 
 **Blocked by:** None
-**Status:** done
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery

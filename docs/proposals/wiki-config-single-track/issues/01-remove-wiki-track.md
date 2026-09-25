@@ -12,7 +12,7 @@ flowforge:
 # 01: wiki 轨删除面 + load 告警 + 字面量单点
 
 **Blocked by:** None
-**Status:** done
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery

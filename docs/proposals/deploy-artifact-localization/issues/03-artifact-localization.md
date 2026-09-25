@@ -12,7 +12,7 @@ flowforge:
 # 03: 产物本地化（gitignore 自动化 + 存量迁移指引）+ AGENTS 模板约定
 
 **Blocked by:** None
-**Status:** done
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery

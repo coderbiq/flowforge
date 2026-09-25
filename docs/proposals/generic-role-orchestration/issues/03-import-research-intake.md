@@ -12,7 +12,7 @@ flowforge:
 # 03: import SKILL 增补 <docs_dir>/research/ 标准源
 
 **Blocked by:** None
-**Status:** done
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery

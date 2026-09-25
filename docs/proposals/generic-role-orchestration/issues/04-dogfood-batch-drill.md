@@ -12,7 +12,7 @@ flowforge:
 # 04: dogfood 批次演练（pi 宿主 ≥3 并行 batch-analyst）
 
 **Blocked by:** 01, 02
-**Status:** done
+**Status:** closed
 **Mode:** full
 
 ## Delivery

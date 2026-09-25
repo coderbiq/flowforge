@@ -12,7 +12,7 @@ flowforge:
 # 02: 文档失准清零 + 自举 config 清理
 
 **Blocked by:** None
-**Status:** done
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery

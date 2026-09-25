@@ -12,7 +12,7 @@ flowforge:
 # 06: 设计事实简报（architect 预调研拆分契约）
 
 **Blocked by:** 02
-**Status:** done
+**Status:** closed
 **Mode:** full
 
 ## Delivery
