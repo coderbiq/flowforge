@@ -30,17 +30,20 @@ func TestAgentsDeployWritesAllHostsForBuiltinRoles(t *testing.T) {
 		t.Fatalf("deploySubagents: %v", err)
 	}
 
-	if len(deployed) != 6 {
-		t.Fatalf("expected 6 deployed subagents, got %d", len(deployed))
+	if len(deployed) != 9 {
+		t.Fatalf("expected 9 deployed subagents, got %d", len(deployed))
 	}
 
 	expectedRoles := []string{
 		"flowforge-analyst",
 		"flowforge-architect",
+		"flowforge-batch-analyst",
+		"flowforge-executor",
 		"flowforge-implementer",
 		"flowforge-investigator",
 		"flowforge-planner",
 		"flowforge-reviewer",
+		"flowforge-scribe",
 	}
 
 	// Verify all roles were deployed
@@ -227,9 +230,9 @@ func TestAgentsDeployRespectsDisabledList(t *testing.T) {
 		t.Fatalf("deploySubagents: %v", err)
 	}
 
-	// Should deploy 4 agents (6 - 2 disabled)
-	if len(deployed) != 4 {
-		t.Fatalf("expected 4 deployed subagents, got %d", len(deployed))
+	// Should deploy 7 agents (9 - 2 disabled)
+	if len(deployed) != 7 {
+		t.Fatalf("expected 7 deployed subagents, got %d", len(deployed))
 	}
 
 	// Verify disabled agents are not in the list
@@ -638,18 +641,18 @@ func TestInitDeploysSubagentsToAllHosts(t *testing.T) {
 		t.Fatalf("deploySubagents: %v", err)
 	}
 
-	if len(deployed) != 6 {
-		t.Fatalf("expected 6 subagents deployed, got %d", len(deployed))
+	if len(deployed) != 9 {
+		t.Fatalf("expected 9 subagents deployed, got %d", len(deployed))
 	}
 
-	// Verify all 3 host directories have 6 files each
+	// Verify all 3 host directories have 9 files each
 	for _, dir := range []string{".claude/agents", ".opencode/agent", ".codex/agents"} {
 		entries, err := os.ReadDir(filepath.Join(projectRoot, dir))
 		if err != nil {
 			t.Fatalf("reading %s: %v", dir, err)
 		}
-		if len(entries) != 6 {
-			t.Errorf("expected 6 files in %s, got %d", dir, len(entries))
+		if len(entries) != 9 {
+			t.Errorf("expected 9 files in %s, got %d", dir, len(entries))
 		}
 	}
 }
@@ -675,8 +678,8 @@ func TestUpgradeSyncDeploysSubagents(t *testing.T) {
 		t.Fatalf("deploySubagents: %v", err)
 	}
 
-	if len(deployed) != 6 {
-		t.Fatalf("expected 6 subagents, got %d", len(deployed))
+	if len(deployed) != 9 {
+		t.Fatalf("expected 9 subagents, got %d", len(deployed))
 	}
 
 	// Verify files exist for representative roles
@@ -724,9 +727,9 @@ func TestUpgradeSyncSkipsDisabledSubagents(t *testing.T) {
 		t.Fatalf("deploySubagents: %v", err)
 	}
 
-	// Should deploy 5 (6 - 1 disabled)
-	if len(deployed) != 5 {
-		t.Fatalf("expected 5 subagents, got %d", len(deployed))
+	// Should deploy 8 (9 - 1 disabled)
+	if len(deployed) != 8 {
+		t.Fatalf("expected 8 subagents, got %d", len(deployed))
 	}
 
 	// Verify disabled agent not deployed
@@ -847,8 +850,8 @@ func TestAgentsDeployHonorsHostSelection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("deploySubagents: %v", err)
 	}
-	if len(deployed) != 6 {
-		t.Fatalf("expected 6 deployed subagents, got %d", len(deployed))
+	if len(deployed) != 9 {
+		t.Fatalf("expected 9 deployed subagents, got %d", len(deployed))
 	}
 
 	// Selected host received files
@@ -921,8 +924,8 @@ func TestAgentsDeployPiHost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("deploySubagents: %v", err)
 	}
-	if len(deployed) != 6 {
-		t.Fatalf("expected 6 deployed subagents, got %d", len(deployed))
+	if len(deployed) != 9 {
+		t.Fatalf("expected 9 deployed subagents, got %d", len(deployed))
 	}
 
 	// .pi/agents/ holds one native file per definition
@@ -931,8 +934,8 @@ func TestAgentsDeployPiHost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading %s: %v", piDir, err)
 	}
-	if len(entries) != 6 {
-		t.Errorf("expected 6 files in .pi/agents, got %d", len(entries))
+	if len(entries) != 9 {
+		t.Errorf("expected 9 files in .pi/agents, got %d", len(entries))
 	}
 
 	// Non-read-only role: thinking + skills binding, no tools allowlist
