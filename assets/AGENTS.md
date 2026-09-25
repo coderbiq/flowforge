@@ -29,6 +29,7 @@ owns the next step, consult the process table below (`## Subagent delegation`).
 | Batch extract + compare + summarize, split in parallel by group | `flowforge-batch-analyst` | flash pinnable |
 | Write or backfill a structured document from a given template | `flowforge-scribe` | flash pinnable |
 | Mechanically execute a batch of existing commands or tools | `flowforge-executor` | tool-capable |
+| Standards-axis findings (build/test/convention conformance, cited) | `flowforge-reviewer-lite` | flash pinnable |
 | Decision-material brief (research output contract) | `flowforge-investigator` (brief form; contract in `flowforge-research`) | flash pinnable |
 
 Task-chain protocol (distilled from GIIS): the orchestrating session plans the

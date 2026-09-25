@@ -23,8 +23,8 @@ func TestParseDirReturnsSixDefinitions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseDir: %v", err)
 	}
-	if len(definitions) != 9 {
-		t.Fatalf("expected 9 definitions, got %d", len(definitions))
+	if len(definitions) != 10 {
+		t.Fatalf("expected 10 definitions, got %d", len(definitions))
 	}
 	expectedNames := []string{
 		"flowforge-analyst",
@@ -35,6 +35,7 @@ func TestParseDirReturnsSixDefinitions(t *testing.T) {
 		"flowforge-investigator",
 		"flowforge-planner",
 		"flowforge-reviewer",
+		"flowforge-reviewer-lite",
 		"flowforge-scribe",
 	}
 	for i, expected := range expectedNames {

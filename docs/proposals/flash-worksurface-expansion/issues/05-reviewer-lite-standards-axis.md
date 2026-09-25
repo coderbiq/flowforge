@@ -38,9 +38,9 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
 
 ## Changes
 
-- [ ] 1. 新建 `assets/subagents/flowforge-reviewer-lite.md`：description 英文能力表述（"Standards-axis only review: build/test passability, conventions, lint, preset-test presence; produces cited findings for flowforge-reviewer adjudication"）；五段 Body——Identity（轴定义在此：构建/测试通过性、约定、lint、预设测试存在性）、Boundaries（MUST NOT 给 spec 轴结论、MUST NOT 规划 `Fix:` Changes、MUST NOT 修改代码；findings 交 flowforge-reviewer 汇总裁定；每条 finding 带可验证引用）、Workflow Position（无流程位，由编排/review 会话按能力表派发）、Default Skill（flowforge-review 双通道句）、Result Contract（STATUS 首行契约）；frontmatter：`model_profile: tool-capable`、`permission: read-only`（编译器真实收紧：pi 只读工具白名单）、`after/before/returns_to: []`、`detour_skills: []`。
-- [ ] 2. `assets/AGENTS.md` 与仓根 `AGENTS.md` 的 `## Generic capability dispatch` 能力表新增行：`Standards-axis findings (build/test/convention conformance, cited) | flowforge-reviewer-lite | flash pinnable`。**不触碰 flowforge-review SKILL**（轴定义在角色 Identity；旗舰 reviewer 读取 lite findings 属其既有 review 流程输入）。
-- [ ] 3. 名册 9→10：`subagent_source_test.go` `expectedSubagentNames` 加入 `flowforge-reviewer-lite`；`agents_test.go` 基数断言 9→10（L33/644/681/853/927）、disabled 场景 7→8（L234）、host-selection 8→9（L731）、`expectedRoles` 名单 +1；`compile_test.go` L26 9→10 + 排序名单 +1。以 `go test ./internal/command/ ./internal/subagent/` 失败定位为准补齐所有绑定名册基数的断言。
+- [x] 1. 新建 `assets/subagents/flowforge-reviewer-lite.md`：description 英文能力表述（"Standards-axis only review: build/test passability, conventions, lint, preset-test presence; produces cited findings for flowforge-reviewer adjudication"）；五段 Body——Identity（轴定义在此：构建/测试通过性、约定、lint、预设测试存在性）、Boundaries（MUST NOT 给 spec 轴结论、MUST NOT 规划 `Fix:` Changes、MUST NOT 修改代码；findings 交 flowforge-reviewer 汇总裁定；每条 finding 带可验证引用）、Workflow Position（无流程位，由编排/review 会话按能力表派发）、Default Skill（flowforge-review 双通道句）、Result Contract（STATUS 首行契约）；frontmatter：`model_profile: tool-capable`、`permission: read-only`（编译器真实收紧：pi 只读工具白名单）、`after/before/returns_to: []`、`detour_skills: []`。
+- [x] 2. `assets/AGENTS.md` 与仓根 `AGENTS.md` 的 `## Generic capability dispatch` 能力表新增行：`Standards-axis findings (build/test/convention conformance, cited) | flowforge-reviewer-lite | flash pinnable`。**不触碰 flowforge-review SKILL**（轴定义在角色 Identity；旗舰 reviewer 读取 lite findings 属其既有 review 流程输入）。
+- [x] 3. 名册 9→10：`subagent_source_test.go` `expectedSubagentNames` 加入 `flowforge-reviewer-lite`；`agents_test.go` 基数断言 9→10（L33/644/681/853/927）、disabled 场景 7→8（L234）、host-selection 8→9（L731）、`expectedRoles` 名单 +1；`compile_test.go` L26 9→10 + 排序名单 +1。以 `go test ./internal/command/ ./internal/subagent/` 失败定位为准补齐所有绑定名册基数的断言。
 - [ ] 4. tangram-v2：`.flowforge/config.yaml` 的 `agents.models_by_name` 增 `flowforge-reviewer-lite: cpa/deepseek-v4.1-flash`，执行 `flowforge agents deploy` 部署 lite（跨仓操作，产物不入本仓 git）。
 - [ ] 5. 版本发布：`make dev VERSION=<下一补丁版>`（从 `git tag` 递增）并安装到 `~/.local/bin/flowforge`（资产随二进制分发）。
 
@@ -62,6 +62,16 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
 - Go 测试全绿: `GOPROXY=https://goproxy.cn,direct go test ./internal/...` — ok。
 
 ---
+
+## Implementation note
+
+2026-09-25（Changes 1-3 executed, lightweight mode）:
+
+- TDD Red→Green：先扩名册断言（subagent_source_test/agents_test 七处基数/compile_test）跑 Red，失败形态全部为 expected 10/got 9（含 disabled 场景 8/9）；再落资产转 Green。
+- 绿色阶段关键事实：`internal/command/embed.go` `//go:embed all:assets` 使测试二进制嵌入 gitignored 镜像 `internal/command/assets/`，deploy 测试读镜像而非仓根 assets；已按最小手术式同步镜像中的 subagents/AGENTS.md 两份产物（避免与并行票 06 的 assets/skills 写面竞态），镜像不入库。
+- agents_test 七处坐标实际落在 L33/234/646/683/733/855/929（含同块 L648-656 目录文件数与 L937 .pi/agents 文件数断言）；expectedRoles/expectedNames/expectedSubagentNames 均已 +1。
+- 变更后 `go test ./internal/...` 全绿；`grep -n reviewer-lite assets/AGENTS.md AGENTS.md` 双命中（L32/L61）。
+- Changes 4（tangram-v2 config/deploy）与 Changes 5（版本发布）deferred to orchestrator convergence（避免与并行票 06 的构建步骤冲突）；宿主无 golangci-lint，以 `go vet` 两包通过作替代静态门。
 
 ## Execution detail
 
