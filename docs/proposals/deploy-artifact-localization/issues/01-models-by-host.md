@@ -9,10 +9,6 @@ flowforge:
       deploy-artifact-localization-design: 3
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 01: models_by_host 配置层 + 六级优先级链 + 格式级校验
 
 **Blocked by:** None
@@ -120,3 +116,6 @@ See the design authority at [部署产物本地化与模型注入方案](../desi
 - must config 显式配置总是压过 preserve-merge 回填值（转录自设计 Standards clauses）。
 - 测试文件改动用 bash（宿主守卫）。
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

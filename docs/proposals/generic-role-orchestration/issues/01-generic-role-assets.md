@@ -9,10 +9,6 @@ flowforge:
       generic-role-orchestration-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 01: 通用角色资产三件套（batch-analyst/scribe/executor）+ 名册扩展
 
 **Blocked by:** None
@@ -130,3 +126,7 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 - must 通用角色 description 按能力书写、不含流程术语（frontmatter 与 Workflow Position 段同理）。
 - must flash 档角色产出必须带可验证引用（Boundaries 段承载）。
 - 资产英文书写（description/Boundaries 锚点句式与既有六资产一致）；文件名 = frontmatter name（parser 强制）。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

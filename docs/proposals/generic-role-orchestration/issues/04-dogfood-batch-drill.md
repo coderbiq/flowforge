@@ -9,10 +9,6 @@ flowforge:
       generic-role-orchestration-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 04: dogfood 批次演练（pi 宿主 ≥3 并行 batch-analyst）
 
 **Blocked by:** 01, 02
@@ -117,3 +113,7 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 4. 收敛结论去向：双轨统一小提案（align 起步）+ 文档失准 3 处顺手修候选（清单在收敛笔记 §文档失准）。
 5. 摩擦观察（→ oi-pi-dispatch-tool）：热加载零摩擦；worker 自证引用纪律良好（无需旗舰逐条复核，抽查即可）；本轮未显现 dispatch-helper 工具的刚需缺口，open item 优先级维持低位；早前 01 票的 refine 扫描缺口与 stale attention 信号已各自记录，无新增。
 6. 验证：`ls .pi/agents/flowforge-batch-analyst.md` 存在；`go test ./internal/...` 全绿（无代码改动回归确认）；票面 Done and verify 四条全成立。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

@@ -9,10 +9,6 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 03: explore 迁移 flash（项目 opencode.json 钉扎）
 
 **Blocked by:** 01
@@ -103,3 +99,7 @@ Phase 0 restatement：
 
 - MUST NOT 修改用户级 `~/.config/opencode/opencode.jsonc`（Constraints 转录）。
 - 文件为项目级新文件，tangram-v2 仓 commit 一次（与 #02 的 config 变更可同批或分批）。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

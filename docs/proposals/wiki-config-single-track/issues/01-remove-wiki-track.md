@@ -9,10 +9,6 @@ flowforge:
       wiki-config-single-track-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 01: wiki 轨删除面 + load 告警 + 字面量单点
 
 **Blocked by:** None
@@ -142,3 +138,7 @@ See the design authority at [双轨 wiki 配置统一：方案](../design.md#wik
 - must 变更后运行 `go test ./internal/...`（转录自设计 Standards clauses）。
 - 告警消息英文（CLI 输出现状）；`warnOut` 命名与 io/os 导入遵循包内风格。
 - 测试文件改动用 bash 完成（宿主 PreToolUse 守卫拦截 `*_test.go` 的 edit/write 工具）。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

@@ -9,10 +9,6 @@ flowforge:
       generic-role-orchestration-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 03: import SKILL 增补 <docs_dir>/research/ 标准源
 
 **Blocked by:** None
@@ -101,3 +97,7 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
   - `diff assets/skills/flowforge-import/SKILL.md .agents/skills/flowforge-import/SKILL.md` → 无差异。
   - `GOPROXY=https://goproxy.cn,direct go test ./internal/...` → 全部 ok（internal/command、config、subagent、tracker、update 均 ok；version 无测试文件）。
 - 修改文件清单：`assets/skills/flowforge-import/SKILL.md`（Inputs 节末尾追加一句）；`.agents/skills/flowforge-import/SKILL.md`（新增部署副本）；`.agents/skills/_shared/ARTIFACT-CONTRACT.md`、`.agents/skills/_shared/SCHEMA-V1.md`（新增部署）；本票（勾选 Changes 1-2、追加本节）。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

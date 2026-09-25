@@ -9,10 +9,6 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 05: reviewer-lite 承担 Standards 轴（资产 + 双轴派发契约 + 钉扎）
 
 **Blocked by:** 04
@@ -129,3 +125,7 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
 - must 变更后运行 `go test ./internal/...`。
 - 资产英文书写；能力表行含档位列；测试文件改动用 bash（宿主守卫）。
 - 部署镜像 `internal/command/assets/` 刷新属 make-dev 构建步骤（gitignored，不入库）。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

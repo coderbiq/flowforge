@@ -9,10 +9,6 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 06: 设计事实简报（architect 预调研拆分契约）
 
 **Blocked by:** 02
@@ -119,3 +115,7 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
 
 - must 变更后运行 `go test ./internal/...`。
 - SKILL 正文英文；引用格式与 flowforge-research 现有引用纪律一致（文件:行号或命令输出）。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

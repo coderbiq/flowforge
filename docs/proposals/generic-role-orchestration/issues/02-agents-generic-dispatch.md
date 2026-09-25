@@ -9,10 +9,6 @@ flowforge:
       generic-role-orchestration-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 02: AGENTS.md 通用调度段（能力表 + 任务链协议 + pi 提示）
 
 **Blocked by:** 01
@@ -106,3 +102,7 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 - must 变更后运行 `go test ./internal/...`（转录自设计 Standards clauses）。
 - 段落英文书写（与模板既有节一致）；任务模板 code block 保留【目标】【输入】【输出】标记；表格用与 Agent skills 表相同的 `|:---|:---|:---|` 风格；能力表含档位建议列。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

@@ -9,10 +9,6 @@ flowforge:
       wiki-config-single-track-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 02: 文档失准清零 + 自举 config 清理
 
 **Blocked by:** None
@@ -129,3 +125,7 @@ See the design authority at [双轨 wiki 配置统一：方案](../design.md#wik
 ### go test
 
 `GOPROXY=https://goproxy.cn,direct go test ./internal/...`（1 次，fail-fast）：command/subagent/tracker/update 全 ok；`internal/config` FAIL 于 `TestLoadWarnsOnDeprecatedWikiKeys`——为并行票 01 新增测试且其实现尚在飞（发现 2 已折入 Execution detail 的 Verified contracts：Done-4 待 01 落地复核），与本票零代码改动无关。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

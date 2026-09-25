@@ -9,10 +9,6 @@ flowforge:
       deploy-artifact-localization-design: 3
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 03: 产物本地化（gitignore 自动化 + 存量迁移指引）+ AGENTS 模板约定
 
 **Blocked by:** None
@@ -118,3 +114,6 @@ See the design authority at [部署产物本地化与模型注入方案](../desi
 - must 纯本地确定性文件操作，无网络（转录自设计 Standards clauses）。
 - 测试文件改动用 bash（宿主守卫）。
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。

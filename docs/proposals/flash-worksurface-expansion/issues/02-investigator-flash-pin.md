@@ -9,10 +9,6 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
-## Completion evidence
-
-闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
-
 # 02: investigator 迁移 flash（config 钉扎 + redeploy + 纪元标记）
 
 **Blocked by:** 01
@@ -126,3 +122,7 @@ Results (Phase 3b self-check, all pass):
 
 - MUST NOT 手改部署产物 model 字段（Constraints 转录）；一切经 config + redeploy。
 - 部署后 tangram-v2 仓的 config 变更与部署产物一起 commit（message 注明 epoch 边界 ts）。
+
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
