@@ -3,7 +3,7 @@ flowforge:
   schema: 1
   role: requirement
   id: wiki-config-single-track-requirements
-  revision: 1
+  revision: 2
 ---
 
 <a id="wiki-config-single-track-requirements"></a>
@@ -21,7 +21,7 @@ flowforge:
 
 ## 目标
 
-1. **单轨化**：`docs_dir` 成为唯一 wiki 根决策轨；wiki root 轨退出生产配置面（退出形态：硬删 vs 兼容别名期——归设计裁决，见待裁决 Q1）。
+1. **单轨化**：`docs_dir` 成为唯一 wiki 根决策轨；wiki root 轨退出生产配置面。**已裁决（2026-09-25）：硬删 + load 告警忽略**——遇 wiki 轨键提示后忽略，不维护别名读路径（死轨从未生效，告警即无损迁移；tangram-v2 等显式 docs_dir 项目行为零变化）。
 2. **存量配置兼容有契约**：显式写了 wiki 轨键的项目升级后 load 行为可预期（不炸、语义明确或带提示），以测试钉死。
 3. **字面量统一**：`"ff-wiki"` 收敛到 `DefaultDocsDir` 常量单点；不可达死默认清理。
 4. **校验收敛**：轨道消亡后 config 服务键空间校验一致（随轨道删除或对称补齐，归设计）。
@@ -44,6 +44,6 @@ flowforge:
 
 ## 待裁决（设计前回收）
 
-- **Q1 轨道消亡形态**：硬删（load 遇 wiki 轨键：告警+忽略，或直接报错）vs 兼容别名期（无 `docs_dir` 时 `wikiRoot` 作 fallback 读一个版本周期，带弃用提示）。
-- Q2 提示通道：load 时 stderr、`flowforge config` 命令输出、或静默（随 Q1）。
-- Q3 顶层 `wiki.root` 与 `projects[].wikiRoot` 是否区别对待（后者被 primaryProject 消费过）。
+- ~~Q1 轨道消亡形态~~ **已裁决（2026-09-25，用户同意推荐）：硬删 + load 告警忽略**。
+- Q2 提示通道：load 时 stderr、`flowforge config` 命令输出、或静默（告警的触达面归设计）。
+- Q3 顶层 `wiki.root` 与 `projects[].wikiRoot` 是否区别对待（后者被 primaryProject 消费过）：**拟随 Q1 关闭**——两键同死同告警、不区别对待（primaryProject→ProjectConfig.WikiRoot 整链无生产消费，无区分价值），除非反对，设计阶段按此定。
