@@ -3,7 +3,7 @@ flowforge:
   schema: 1
   role: design
   id: deploy-artifact-localization-design
-  revision: 1
+  revision: 2
   consumes:
     requirements:
       deploy-artifact-localization-requirements: 1
@@ -24,7 +24,7 @@ flowforge:
 
 <a id="deploy-artifact-localization-design"></a># 部署产物本地化与模型注入方案
 
-依据：[部署产物本地化与模型注入需求](requirements.md#deploy-artifact-localization-requirements)。用户已裁决路线：「模型注入产物 + 产物本地化」（否决宿主用户级外置通道与项目级 `.pi/settings.json` 生成方案）。事实基础：[宿主模型外置能力调查](../../research/2026-09-20-host-model-portability.md)。
+依据：[部署产物本地化与模型注入需求](requirements.md#deploy-artifact-localization-requirements)。用户已裁决路线：「模型注入产物 + 产物本地化」（否决宿主用户级外置通道与项目级 `.pi/settings.json` 生成方案）。事实基础：[宿主模型外置能力调查](../../research/2026-09-20-host-model-portability.md）。2026-09-25：四项口味题（models_by_host 双键、层间优先级链、无 --untrack flag、格式级 fail-fast 校验）经用户逐条确认，设计定稿。
 
 ## <a id="d-model-channels"></a>d-model-channels：per-host 模型覆盖层与优先级链
 
