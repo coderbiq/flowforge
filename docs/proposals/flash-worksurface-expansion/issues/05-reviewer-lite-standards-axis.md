@@ -12,7 +12,7 @@ flowforge:
 # 05: reviewer-lite 承担 Standards 轴（资产 + 双轴派发契约 + 钉扎）
 
 **Blocked by:** 04
-**Status:** open
+**Status:** done
 **Mode:** full
 
 ## Delivery
@@ -39,10 +39,30 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
 ## Changes
 
 - [x] 1. 新建 `assets/subagents/flowforge-reviewer-lite.md`：description 英文能力表述（"Standards-axis only review: build/test passability, conventions, lint, preset-test presence; produces cited findings for flowforge-reviewer adjudication"）；五段 Body——Identity（轴定义在此：构建/测试通过性、约定、lint、预设测试存在性）、Boundaries（MUST NOT 给 spec 轴结论、MUST NOT 规划 `Fix:` Changes、MUST NOT 修改代码；findings 交 flowforge-reviewer 汇总裁定；每条 finding 带可验证引用）、Workflow Position（无流程位，由编排/review 会话按能力表派发）、Default Skill（flowforge-review 双通道句）、Result Contract（STATUS 首行契约）；frontmatter：`model_profile: tool-capable`、`permission: read-only`（编译器真实收紧：pi 只读工具白名单）、`after/before/returns_to: []`、`detour_skills: []`。
+  - cmd: `go test ./internal/command/ -run TestSubagentSource`
+  - exit: 0
+  - output: ok（五段 schema/frontmatter/default_skill 解析全过）
+  - artifact: assets/subagents/flowforge-reviewer-lite.md
 - [x] 2. `assets/AGENTS.md` 与仓根 `AGENTS.md` 的 `## Generic capability dispatch` 能力表新增行：`Standards-axis findings (build/test/convention conformance, cited) | flowforge-reviewer-lite | flash pinnable`。**不触碰 flowforge-review SKILL**（轴定义在角色 Identity；旗舰 reviewer 读取 lite findings 属其既有 review 流程输入）。
+  - cmd: `grep -n reviewer-lite assets/AGENTS.md AGENTS.md`
+  - exit: 0
+  - output: `assets/AGENTS.md:32` 与 `AGENTS.md:61` 各命中能力表行
+  - artifact: assets/AGENTS.md
 - [x] 3. 名册 9→10：`subagent_source_test.go` `expectedSubagentNames` 加入 `flowforge-reviewer-lite`；`agents_test.go` 基数断言 9→10（L33/644/681/853/927）、disabled 场景 7→8（L234）、host-selection 8→9（L731）、`expectedRoles` 名单 +1；`compile_test.go` L26 9→10 + 排序名单 +1。以 `go test ./internal/command/ ./internal/subagent/` 失败定位为准补齐所有绑定名册基数的断言。
-- [ ] 4. tangram-v2：`.flowforge/config.yaml` 的 `agents.models_by_name` 增 `flowforge-reviewer-lite: cpa/deepseek-v4.1-flash`，执行 `flowforge agents deploy` 部署 lite（跨仓操作，产物不入本仓 git）。
-- [ ] 5. 版本发布：`make dev VERSION=<下一补丁版>`（从 `git tag` 递增）并安装到 `~/.local/bin/flowforge`（资产随二进制分发）。
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test -count=1 ./internal/...`
+  - exit: 0
+  - output: 全部 ok（5 包，0 failures；现场行号坐标微漂由测试失败定位法消化，见 Implementation note）
+  - artifact: internal/command/agents_test.go
+- [x] 4. tangram-v2：`.flowforge/config.yaml` 的 `agents.models_by_name` 增 `flowforge-reviewer-lite: cpa/deepseek-v4.1-flash`，执行 `flowforge agents deploy` 部署 lite（跨仓操作，产物不入本仓 git）。
+  - cmd: `grep -A2 models_by_name /Users/qiangbi/develop/projects/Bytesforce/giis/.flowforge/config.yaml && grep -m1 model /Users/qiangbi/develop/projects/Bytesforce/giis/.opencode/agent/flowforge-reviewer-lite.md`
+  - exit: 0
+  - output: 钉扎行 + opencode 产物 `model: cpa/deepseek-v4.1-flash`（注：实际钉扎站点为 GIIS——票面 tangram-v2 路径为旧环境残留，收敛时纠正；pi 宿主按现状继承会话模型，per-host 注入归 deploy-artifact-localization）
+  - artifact: docs/proposals/flash-worksurface-expansion/issues/05-reviewer-lite-standards-axis.md
+- [x] 5. 版本发布：`make dev VERSION=<下一补丁版>`（从 `git tag` 递增）并安装到 `~/.local/bin/flowforge`（资产随二进制分发）。
+  - cmd: `./bin/flowforge version && ~/.local/bin/flowforge version`
+  - exit: 0
+  - output: `flowforge v5.10.1` 双命中（git tag v5.10.0 递增补丁位；Makefile 全量刷新镜像，覆盖执行阶段的手术式同步）
+  - artifact: bin/flowforge
 
 ## Constraints
 

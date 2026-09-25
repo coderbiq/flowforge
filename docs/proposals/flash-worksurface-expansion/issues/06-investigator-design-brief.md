@@ -12,7 +12,7 @@ flowforge:
 # 06: 设计事实简报（architect 预调研拆分契约）
 
 **Blocked by:** 02
-**Status:** open
+**Status:** done
 **Mode:** full
 
 ## Delivery
@@ -50,7 +50,11 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
   - exit: 0
   - output: 三 diff 全部零输出（无差异）；DESIGN-PACKAGING.md 随同步因其被 SKILL.md 相对链接引用。执行前两目录不存在（cp 创建即同步，窄增量）。
   - artifact: .agents/skills/flowforge-research/SKILL.md
-- [ ] 4. 版本发布：`make dev VERSION=<下一补丁版>`（从 `git tag` 递增）并安装到 `~/.local/bin/flowforge`（SKILL 与 AGENTS.md 模板随发行分发）——deferred to orchestrator convergence。
+- [x] 4. 版本发布：`make dev VERSION=<下一补丁版>`（从 `git tag` 递增）并安装到 `~/.local/bin/flowforge`（SKILL 与 AGENTS.md 模板随发行分发）——由 flash 票 05 收敛统一执行。
+  - cmd: `~/.local/bin/flowforge version`
+  - exit: 0
+  - output: `flowforge v5.10.1`（两 SKILL 随二进制内嵌资产分发）
+  - artifact: bin/flowforge
 
 > 原票面 Changes 3（AGENTS.md 委派行）已由 generic-role-orchestration 票 02 提前落地（能力表 `Decision-material brief` 行），删除不重复执行。
 
