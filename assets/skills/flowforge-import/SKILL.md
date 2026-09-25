@@ -11,7 +11,7 @@ Use the shared contract's [source intake and semantic rewrite](../_shared/ARTIFA
 
 ## Inputs
 
-Resolve the supplied local source paths, target feature, optional target language, and current project authority. Read only the material needed to establish the current request; retain the source path and nearest heading for each fact that survives.
+Resolve the supplied local source paths, target feature, optional target language, and current project authority. Read only the material needed to establish the current request; retain the source path and nearest heading for each fact that survives. `<docs_dir>/research/` (relative to the wiki root, following the project `docs_dir` configuration) is the standard source location for discussion-phase and analysis-phase output; such notes are named `YYYY-MM-DD-<slug>.md`, carry citations in the body, and flow through the existing classifications above with no new category.
 
 ## Classify before hand-off
 

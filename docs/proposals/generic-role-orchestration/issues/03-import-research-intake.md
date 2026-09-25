@@ -12,7 +12,7 @@ flowforge:
 # 03: import SKILL 增补 <docs_dir>/research/ 标准源
 
 **Blocked by:** None
-**Status:** open
+**Status:** done
 **Mode:** lightweight
 
 ## Delivery
@@ -32,8 +32,8 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 ## Changes
 
-- [ ] 1. `assets/skills/flowforge-import/SKILL.md` 的 `## Inputs` 节末尾增补一句：`<docs_dir>/research/`（wiki 根相对，跟随项目 `docs_dir` 配置）是讨论期/分析期产出的标准源位置，笔记命名 `YYYY-MM-DD-<slug>.md` 且正文带引用；此类笔记按既有分类（Source fact / Requirement candidate / Design decision / Evidence / Unknown）流转，无新分类。
-- [ ] 2. dogfood 同步：执行 `flowforge upgrade` 使 `.agents/skills/flowforge-import/SKILL.md` 与资产源一致（或在 Changes 记录等价的手工同步与理由）。
+- [x] 1. `assets/skills/flowforge-import/SKILL.md` 的 `## Inputs` 节末尾增补一句：`<docs_dir>/research/`（wiki 根相对，跟随项目 `docs_dir` 配置）是讨论期/分析期产出的标准源位置，笔记命名 `YYYY-MM-DD-<slug>.md` 且正文带引用；此类笔记按既有分类（Source fact / Requirement candidate / Design decision / Evidence / Unknown）流转，无新分类。
+- [x] 2. dogfood 同步：执行 `flowforge upgrade` 使 `.agents/skills/flowforge-import/SKILL.md` 与资产源一致（或在 Changes 记录等价的手工同步与理由）。
 
 ## Constraints
 
@@ -78,3 +78,14 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 - must 变更后运行 `go test ./internal/...`（转录自设计 Standards clauses）。
 - 增补句保持英文（SKILL 正文语言一致）；不新增分类、不改 hand-off 逻辑（约束重申）。
+
+---
+
+## Implementation note
+
+- 同步方式与理由：未执行 `flowforge upgrade`——其 `syncProjectAssets`（internal/command/upgrade.go）会把 `assets/skills/` 全量（约 27 目录＋`_shared`）收敛到 `.agents/skills/`，副作用远超本票增量。改用票内推荐窄增量手工同步：`mkdir -p .agents/skills/flowforge-import && cp assets/skills/flowforge-import/SKILL.md .agents/skills/flowforge-import/`，另 `cp -R assets/skills/_shared .agents/skills/`（import SKILL 引用 `../_shared/ARTIFACT-CONTRACT.md`，仅拷 SKILL.md 断链依旧）。Failure 场景自检：`.agents/skills/_shared/` 现含 ARTIFACT-CONTRACT.md 与 SCHEMA-V1.md，引用目标已可解析，既有断链消除。
+- 验证命令与结果：
+  - `grep -n "research/" assets/skills/flowforge-import/SKILL.md` → 命中 L14，含 `<docs_dir>` 表述（exit 0）。
+  - `diff assets/skills/flowforge-import/SKILL.md .agents/skills/flowforge-import/SKILL.md` → 无差异。
+  - `GOPROXY=https://goproxy.cn,direct go test ./internal/...` → 全部 ok（internal/command、config、subagent、tracker、update 均 ok；version 无测试文件）。
+- 修改文件清单：`assets/skills/flowforge-import/SKILL.md`（Inputs 节末尾追加一句）；`.agents/skills/flowforge-import/SKILL.md`（新增部署副本）；`.agents/skills/_shared/ARTIFACT-CONTRACT.md`、`.agents/skills/_shared/SCHEMA-V1.md`（新增部署）；本票（勾选 Changes 1-2、追加本节）。
