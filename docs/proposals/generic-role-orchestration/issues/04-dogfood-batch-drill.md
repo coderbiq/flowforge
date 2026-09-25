@@ -57,20 +57,29 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 ### Verified contracts
 
-- <filled by flowforge-refine-ticket>
+- 本仓 `.pi/agents/` 现有 6 角色（01 三新角色已进 assets/ 但尚未部署到本仓 pi 宿主）；部署命令 `./bin/flowforge agents deploy`（make dev 二进制，bin/ 已存在）；部署后 9 角色含 `flowforge-batch-analyst.md`。
+- pi 会话子代理工具异步并行派发（fork 继承编排会话上下文为只读参考）；若新部署角色未被会话工具识别，记入摩擦观察（不影响本票闭环，可用能力声明回退）。
+- 产物落点 `docs/research/` 已存在（两份先例笔记，带引用格式）；工作台中间产物用 `docs/research/workbench/` 子目录。
+- 协议文本以 `assets/AGENTS.md` `## Generic capability dispatch`（L21 起，02 已落地）为准；任务模板：【目标】【输入】【输出】带引用要求。
+- 题材（编排会话已选定）：双轨 wiki 配置收敛调研——`Wiki.Root`/`wikiRoot` 与 `docs_dir` 双轨现状盘点，喂给后续小提案（设计 Next Steps 已列）。
 
 ### Execution scenarios
 
-- <filled by flowforge-refine-ticket>
+- Success：≥3 个 batch-analyst 并行完成，各产出带引用工作台文档；旗舰 Review 收敛为 `docs/research/2026-09-25-dual-track-wiki-config.md`；票面记录派发提示词与产物路径。
+- Failure：worker 返回 STATUS: BLOCKED 或引用不可验证 → 收敛时降级记录进 Findings（不阻塞票闭环）；部署角色未被 pi 识别 → 摩擦证据记入 oi-pi-dispatch-tool 观察。
 
 ### Expected tests
 
-- <filled by flowforge-refine-ticket>
+- `ls .pi/agents/flowforge-batch-analyst.md` — 存在（部署后）。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...` — 全部 ok（无代码改动，回归确认）。
+- 人工核验：研究笔记每条结论引用可追溯（文件路径+行号）。
 
 ### Generated artifacts
 
-- <filled by flowforge-refine-ticket>
+- producer 演练批次（≥3 worker）→ consumer `docs/research/workbench/2026-09-25-w*.md`（中间产物）→ 旗舰收敛 `docs/research/2026-09-25-dual-track-wiki-config.md`；观察记录流向 oi-pi-dispatch-tool。
 
 ### Conventions
 
-- <filled by flowforge-refine-ticket>
+- must flash 档角色产出必须带可验证引用（转录自设计 Standards clauses）。
+- 每任务用结构化模板派发（角色/【目标】【输入】【输出】）；机械可完成才下放 flash 档；任务链规划、跨组综合、Review 收敛留编排会话（协议边界条款）。
+- 本票无代码 Write set：生产代码与既有票面零修改；产物仅为研究笔记与本票记录。
