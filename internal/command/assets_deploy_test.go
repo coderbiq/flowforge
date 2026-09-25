@@ -91,6 +91,44 @@ func TestAgentRulesDescribeSubagentDelegation(t *testing.T) {
 	}
 }
 
+func TestAgentRulesDescribeGenericCapabilityDispatch(t *testing.T) {
+	agentRules, err := os.ReadFile(filepath.Join("..", "..", "assets", "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(agentRules)
+	if !strings.Contains(content, "## Generic capability dispatch") {
+		t.Fatal("AGENTS.md missing Generic capability dispatch section")
+	}
+	skillsIdx := strings.Index(content, "## Agent skills")
+	dispatchIdx := strings.Index(content, "## Generic capability dispatch")
+	delegationIdx := strings.Index(content, "## Subagent delegation")
+	if dispatchIdx < skillsIdx || dispatchIdx > delegationIdx {
+		t.Fatal("Generic capability dispatch section must sit between Agent skills and Subagent delegation")
+	}
+	requiredRoles := []string{
+		"flowforge-investigator",
+		"flowforge-batch-analyst",
+		"flowforge-scribe",
+		"flowforge-executor",
+	}
+	for _, role := range requiredRoles {
+		if !strings.Contains(content, role) {
+			t.Fatalf("AGENTS.md missing role %q in capability dispatch table", role)
+		}
+	}
+	requiredAnchors := []string{
+		"【目标】",
+		"flash",
+		"research/",
+	}
+	for _, anchor := range requiredAnchors {
+		if !strings.Contains(content, anchor) {
+			t.Fatalf("AGENTS.md missing generic dispatch anchor %q", anchor)
+		}
+	}
+}
+
 func TestDeployManagedAssetsUsesAbsoluteDocsRoot(t *testing.T) {
 	projectRoot := t.TempDir()
 	docsRoot := filepath.Join(t.TempDir(), "wiki")
