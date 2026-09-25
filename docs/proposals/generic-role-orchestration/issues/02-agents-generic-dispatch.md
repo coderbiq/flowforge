@@ -59,21 +59,28 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 
 ### Verified contracts
 
-- <filled by flowforge-refine-ticket>
+- `assets/AGENTS.md` 三节布局：L1 `## Agent skills`（表 L5-18）、L21 `## Subagent delegation`、L39 `## Execution unit policy`；新段插在表后 L21 前——声明顺序即适用优先级（通用在前、流程在后）。
+- 仓根 `AGENTS.md`（手工维护 dogfood 镜像，tracked）：L5 Commands / L12 核心设计原则 / L23 boundaries 为仓特有，L30 `## Agent skills`、**L50 `## Subagent delegation`**、L68 `## Execution unit policy`；新段插在 L50 前，仓特有节不动。
+- 部署映射：`deployManagedAssets` 把 `assets/AGENTS.md` 写到 `<docsRoot>/agents/issue-tracker.md`（证据：`TestDeployManagedAssetsUsesAbsoluteDocsRoot`，internal/command/assets_deploy_test.go）；`flowforge upgrade` 同通道。仓根 `AGENTS.md` 不经此通道，手工同步。
+- 锚点测试落点：`TestAgentRulesDescribeSubagentDelegation`（internal/command/assets_deploy_test.go）直接 `os.ReadFile(filepath.Join("..", "..", "assets", "AGENTS.md"))` + `strings.Contains` 断言——新增锚点用例同文件同模式（preset 授权已在票面）。
+- 能力表角色名必须与 01 已交付资产一致（`assets/subagents/` 名册 9：含 batch-analyst / scribe / executor，已落地）。
 
 ### Execution scenarios
 
-- <filled by flowforge-refine-ticket>
+- Success：双文件 grep 命中锚点且行序正确（`## Generic capability dispatch` 位于 Agent skills 之后、Subagent delegation 之前）；新锚点用例绿；`go test ./internal/...` 全绿。
+- Failure：插入位置错（如落在 Execution unit policy 后）时 Contains 断言不拦截，由 grep -n 行序核验兜底；角色名与 01 资产名不一致则调度面断裂，人工核对表行。
 
 ### Expected tests
 
-- <filled by flowforge-refine-ticket>
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/command/ -run 'TestAgentRulesDescribeSubagentDelegation|TestGenericCapabilityDispatch'`（新用例实际命名）— ok。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...` — 全部 ok。
+- `grep -n "Generic capability dispatch" assets/AGENTS.md AGENTS.md` — 各命中 1 处且行号介于 Agent skills 与 Subagent delegation 之间。
 
 ### Generated artifacts
 
-- <filled by flowforge-refine-ticket>
+- producer `assets/AGENTS.md` → consumer `<docs_dir>/agents/issue-tracker.md`（deploy/upgrade 通道）；仓根 `AGENTS.md` 为手工 dogfood 镜像，非生成物。
 
 ### Conventions
 
 - must 变更后运行 `go test ./internal/...`（转录自设计 Standards clauses）。
-- must 通用角色 description 按能力书写、不含流程术语（能力表行同理）。
+- 段落英文书写（与模板既有节一致）；任务模板 code block 保留【目标】【输入】【输出】标记；表格用与 Agent skills 表相同的 `|:---|:---|:---|` 风格；能力表含档位建议列。
