@@ -133,7 +133,7 @@ Fix 5/6（Round 2）：docs/cli-design.md —— PI 宿主说明新增"作用范
 
 1. Change 1 括号中 \"event.input.file_path（edit 为 `path`）\"与实际不符：pi 内置 write 与 edit 工具的参数名均为 `path`（`dist/core/tools/write.d.ts`/`edit.d.ts`），实现按 `path` 核实后取值。
 2. Change 2 \"remove 对该文件同步清理\" 按宿主级受管资源语义实现为：扩展随 `pi` 宿主选中与否收敛（deploy 写入、cleanDeselectedHosts 清理），`agents remove <name>`（按单 subagent 粒度）不触碰共享扩展——移除单个角色不应剥离其余角色的宿主级写保护与工具；该解释已写入 `docs/cli-design.md` 的 PI 宿主说明段，供 review 确认。
-3. Change 1(b) 的 check 目录按配置解析 `docs_dir`（缺省 `docs`）拼 `<docs_dir>/proposals`，与任务文本 `<docs>/proposals` 一致。
+3. Change 1(b) 的 check 目录按配置解析 `docs_dir`（缺省 `ff-wiki`）拼 `<docs_dir>/proposals`，与任务文本 `<docs>/proposals` 一致。
 4. `internal/command/assets/`（gitignore 的构建生成副本，`make dev`/`build.sh` 以 `cp -R assets` 重建）需同步包含 `pi/flowforge.ts` 否则 `go:embed all:assets` 拾取不到新文件；本次已同步，构建流程本身无需改动。
 5. CLI 输出流事实：cobra Print 家族无输出 writer 时写 stderr，`flowforge frontier --json` 的 JSON 落在 stderr；扩展的 `runCli` 因此固定拼接 stdout+stderr（否则工具返回空文本，冒烟中已捕获并修正）。
 

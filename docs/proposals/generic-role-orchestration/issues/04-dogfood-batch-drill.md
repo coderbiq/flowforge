@@ -61,7 +61,7 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 - pi 会话子代理工具异步并行派发（fork 继承编排会话上下文为只读参考）；若新部署角色未被会话工具识别，记入摩擦观察（不影响本票闭环，可用能力声明回退）。
 - 产物落点 `docs/research/` 已存在（两份先例笔记，带引用格式）；工作台中间产物用 `docs/research/workbench/` 子目录。
 - 协议文本以 `assets/AGENTS.md` `## Generic capability dispatch`（L21 起，02 已落地）为准；任务模板：【目标】【输入】【输出】带引用要求。
-- 题材（编排会话已选定）：双轨 wiki 配置收敛调研——`Wiki.Root`/`wikiRoot` 与 `docs_dir` 双轨现状盘点，喂给后续小提案（设计 Next Steps 已列）。
+- 题材（编排会话已选定）：双轨 wiki 配置收敛调研——`Wiki.Root`/`wikiRoot` 与 `docs_dir` 双轨现状盘点，喂给后续小提案。
 
 ### Execution scenarios
 

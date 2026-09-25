@@ -89,7 +89,7 @@ irm https://github.com/coderbiq/flowforge/releases/latest/download/install.ps1 |
 flowforge init
 ```
 
-默认创建 `.flowforge/config.yaml`、`docs/CONTEXT.md`、`docs/adr/`、`docs/proposals/`，并部署 `.agents/skills/` 与 `docs/agents/`。如需其他文档根目录：
+默认创建 `.flowforge/config.yaml`、`ff-wiki/CONTEXT.md`、`ff-wiki/adr/`、`ff-wiki/proposals/`，并部署 `.agents/skills/` 与 `ff-wiki/agents/`。如需其他文档根目录：
 
 ```bash
 flowforge config set docs_dir ff-wiki-v5

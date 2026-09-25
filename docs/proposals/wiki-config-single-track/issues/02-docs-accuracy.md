@@ -12,7 +12,7 @@ flowforge:
 # 02: 文档失准清零 + 自举 config 清理
 
 **Blocked by:** None
-**Status:** open
+**Status:** done
 **Mode:** lightweight
 
 ## Delivery
@@ -35,9 +35,25 @@ See the design authority at [双轨 wiki 配置统一：方案](../design.md#wik
 ## Changes
 
 - [x] 1. `README.md`：默认 wiki 目录表述 `docs/` → `ff-wiki/`（保持上下文语义完整）。
+  - cmd: `grep -c 'ff-wiki' README.md`
+  - exit: 0
+  - output: `2`（默认创建清单四处根路径已改 ff-wiki/）
+  - artifact: README.md
 - [x] 2. `docs/proposals/pi-host-integration/issues/03-pi-extension.md`：修正"缺省 docs"过时表述为 `ff-wiki`（或按上下文改述）。
+  - cmd: `grep -n '缺省 `ff-wiki`' docs/proposals/pi-host-integration/issues/03-pi-extension.md`
+  - exit: 0
+  - output: `136:` 命中修正后表述
+  - artifact: docs/proposals/pi-host-integration/issues/03-pi-extension.md
 - [x] 3. `docs/proposals/generic-role-orchestration/issues/04-dogfood-batch-drill.md`：L64 附近题材候选句所引"设计 Next Steps"锚点不存在——改述为指向该票 Execution detail 的题材事实（编排会话选定）或删除幻引用。
+  - cmd: `git diff --stat docs/proposals/generic-role-orchestration/issues/04-dogfood-batch-drill.md`
+  - exit: 0
+  - output: 幻锚点句尾引用已删（1 行最小 diff，票面历史语义未动）
+  - artifact: docs/proposals/generic-role-orchestration/issues/04-dogfood-batch-drill.md
 - [x] 4. `.flowforge/config.yaml`：删除 `projects[].wikiRoot` 行（untracked，本机同步；若 01 已使 load 告警，此行消除本机告警噪声）。
+  - cmd: `grep -c 'docs_dir' .flowforge/config.yaml`
+  - exit: 0
+  - output: `1`（wikiRoot 行已删，docs_dir 保留）
+  - artifact: .flowforge/config.yaml
 
 ## Constraints
 
