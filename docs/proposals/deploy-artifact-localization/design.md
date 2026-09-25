@@ -3,7 +3,7 @@ flowforge:
   schema: 1
   role: design
   id: deploy-artifact-localization-design
-  revision: 2
+  revision: 3
   consumes:
     requirements:
       deploy-artifact-localization-requirements: 1
@@ -60,7 +60,7 @@ agents:
 
 新校验函数 `validateModelConfig(cfg, defs, enabledHosts)`，在 `deploySubagents` 与 `computeSubagentStatus` 中均于**任何目录创建/产物写入之前**调用（对齐 `validateModelOverrides` 先例），配置错误时两路径报同一错误。规则：
 
-1. **键合法性**（全量校验，不受启用宿主影响——键错误是配置损坏信号）：`models` 键 ∈ `validModelProfileKeys`；`models_by_name`/`models_by_host.<host>` 内层键 ∈ 已发现 agent 名 ∪ `validModelProfileKeys`；`models_by_host` 外层键 ∈ 已知宿主集合。未知即错，错误消息沿用 `agents.models_by_name: unknown agent %q` 风格（`agents.models_by_host: unknown host %q` / `unknown key %q`）。
+1. **键合法性**（全量校验，不受启用宿主影响——键错误是配置损坏信号）：`models` 键 ∈ `validModelProfileKeys`；`models_by_name` 内层键 ∈ 已发现 agent 名（profile 键属 `agents.models` 或 `agents.models_by_host.<host>`——rev 3 收敛裁决：惰性键是配置损坏信号）；`models_by_host.<host>` 内层键 ∈ 已发现 agent 名 ∪ `validModelProfileKeys`；`models_by_host` 外层键 ∈ 已知宿主集合。未知即错，错误消息沿用 `agents.models_by_name: unknown agent %q` 风格（`agents.models_by_host: unknown host %q` / `unknown key %q`）。
 2. **codex 例外**：`models_by_host.codex` 存在即配置错误（codex 无 per-agent model 概念）；全局层值不校验 codex（codex 编译器天然丢弃 model）。
 3. **值格式**（仅对**启用的 model 承载宿主**逐值校验；禁用宿主的值不阻塞 deploy）：
    - 通用：非空、去首尾空白后无空白/控制字符（防 YAML 注入与多值粘连）。

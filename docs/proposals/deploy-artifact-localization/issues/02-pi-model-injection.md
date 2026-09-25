@@ -6,7 +6,7 @@ flowforge:
     requirements:
       deploy-artifact-localization-requirements: 1
     design:
-      deploy-artifact-localization-design: 2
+      deploy-artifact-localization-design: 3
 ---
 
 # 02: pi 宿主 model 注入 + preserve-merge 真实化

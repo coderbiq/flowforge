@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -246,13 +249,15 @@ var validModelProfileKeys = map[string]bool{
 // tail via the host's native `steps` limit.
 const defaultImplementerMaxSteps = 200
 
-// resolveCompileOptions builds the OpenCode compile options for one
-// definition from project config: pinned model per agent name or model
-// profile (name wins over profile), the implementer's test-file guard
-// (default on, configurable), and the implementer's execution budget
-// (agents.max_steps: 0 = default 200, -1 = unlimited/no field, N = N;
-// other negatives are config errors).
-func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subagent.CompileOptions, error) {
+// resolveCompileOptions builds the compile options for one definition on
+// one host from project config: the pinned model via the six-level
+// precedence chain (models_by_host.<host> name key, then its profile key,
+// then models_by_name, then models, then the compilers' preserve-merge
+// fallback and host defaults), the implementer's test-file guard (default on,
+// configurable), and the implementer's execution budget (agents.max_steps:
+// 0 = default 200, -1 = unlimited/no field, N = N; other negatives are config
+// errors).
+func resolveCompileOptions(cfg *config.Config, def *subagent.Definition, hostKey string) (subagent.CompileOptions, error) {
 	var opts subagent.CompileOptions
 	for key := range cfg.Agents.Models {
 		if !validModelProfileKeys[key] {
@@ -262,10 +267,16 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subage
 	if cfg.Agents.MaxSteps < -1 {
 		return opts, fmt.Errorf("agents.max_steps: invalid value %d (supported: positive budget, 0 = default %d, -1 = unlimited)", cfg.Agents.MaxSteps, defaultImplementerMaxSteps)
 	}
-	// Precedence: agents.models_by_name[<agent-name>] beats the profile
-	// key in agents.models, which in turn beats the preserve-merge
-	// fallback resolved inside the compilers (resolveModel).
-	if model := cfg.Agents.ModelOverrides[def.Name]; model != "" {
+	// Precedence (design d-model-channels, six levels): the per-host layer
+	// (models_by_host.<host>) beats the global layer; within a layer a
+	// name key beats a profile key; config beats the preserve-merge
+	// fallback resolved inside the compilers (resolveModel), which beats
+	// the host defaults. Empty values fall through to the next level.
+	if model := cfg.Agents.ModelHostOverrides[hostKey][def.Name]; model != "" {
+		opts.Model = model
+	} else if model := cfg.Agents.ModelHostOverrides[hostKey][string(def.ModelProfile)]; model != "" {
+		opts.Model = model
+	} else if model := cfg.Agents.ModelOverrides[def.Name]; model != "" {
 		opts.Model = model
 	} else {
 		opts.Model = cfg.Agents.Models[string(def.ModelProfile)]
@@ -299,22 +310,109 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition) (subage
 	return opts, nil
 }
 
-// validateModelOverrides checks that every agents.models_by_name key names a
-// discovered subagent definition. resolveCompileOptions sees one definition
-// at a time and cannot tell "not pinned by this key" from "key matches no
-// known agent", so the check needs the full discovered set; a key that
-// matched nothing would otherwise be silently ineffective.
-func validateModelOverrides(cfg *config.Config, defs []*subagent.Definition) error {
-	if len(cfg.Agents.ModelOverrides) == 0 {
-		return nil
-	}
-	known := make(map[string]bool, len(defs))
+// validateModelConfig checks the model configuration layers (agents.models,
+// agents.models_by_name, agents.models_by_host) before any deploy or status
+// work. Key legality is checked in full regardless of enabled hosts (a bad
+// key is a corrupted-config signal); value formats are checked only against
+// enabled model-carrying hosts, so a disabled host cannot block a deploy
+// (design d-config-validation). Preserve-merge backfill values come from
+// existing user-edited deployed files, not this command's config, and are
+// not validated. It subsumes the former validateModelOverrides check
+// (models_by_name keys), extended to accept profile keys alongside agent
+// names. Key iteration is sorted so deploy and status report the identical
+// first error.
+func validateModelConfig(cfg *config.Config, defs []*subagent.Definition, enabledHosts []hostTarget) error {
+	knownAgents := make(map[string]bool, len(defs))
 	for _, def := range defs {
-		known[def.Name] = true
+		knownAgents[def.Name] = true
 	}
-	for name := range cfg.Agents.ModelOverrides {
-		if !known[name] {
-			return fmt.Errorf("agents.models_by_name: unknown agent %q", name)
+	knownHost := make(map[string]bool)
+	for _, h := range allHostTargets() {
+		knownHost[h.key] = true
+	}
+	enabled := make(map[string]bool, len(enabledHosts))
+	for _, h := range enabledHosts {
+		enabled[h.key] = true
+	}
+	validInnerKey := func(key string) bool {
+		return knownAgents[key] || validModelProfileKeys[key]
+	}
+
+	for _, key := range slices.Sorted(maps.Keys(cfg.Agents.Models)) {
+		if !validModelProfileKeys[key] {
+			return fmt.Errorf("agents.models: unknown profile key %q (supported: tool-capable, tool-capable-read-only)", key)
+		}
+		if err := validateGlobalModelValue("agents.models."+key, cfg.Agents.Models[key], enabled); err != nil {
+			return err
+		}
+	}
+	for _, key := range slices.Sorted(maps.Keys(cfg.Agents.ModelOverrides)) {
+		if !knownAgents[key] {
+			return fmt.Errorf("agents.models_by_name: unknown agent %q (profile keys belong in agents.models or agents.models_by_host)", key)
+		}
+		if err := validateGlobalModelValue("agents.models_by_name."+key, cfg.Agents.ModelOverrides[key], enabled); err != nil {
+			return err
+		}
+	}
+	for _, host := range slices.Sorted(maps.Keys(cfg.Agents.ModelHostOverrides)) {
+		if host == "codex" {
+			return fmt.Errorf("agents.models_by_host.codex: codex has no per-agent model (the compiler drops model)")
+		}
+		if !knownHost[host] {
+			return fmt.Errorf("agents.models_by_host: unknown host %q (supported: claude, opencode, pi)", host)
+		}
+		inner := cfg.Agents.ModelHostOverrides[host]
+		for _, key := range slices.Sorted(maps.Keys(inner)) {
+			if !validInnerKey(key) {
+				return fmt.Errorf("agents.models_by_host.%s: unknown key %q (expected an agent name or a profile key: tool-capable, tool-capable-read-only)", host, key)
+			}
+			if !enabled[host] {
+				continue // disabled host: keys validated, values skipped
+			}
+			if err := validateModelValueForHost("agents.models_by_host."+host+"."+key, inner[key], host); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// validateModelValueForHost checks one model value against one host's format
+// rule: every host requires a non-empty token without inner whitespace or
+// control characters; opencode and pi additionally require the provider/model
+// shape (exactly one slash, both sides non-empty); claude accepts any single
+// token (alias, inherit, or full model id). Existence is never queried
+// (purely local, deterministic).
+func validateModelValueForHost(where, value, host string) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return fmt.Errorf("%s: model value must be non-empty", where)
+	}
+	for _, r := range trimmed {
+		if unicode.IsSpace(r) || unicode.IsControl(r) {
+			return fmt.Errorf("%s: model value %q must not contain whitespace or control characters", where, value)
+		}
+	}
+	if host == "opencode" || host == "pi" {
+		if strings.Count(trimmed, "/") != 1 || strings.HasPrefix(trimmed, "/") || strings.HasSuffix(trimmed, "/") {
+			return fmt.Errorf("%s: model value %q invalid for host %q (want provider/model)", where, value, host)
+		}
+	}
+	return nil
+}
+
+// validateGlobalModelValue checks a global-layer value (agents.models /
+// agents.models_by_name): it compiles into every enabled model-carrying
+// host, so it must satisfy each such host's format rule; a failure points
+// at agents.models_by_host for host-specific configuration. The host order
+// is fixed so the reported error is deterministic.
+func validateGlobalModelValue(where, value string, enabled map[string]bool) error {
+	for _, host := range []string{"claude", "opencode", "pi"} {
+		if !enabled[host] {
+			continue
+		}
+		if err := validateModelValueForHost(where, value, host); err != nil {
+			return fmt.Errorf("%w; configure agents.models_by_host for per-host models", err)
 		}
 	}
 	return nil
@@ -416,9 +514,10 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 	}
 	allDefs := definitions
 
-	// Validate agents.models_by_name keys against the full discovered set
-	// before any directory or artifact write.
-	if err := validateModelOverrides(cfg, allDefs); err != nil {
+	// Validate the model config layers (agents.models, models_by_name,
+	// models_by_host) against the full discovered set before any directory
+	// or artifact write.
+	if err := validateModelConfig(cfg, allDefs, hosts); err != nil {
 		return nil, err
 	}
 
@@ -464,11 +563,11 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 	// Compile and write to each enabled host
 	var deployed []string
 	for _, def := range definitions {
-		opts, err := resolveCompileOptions(cfg, def)
-		if err != nil {
-			return nil, err
-		}
 		for _, h := range hosts {
+			opts, err := resolveCompileOptions(cfg, def, h.key)
+			if err != nil {
+				return nil, err
+			}
 			path := filepath.Join(projectRoot, h.relDir, def.Name+h.ext)
 			content, err := h.compile(def, opts)
 			if err != nil {

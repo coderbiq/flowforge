@@ -22,15 +22,23 @@ type subagentStatusResult struct {
 
 // computeSubagentStatus compares compiled-expected content against deployed files on disk.
 func computeSubagentStatus(projectRoot string, cfg *config.Config) (subagentStatusResult, error) {
+	// Resolve enabled hosts first (same order as deploySubagents, so both
+	// paths surface identical config errors); deselected hosts are out of
+	// scope entirely.
+	hosts, err := resolveHostTargets(cfg)
+	if err != nil {
+		return subagentStatusResult{}, err
+	}
+
 	// Discover all non-disabled subagent definitions
 	definitions, err := discoverSubagentSources(projectRoot)
 	if err != nil {
 		return subagentStatusResult{}, err
 	}
 
-	// Same config validation as deploySubagents: an unknown
-	// agents.models_by_name key must fail status with the deploy error.
-	if err := validateModelOverrides(cfg, definitions); err != nil {
+	// Same config validation as deploySubagents: a bad model config must
+	// fail status with the deploy error, before any expected-content work.
+	if err := validateModelConfig(cfg, definitions, hosts); err != nil {
 		return subagentStatusResult{}, err
 	}
 
@@ -44,12 +52,6 @@ func computeSubagentStatus(projectRoot string, cfg *config.Config) (subagentStat
 		if !disabled[def.Name] {
 			active = append(active, def)
 		}
-	}
-
-	// Resolve enabled hosts; deselected hosts are out of scope entirely
-	hosts, err := resolveHostTargets(cfg)
-	if err != nil {
-		return subagentStatusResult{}, err
 	}
 
 	// Build expected content maps per enabled host
@@ -66,11 +68,11 @@ func computeSubagentStatus(projectRoot string, cfg *config.Config) (subagentStat
 	}
 
 	for _, def := range active {
-		opts, err := resolveCompileOptions(cfg, def)
-		if err != nil {
-			return subagentStatusResult{}, err
-		}
 		for i, h := range hosts {
+			opts, err := resolveCompileOptions(cfg, def, h.key)
+			if err != nil {
+				return subagentStatusResult{}, err
+			}
 			path := filepath.Join(expectations[i].dir, def.Name+h.ext)
 			content, err := h.compile(def, opts)
 			if err != nil {

@@ -38,13 +38,14 @@ type EvidenceConfig struct {
 }
 
 type AgentsConfig struct {
-	Disabled         []string          `yaml:"disabled,omitempty" mapstructure:"disabled"`
-	Hosts            []string          `yaml:"hosts,omitempty" mapstructure:"hosts"`
-	MaxSteps         int               `yaml:"max_steps,omitempty" mapstructure:"max_steps"`
-	Models           map[string]string `yaml:"models,omitempty" mapstructure:"models"`
-	ModelOverrides   map[string]string `yaml:"models_by_name,omitempty" mapstructure:"models_by_name"`
-	TestFileGlobs    []string          `yaml:"test_file_globs,omitempty" mapstructure:"test_file_globs"`
-	DisableTestGuard bool              `yaml:"disable_test_guard,omitempty" mapstructure:"disable_test_guard"`
+	Disabled           []string                     `yaml:"disabled,omitempty" mapstructure:"disabled"`
+	Hosts              []string                     `yaml:"hosts,omitempty" mapstructure:"hosts"`
+	MaxSteps           int                          `yaml:"max_steps,omitempty" mapstructure:"max_steps"`
+	Models             map[string]string            `yaml:"models,omitempty" mapstructure:"models"`
+	ModelOverrides     map[string]string            `yaml:"models_by_name,omitempty" mapstructure:"models_by_name"`
+	ModelHostOverrides map[string]map[string]string `yaml:"models_by_host,omitempty" mapstructure:"models_by_host"`
+	TestFileGlobs      []string                     `yaml:"test_file_globs,omitempty" mapstructure:"test_file_globs"`
+	DisableTestGuard   bool                         `yaml:"disable_test_guard,omitempty" mapstructure:"disable_test_guard"`
 }
 
 type ProjectConfig struct {
