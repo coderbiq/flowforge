@@ -38,8 +38,20 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 ## Changes
 
 - [x] 1. `assets/AGENTS.md`：在 `## Agent skills` 表与 `## Subagent delegation` 之间插入 `## Generic capability dispatch` 段，内容按设计 d-dispatch 表：能力表 5 行（定向探查→`flowforge-investigator`；批量提取+对照+汇总→`flowforge-batch-analyst`；按模板撰写/回填→`flowforge-scribe`；机械执行→`flowforge-executor`；决策素材简报→`flowforge-investigator` 简报形态×flowforge-research，各含档位建议列）；任务链协议四步 + 结构化任务模板 code block（你是<角色>。项目根：<绝对路径>。/【目标】/【输入】/【输出】带引用要求）；边界条款一句（"mechanically completable 才下放 flash 档；任务链规划、跨组综合、决策、Review 收敛留在编排会话"）；pi 提示小节（fork 继承只读参考、批量异步派发与完成唤醒、用户级 `agentOverrides` 按名覆盖）；research 落点指引句（讨论期产物落 `<docs_dir>/research/YYYY-MM-DD-<slug>.md` 带引用，proposal 创建前经 flowforge-import 导入）。
+  - cmd: `grep -n "Generic capability dispatch" assets/AGENTS.md`
+  - exit: 0
+  - output: L21 命中，节序 Agent skills < Generic < Subagent delegation
+  - artifact: assets/AGENTS.md
 - [x] 2. 仓根 `AGENTS.md`：在 `## Subagent delegation` 之前插入同段（自举 dogfood 同步，保持与模板语义一致，允许保留仓根已有的额外内容不动）。
+  - cmd: `grep -n "Generic capability dispatch" AGENTS.md`
+  - exit: 0
+  - output: L50 命中，节序正确
+  - artifact: AGENTS.md
 - [x] 3. `internal/command/assets_deploy_test.go` 新增断言用例：部署后的 AGENTS.md 产物含锚点关键词 `Generic capability dispatch`、三个新角色名、`【目标】`（任务模板标记）、边界条款关键词（`flash`）、research 指引关键词（`research/`）。
+  - cmd: `go test ./internal/command/ -run TestAgentRulesDescribeGenericCapabilityDispatch`
+  - exit: 0
+  - output: ok（锚点+节序断言）
+  - artifact: internal/command/assets_deploy_test.go
 
 ## Constraints
 

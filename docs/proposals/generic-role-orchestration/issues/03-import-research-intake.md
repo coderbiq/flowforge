@@ -37,7 +37,15 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 ## Changes
 
 - [x] 1. `assets/skills/flowforge-import/SKILL.md` 的 `## Inputs` 节末尾增补一句：`<docs_dir>/research/`（wiki 根相对，跟随项目 `docs_dir` 配置）是讨论期/分析期产出的标准源位置，笔记命名 `YYYY-MM-DD-<slug>.md` 且正文带引用；此类笔记按既有分类（Source fact / Requirement candidate / Design decision / Evidence / Unknown）流转，无新分类。
+  - cmd: `grep -c research/ assets/skills/flowforge-import/SKILL.md`
+  - exit: 0
+  - output: 1（含 <docs_dir> 表述）
+  - artifact: assets/skills/flowforge-import/SKILL.md
 - [x] 2. dogfood 同步：执行 `flowforge upgrade` 使 `.agents/skills/flowforge-import/SKILL.md` 与资产源一致（或在 Changes 记录等价的手工同步与理由）。
+  - cmd: `diff -q assets/skills/flowforge-import/SKILL.md .agents/skills/flowforge-import/SKILL.md`
+  - exit: 0
+  - output: 无差异（含 _shared 断链修复）
+  - artifact: .agents/skills/flowforge-import/SKILL.md
 
 ## Constraints
 

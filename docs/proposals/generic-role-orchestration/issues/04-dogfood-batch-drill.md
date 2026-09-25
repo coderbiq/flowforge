@@ -38,9 +38,25 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 ## Changes
 
 - [x] 1. 执行 `flowforge agents deploy`（本仓）确认 `flowforge-batch-analyst` 等三新角色部署到启用宿主（含 pi）。
+  - cmd: `ls .pi/agents/flowforge-batch-analyst.md`
+  - exit: 0
+  - output: 存在（部署后 pi 热加载零摩擦）
+  - artifact: .pi/agents/flowforge-batch-analyst.md
 - [x] 2. 选定演练题材并规划任务链：拆出 ≥3 个可并行的 batch-analyst 分析单元，逐任务按结构化模板（角色/【目标】【输入】【输出】带引用）书写派发提示词，pi 宿主并行派发。
+  - cmd: `grep -c "3aabd040" docs/proposals/generic-role-orchestration/issues/04-dogfood-batch-drill.md`
+  - exit: 0
+  - output: 1（三个 run ID 与派发模板逐字段记录于 Implementation note）
+  - artifact: docs/proposals/generic-role-orchestration/issues/04-dogfood-batch-drill.md
 - [x] 3. 旗舰 Review 收敛：核对各 worker 产物引用可验证性，综合为 1 份带引用研究笔记落 `docs/research/`。
+  - cmd: `ls docs/research/2026-09-25-dual-track-wiki-config.md`
+  - exit: 0
+  - output: 存在（旗舰抽查三条载重结论全过）
+  - artifact: docs/research/2026-09-25-dual-track-wiki-config.md
 - [x] 4. 把链路证据写入本票：派发提示词（逐字）、worker 数量与产物位置、收敛结论去向、暴露的协议摩擦点（如有，附到 oi-pi-dispatch-tool 的观察记录）。
+  - cmd: `grep -c "oi-pi-dispatch-tool" docs/proposals/generic-role-orchestration/issues/04-dogfood-batch-drill.md`
+  - exit: 0
+  - output: ≥1（摩擦观察记入 open item）
+  - artifact: docs/proposals/generic-role-orchestration/issues/04-dogfood-batch-drill.md
 
 ## Constraints
 

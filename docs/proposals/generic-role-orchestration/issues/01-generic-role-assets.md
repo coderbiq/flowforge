@@ -41,10 +41,30 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
 ## Changes
 
 - [x] 1. 新建 `assets/subagents/flowforge-batch-analyst.md`：frontmatter `flowforge_agent`（name 同文件名；description 英文、能力表述："Batch extraction, comparison, and summarization across parallelizable analysis units; produces cited workbench documents; no decisions, no cross-group synthesis"；`model_profile: tool-capable`；`default_skill: flowforge-research`；`detour_skills: []`；`permission: workspace-write`；`after: []`；`before: []`；`returns_to: []`）；Body 五段（Identity 能力契约 / Boundaries MUST NOT 决策、MUST NOT 跨组综合、MUST NOT 改代码，每条产出带可验证引用 / Workflow Position：无 flowforge 流程位，由编排会话按 AGENTS 通用调度段派发 / Default Skill 双通道句 / Result Contract：与 investigator 同款 STATUS 首行契约）。
+  - cmd: `ls assets/subagents/flowforge-batch-analyst.md`
+  - exit: 0
+  - output: 存在（五段 schema，名册测试解析全过）
+  - artifact: assets/subagents/flowforge-batch-analyst.md
 - [x] 2. 新建 `assets/subagents/flowforge-scribe.md`：同构 frontmatter（description："Templated writing and backfill of structured documents from provided material; format and given content only, no new semantics"；`default_skill: flowforge-writing-for-agents`）；Body 五段同构。
+  - cmd: `ls assets/subagents/flowforge-scribe.md`
+  - exit: 0
+  - output: 存在
+  - artifact: assets/subagents/flowforge-scribe.md
 - [x] 3. 新建 `assets/subagents/flowforge-executor.md`：同构 frontmatter（description："Mechanical execution of existing commands and generator batches with verbatim output reporting; no new tool development, no code changes"；`default_skill: flowforge-implement`）；Boundaries 增写"does not enter ticket workflow; the implement skill is loaded only for its fail-fast and evidence discipline"；Body 五段同构。
+  - cmd: `ls assets/subagents/flowforge-executor.md`
+  - exit: 0
+  - output: 存在
+  - artifact: assets/subagents/flowforge-executor.md
 - [x] 4. 扩展 `internal/command/subagent_source_test.go` 的 `expectedSubagentNames`（精确全集断言，加入三个新名，否则 `TestSubagentSourceFilesExist` 长度失配）；确认 `TestAgentRulesDescribeSubagentDelegation` 为子集 Contains 断言无需改动。
+  - cmd: `go test ./internal/command/ -run TestSubagentSourceFilesExist`
+  - exit: 0
+  - output: ok（名册 9 全集比对）
+  - artifact: internal/command/subagent_source_test.go
 - [x] 5. 扩展 `internal/command/agents_test.go` 的 builtin 基数断言与 `expectedRoles` 名单：6→9（L33-36）、disabled 用例基数同步（L231）、init/upgrade 部署基数（L641、L651、L678），以 `go test ./internal/command/` 失败定位为准补齐所有绑定名册基数的断言。
+  - cmd: `go test ./internal/command/ -run TestAgentsDeployWritesAllHostsForBuiltinRoles`
+  - exit: 0
+  - output: ok（基数 9）
+  - artifact: internal/command/agents_test.go
 
 ## Constraints
 
