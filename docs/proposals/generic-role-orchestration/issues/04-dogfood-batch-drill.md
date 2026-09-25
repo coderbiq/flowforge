@@ -93,7 +93,7 @@ See the design authority at [通用角色与任务链调度方案](../design.md#
    - W1 你是 flowforge-batch-analyst。项目根：/Users/qiangbi/develop/projects/Syl/tangram/flowforge。【目标】枚举 WikiRoot 轨与 DocsDir 轨全部读写点对照表（文件:行号+符号+语义）；【输入】internal/config/ 起步按符号追、internal/command/ grep 定位；【输出】docs/research/workbench/2026-09-25-w1-config-surface.md，每条带引用，不做收敛建议。
    - W2 同模板：【目标】命令消费面矩阵（assets 落点 vs proposals 扫描根）+ 测试断言清单；【输出】…w2-command-consumers.md。
    - W3 同模板：【目标】迁移处理路径 + DefaultDocsDir 改名影响面 + 提案/CHANGELOG 既有讨论；【输出】…w3-migration-history.md。
-3. 产物：三份 workbench（引用密度 103/67/40+，各自脚本核验 + 语义抽检 22/22、21/21 通过）；旗舰 Review 抽查三条载重结论（死轨 grep 空、本仓双值分歧 cat、primaryProject 单向交汇 sed）全过，收敛为 [docs/research/2026-09-25-dual-track-wiki-config.md](../../../docs/research/2026-09-25-dual-track-wiki-config.md)。
+3. 产物：三份 workbench（引用密度 103/67/40+，各自脚本核验 + 语义抽检 22/22、21/21 通过）；旗舰 Review 抽查三条载重结论（死轨 grep 空、本仓双值分歧 cat、primaryProject 单向交汇 sed）全过，收敛为 [docs/research/2026-09-25-dual-track-wiki-config.md](../../research/2026-09-25-dual-track-wiki-config.md)。
 4. 收敛结论去向：双轨统一小提案（align 起步）+ 文档失准 3 处顺手修候选（清单在收敛笔记 §文档失准）。
 5. 摩擦观察（→ oi-pi-dispatch-tool）：热加载零摩擦；worker 自证引用纪律良好（无需旗舰逐条复核，抽查即可）；本轮未显现 dispatch-helper 工具的刚需缺口，open item 优先级维持低位；早前 01 票的 refine 扫描缺口与 stale attention 信号已各自记录，无新增。
 6. 验证：`ls .pi/agents/flowforge-batch-analyst.md` 存在；`go test ./internal/...` 全绿（无代码改动回归确认）；票面 Done and verify 四条全成立。

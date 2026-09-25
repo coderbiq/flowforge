@@ -61,7 +61,9 @@ Markdown 是内容接口。Agent 直接读写文件；CLI 不接受大段需求�
 - `internal/update`：CLI 更新与同版本资产同步。
 - `assets/skills`、`assets/subagents`、`assets/agents`（含 `standards.md`）、`assets/AGENTS.md`、`assets/pi/flowforge.ts`（PI 项目级扩展，随 `pi` 宿主部署）：编译进二进制并部署到目标项目的生产资产。
 
-`docs_dir` 默认为 `docs`，可为相对项目根目录或绝对路径。命令从任意子目录向上定位 `.flowforge/config.yaml`；发现损坏配置时返回错误，不静默退回其他目录。没有 FlowForge 配置的普通目录仍使用 `docs/proposals` 作为兼容默认值。
+Subagent 名册为混合模型：6 个流程角色（绑定 flowforge-* skill）+ 3 个通用能力角色（`flowforge-batch-analyst` / `flowforge-scribe` / `flowforge-executor`，`default_skill` 仅作方法材料，见 [ADR 0001](adr/0001-hybrid-generic-subagent-roles.md)）。`assets/AGENTS.md` 的 `## Generic capability dispatch`（能力键调度）先于 `## Subagent delegation`（流程委派）声明，顺序即适用优先级。
+
+`docs_dir` 默认为 `ff-wiki`（d04e955 起），可为相对项目根目录或绝对路径。命令从任意子目录向上定位 `.flowforge/config.yaml`；发现损坏配置时返回错误，不静默退回其他目录。没有 FlowForge 配置的普通目录仍使用 `docs/proposals` 作为兼容默认值。
 
 ## 完成不变量
 
