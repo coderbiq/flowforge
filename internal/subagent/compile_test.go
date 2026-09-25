@@ -448,7 +448,10 @@ func TestCompilePiFields(t *testing.T) {
 		} else if !bytes.Equal(compiled, second) {
 			t.Errorf("CompilePi(%s) not idempotent", def.Name)
 		}
-		withOpts, err := CompilePiWithOptions(def, CompileOptions{Model: "ignored", FallbackModel: "ignored", EditDeny: []string{"ignored"}, DenyQuestion: true})
+		// Ticket 02 made Model/FallbackModel expressible in PI (see
+		// compile_pi_test.go); the still-inexpressible options are the
+		// edit-deny globs and the question deny.
+		withOpts, err := CompilePiWithOptions(def, CompileOptions{EditDeny: []string{"ignored"}, DenyQuestion: true})
 		if err != nil {
 			t.Errorf("CompilePiWithOptions(%s, inexpressible opts): %v", def.Name, err)
 		} else if !bytes.Equal(compiled, withOpts) {

@@ -18,16 +18,19 @@ func CompilePi(def *Definition) ([]byte, error) {
 // the system prompt. The body is never rewritten — the Default Skill
 // section's "(or read `.agents/skills/...` directly if no Skill tool is
 // available)" fallback is the native path under PI. Options PI cannot
-// express (model pinning, steps budget, edit-deny globs, question deny)
-// are ignored per the "hosts that cannot express an option ignore it"
-// convention; the edit-deny protection is carried by the project-level PI
-// extension instead (pi-host-integration design, section three).
+// express (steps budget, edit-deny globs, question deny) are ignored per
+// the "hosts that cannot express an option ignore it" convention; the
+// model is carried via resolveModel (config pin or preserve-merge
+// fallback, empty = inherit the parent session model); the edit-deny
+// protection is carried by the project-level PI extension instead
+// (pi-host-integration design, section three).
 func CompilePiWithOptions(def *Definition, opts CompileOptions) ([]byte, error) {
-	// Field order is fixed (name, description, thinking, tools, skills,
-	// inheritSkills) so compiled output stays stable and diffable.
+	// Field order is fixed (name, description, model, thinking, tools,
+	// skills, inheritSkills) so compiled output stays stable and diffable.
 	type piFrontmatter struct {
 		Name          string   `yaml:"name"`
 		Description   string   `yaml:"description"`
+		Model         string   `yaml:"model,omitempty"`
 		Thinking      string   `yaml:"thinking"`
 		Tools         []string `yaml:"tools,omitempty"`
 		Skills        []string `yaml:"skills"`
@@ -37,6 +40,7 @@ func CompilePiWithOptions(def *Definition, opts CompileOptions) ([]byte, error) 
 	fm := piFrontmatter{
 		Name:          def.Name,
 		Description:   def.Description,
+		Model:         resolveModel(opts),
 		Thinking:      def.ModelProfile.PiThinking(),
 		Skills:        piSkills(def),
 		InheritSkills: false,

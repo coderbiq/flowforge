@@ -587,7 +587,7 @@ func deploySubagents(projectRoot string, cfg *config.Config, targetName string) 
 					if err != nil {
 						return nil, fmt.Errorf("compiling %s for %s: %w", def.Name, h.key, err)
 					}
-					fmt.Fprintf(os.Stderr, "  info: preserved local model %q for %s (set agents.models in .flowforge/config.yaml to pin explicitly)\n", existing, filepath.Join(h.relDir, def.Name+h.ext))
+					fmt.Fprintf(os.Stderr, "  info: preserved local model %q for %s (set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)\n", existing, filepath.Join(h.relDir, def.Name+h.ext))
 				}
 			}
 			if err := os.WriteFile(path, content, 0644); err != nil {

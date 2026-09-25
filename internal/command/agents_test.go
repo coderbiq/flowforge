@@ -1624,9 +1624,113 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 			t.Errorf("redeployed file must equal fresh compile with the preserved model as fallback\n got: %q\nwant: %q", got, want)
 		}
 
-		wantHint := "  info: preserved local model \"custom-model/x\" for .opencode/agent/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n"
+		wantHint := "  info: preserved local model \"custom-model/x\" for .opencode/agent/flowforge-analyst.md (set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)\n"
 		if !strings.Contains(stderr, wantHint) {
 			t.Errorf("stderr must carry the preserved hint\ngot:  %q\nwant: %q", stderr, wantHint)
+		}
+	})
+
+	t.Run("pi preserves hand-edited model with stderr hint", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"pi"}
+		if _, err := deploySubagents(projectRoot, cfg, "flowforge-analyst"); err != nil {
+			t.Fatal(err)
+		}
+
+		// Hand-edit a local model into the deployed PI frontmatter.
+		path := filepath.Join(projectRoot, ".pi", "agents", "flowforge-analyst.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handEdited := strings.Replace(string(data), "---\n", "---\nmodel: custom-model/pi\n", 1)
+		if err := os.WriteFile(path, []byte(handEdited), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-analyst")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		def := findDiscoveredDefinition(t, projectRoot, "flowforge-analyst")
+		want, err := subagent.CompilePiWithOptions(def, subagent.CompileOptions{FallbackModel: "custom-model/pi"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != string(want) {
+			t.Errorf("redeployed PI file must equal fresh compile with the preserved model as fallback\n got: %q\nwant: %q", got, want)
+		}
+		if !strings.Contains(string(got), "model: custom-model/pi\n") {
+			t.Errorf("preserved model must now be really carried into the PI artifact (was a false preservation before ticket 02):\n%s", got)
+		}
+
+		wantHint := "  info: preserved local model \"custom-model/pi\" for .pi/agents/flowforge-analyst.md (set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)\n"
+		if !strings.Contains(stderr, wantHint) {
+			t.Errorf("stderr must carry the preserved hint\ngot:  %q\nwant: %q", stderr, wantHint)
+		}
+	})
+
+	t.Run("pi config pin beats preserved residue without hint", func(t *testing.T) {
+		projectRoot := t.TempDir()
+		if err := initializeTestProject(projectRoot); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(projectRoot)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Agents.Hosts = []string{"pi"}
+		cfg.Agents.ModelHostOverrides = map[string]map[string]string{"pi": {"flowforge-implementer": "pinned-by-config/pi"}}
+		if _, err := deploySubagents(projectRoot, cfg, "flowforge-implementer"); err != nil {
+			t.Fatal(err)
+		}
+
+		// Replace the pinned model with a local residue value.
+		path := filepath.Join(projectRoot, ".pi", "agents", "flowforge-implementer.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		withResidue := strings.Replace(string(data), "model: pinned-by-config/pi\n", "model: residue/x\n", 1)
+		if withResidue == string(data) {
+			t.Fatal("first deploy must carry the config-pinned model for the residue swap")
+		}
+		if err := os.WriteFile(path, []byte(withResidue), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		var deployErr error
+		stderr := captureStderr(t, func() {
+			_, deployErr = deploySubagents(projectRoot, cfg, "flowforge-implementer")
+		})
+		if deployErr != nil {
+			t.Fatal(deployErr)
+		}
+
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(got), "model: pinned-by-config/pi\n") || strings.Contains(string(got), "model: residue/x\n") {
+			t.Errorf("config pin must beat the preserved residue:\n%s", got)
+		}
+		if strings.Contains(stderr, "preserved local model") {
+			t.Errorf("config-pinned model must not emit a preserve hint, got: %q", stderr)
 		}
 	})
 
@@ -1847,7 +1951,7 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 		if string(got) != string(want) {
 			t.Errorf("redeployed claude file must equal fresh compile with the preserved model as fallback\n got: %q\nwant: %q", got, want)
 		}
-		wantHint := "  info: preserved local model \"claude-custom/z\" for .claude/agents/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n"
+		wantHint := "  info: preserved local model \"claude-custom/z\" for .claude/agents/flowforge-analyst.md (set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)\n"
 		if !strings.Contains(stderr, wantHint) {
 			t.Errorf("stderr must carry the preserved hint\ngot:  %q\nwant: %q", stderr, wantHint)
 		}
@@ -2018,14 +2122,61 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 		}
 
 		for _, hint := range []string{
-			"  info: preserved local model \"custom-model/x\" for .opencode/agent/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n",
-			"  info: preserved local model \"claude-custom/z\" for .claude/agents/flowforge-analyst.md (set agents.models in .flowforge/config.yaml to pin explicitly)\n",
+			"  info: preserved local model \"custom-model/x\" for .opencode/agent/flowforge-analyst.md (set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)\n",
+			"  info: preserved local model \"claude-custom/z\" for .claude/agents/flowforge-analyst.md (set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)\n",
 		} {
 			if !strings.Contains(stderr, hint) {
 				t.Errorf("stderr must carry the preserved hint\ngot:  %q\nwant: %q", stderr, hint)
 			}
 		}
 	})
+}
+
+// TestAgentsDeployPiModelInjection pins ticket 02 Done criterion 1: a
+// models_by_host.pi name-key pin lands in the deployed PI frontmatter
+// (model between description and thinking), other unpinned agents stay
+// model-free (regression zero at the deploy level).
+func TestAgentsDeployPiModelInjection(t *testing.T) {
+	projectRoot := t.TempDir()
+	if err := initializeTestProject(projectRoot); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(projectRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Agents.Hosts = []string{"pi"}
+	cfg.Agents.ModelHostOverrides = map[string]map[string]string{
+		"pi": {"flowforge-investigator": "cpa/deepseek-v4.1-flash"},
+	}
+	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pinned agent carries the model between description and thinking.
+	pinned, err := os.ReadFile(filepath.Join(projectRoot, ".pi", "agents", "flowforge-investigator.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(pinned)
+	if !strings.Contains(content, "model: cpa/deepseek-v4.1-flash\n") {
+		t.Errorf("pinned PI artifact missing model key:\n%s", content)
+	}
+	descIdx := strings.Index(content, "description:")
+	modelIdx := strings.Index(content, "model: cpa/deepseek-v4.1-flash")
+	thinkingIdx := strings.Index(content, "thinking:")
+	if !(descIdx < modelIdx && modelIdx < thinkingIdx) {
+		t.Errorf("model must sit between description and thinking (description=%d, model=%d, thinking=%d)", descIdx, modelIdx, thinkingIdx)
+	}
+
+	// Unpinned agents in the same deploy stay model-free.
+	unpinned, err := os.ReadFile(filepath.Join(projectRoot, ".pi", "agents", "flowforge-analyst.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(unpinned), "model:") {
+		t.Errorf("unpinned PI artifact must omit the model key:\n%s", unpinned)
+	}
 }
 
 func TestAgentStatusTreatsPreservedModelAsCurrent(t *testing.T) {
