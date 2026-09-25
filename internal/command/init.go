@@ -42,7 +42,7 @@ sets up <docs_dir>/agents/ rules, creates .flowforge/ configuration, and sets up
 
 			configFile := filepath.Join(configDir, config.ConfigFileName)
 			if _, err := os.Stat(configFile); os.IsNotExist(err) {
-				defaultYAML := "version: 5.0.0\nversion_check: true\ndocs_dir: ff-wiki\n"
+				defaultYAML := fmt.Sprintf("version: 5.0.0\nversion_check: true\ndocs_dir: %s\n", config.DefaultDocsDir)
 				if err := os.WriteFile(configFile, []byte(defaultYAML), 0644); err != nil {
 					return fmt.Errorf("writing config file: %w", err)
 				}

@@ -18,9 +18,7 @@ func deployManagedAssets(targetDir string, docsRoot string) error {
 	}
 	defer cleanup()
 
-	if docsRoot == "" {
-		docsRoot = filepath.Join(targetDir, "docs")
-	} else if !filepath.IsAbs(docsRoot) {
+	if !filepath.IsAbs(docsRoot) {
 		docsRoot = filepath.Join(targetDir, docsRoot)
 	}
 

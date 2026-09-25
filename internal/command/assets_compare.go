@@ -58,9 +58,7 @@ func (c managedAssetComparison) IsCurrent() bool {
 }
 
 func compareManagedAssets(assetsDir, targetDir, docsRoot string) (managedAssetComparison, error) {
-	if docsRoot == "" {
-		docsRoot = filepath.Join(targetDir, "docs")
-	} else if !filepath.IsAbs(docsRoot) {
+	if !filepath.IsAbs(docsRoot) {
 		docsRoot = filepath.Join(targetDir, docsRoot)
 	}
 

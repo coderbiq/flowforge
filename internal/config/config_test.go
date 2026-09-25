@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -16,10 +18,6 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.DocsDir != "ff-wiki" {
 		t.Errorf("expected default docs_dir ff-wiki, got %s", cfg.DocsDir)
 	}
-	if cfg.Wiki.Root != "ff-wiki" {
-		t.Errorf("expected legacy wiki root ff-wiki, got %s", cfg.Wiki.Root)
-	}
-
 	if len(cfg.Projects) != 0 {
 		t.Fatalf("expected no default projects, got %d", len(cfg.Projects))
 	}
@@ -55,10 +53,6 @@ projects:
 
 	if cfg.Projects[0].ID != "default" {
 		t.Errorf("expected project id default, got %s", cfg.Projects[0].ID)
-	}
-
-	if cfg.Projects[0].WikiRoot != "docs" {
-		t.Errorf("expected wiki root docs, got %s", cfg.Projects[0].WikiRoot)
 	}
 
 	if len(cfg.Projects[0].SrcDirs) != 2 {
@@ -118,35 +112,11 @@ func TestFindProjectRootNotFound(t *testing.T) {
 	}
 }
 
-func TestWikiRoot(t *testing.T) {
-	cfg := &Config{
-		Projects: []ProjectConfig{{ID: "default", WikiRoot: "ff-wiki"}},
-	}
-
-	wikiRoot := cfg.WikiRoot("/project")
-	expected := "/project/ff-wiki"
-	if wikiRoot != expected {
-		t.Errorf("expected %s, got %s", expected, wikiRoot)
-	}
-}
-
-func TestWikiRootAbsolute(t *testing.T) {
-	cfg := &Config{
-		Projects: []ProjectConfig{{ID: "default", WikiRoot: "/absolute/path"}},
-	}
-
-	wikiRoot := cfg.WikiRoot("/project")
-	expected := "/absolute/path"
-	if wikiRoot != expected {
-		t.Errorf("expected %s, got %s", expected, wikiRoot)
-	}
-}
-
 func TestProjectByID(t *testing.T) {
 	cfg := &Config{
 		Projects: []ProjectConfig{
-			{ID: "frontend", WikiRoot: "ff-wiki-fe"},
-			{ID: "backend", WikiRoot: "ff-wiki-be"},
+			{ID: "frontend", SrcDirs: []string{"ui"}},
+			{ID: "backend", SrcDirs: []string{"server"}},
 		},
 	}
 
@@ -154,41 +124,12 @@ func TestProjectByID(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected backend project to be found")
 	}
-	if project.WikiRoot != "ff-wiki-be" {
-		t.Fatalf("expected backend wiki root ff-wiki-be, got %s", project.WikiRoot)
+	if len(project.SrcDirs) != 1 || project.SrcDirs[0] != "server" {
+		t.Fatalf("expected backend srcDirs [server], got %v", project.SrcDirs)
 	}
 
 	if _, ok := cfg.ProjectByID("missing"); ok {
 		t.Fatalf("expected missing project to not be found")
-	}
-}
-
-func TestWikiRootForProject(t *testing.T) {
-	cfg := &Config{
-		Projects: []ProjectConfig{
-			{ID: "frontend", WikiRoot: "ff-wiki-fe"},
-			{ID: "backend", WikiRoot: "/absolute/wiki"},
-		},
-	}
-
-	frontendRoot, err := cfg.WikiRootForProject("/project", "frontend")
-	if err != nil {
-		t.Fatalf("WikiRootForProject frontend failed: %v", err)
-	}
-	if frontendRoot != "/project/ff-wiki-fe" {
-		t.Fatalf("expected /project/ff-wiki-fe, got %s", frontendRoot)
-	}
-
-	backendRoot, err := cfg.WikiRootForProject("/project", "backend")
-	if err != nil {
-		t.Fatalf("WikiRootForProject backend failed: %v", err)
-	}
-	if backendRoot != "/absolute/wiki" {
-		t.Fatalf("expected /absolute/wiki, got %s", backendRoot)
-	}
-
-	if _, err := cfg.WikiRootForProject("/project", "missing"); err == nil {
-		t.Fatalf("expected missing project to fail")
 	}
 }
 
@@ -396,5 +337,119 @@ func TestStandardsGuideServiceList(t *testing.T) {
 
 	if got != "agents/standards.md" {
 		t.Errorf("expected agents/standards.md, got %s", got)
+	}
+}
+
+func TestLoadWarnsOnDeprecatedWikiKeys(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	configContent := `version: "5.0.0"
+docs_dir: "my-docs"
+wiki:
+  root: "legacy-wiki"
+projects:
+  - id: "default"
+    wikiRoot: "project-wiki"
+    srcDirs:
+      - "src"
+`
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	orig := warnOut
+	warnOut = &buf
+	t.Cleanup(func() { warnOut = orig })
+
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("config with legacy wiki keys must load without error, got: %v", err)
+	}
+
+	want := "warning: config key \"wiki.root\" is deprecated and ignored; wiki root is decided by \"docs_dir\" only\n" +
+		"warning: config key \"projects[default].wikiRoot\" is deprecated and ignored; use \"docs_dir\"\n"
+	if buf.String() != want {
+		t.Fatalf("unexpected warnings:\n%s\nwant:\n%s", buf.String(), want)
+	}
+
+	if got, want := cfg.DocsRoot(tmpDir), filepath.Join(tmpDir, "my-docs"); got != want {
+		t.Fatalf("docs root = %s, want %s", got, want)
+	}
+}
+
+func TestLoadIgnoresLegacyWikiBlock(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	configContent := `version: "5.0.0"
+docs_dir: "my-docs"
+wiki:
+  root: "legacy-wiki"
+projects:
+  - id: "default"
+    wikiRoot: "ignored-wiki"
+    srcDirs:
+      - "src"
+`
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	orig := warnOut
+	warnOut = &buf
+	t.Cleanup(func() { warnOut = orig })
+
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("legacy wiki config must load without error, got: %v", err)
+	}
+
+	if got, want := cfg.DocsRoot(tmpDir), filepath.Join(tmpDir, "my-docs"); got != want {
+		t.Fatalf("docs root = %s, want %s", got, want)
+	}
+
+	if len(cfg.Projects) != 1 || cfg.Projects[0].ID != "default" {
+		t.Fatalf("expected project default to survive load, got %+v", cfg.Projects)
+	}
+}
+
+func TestConfigSetProjectWikiRootRejected(t *testing.T) {
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ConfigDirName)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	configContent := `version: "5.0.0"
+projects:
+  - id: "default"
+    srcDirs:
+      - "src"
+`
+	if err := os.WriteFile(filepath.Join(configDir, ConfigFileName), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	svc, err := New(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
+	defer svc.Close()
+
+	err = svc.Set("project.default.wikiRoot", "some-wiki")
+	if err == nil {
+		t.Fatal("expected error setting project wikiRoot, got nil")
+	}
+	if !strings.Contains(err.Error(), "unknown project config field: wikiRoot") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

@@ -104,10 +104,18 @@ func TestConfigListIsStableAndIncludesDocsDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, retained := range []string{"docs_dir: custom-docs", "root: legacy-wiki"} {
-		if !strings.Contains(string(data), retained) {
-			t.Fatalf("config set failed to preserve %q:\n%s", retained, data)
-		}
+	if !strings.Contains(string(data), "docs_dir: custom-docs") {
+		t.Fatalf("config set failed to persist docs_dir:\n%s", data)
+	}
+
+	listCmd := newConfigListCmd()
+	var listOutput strings.Builder
+	listCmd.SetOut(&listOutput)
+	if err := listCmd.RunE(listCmd, nil); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(listOutput.String(), "wiki") {
+		t.Fatalf("config list must not expose wiki keys:\n%s", listOutput.String())
 	}
 }
 

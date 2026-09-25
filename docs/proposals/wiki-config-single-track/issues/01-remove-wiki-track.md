@@ -12,7 +12,7 @@ flowforge:
 # 01: wiki 轨删除面 + load 告警 + 字面量单点
 
 **Blocked by:** None
-**Status:** open
+**Status:** done
 **Mode:** lightweight
 
 ## Delivery
@@ -36,11 +36,31 @@ See the design authority at [双轨 wiki 配置统一：方案](../design.md#wik
 
 ## Changes
 
-- [ ] 1. `internal/config/config.go`：删除 `WikiConfig` 类型、`Config.Wiki` 字段、`defaultConfig` 中 Wiki 初始化、`Load` 的 `v.SetDefault("wiki.root", …)`、`WikiRoot()`、`WikiRootForProject()`、`projectWikiRoot()`、`primaryProject()`、`ProjectConfig.WikiRoot` 字段。
-- [ ] 2. `internal/config/config.go`：新增包级 `var warnOut io.Writer = os.Stderr`；`Load` 在 `ReadInConfig` 成功后、`Unmarshal` 前检查 `v.IsSet("wiki")` 与 projects 中 `wikiRoot != ""` 的项，逐键向 `warnOut` 输出英文告警（含键名 + "use docs_dir" 指引；projects 项含 project id）。
-- [ ] 3. `internal/config/service.go`：删除 `List()` 的 `project.%s.wikiRoot` 行、`getProjectConfig` 与 `setProjectConfig` 的 `"wikiRoot"` case。
-- [ ] 4. 字面量收敛：`defaultConfig.DocsDir`（config.go:74）与 init 默认 YAML（init.go:45）改引用 `DefaultDocsDir` 常量；删除 `deployManagedAssets`/`compareManagedAssets` 的不可达 `"docs"` 兜底分支。
-- [ ] 5. 测试更新：删除/改造 wiki 轨断言；新增告警测试（替换 `warnOut` 捕获，顶层 `wiki.root` 与 `projects[].wikiRoot` 逐键断言）、忽略语义测试（yaml 含 `wiki:` 块 load 成功、`DocsRoot` 走 docs_dir）、`config set project.x.wikiRoot` 报错测试；`TestConfigListIsStableAndIncludesDocsDir` 改为断言 list 不含 wiki 键。
+- [x] 1. `internal/config/config.go`：删除 `WikiConfig` 类型、`Config.Wiki` 字段、`defaultConfig` 中 Wiki 初始化、`Load` 的 `v.SetDefault("wiki.root", …)`、`WikiRoot()`、`WikiRootForProject()`、`projectWikiRoot()`、`primaryProject()`、`ProjectConfig.WikiRoot` 字段。
+  - cmd: `grep -rn 'WikiRoot' internal/ --include='*.go' | grep -v _test.go | wc -l`
+  - exit: 0
+  - output: `0`（生产面清零）
+  - artifact: internal/config/config.go
+- [x] 2. `internal/config/config.go`：新增包级 `var warnOut io.Writer = os.Stderr`；`Load` 在 `ReadInConfig` 成功后、`Unmarshal` 前检查 `v.IsSet("wiki")` 与 projects 中 `wikiRoot != ""` 的项，逐键向 `warnOut` 输出英文告警（含键名 + "use docs_dir" 指引；projects 项含 project id）。
+  - cmd: `go test ./internal/config/ -run TestLoadWarnsOnDeprecatedWikiKeys`
+  - exit: 0
+  - output: `ok`（两条告警逐键捕获；viper 小写化细节见 Implementation note）
+  - artifact: internal/config/config.go
+- [x] 3. `internal/config/service.go`：删除 `List()` 的 `project.%s.wikiRoot` 行、`getProjectConfig` 与 `setProjectConfig` 的 `"wikiRoot"` case。
+  - cmd: `go test ./internal/command/ -run TestConfigListIsStable`
+  - exit: 0
+  - output: `ok`（list 不含 wiki 键；set 报错路径由 TestConfigSetProjectWikiRootRejected 钉死）
+  - artifact: internal/config/service.go
+- [x] 4. 字面量收敛：`defaultConfig.DocsDir`（config.go:74）与 init 默认 YAML（init.go:45）改引用 `DefaultDocsDir` 常量；删除 `deployManagedAssets`/`compareManagedAssets` 的不可达 `"docs"` 兜底分支。
+  - cmd: `grep -rn '"ff-wiki"' internal/ --include='*.go' | grep -v _test.go`
+  - exit: 0
+  - output: 仅 `internal/config/config.go:17: DefaultDocsDir = "ff-wiki"` 单点
+  - artifact: internal/command/init.go
+- [x] 5. 测试更新：删除/改造 wiki 轨断言；新增告警测试（替换 `warnOut` 捕获，顶层 `wiki.root` 与 `projects[].wikiRoot` 逐键断言）、忽略语义测试（yaml 含 `wiki:` 块 load 成功、`DocsRoot` 走 docs_dir）、`config set project.x.wikiRoot` 报错测试；`TestConfigListIsStableAndIncludesDocsDir` 改为断言 list 不含 wiki 键。
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test -count=1 ./internal/...`
+  - exit: 0
+  - output: 全部 ok（command/config/subagent/tracker/update，0 failures）
+  - artifact: internal/config/config_test.go
 
 ## Constraints
 
@@ -56,6 +76,34 @@ See the design authority at [双轨 wiki 配置统一：方案](../design.md#wik
 - 字面量单点: `grep -rn '"ff-wiki"' internal/ --include='*.go' | grep -v _test.go` — 仅 `DefaultDocsDir` 常量定义一处。
 - 全套回归: `GOPROXY=https://goproxy.cn,direct go test ./internal/...` — 全部 ok，0 failures。
 - 告警可见: 含 `wiki.root` + `projects[].wikiRoot` 的 fixture load 测试通过且捕获到两条告警（新测试用例名执行 `-run` 过滤）。
+
+## Implementation note
+
+**TDD 顺序**
+
+1. Red：先写三组新测试（`TestLoadWarnsOnDeprecatedWikiKeys` 告警逐键断言、`TestLoadIgnoresLegacyWikiBlock` 忽略语义、`TestConfigSetProjectWikiRootRejected` set 报错），并将 `TestConfigListIsStableAndIncludesDocsDir` 尾部改造为“set docs_dir 后 list 不含 wiki 键”；运行确认以预期原因失败——包编译失败 `undefined: warnOut`（缺 seam，非语法错误）。
+2. Green：按 Changes 1-4 执行删除与实现；同步清理 wiki 轨旧断言（删 `TestWikiRoot`/`TestWikiRootAbsolute`/`TestWikiRootForProject`，`TestProjectByID` 改用 srcDirs 断言，`TestDefaultConfig`/`TestLoadConfig` 去 wiki 字段断言但保留含 `wikiRoot` 的 fixture 钉死忽略语义）。
+3. 一次修复：Red→Green 首跑告警测试失败，诊断证实 viper 对 raw 键递归小写化（`wikiRoot` → `wikiroot`），`warnDeprecatedWikiKeys` 改读 `project["wikiroot"]` 后全绿。
+
+**验证命令与结果**
+
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/config/` — ok（含新增三组用例）。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/command/ -run 'TestConfigListIsStable|TestInit|TestDeployManagedAssets|TestCompareManagedAssets' -v` — 6 个测试全 PASS。
+- `GOPROXY=https://goproxy.cn,direct go test -count=1 ./internal/...` — 全部 ok，0 failures（command/config/subagent/tracker/update 五包）。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/config/ -run 'TestLoadWarnsOnDeprecatedWikiKeys|TestLoadIgnoresLegacyWikiBlock|TestConfigSetProjectWikiRootRejected' -v` — 3 PASS，告警捕获两条。
+- `grep -rn 'WikiRoot' internal/ --include='*.go' | grep -v _test.go` — 空输出（生产面清零）。
+- `grep -rn '"ff-wiki"' internal/ --include='*.go' | grep -v _test.go` — 仅 `internal/config/config.go:17` 常量定义一处。
+- `go vet ./internal/...` — 通过；`gofmt -l` 本票全部改动文件干净（`internal/update/manifest.go` 为存量未格式化，非本票引入）。
+- 附注：`golangci-lint` 本机未安装，未运行。
+
+**修改文件清单**
+
+- `internal/config/config.go` — Changes 1/2/4（wiki 轨删除 + `warnOut` seam + 告警函数；`Save` 的 fileConfig Wiki 行随类型删除）
+- `internal/config/service.go` — Change 3
+- `internal/command/init.go` — Change 4（默认 YAML 引用 `config.DefaultDocsDir`）
+- `internal/command/assets_deploy.go` / `internal/command/assets_compare.go` — Change 4（删不可达 `"docs"` 兜底）
+- `internal/config/config_test.go` — Change 5（wiki 轨断言删除/改造 + 三组新用例；测试文件改动按票面 Conventions 经 bash 完成）
+- `internal/command/init_docs_test.go` — Change 5（`TestConfigListIsStableAndIncludesDocsDir` 改造）
 
 ---
 

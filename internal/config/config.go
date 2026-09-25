@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -22,7 +23,6 @@ type Config struct {
 	VersionCheck     bool                    `yaml:"version_check" mapstructure:"version_check"`
 	DocsDir          string                  `yaml:"docs_dir,omitempty" mapstructure:"docs_dir"`
 	Projects         []ProjectConfig         `yaml:"projects,omitempty" mapstructure:"projects"`
-	Wiki             WikiConfig              `yaml:"wiki,omitempty" mapstructure:"wiki"`
 	KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty" mapstructure:"knowledge_sources"`
 	Agents           AgentsConfig            `yaml:"agents,omitempty" mapstructure:"agents"`
 	Standards        StandardsConfig         `yaml:"standards,omitempty" mapstructure:"standards"`
@@ -48,13 +48,8 @@ type AgentsConfig struct {
 }
 
 type ProjectConfig struct {
-	ID       string   `yaml:"id" mapstructure:"id"`
-	WikiRoot string   `yaml:"wikiRoot" mapstructure:"wikiRoot"`
-	SrcDirs  []string `yaml:"srcDirs" mapstructure:"srcDirs"`
-}
-
-type WikiConfig struct {
-	Root string `yaml:"root" mapstructure:"root"`
+	ID      string   `yaml:"id" mapstructure:"id"`
+	SrcDirs []string `yaml:"srcDirs" mapstructure:"srcDirs"`
 }
 
 type KnowledgeSourceConfig struct {
@@ -70,9 +65,6 @@ var defaultConfig = Config{
 	Version:      "5.0.0",
 	VersionCheck: true,
 	DocsDir:      DefaultDocsDir,
-	Wiki: WikiConfig{
-		Root: "ff-wiki",
-	},
 	Standards: StandardsConfig{
 		Guide: DefaultStandardsGuide,
 	},
@@ -96,7 +88,6 @@ func (c *Config) Save(projectRoot string) error {
 		VersionCheck     bool                    `yaml:"version_check"`
 		DocsDir          string                  `yaml:"docs_dir,omitempty"`
 		Projects         []ProjectConfig         `yaml:"projects,omitempty"`
-		Wiki             WikiConfig              `yaml:"wiki,omitempty"`
 		KnowledgeSources []KnowledgeSourceConfig `yaml:"knowledge_sources,omitempty"`
 		Agents           AgentsConfig            `yaml:"agents,omitempty"`
 		Standards        StandardsConfig         `yaml:"standards,omitempty"`
@@ -108,7 +99,6 @@ func (c *Config) Save(projectRoot string) error {
 		VersionCheck:     c.VersionCheck,
 		DocsDir:          c.DocsDir,
 		Projects:         c.Projects,
-		Wiki:             c.Wiki,
 		KnowledgeSources: c.KnowledgeSources,
 		Agents:           c.Agents,
 		Standards:        c.Standards,
@@ -151,6 +141,10 @@ func FindProjectRoot(startDir string) (string, error) {
 	}
 }
 
+// warnOut is the destination for deprecated-config warnings emitted by Load.
+// It is a package-level seam so tests can replace and capture the output.
+var warnOut io.Writer = os.Stderr
+
 func Load(projectRoot string) (*Config, error) {
 	v := viper.New()
 	v.SetConfigType("yaml")
@@ -161,7 +155,6 @@ func Load(projectRoot string) (*Config, error) {
 	v.SetDefault("version_check", defaultConfig.VersionCheck)
 	v.SetDefault("docs_dir", defaultConfig.DocsDir)
 	v.SetDefault("projects", defaultConfig.Projects)
-	v.SetDefault("wiki.root", defaultConfig.Wiki.Root)
 	v.SetDefault("knowledge_sources", []KnowledgeSourceConfig{})
 	v.SetDefault("agents.disabled", []string{})
 	v.SetDefault("standards.guide", defaultConfig.Standards.Guide)
@@ -174,11 +167,40 @@ func Load(projectRoot string) (*Config, error) {
 		return nil, fmt.Errorf("reading config: %w", err)
 	}
 
+	warnDeprecatedWikiKeys(v)
+
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshaling config: %w", err)
 	}
 	return &cfg, nil
+}
+
+// warnDeprecatedWikiKeys reports legacy wiki-track keys still present in the
+// raw viper config. The wiki track is removed; docs_dir is the single source
+// of truth for the wiki/docs root, so these keys are ignored after warning.
+func warnDeprecatedWikiKeys(v *viper.Viper) {
+	if v.IsSet("wiki") {
+		fmt.Fprintf(warnOut, "warning: config key %q is deprecated and ignored; wiki root is decided by %q only\n", "wiki.root", "docs_dir")
+	}
+	rawProjects, ok := v.Get("projects").([]any)
+	if !ok {
+		return
+	}
+	// Viper lowercases all config keys (including keys inside slices), so the
+	// raw maps expose "wikiroot"/"id" in their normalized form.
+	for _, raw := range rawProjects {
+		project, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		wikiRoot, _ := project["wikiroot"].(string)
+		if wikiRoot == "" {
+			continue
+		}
+		id, _ := project["id"].(string)
+		fmt.Fprintf(warnOut, "warning: config key %q is deprecated and ignored; use %q\n", fmt.Sprintf("projects[%s].wikiRoot", id), "docs_dir")
+	}
 }
 
 func (c *Config) DocsRoot(projectRoot string) string {
@@ -209,11 +231,6 @@ func ResolveProposalsDir(startDir string) (string, error) {
 	return cfg.ProposalsDir(projectRoot), nil
 }
 
-func (c *Config) WikiRoot(projectRoot string) string {
-	project := c.primaryProject()
-	return c.projectWikiRoot(projectRoot, project)
-}
-
 func (c *Config) ProjectByID(id string) (ProjectConfig, bool) {
 	for _, project := range c.Projects {
 		if project.ID == id {
@@ -222,45 +239,6 @@ func (c *Config) ProjectByID(id string) (ProjectConfig, bool) {
 	}
 
 	return ProjectConfig{}, false
-}
-
-func (c *Config) WikiRootForProject(projectRoot string, projectID string) (string, error) {
-	project, ok := c.ProjectByID(projectID)
-	if !ok {
-		return "", fmt.Errorf("project %q is not registered", projectID)
-	}
-
-	return c.projectWikiRoot(projectRoot, project), nil
-}
-
-func (c *Config) projectWikiRoot(projectRoot string, project ProjectConfig) string {
-	if project.WikiRoot != "" {
-		if filepath.IsAbs(project.WikiRoot) {
-			return project.WikiRoot
-		}
-		return filepath.Join(projectRoot, project.WikiRoot)
-	}
-
-	if filepath.IsAbs(c.Wiki.Root) {
-		return c.Wiki.Root
-	}
-
-	if c.Wiki.Root != "" {
-		return filepath.Join(projectRoot, c.Wiki.Root)
-	}
-
-	return filepath.Join(projectRoot, "ff-wiki")
-}
-
-func (c *Config) primaryProject() ProjectConfig {
-	if len(c.Projects) > 0 {
-		return c.Projects[0]
-	}
-
-	return ProjectConfig{
-		WikiRoot: c.Wiki.Root,
-		SrcDirs:  nil,
-	}
 }
 
 func (c *Config) ConfigDir(projectRoot string) string {

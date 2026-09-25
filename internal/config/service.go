@@ -91,7 +91,6 @@ func (s *ConfigService) List() (map[string]string, error) {
 	}
 	result["docs_dir"] = docsDir
 	for _, p := range s.fileStore.Config().Projects {
-		result[fmt.Sprintf("project.%s.wikiRoot", p.ID)] = p.WikiRoot
 		result[fmt.Sprintf("project.%s.srcDirs", p.ID)] = fmt.Sprintf("%v", p.SrcDirs)
 	}
 	guide := s.fileStore.Config().Standards.Guide
@@ -136,8 +135,6 @@ func (s *ConfigService) getProjectConfig(key string) (string, error) {
 		return "", fmt.Errorf("project %q not found", projectID)
 	}
 	switch field {
-	case "wikiRoot":
-		return p.WikiRoot, nil
 	case "srcDirs":
 		return fmt.Sprintf("%v", p.SrcDirs), nil
 	default:
@@ -157,8 +154,6 @@ func (s *ConfigService) setProjectConfig(key, value string) error {
 	for i := range cfg.Projects {
 		if cfg.Projects[i].ID == projectID {
 			switch field {
-			case "wikiRoot":
-				cfg.Projects[i].WikiRoot = value
 			case "srcDirs":
 				cfg.Projects[i].SrcDirs = []string{value}
 			default:
