@@ -13,7 +13,7 @@ const (
 	ConfigDirName  = ".flowforge"
 	ConfigFileName = "config.yaml"
 
-	DefaultDocsDir        = "docs"
+	DefaultDocsDir        = "ff-wiki"
 	DefaultStandardsGuide = "agents/standards.md"
 )
 
@@ -188,7 +188,7 @@ func (c *Config) DocsRoot(projectRoot string) string {
 		}
 		return filepath.Join(projectRoot, c.DocsDir)
 	}
-	return filepath.Join(projectRoot, "docs")
+	return filepath.Join(projectRoot, DefaultDocsDir)
 }
 
 func (c *Config) ProposalsDir(projectRoot string) string {
@@ -198,7 +198,7 @@ func (c *Config) ProposalsDir(projectRoot string) string {
 func ResolveProposalsDir(startDir string) (string, error) {
 	projectRoot, err := FindProjectRoot(startDir)
 	if err != nil {
-		return filepath.Join(startDir, "docs", "proposals"), nil
+		return filepath.Join(startDir, DefaultDocsDir, "proposals"), nil
 	}
 
 	cfg, err := Load(projectRoot)

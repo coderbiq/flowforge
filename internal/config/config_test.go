@@ -13,8 +13,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("expected version 5.0.0, got %s", cfg.Version)
 	}
 
-	if cfg.DocsDir != "docs" {
-		t.Errorf("expected default docs_dir docs, got %s", cfg.DocsDir)
+	if cfg.DocsDir != "ff-wiki" {
+		t.Errorf("expected default docs_dir ff-wiki, got %s", cfg.DocsDir)
 	}
 	if cfg.Wiki.Root != "ff-wiki" {
 		t.Errorf("expected legacy wiki root ff-wiki, got %s", cfg.Wiki.Root)
