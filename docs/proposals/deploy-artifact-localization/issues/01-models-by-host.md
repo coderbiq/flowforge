@@ -9,6 +9,10 @@ flowforge:
       deploy-artifact-localization-design: 3
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 01: models_by_host 配置层 + 六级优先级链 + 格式级校验
 
 **Blocked by:** None

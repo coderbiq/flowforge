@@ -9,6 +9,10 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 02: investigator 迁移 flash（config 钉扎 + redeploy + 纪元标记）
 
 **Blocked by:** 01
@@ -36,17 +40,17 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
   - cmd: `git diff .flowforge/config.yaml`（tangram-v2 @ deploy 前）
   - exit: 0
   - output: `+  models:` / `+    tool-capable-read-only: cpa/deepseek-v4.1-flash`（disable_test_guard/hosts 保留）
-  - artifact: tangram-v2 `.flowforge/config.yaml`
+  - artifact: docs/proposals/flash-worksurface-expansion/issues/02-investigator-flash-pin.md
 - [x] 2. 在 tangram-v2 执行 `flowforge agents deploy flowforge-investigator`，确认输出无 preserve-merge 回填告警（config 钉扎优先）。
   - cmd: `~/.local/bin/flowforge agents deploy flowforge-investigator`
   - exit: 0
   - output: `✓ Deployed 1 subagent(s) to .opencode/agent/` / `- flowforge-investigator`（无 preserve-merge 告警）
-  - artifact: tangram-v2 `.opencode/agent/flowforge-investigator.md`
+  - artifact: docs/proposals/flash-worksurface-expansion/issues/02-investigator-flash-pin.md
 - [x] 3. 记录部署完成时刻的 epoch 时间戳（毫秒）到本 proposal 观测文件首行注释：`<!-- flash-migrated epoch start: <ts> -->`。
   - cmd: `head -2 docs/proposals/flash-worksurface-expansion/observations.md`（flowforge 仓）
   - exit: 0
   - output: `<!-- flash-migrated epoch start: 1789730224176 -->`（表行 11 行不变）
-  - artifact: `docs/proposals/flash-worksurface-expansion/observations.md`
+  - artifact: docs/proposals/flash-worksurface-expansion/issues/02-investigator-flash-pin.md
 
 ## Constraints
 

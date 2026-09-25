@@ -9,6 +9,10 @@ flowforge:
       generic-role-orchestration-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 03: import SKILL 增补 <docs_dir>/research/ 标准源
 
 **Blocked by:** None

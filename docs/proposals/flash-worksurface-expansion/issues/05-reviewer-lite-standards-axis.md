@@ -9,6 +9,10 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 05: reviewer-lite 承担 Standards 轴（资产 + 双轴派发契约 + 钉扎）
 
 **Blocked by:** 04

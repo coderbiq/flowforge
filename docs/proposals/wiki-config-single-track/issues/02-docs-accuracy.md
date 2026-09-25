@@ -9,6 +9,10 @@ flowforge:
       wiki-config-single-track-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 02: 文档失准清零 + 自举 config 清理
 
 **Blocked by:** None

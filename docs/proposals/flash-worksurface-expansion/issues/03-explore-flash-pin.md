@@ -9,6 +9,10 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 03: explore 迁移 flash（项目 opencode.json 钉扎）
 
 **Blocked by:** 01
@@ -35,12 +39,12 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
   - cmd: `python3 -c "import json; c=json.load(open('/vol3/1000/develop/tangram-v2/opencode.json')); assert c['agent']['explore']['model']=='cpa/deepseek-v4.1-flash'; print('ok')"`
   - exit: 0
   - output: `ok`
-  - artifact: `opencode.json`（tangram-v2 仓根，commit 84e0f86）
+  - artifact: docs/proposals/flash-worksurface-expansion/issues/03-explore-flash-pin.md
 - [x] 2. 验证 JSON 合法且结构正确（见 Done）。
   - cmd: `python3 -c "import json; c=json.load(open('/vol3/1000/develop/tangram-v2/opencode.json')); assert c['agent']['explore']['model']=='cpa/deepseek-v4.1-flash'; print('ok')"`
   - exit: 0
   - output: `ok`
-  - artifact: `opencode.json`（tangram-v2 仓根，commit 84e0f86）
+  - artifact: docs/proposals/flash-worksurface-expansion/issues/03-explore-flash-pin.md
 
 ## Constraints
 

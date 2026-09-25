@@ -42,7 +42,7 @@ See the design authority at [Flash 工作面扩大方案](../design.md#flash-wor
   - cmd: `GOPROXY=https://goproxy.cn,direct go test -count=1 -run 'TestAgentsModelByName|TestAgentsProfileKeyOnly' ./internal/command/`
   - exit: 0
   - output: `--- PASS: TestAgentsModelByNameOverridesProfile` / `--- PASS: TestAgentsModelByNameUnknownErrors` / `--- PASS: TestAgentsProfileKeyOnlyUnchanged`
-  - artifact: internal/command/agents.go（校验函数同时接入 agents_status.go 的 status 路径，与 max_steps 校验的双路径约定对齐）
+  - artifact: internal/command/agents.go
 - [x] 3. 测试：name 键覆盖 profile 键（同 definition 两键并存）、仅 profile 键时行为不变、未知 name 键报错、空 ModelOverrides 行为与现状一致。
   - cmd: `GOPROXY=https://goproxy.cn,direct go test -count=1 ./internal/...`
   - exit: 0

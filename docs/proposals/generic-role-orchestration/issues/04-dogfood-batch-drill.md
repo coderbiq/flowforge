@@ -9,6 +9,10 @@ flowforge:
       generic-role-orchestration-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 04: dogfood 批次演练（pi 宿主 ≥3 并行 batch-analyst）
 
 **Blocked by:** 01, 02

@@ -9,6 +9,10 @@ flowforge:
       deploy-artifact-localization-design: 3
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 02: pi 宿主 model 注入 + preserve-merge 真实化
 
 **Blocked by:** 01

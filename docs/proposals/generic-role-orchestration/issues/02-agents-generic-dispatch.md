@@ -9,6 +9,10 @@ flowforge:
       generic-role-orchestration-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 02: AGENTS.md 通用调度段（能力表 + 任务链协议 + pi 提示）
 
 **Blocked by:** 01

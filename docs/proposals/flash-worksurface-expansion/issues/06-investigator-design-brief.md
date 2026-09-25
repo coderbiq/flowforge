@@ -9,6 +9,10 @@ flowforge:
       flash-worksurface-expansion-design: 1
 ---
 
+## Completion evidence
+
+闭环证据见各 Change 的 cmd/exit/output/artifact 四元组与 Implementation note（执行记录、验证命令与观测结果）。
+
 # 06: 设计事实简报（architect 预调研拆分契约）
 
 **Blocked by:** 02
