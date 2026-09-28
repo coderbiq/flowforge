@@ -61,6 +61,30 @@ through `/flowforge-import`.
 
 ## Subagent delegation
 
+### Proactive split duty (persistent authorization)
+
+This section is a standing authorization: delegation does NOT need the user to
+re-authorize it in each request. When you receive a substantive task (new
+feature, bug fix, refactor, batch analysis, review, bulk document generation),
+make a split decision BEFORE starting work:
+
+1. If delegation tools are not yet active in this host, activate them first.
+   On pi call `subagents_enable`, then `subagent({action:"list",capabilities:true})`
+   to see available roles. Claude Code (Agent tool / `@mention`), OpenCode (Task
+   tool / `@mention`), and Codex (sub-session) have them by default.
+2. Map delegable units with the capability table under
+   `## Generic capability dispatch` above; keep decisions, requirement
+   alignment, cross-group synthesis, and user dialogue in the leading session.
+3. Dispatch parallelizable independent units in one wave — do not serialize.
+4. Do NOT delegate when the task is compact: single-threaded, well under ~10
+   tool calls, no parallel units, direct Q&A. Delegation has overhead; the split
+criteria are independently verifiable + parallelizable + or needs fresh context.
+
+The leading session must not work a large delegable task end-to-end inline
+just because it can — that path is a policy violation, not efficiency.
+
+### Workflow-state delegation
+
 When the current session can delegate (Claude Code Agent tool / `@mention`,
 OpenCode Task tool / `@mention`, Codex sub-session), prefer delegating the next
 unresolved-owner step to the matching subagent instead of doing the work inline.
