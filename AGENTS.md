@@ -58,6 +58,8 @@ owns the next step, consult the process table below (`## Subagent delegation`).
 | Batch extract + compare + summarize, split in parallel by group | `flowforge-batch-analyst` | flash pinnable |
 | Write or backfill a structured document from a given template | `flowforge-scribe` | flash pinnable |
 | Mechanically execute a batch of existing commands or tools | `flowforge-executor` | tool-capable |
+| Frontend/UI ticket delivery with screenshot self-review loop (needs vision-capable model) | `flowforge-frontend-implementer` | tool-capable + vision pin |
+| Frontend Spec+visual axis review — screenshots vs ticket clauses, quantified-output cross-check (needs vision-capable model) | `flowforge-frontend-reviewer` | read-only + vision pin |
 | Standards-axis findings (build/test/convention conformance, cited) | `flowforge-reviewer-lite` | flash pinnable |
 | Decision-material brief (research output contract) | `flowforge-investigator` (brief form; contract in `flowforge-research`) | flash pinnable |
 
@@ -90,6 +92,30 @@ through `/flowforge-import`.
 
 ## Subagent delegation
 
+### Proactive split duty (persistent authorization)
+
+This section is a standing authorization: delegation does NOT need the user to
+re-authorize it in each request. When you receive a substantive task (new
+feature, bug fix, refactor, batch analysis, review, bulk document generation),
+make a split decision BEFORE starting work:
+
+1. If delegation tools are not yet active in this host, activate them first.
+   On pi call `subagents_enable`, then `subagent({action:"list",capabilities:true})`
+   to see available roles. Claude Code (Agent tool / `@mention`), OpenCode (Task
+   tool / `@mention`), and Codex (sub-session) have them by default.
+2. Map delegable units with the capability table under
+   `## Generic capability dispatch` above; keep decisions, requirement
+   alignment, cross-group synthesis, and user dialogue in the leading session.
+3. Dispatch parallelizable independent units in one wave — do not serialize.
+4. Do NOT delegate when the task is compact: single-threaded, well under ~10
+   tool calls, no parallel units, direct Q&A. Delegation has overhead; the split
+criteria are independently verifiable + parallelizable + or needs fresh context.
+
+The leading session must not work a large delegable task end-to-end inline
+just because it can — that path is a policy violation, not efficiency.
+
+### Workflow-state delegation
+
 When the current session can delegate (Claude Code Agent tool / `@mention`,
 OpenCode Task tool / `@mention`, Codex sub-session), prefer delegating the next
 unresolved-owner step to the matching subagent instead of doing the work inline.
@@ -102,6 +128,8 @@ return to this session and re-delegate based on each subagent's `Next Action`.
 | Requirement settled; responsibility, interface, seam, or verification strategy unsettled | `flowforge-architect` | `flowforge-solution-design` |
 | Requirement and design settled; needs ticket slicing with DAG edges | `flowforge-planner` | `flowforge-plan` |
 | An executable frontier ticket exists | `flowforge-implementer` | `flowforge-implement` |
+| An executable frontend/UI ticket exists (JSX, styles, layout, component layer) | `flowforge-frontend-implementer` | `flowforge-frontend-implement` |
+| A frontend ticket needs the visual review axis (screenshot evidence exists) | `flowforge-frontend-reviewer` | `flowforge-review` |
 | Any code review, implementation audit, or completed-work review | `flowforge-reviewer` | `flowforge-review` |
 | A bounded research/diagnosis question blocks a decision | `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` |
 

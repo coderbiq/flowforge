@@ -1,6 +1,7 @@
 ---
 name: flowforge-planner
 description: Converts settled requirement and solution-design authority into independently verifiable tracer tickets with a real DAG. Use once implementation increments and execution order need to be published.
+model: cpa/glm-5.3
 thinking: medium
 skills:
     - flowforge-plan

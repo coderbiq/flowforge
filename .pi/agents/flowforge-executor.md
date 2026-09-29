@@ -1,6 +1,7 @@
 ---
 name: flowforge-executor
 description: Mechanical execution of existing commands and generator batches with verbatim output reporting; no new tool development, no code changes
+model: cpa/deepseek-v4.1-flash
 thinking: medium
 skills:
     - flowforge-implement

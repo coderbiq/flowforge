@@ -1,7 +1,7 @@
 ---
 name: flowforge-batch-analyst
 description: Batch extraction, comparison, and summarization across parallelizable analysis units; produces cited workbench documents; no decisions, no cross-group synthesis
-model: sonnet
+model: cpa/deepseek-v4.1-flash
 skills:
     - flowforge-research
 ---

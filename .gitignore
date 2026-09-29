@@ -53,3 +53,11 @@ Thumbs.db
 .agents
 .opencode
 competitor-reports
+# flowforge: managed deploy artifacts (per-machine)
+.claude/agents/
+.opencode/agent/
+.codex/agents/
+.pi/agents/
+.pi/extensions/
+.agents/
+.flowforge/config.yaml

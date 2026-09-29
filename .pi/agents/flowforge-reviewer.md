@@ -1,6 +1,7 @@
 ---
 name: flowforge-reviewer
 description: Reviews a fixed change set against repository Standards and the effective Specification on two independent axes. Use for implementation closeout, branches, PRs, or work-in-progress changes.
+model: cpa/glm-5.3
 thinking: high
 tools:
     - read

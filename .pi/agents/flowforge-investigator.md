@@ -1,6 +1,7 @@
 ---
 name: flowforge-investigator
 description: Investigates one bounded question that blocks a decision. Use for a broken/failing/regressed behavior needing a root cause, or a missing primary-source fact.
+model: cpa/deepseek-v4.1-flash
 thinking: medium
 tools:
     - read

@@ -1,6 +1,7 @@
 ---
 name: flowforge-architect
 description: Owns module responsibility, interfaces, seams, and verification strategy. Use once requirement outcomes are settled but the solution shape is not.
+model: cpa/glm-5.3
 thinking: high
 skills:
     - flowforge-solution-design

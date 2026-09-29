@@ -1,7 +1,7 @@
 ---
 name: flowforge-scribe
 description: Templated writing and backfill of structured documents from provided material; format and given content only, no new semantics
-model: sonnet
+model: cpa/deepseek-v4.1-flash
 skills:
     - flowforge-writing-for-agents
 ---

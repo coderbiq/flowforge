@@ -1,6 +1,7 @@
 ---
 name: flowforge-implementer
 description: Delivers one ticket from its effective specification through verification and closeout. Use for an executable frontier ticket or equivalent compact contract.
+model: cpa/deepseek-v4.1-flash
 thinking: medium
 skills:
     - flowforge-implement

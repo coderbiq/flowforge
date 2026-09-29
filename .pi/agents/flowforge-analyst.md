@@ -1,6 +1,7 @@
 ---
 name: flowforge-analyst
 description: Owns requirement truth. Use when a feature's observable outcome, scope, scenario, constraint, or terminology is still unsettled.
+model: cpa/glm-5.3
 thinking: high
 skills:
     - flowforge-align
