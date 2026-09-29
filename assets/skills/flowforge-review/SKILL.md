@@ -93,6 +93,8 @@ Round 0 has already verified per-Change delivery; both briefs below must not re-
 
 If effective specification is missing, skip the Specification sub-agent and note this in the final report.
 
+**Frontend visual axis (third dispatch, frontend tickets only):** when the ticket's Write set touches frontend surfaces (JSX/styles/layout/component layer) and the change set includes screenshot evidence paths plus grep-able quantified output, dispatch a third reviewer in the same wave: `flowforge-frontend-reviewer` (vision-capable model). Its brief: per ticket clause (must/must not) that is visually checkable, compare the delivered screenshots against the clause and report pass/fail per clause with screenshot references; additionally cross-check that the quantified output matches what the screenshots actually show (detect fabricated numbers). Findings become `Fix:` Changes like any other axis. If the project declares no verification-entry or the implementer delivered no screenshots, record that as a review finding (missing visual evidence), not a silent pass. Taste-class goals (not covered by any clause) stay with human review — do not invent clauses.
+
 ### 5. Aggregate
 
 Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings, because the two axes are deliberately separate (see _Why two axes_).

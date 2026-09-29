@@ -34,6 +34,14 @@ Resolve or explicitly scope:
 - externally meaningful constraints and terminology;
 - unknowns whose answers change the solution space.
 
+**Frontend involvement check:** when an observable outcome touches UI, interaction,
+or visual behavior, and the project declares a frontend slots manifest
+(`.agents/references/frontend/manifest.md`), mark the requirement with a
+`frontend scope:` line referencing that manifest. Do not read the full design
+spec at this stage — the manifest reference is enough for Solution Design to
+transcribe applicable clauses later. No manifest → no mark (the project has no
+frontend standards system; nothing to route).
+
 These are completeness checks, not mandatory headings. Omit empty roles and merge overlapping prose.
 
 ### 4. Persist accepted decisions immediately
