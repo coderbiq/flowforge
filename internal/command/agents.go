@@ -338,38 +338,58 @@ func validateModelConfig(cfg *config.Config, defs []*subagent.Definition, enable
 		return knownAgents[key] || validModelProfileKeys[key]
 	}
 
-	for _, key := range slices.Sorted(maps.Keys(cfg.Agents.Models)) {
+	if err := validateModelLayers("agents", cfg.Agents.Models, cfg.Agents.ModelOverrides, cfg.Agents.ModelHostOverrides, knownAgents, knownHost, enabled, validInnerKey); err != nil {
+		return err
+	}
+	// Named model sets (agents.model_sets) follow exactly the base-layer
+	// rules: same key legality, same value formats (design
+	// model-sets-switching d-set-validation). Errors carry the set name so
+	// the user knows which overlay is broken.
+	for _, name := range config.ModelSetNames(&cfg.Agents) {
+		set := cfg.Agents.ModelSets[name]
+		if err := validateModelLayers("agents.model_sets."+name, set.Models, set.ModelOverrides, set.ModelHostOverrides, knownAgents, knownHost, enabled, validInnerKey); err != nil {
+			return fmt.Errorf("model set %q: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// validateModelLayers applies the base-layer model validation rules to one
+// named set of layers. where is the config path prefix ("agents" for the
+// base layers, "agents.model_sets.<name>" for a set).
+func validateModelLayers(where string, models, byName map[string]string, byHost map[string]map[string]string, knownAgents, knownHost, enabled map[string]bool, validInnerKey func(string) bool) error {
+	for _, key := range slices.Sorted(maps.Keys(models)) {
 		if !validModelProfileKeys[key] {
-			return fmt.Errorf("agents.models: unknown profile key %q (supported: tool-capable, tool-capable-read-only)", key)
+			return fmt.Errorf("%s.models: unknown profile key %q (supported: tool-capable, tool-capable-read-only)", where, key)
 		}
-		if err := validateGlobalModelValue("agents.models."+key, cfg.Agents.Models[key], enabled); err != nil {
+		if err := validateGlobalModelValue(where+".models."+key, models[key], enabled); err != nil {
 			return err
 		}
 	}
-	for _, key := range slices.Sorted(maps.Keys(cfg.Agents.ModelOverrides)) {
+	for _, key := range slices.Sorted(maps.Keys(byName)) {
 		if !knownAgents[key] {
-			return fmt.Errorf("agents.models_by_name: unknown agent %q (profile keys belong in agents.models or agents.models_by_host)", key)
+			return fmt.Errorf("%s.models_by_name: unknown agent %q (profile keys belong in %s.models or %s.models_by_host)", where, key, where, where)
 		}
-		if err := validateGlobalModelValue("agents.models_by_name."+key, cfg.Agents.ModelOverrides[key], enabled); err != nil {
+		if err := validateGlobalModelValue(where+".models_by_name."+key, byName[key], enabled); err != nil {
 			return err
 		}
 	}
-	for _, host := range slices.Sorted(maps.Keys(cfg.Agents.ModelHostOverrides)) {
+	for _, host := range slices.Sorted(maps.Keys(byHost)) {
 		if host == "codex" {
-			return fmt.Errorf("agents.models_by_host.codex: codex has no per-agent model (the compiler drops model)")
+			return fmt.Errorf("%s.models_by_host.codex: codex has no per-agent model (the compiler drops model)", where)
 		}
 		if !knownHost[host] {
-			return fmt.Errorf("agents.models_by_host: unknown host %q (supported: claude, opencode, pi)", host)
+			return fmt.Errorf("%s.models_by_host: unknown host %q (supported: claude, opencode, pi)", where, host)
 		}
-		inner := cfg.Agents.ModelHostOverrides[host]
+		inner := byHost[host]
 		for _, key := range slices.Sorted(maps.Keys(inner)) {
 			if !validInnerKey(key) {
-				return fmt.Errorf("agents.models_by_host.%s: unknown key %q (expected an agent name or a profile key: tool-capable, tool-capable-read-only)", host, key)
+				return fmt.Errorf("%s.models_by_host.%s: unknown key %q (expected an agent name or a profile key: tool-capable, tool-capable-read-only)", where, host, key)
 			}
 			if !enabled[host] {
 				continue // disabled host: keys validated, values skipped
 			}
-			if err := validateModelValueForHost("agents.models_by_host."+host+"."+key, inner[key], host); err != nil {
+			if err := validateModelValueForHost(where+".models_by_host."+host+"."+key, inner[key], host); err != nil {
 				return err
 			}
 		}
@@ -502,6 +522,19 @@ func cleanDeselectedHosts(projectRoot string, selected []hostTarget, allDefs []*
 // preserved (config-pinned models always win). Returns the list of deployed
 // subagent names.
 func deploySubagents(projectRoot string, cfg *config.Config, targetName string) ([]string, error) {
+	// Model-set overlay (design model-sets-switching): apply the active
+	// named model set on top of the base layers before validation and
+	// compilation, so the precedence chain below resolves the merged
+	// layers. The pointer is per-machine state (.flowforge/model-set.active).
+	eff, activeSet, err := config.EffectiveAgents(cfg, projectRoot)
+	if err != nil {
+		return nil, err
+	}
+	if activeSet != "" {
+		cfg2 := *cfg
+		cfg2.Agents = eff
+		cfg = &cfg2
+	}
 	hosts, err := resolveHostTargets(cfg)
 	if err != nil {
 		return nil, err

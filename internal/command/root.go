@@ -25,6 +25,7 @@ for the FlowForge engineering skills methodology.`,
 		newUpgradeCmd(),
 		newAssetsCmd(),
 		newAgentsCmd(),
+		newModelSetCmd(),
 	)
 
 	return cmd

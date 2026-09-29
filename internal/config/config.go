@@ -44,6 +44,7 @@ type AgentsConfig struct {
 	Models             map[string]string            `yaml:"models,omitempty" mapstructure:"models"`
 	ModelOverrides     map[string]string            `yaml:"models_by_name,omitempty" mapstructure:"models_by_name"`
 	ModelHostOverrides map[string]map[string]string `yaml:"models_by_host,omitempty" mapstructure:"models_by_host"`
+	ModelSets          map[string]ModelSetConfig      `yaml:"model_sets,omitempty" mapstructure:"model_sets"`
 	TestFileGlobs      []string                     `yaml:"test_file_globs,omitempty" mapstructure:"test_file_globs"`
 	DisableTestGuard   bool                         `yaml:"disable_test_guard,omitempty" mapstructure:"disable_test_guard"`
 }

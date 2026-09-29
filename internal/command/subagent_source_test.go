@@ -21,6 +21,8 @@ var expectedSubagentNames = []string{
 	"flowforge-scribe",
 	"flowforge-executor",
 	"flowforge-reviewer-lite",
+	"flowforge-frontend-implementer",
+	"flowforge-frontend-reviewer",
 }
 
 var validModelProfiles = map[string]bool{
