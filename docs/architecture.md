@@ -54,16 +54,16 @@ Markdown 是内容接口。Agent 直接读写文件；CLI 不接受大段需求�
 
 ## 实现边界
 
-- `internal/config`：项目根、`docs_dir`、`standards.guide`、`agents.disabled` 与兼容配置解析。
+- `internal/config`：项目根、`docs_dir`、`standards`（`guide`）、`evidence`（`exempt_proposals`）、`projects`、`knowledge_sources`、`version` / `version_check`，以及 `agents` 配置（`disabled`、`hosts`、`max_steps`、`models`、`models_by_name`、`models_by_host`、`model_sets`（命名模型方案）、`test_file_globs`、`disable_test_guard`）与兼容配置解析。
 - `internal/subagent`：Subagent 权威定义解析、四宿主（Claude Code、OpenCode、Codex、PI）原生格式编译与 Model Profile 映射。
 - `internal/tracker`：Markdown ticket 解析、Artifact Catalog、语义诊断、DAG 与 frontier。
 - `internal/command`：Cobra 命令、策略投影、初始化、Subagent 生命周期管理（deploy/remove/status）和受管资产部署。
 - `internal/update`：CLI 更新与同版本资产同步。
-- `assets/skills`、`assets/subagents`、`assets/agents`（含 `standards.md`）、`assets/AGENTS.md`、`assets/pi/flowforge.ts`（PI 项目级扩展，随 `pi` 宿主部署）：编译进二进制并部署到目标项目的生产资产。
+- `assets/skills`、`assets/subagents`、`assets/agents`（`domain.md` / `issue-tracker.md` / `standards.md` / `triage-labels.md`）、`assets/AGENTS.md`、`assets/pi/flowforge.ts`（PI 项目级扩展，随 `pi` 宿主部署）：编译进二进制并部署到目标项目的生产资产。
 
-Subagent 名册为混合模型：6 个流程角色（绑定 flowforge-* skill）+ 3 个通用能力角色（`flowforge-batch-analyst` / `flowforge-scribe` / `flowforge-executor`，`default_skill` 仅作方法材料，见 [ADR 0001](adr/0001-hybrid-generic-subagent-roles.md)）。`assets/AGENTS.md` 的 `## Generic capability dispatch`（能力键调度）先于 `## Subagent delegation`（流程委派）声明，顺序即适用优先级。
+Subagent 名册为混合模型，共 12 个角色：8 个流程角色（`analyst` / `architect` / `planner` / `implementer` / `reviewer` / `investigator` / `frontend-implementer` / `frontend-reviewer`，绑定 flowforge-* skill）+ 4 个通用能力角色（`flowforge-batch-analyst` / `flowforge-scribe` / `flowforge-executor` / `flowforge-reviewer-lite`，`default_skill` 仅作方法材料，见 [ADR 0001](adr/0001-hybrid-generic-subagent-roles.md)）。`assets/AGENTS.md` 的 `## Generic capability dispatch`（能力键调度）先于 `## Subagent delegation`（流程委派）声明，顺序即适用优先级。
 
-`docs_dir` 默认为 `ff-wiki`（d04e955 起），可为相对项目根目录或绝对路径。命令从任意子目录向上定位 `.flowforge/config.yaml`；发现损坏配置时返回错误，不静默退回其他目录。没有 FlowForge 配置的普通目录仍使用 `docs/proposals` 作为兼容默认值。
+`docs_dir` 默认为 `ff-wiki`（d04e955 起），可为相对项目根目录或绝对路径。命令从任意子目录向上定位 `.flowforge/config.yaml`；发现损坏配置时返回错误，不静默退回其他目录。没有 FlowForge 配置的普通目录使用 `<startDir>/ff-wiki/proposals` 作为兼容默认值（向上找不到配置时不静默回退到其它目录）。
 
 ## 完成不变量
 

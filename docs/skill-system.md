@@ -13,6 +13,7 @@ FlowForge v5 使用 `flowforge-*` Skill 分配问题所有权。用户不需要�
 | `flowforge-to-spec` | 多个 authority 需要一个跨会话或外部评审入口 | 可选的非权威导航 spec；compact work 可跳过 |
 | `flowforge-plan` | 需求和相关设计区域已确定，需要执行增量与 DAG | 高信息 ticket、真实 blocking edge、经 CLI 验证的 frontier；从设计 authority 机械转写 must/must not 到卡片 |
 | `flowforge-implement` | 有可执行 ticket 或等价 compact contract | 轻量模式：执行 unchecked Changes、规范 pre-flight 检查、机检自检、写 Implementation note 后停止；完整模式：TDD 实现、双轴审查、completion evidence、提交和新 frontier |
+| `flowforge-frontend-implement` | 前端/UI ticket 需要交付 | 先遵循票面转写条款、带设计系统上下文交付，并执行强制截图自审循环；后端专属 ticket 仍走 `flowforge-implement` |
 | `flowforge-review` | 有固定 diff 与有效 specification | Standards 轴只查卡片内已注入规范 + 通用 smell baseline；Specification 轴查有效规格；两份独立报告；有 findings 时翻译为 `Fix:` Changes 追加到 ticket；零 findings 时写 evidence 并关闭 ticket |
 
 Align 不选择实现架构；Solution Design 不拆 ticket 或改生产代码；Plan 不把设计选择伪装成步骤；Implement 遇到责任/seam 变化会返回设计，遇到可观察需求变化会返回 Align。
@@ -21,7 +22,7 @@ Align 不选择实现架构；Solution Design 不拆 ticket 或改生产代码�
 
 FlowForge 不设中心 router。Agent 读取扁平的 skill `description` 列表后自选最匹配者；没有任何 front-matter 闸门或运行时调度器预过滤候选。删除 `flowforge-route` 后这套 description 自选是唯一的 dispatch 路径，不再有 "advisory + 无闸门 + 增一跳" 的最差组合（业界主流范式：Cursor / Continue / Claude Code / OpenCode 均如此）。
 
-`AGENTS.md` 路由表与本文件的"主交付链"表只是**人类参考**：它们帮助用户理解 skill 之间的责任分工，但 agent 不自动读取它们做兜底。当 description 信号不足以让 agent 确定该选哪个 skill 时，agent 直接问用户，**不**退回路由表自行裁决——这是 gap-2 已关闭的决策（见 `docs/proposals/skill-routing-simplification/design.md#二对比设计` Seam 1）。
+`AGENTS.md` 路由表与本文件的"主交付链"表只是**人类参考**：它们帮助用户理解 skill 之间的责任分工，但 agent 不自动读取它们做兜底。当 description 信号不足以让 agent 确定该选哪个 skill 时，agent 直接问用户，**不**退回路由表自行裁决——这是已关闭的 route 责任去处决策（见 `docs/proposals/skill-routing-simplification/design.md#二对比设计` Seam 1：`### Seam 1：route 责任去处`）。
 
 ### description 三段约束
 
@@ -35,11 +36,17 @@ FlowForge 不设中心 router。Agent 读取扁平的 skill `description` 列表
 
 触发短语必须是 dispatch 时就能判定的词。**禁用** skill 正文内部的方法论术语作为触发短语——"genuine DAG edges"、"deepening opportunities"、"requirement-changing unknowns" 都不可作为 dispatch 词汇：这些是正文术语，agent 在 dispatch 时无法评估，反而会破坏自选的确定性。
 
-`description` 仍是单一字段；本约定是内容约定，不改 front-matter schema（仍只有 `name` + `description`）。skill 作者指南见 `assets/skills/flowforge-writing-for-agents/SKILL-MECHANICS.md`。
+`description` 是 dispatch 的主要字段；本约定是内容约定，不改 dispatch 语义。front-matter 除 `name` + `description` 外还允许可选的宿主级键：`disable-model-invocation: true`（实例：`assets/skills/flowforge-refine-ticket/SKILL.md`）与 `argument-hint`（实例：`flowforge-handoff`、`flowforge-teach`）。这些键属宿主元数据，不参与 description 自选。skill 作者指南见 `assets/skills/flowforge-writing-for-agents/SKILL-MECHANICS.md`。
 
 ## 支持与特殊路径
 
 - `flowforge-codebase-design`：为 Solution Design 提供 deep module、责任、接口和 seam 分析。
+- `flowforge-setup`：把当前仓库配置为可运行 FlowForge 工程 skill 的宿主环境。
+- `flowforge-refine-ticket`：用经核实仓库证据填满单张候选 ticket 的机器执行契约（`disable-model-invocation`，由 Plan 发布骨架后按需调用）。
+- `flowforge-grill-me`：用不留情面的访谈打磨一份 plan 或 design。
+- `flowforge-grilling`：对 plan、决策或想法做持续的 relentless 追问。
+- `flowforge-to-questionnaire`：把无法当场回答的决策转成 questionnaire 文档。
+- `flowforge-wait-what`：打断并重讲——上一条消息没有落地时重新表述。
 - `flowforge-domain-modeling`：维护 `<docs_dir>/CONTEXT.md` 词汇和少量 ADR。
 - `flowforge-research`：针对一个缺失的一手资料事实进行调查并留下 Markdown 结果。
 - `flowforge-prototype`：用一次性可运行探针回答一个设计问题。
@@ -52,16 +59,31 @@ FlowForge 不设中心 router。Agent 读取扁平的 skill `description` 列表
 
 ## Subagent 委派与协作
 
-在支持委派的宿主环境（Claude Code Subagents、OpenCode Agent Tool / `@mention`、Codex 子会话）中，主会话依据 `flowforge frontier` 的就绪状态与 AGENTS.md 路由表，将工作分配给对应的 Subagent：
+内置名册共 12 个角色：8 个流程角色（有工作流位置，绑定 `flowforge-*` skill）+ 4 个通用能力角色（无工作流位置，按能力被任一会话按需派发）。在支持委派的宿主环境（Claude Code Subagents、OpenCode Agent Tool / `@mention`、Codex 子会话、PI）中，主会话依据 `flowforge frontier` 的就绪状态与 AGENTS.md 路由表，将工作分配给对应的 Subagent。
+
+流程角色（8）：
 
 | 角色 | 绑定 Skill | 职责 | 权限 |
 |---|---|---|---|
-| `flowforge-analyst` | `flowforge-align` | 需求澄清、范围界定、用例、约束与术语 | 只读代码，读写 requirements.md |
-| `flowforge-architect` | `flowforge-solution-design` | 模块职责、接口/seam、跨模块信息流与验证策略 | 只读代码，写 design.md/ADR |
-| `flowforge-planner` | `flowforge-plan` | Ticket 拆分、DAG 阻塞边、frontier 验证 | 读写 ticket 文件与配置 |
-| `flowforge-implementer` | `flowforge-implement` | 基于 pre-agreed seam 进行 TDD 实现与轻量自检 | 读写受限于 ticket 声明的 Write set |
-| `flowforge-reviewer` | `flowforge-review` | 针对 Standards 与 Spec 双轴进行代码审查 | **只读** |
-| `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` | 假设驱动的 bug 诊断与事实调研 | 只读，外部访问需显式授权 |
+| `flowforge-analyst` | `flowforge-align` | 需求澄清、范围界定、用例、约束与术语 | `requirement-authority`：只读代码，读写 requirements.md |
+| `flowforge-architect` | `flowforge-solution-design` | 模块职责、接口/seam、跨模块信息流与验证策略 | `design-authority`：只读代码，写 design.md/ADR |
+| `flowforge-planner` | `flowforge-plan` | Ticket 拆分、DAG 阻塞边、frontier 验证 | `ticket-authority`：读写 ticket 文件与配置 |
+| `flowforge-implementer` | `flowforge-implement` | 基于 pre-agreed seam 进行 TDD 实现与轻量自检 | `ticket-write-set`：读写受限于 ticket 声明的 Write set |
+| `flowforge-frontend-implementer` | `flowforge-frontend-implement` | 前端/UI ticket 交付：设计系统上下文 + 强制截图自审循环；后端专属 ticket 仍走 `flowforge-implementer` | `ticket-write-set`：读写受限于 ticket 声明的 Write set |
+| `flowforge-reviewer` | `flowforge-review` | 针对 Standards 与 Spec 双轴进行代码审查 | `read-only`：**只读** |
+| `flowforge-frontend-reviewer` | `flowforge-review` | 前端变更集的 Spec + 视觉双轴审查：逐条比对截图与票面转写条款；纯文本代码审查仍走 `flowforge-reviewer` | `review-read-only`：**只读** |
+| `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` | 假设驱动的 bug 诊断与事实调研 | `read-only`：只读，外部访问需显式授权 |
+
+通用能力角色（4）：
+
+| 角色 | 绑定 Skill | 职责 | 权限 |
+|---|---|---|---|
+| `flowforge-batch-analyst` | `flowforge-research` | 可并行分析单元的批量抽取、比对与摘要；产出带引用的工作台文档，不做决策、不做跨组综合 | `workspace-write` |
+| `flowforge-scribe` | `flowforge-writing-for-agents` | 依据给定材料做模板化写作与结构化文档回填；只处理格式与给定内容，不引入新语义 | `workspace-write` |
+| `flowforge-executor` | `flowforge-implement` | 机械执行既有命令与生成器批次并逐字回报输出；不做新工具开发、不改代码 | `workspace-write` |
+| `flowforge-reviewer-lite` | `flowforge-review` | 仅 Standards 轴审查：构建/测试可过、约定、lint、preset 测试在场；产出带引用的 findings 交 `flowforge-reviewer` 裁决 | `read-only` |
+
+**PI 委派路径**：PI 核心不含子代理，需先安装 pi-subagents 扩展（`pi install npm:pi-subagents`），PI 才会发现 `.pi/agents/` 下的原生 agent 文件；会话内先调 `subagents_enable` 再 `subagent({action:"list",capabilities:true})` 查看角色。`flowforge agents deploy` 在 `agents.hosts` 含 `pi` 时写入 `.pi/agents/<name>.md`（子代理定义）与 `.pi/extensions/flowforge.ts`（项目级扩展：test-file 写拦截、注册 `flowforge_frontier`/`flowforge_check` 原生工具、raw-script 委派 model guard）。`flowforge frontier --pi-workflow` 可渲染 PI 原生批次工作流。
 
 Subagent 之间不直接相互调用，统一回传五段式结果契约（含 `STATUS`、Summary、Changed Artifacts、Verification、Findings、Next Action）由主会话进行下一步路由。
 
