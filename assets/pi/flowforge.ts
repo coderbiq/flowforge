@@ -15,6 +15,13 @@
  *    path globs reliably).
  * 2. Native LLM tools `flowforge_frontier` / `flowforge_check` wrapping the
  *    FlowForge CLI (PATH first, then <project>/bin/flowforge).
+ * 3. Raw-script delegation model guard: blocks `subagent` dispatches made
+ *    through `workflowScript`/`workflowScriptPath` without an explicit
+ *    `model` — such runs silently inherit the orchestrating session's
+ *    model and bypass the per-role model pins deployed by `flowforge
+ *    agents deploy`. Escape valves: dispatch a named `agent:` (model pin
+ *    applies), pass `model` explicitly (subagent level and on each
+ *    `runs.run()`), or set `agents.disable_raw_script_model_guard: true`.
  */
 
 import { execFile } from "node:child_process";
@@ -38,6 +45,7 @@ interface FlowForgeProjectConfig {
 	docsDir: string;
 	testFileGlobs: string[];
 	disableTestGuard: boolean;
+	disableRawScriptModelGuard: boolean;
 }
 
 /**
@@ -48,7 +56,7 @@ interface FlowForgeProjectConfig {
  * defaults without error.
  */
 export function readFlowForgeConfig(configPath: string): FlowForgeProjectConfig {
-	const result: FlowForgeProjectConfig = { docsDir: "docs", testFileGlobs: [], disableTestGuard: false };
+	const result: FlowForgeProjectConfig = { docsDir: "docs", testFileGlobs: [], disableTestGuard: false, disableRawScriptModelGuard: false };
 	let text: string;
 	try {
 		text = readFileSync(configPath, "utf8");
@@ -87,6 +95,9 @@ export function readFlowForgeConfig(configPath: string): FlowForgeProjectConfig 
 			lastKeyIndent = indent;
 			if (kv[1] === "disable_test_guard") {
 				result.disableTestGuard = kv[2].trim() === "true";
+			}
+			if (kv[1] === "disable_raw_script_model_guard") {
+				result.disableRawScriptModelGuard = kv[2].trim() === "true";
 			}
 			if (kv[1] === "test_file_globs") {
 				const inline = /^\[(.*)\]$/.exec(kv[2].trim());
@@ -218,6 +229,22 @@ export default function flowforgeExtension(pi: ExtensionAPI): void {
 			return {
 				block: true,
 				reason: `protected test file (matched ${matched}, source: ${globSource}): preset acceptance tests are authored by Plan; if the task requires editing it, report STATUS: BLOCKED instead`,
+			};
+		});
+	}
+
+	if (!config.disableRawScriptModelGuard) {
+		pi.on("tool_call", (event: { toolName?: string; input?: Record<string, unknown> }) => {
+			if (event.toolName !== "subagent") return;
+			const input = event.input ?? {};
+			const rawScript = typeof input.workflowScript === "string" || typeof input.workflowScriptPath === "string";
+			if (!rawScript) return; // named agent / workflow / management calls are not intercepted
+			const model = typeof input.model === "string" ? input.model.trim() : "";
+			if (model) return; // explicit model override is honored
+			return {
+				block: true,
+				reason:
+					"raw-script delegation without an explicit model inherits the orchestrating session's model and bypasses the flowforge per-role model pins. Fix one of: (a) prefer a named agent dispatch (agent: 'flowforge-<role>') which carries its pinned model; (b) pass model explicitly on this call AND on each runs.run() inside the script. Disable with agents.disable_raw_script_model_guard: true in .flowforge/config.yaml.",
 			};
 		});
 	}
