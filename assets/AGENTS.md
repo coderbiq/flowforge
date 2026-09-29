@@ -29,6 +29,7 @@ owns the next step, consult the process table below (`## Subagent delegation`).
 | Batch extract + compare + summarize, split in parallel by group | `flowforge-batch-analyst` | flash pinnable |
 | Write or backfill a structured document from a given template | `flowforge-scribe` | flash pinnable |
 | Mechanically execute a batch of existing commands or tools | `flowforge-executor` | tool-capable |
+| Frontend/UI ticket delivery with screenshot self-review loop (needs vision-capable model) | `flowforge-frontend-implementer` | tool-capable + vision pin |
 | Standards-axis findings (build/test/convention conformance, cited) | `flowforge-reviewer-lite` | flash pinnable |
 | Decision-material brief (research output contract) | `flowforge-investigator` (brief form; contract in `flowforge-research`) | flash pinnable |
 
@@ -97,6 +98,7 @@ return to this session and re-delegate based on each subagent's `Next Action`.
 | Requirement settled; responsibility, interface, seam, or verification strategy unsettled | `flowforge-architect` | `flowforge-solution-design` |
 | Requirement and design settled; needs ticket slicing with DAG edges | `flowforge-planner` | `flowforge-plan` |
 | An executable frontier ticket exists | `flowforge-implementer` | `flowforge-implement` |
+| An executable frontend/UI ticket exists (JSX, styles, layout, component layer) | `flowforge-frontend-implementer` | `flowforge-frontend-implement` |
 | Any code review, implementation audit, or completed-work review | `flowforge-reviewer` | `flowforge-review` |
 | A bounded research/diagnosis question blocks a decision | `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` |
 
