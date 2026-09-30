@@ -72,6 +72,7 @@ func deployManagedAssets(targetDir string, docsRoot string) error {
 // single-file entry. The config entry stays single-file on purpose: the
 // rest of .flowforge/ (e.g. subagents/ custom sources) stays committable.
 var managedDeployArtifactEntries = []string{
+	".flowforge/agent-model-state.json",
 	".claude/agents/",
 	".opencode/agent/",
 	".codex/agents/",

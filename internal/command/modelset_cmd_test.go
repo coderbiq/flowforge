@@ -1,8 +1,10 @@
 package command
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"flowforge/internal/config"
@@ -180,5 +182,202 @@ func TestModelSetUseDefaultIsIdempotent(t *testing.T) {
 	}
 	if name, _ := config.ReadActiveModelSet(projectRoot); name != "" {
 		t.Fatalf("default must keep pointer empty, got %q", name)
+	}
+}
+
+func TestModelSetIndependentSourcesAndActiveStatus(t *testing.T) {
+	root := t.TempDir()
+	if err := initializeTestProject(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+	cfg := loadReasoningConfig(t, root, `agents:
+  hosts: [codex,pi,opencode]
+  models_by_name:
+    flowforge-investigator: {model: provider/shared, reasoning_effort: high}
+    flowforge-reviewer: {model: provider/reviewer, reasoning_effort: medium}
+  models_by_host:
+    codex:
+      flowforge-investigator: gpt-base
+  model_sets:
+    quick:
+      models_by_host:
+        codex:
+          flowforge-investigator: gpt-quick
+      models_by_name:
+        flowforge-reviewer: {reasoning_effort: low}
+`)
+	if err := runModelSetUse(t, "quick"); err != nil {
+		t.Fatal(err)
+	}
+	status, err := computeSubagentStatus(root, cfg)
+	if err != nil || !status.Current {
+		t.Fatalf("active-set status: %#v %v", status, err)
+	}
+	var out bytes.Buffer
+	cmd := newModelSetShowCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs(nil)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	var codexLine, piLine, reviewerLine string
+	for _, line := range strings.Split(out.String(), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 6 {
+			continue
+		}
+		if fields[0] == "codex" && fields[1] == "flowforge-investigator" {
+			codexLine = line
+		}
+		if fields[0] == "pi" && fields[1] == "flowforge-investigator" {
+			piLine = line
+		}
+		if fields[0] == "codex" && fields[1] == "flowforge-reviewer" {
+			reviewerLine = line
+		}
+	}
+	for _, want := range []string{"gpt-quick", "set:agents.model_sets.quick.models_by_host.codex.flowforge-investigator.model", "high", "base:agents.models_by_name.flowforge-investigator.reasoning_effort"} {
+		if !strings.Contains(codexLine, want) {
+			t.Fatalf("codex independent source %s missing: %s", want, codexLine)
+		}
+	}
+	for _, want := range []string{"provider/shared", "base:agents.models_by_name.flowforge-investigator.model", "high"} {
+		if !strings.Contains(piLine, want) {
+			t.Fatalf("pi unified source %s missing: %s", want, piLine)
+		}
+	}
+	for _, want := range []string{"provider/reviewer", "base:agents.models_by_name.flowforge-reviewer.model", "low", "set:agents.model_sets.quick.models_by_name.flowforge-reviewer.reasoning_effort"} {
+		if !strings.Contains(reviewerLine, want) {
+			t.Fatalf("reviewer effort-only set %s missing: %s", want, reviewerLine)
+		}
+	}
+	if err := runModelSetUse(t, "default"); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(filepath.Join(root, ".codex/agents/flowforge-investigator.toml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), `model = "gpt-base"`) {
+		t.Fatalf("default did not restore base: %s", body)
+	}
+	body, err = os.ReadFile(filepath.Join(root, ".pi/agents/flowforge-reviewer.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), "thinking: medium") || !strings.Contains(string(body), "model: provider/reviewer") {
+		t.Fatalf("default did not restore base effort/model: %s", body)
+	}
+}
+func TestModelSetRollbackKeepsArtifactsOnPreparationFailure(t *testing.T) {
+	for _, failure := range []string{"config", "pin"} {
+		t.Run(failure, func(t *testing.T) {
+			root := t.TempDir()
+			if err := initializeTestProject(root); err != nil {
+				t.Fatal(err)
+			}
+			t.Chdir(root)
+			cfg := loadReasoningConfig(t, root, `agents:
+  hosts: [codex]
+  models_by_name:
+    flowforge-investigator: {model: gpt-base, reasoning_effort: high}
+  model_sets:
+    previous:
+      models_by_name:
+        flowforge-investigator: gpt-previous
+    next:
+      models_by_name:
+        flowforge-investigator: {model: gpt-next, reasoning_effort: low}
+`)
+			if err := runModelSetUse(t, "previous"); err != nil {
+				t.Fatal(err)
+			}
+			if failure == "config" {
+				cfg.Agents.ModelSets["next"] = config.ModelSetConfig{ModelOverrides: map[string]config.ModelValue{"flowforge-investigator": {Model: "bad token"}}}
+				if err := cfg.Save(root); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				path := filepath.Join(root, ".codex/agents/flowforge-scribe.toml")
+				if err := os.WriteFile(path, []byte("model = [\n"), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before := snapshotAgentArtifacts(t, root)
+			if err := runModelSetUse(t, "next"); err == nil {
+				t.Fatal("failed preparation must reject switch")
+			}
+			if name, err := config.ReadActiveModelSet(root); err != nil || name != "previous" {
+				t.Fatalf("pointer not restored: %s %v", name, err)
+			}
+			assertArtifactsEqual(t, before, snapshotAgentArtifacts(t, root))
+		})
+	}
+}
+func TestUndeclaredSetDiagnosticParityAndShowDoesNotReadPins(t *testing.T) {
+	root := t.TempDir()
+	if err := initializeTestProject(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+	cfg := loadReasoningConfig(t, root, "agents:\n  hosts: [codex]\n")
+	if _, err := deploySubagents(root, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(root, ".codex/agents/flowforge-investigator.toml")
+	if err := os.WriteFile(path, []byte("model = \"local-only\"\nmodel_reasoning_effort = \"ultra\"\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	cmd := newModelSetShowCmd()
+	cmd.SetOut(&out)
+	cmd.SetArgs([]string{"default"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out.String(), "local-only") || strings.Contains(out.String(), "ultra") {
+		t.Fatal("show mislabeled local pin as config")
+	}
+	if err := config.WriteActiveModelSet(root, "missing"); err != nil {
+		t.Fatal(err)
+	}
+	before := snapshotAgentArtifacts(t, root)
+	_, depErr := deploySubagents(root, cfg, "")
+	_, statusErr := computeSubagentStatus(root, cfg)
+	if depErr == nil || statusErr == nil || depErr.Error() != statusErr.Error() {
+		t.Fatalf("undeclared active set parity: %v / %v", depErr, statusErr)
+	}
+	assertArtifactsEqual(t, before, snapshotAgentArtifacts(t, root))
+}
+
+func TestModelSetRestoresUnconfiguredDefaults(t *testing.T) {
+	root := t.TempDir()
+	if err := initializeTestProject(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(root)
+	cfg := loadReasoningConfig(t, root, `agents:
+  hosts: [codex]
+  model_sets:
+    quick:
+      models_by_name:
+        flowforge-reviewer: {reasoning_effort: low}
+`)
+	if _, err := deploySubagents(root, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(root, ".codex/agents/flowforge-reviewer.toml")
+	for _, step := range []struct{ set, want string }{{"quick", "low"}, {"default", "high"}} {
+		if err := runModelSetUse(t, step.set); err != nil {
+			t.Fatal(err)
+		}
+		value, err := readLocalModelFields(path, "codex")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if value.ReasoningEffort != step.want {
+			t.Fatalf("%s effort = %q, want %q", step.set, value.ReasoningEffort, step.want)
+		}
 	}
 }

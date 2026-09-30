@@ -461,3 +461,70 @@ func TestCompilePiFields(t *testing.T) {
 		}
 	}
 }
+
+func TestCompileNativeReasoningOptions(t *testing.T) {
+	def := &Definition{Name: "example", ModelProfile: ModelProfileToolCapable, Body: "prompt", DefaultSkill: "flowforge-implement"}
+	for _, tc := range []struct {
+		name, field string
+		compile     func(*Definition, CompileOptions) ([]byte, error)
+	}{
+		{"codex", "model_reasoning_effort", CompileCodexWithOptions},
+		{"claude", "effort", CompileClaudeCodeWithOptions},
+		{"opencode", "reasoningEffort", CompileOpenCodeWithOptions},
+		{"pi", "thinking", CompilePiWithOptions},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data, err := tc.compile(def, CompileOptions{Model: "provider/model", ReasoningEffort: "low", EffortConfigured: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(data), tc.field) || !strings.Contains(string(data), "low") || !strings.Contains(string(data), "provider/model") {
+				t.Fatalf("missing native fields: %s", data)
+			}
+			data, err = tc.compile(def, CompileOptions{EffortConfigured: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(data), tc.field) {
+				t.Fatalf("inherit must omit effort: %s", data)
+			}
+		})
+	}
+}
+
+// Literal outputs captured from pre-change HEAD 9887d30 using the original
+// compilers, covering both capability profiles and permission modes.
+func TestDefaultCompilationFrozenBeforeModelReasoning(t *testing.T) {
+	for _, tc := range []struct{ host, profile, permission, expected string }{
+		{"codex", "high-capability", "read-only", "name = \"fixture-agent\"\ndescription = \"Frozen fixture\"\nsandbox_mode = \"read-only\"\nmodel_reasoning_effort = \"high\"\ndeveloper_instructions = \"\"\"\n## Default Skill\nRead and follow `.agents/skills/flowforge-implement/SKILL.md` completely before taking any other action.\n\"\"\"\n"},
+		{"claude", "high-capability", "read-only", "---\nname: fixture-agent\ndescription: Frozen fixture\nmodel: opus\nskills:\n    - flowforge-implement\n---\n## Default Skill\nAlways invoke the Skill tool with `flowforge-implement`.\n\n\n_Note: If the skill is not preloaded, explicitly invoke the Skill tool with `flowforge-implement` before proceeding._\n"},
+		{"opencode", "high-capability", "read-only", "---\ndescription: Frozen fixture\nmode: subagent\n---\n## Default Skill\nAlways invoke the Skill tool with `flowforge-implement`.\n"},
+		{"pi", "high-capability", "read-only", "---\nname: fixture-agent\ndescription: Frozen fixture\nthinking: high\ntools:\n    - read\n    - grep\n    - find\n    - ls\nskills:\n    - flowforge-implement\ninheritSkills: false\n---\n## Default Skill\nAlways invoke the Skill tool with `flowforge-implement`.\n"},
+		{"codex", "tool-capable", "workspace-write", "name = \"fixture-agent\"\ndescription = \"Frozen fixture\"\nsandbox_mode = \"workspace-write\"\nmodel_reasoning_effort = \"medium\"\ndeveloper_instructions = \"\"\"\n## Default Skill\nRead and follow `.agents/skills/flowforge-implement/SKILL.md` completely before taking any other action.\n\"\"\"\n"},
+		{"claude", "tool-capable", "workspace-write", "---\nname: fixture-agent\ndescription: Frozen fixture\nmodel: sonnet\nskills:\n    - flowforge-implement\n---\n## Default Skill\nAlways invoke the Skill tool with `flowforge-implement`.\n\n\n_Note: If the skill is not preloaded, explicitly invoke the Skill tool with `flowforge-implement` before proceeding._\n"},
+		{"opencode", "tool-capable", "workspace-write", "---\ndescription: Frozen fixture\nmode: subagent\n---\n## Default Skill\nAlways invoke the Skill tool with `flowforge-implement`.\n"},
+		{"pi", "tool-capable", "workspace-write", "---\nname: fixture-agent\ndescription: Frozen fixture\nthinking: medium\nskills:\n    - flowforge-implement\ninheritSkills: false\n---\n## Default Skill\nAlways invoke the Skill tool with `flowforge-implement`.\n"},
+	} {
+		t.Run(tc.host+tc.profile, func(t *testing.T) {
+			def := &Definition{Name: "fixture-agent", Description: "Frozen fixture", ModelProfile: ModelProfile(tc.profile), Permission: tc.permission, DefaultSkill: "flowforge-implement", Body: "## Default Skill\nAlways invoke the Skill tool with `flowforge-implement`.\n"}
+			var got []byte
+			var err error
+			switch tc.host {
+			case "codex":
+				got, err = CompileCodex(def)
+			case "claude":
+				got, err = CompileClaudeCode(def)
+			case "opencode":
+				got, err = CompileOpenCode(def)
+			case "pi":
+				got, err = CompilePi(def)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != tc.expected {
+				t.Fatalf("default bytes changed: %s\nwant: %s", got, tc.expected)
+			}
+		})
+	}
+}

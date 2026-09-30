@@ -13,9 +13,9 @@ import (
 // (agents.models / models_by_name / models_by_host). Only the keys present
 // here override the base; everything else is inherited from the base.
 type ModelSetConfig struct {
-	Models             map[string]string            `yaml:"models,omitempty" mapstructure:"models"`
-	ModelOverrides     map[string]string            `yaml:"models_by_name,omitempty" mapstructure:"models_by_name"`
-	ModelHostOverrides map[string]map[string]string `yaml:"models_by_host,omitempty" mapstructure:"models_by_host"`
+	Models             map[string]ModelValue            `yaml:"models,omitempty" mapstructure:"models"`
+	ModelOverrides     map[string]ModelValue            `yaml:"models_by_name,omitempty" mapstructure:"models_by_name"`
+	ModelHostOverrides map[string]map[string]ModelValue `yaml:"models_by_host,omitempty" mapstructure:"models_by_host"`
 }
 
 // activeModelSetFile holds the per-machine active model-set pointer inside
@@ -79,10 +79,19 @@ func ModelSetNames(cfg *AgentsConfig) []string {
 }
 
 // mergeSS overlays set over base (string→string maps).
-func mergeSS(base, set map[string]string) map[string]string {
-	merged := make(map[string]string, len(base)+len(set))
+func mergeSS(base, set map[string]ModelValue) map[string]ModelValue {
+	merged := make(map[string]ModelValue, len(base)+len(set))
 	maps.Copy(merged, base)
-	maps.Copy(merged, set)
+	for key, value := range set {
+		old := merged[key]
+		if value.Model != "" {
+			old.Model = value.Model
+		}
+		if value.ReasoningEffort != "" {
+			old.ReasoningEffort = value.ReasoningEffort
+		}
+		merged[key] = old
+	}
 	return merged
 }
 
@@ -94,7 +103,7 @@ func ApplyModelSet(base *AgentsConfig, set ModelSetConfig) AgentsConfig {
 	merged := *base
 	merged.Models = mergeSS(base.Models, set.Models)
 	merged.ModelOverrides = mergeSS(base.ModelOverrides, set.ModelOverrides)
-	hosts := make(map[string]map[string]string, len(base.ModelHostOverrides)+len(set.ModelHostOverrides))
+	hosts := make(map[string]map[string]ModelValue, len(base.ModelHostOverrides)+len(set.ModelHostOverrides))
 	for host, inner := range base.ModelHostOverrides {
 		hosts[host] = mergeSS(inner, nil)
 	}

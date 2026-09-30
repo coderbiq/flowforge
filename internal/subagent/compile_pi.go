@@ -31,7 +31,7 @@ func CompilePiWithOptions(def *Definition, opts CompileOptions) ([]byte, error) 
 		Name          string   `yaml:"name"`
 		Description   string   `yaml:"description"`
 		Model         string   `yaml:"model,omitempty"`
-		Thinking      string   `yaml:"thinking"`
+		Thinking      string   `yaml:"thinking,omitempty"`
 		Tools         []string `yaml:"tools,omitempty"`
 		Skills        []string `yaml:"skills"`
 		InheritSkills bool     `yaml:"inheritSkills"`
@@ -41,7 +41,7 @@ func CompilePiWithOptions(def *Definition, opts CompileOptions) ([]byte, error) 
 		Name:          def.Name,
 		Description:   def.Description,
 		Model:         resolveModel(opts),
-		Thinking:      def.ModelProfile.PiThinking(),
+		Thinking:      resolveEffort(opts, def.ModelProfile.PiThinking()),
 		Skills:        piSkills(def),
 		InheritSkills: false,
 	}

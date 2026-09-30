@@ -8,34 +8,34 @@ import (
 
 func TestApplyModelSetOverridesAllThreeLayers(t *testing.T) {
 	base := AgentsConfig{
-		Models:         map[string]string{"tool-capable": "cpa/flash-a"},
-		ModelOverrides: map[string]string{"flowforge-reviewer": "cpa/glm", "flowforge-planner": "cpa/glm"},
-		ModelHostOverrides: map[string]map[string]string{
-			"pi": {"flowforge-scribe": "cpa/flash-b"},
+		Models:         map[string]ModelValue{"tool-capable": ModelValue{Model: "cpa/flash-a"}},
+		ModelOverrides: map[string]ModelValue{"flowforge-reviewer": ModelValue{Model: "cpa/glm"}, "flowforge-planner": ModelValue{Model: "cpa/glm"}},
+		ModelHostOverrides: map[string]map[string]ModelValue{
+			"pi": {"flowforge-scribe": {Model: "cpa/flash-b"}},
 		},
 	}
 	set := ModelSetConfig{
-		ModelOverrides: map[string]string{"flowforge-reviewer": "cpa/mimo"},
-		ModelHostOverrides: map[string]map[string]string{
-			"pi": {"flowforge-scribe": "cpa/flash-c"},
+		ModelOverrides: map[string]ModelValue{"flowforge-reviewer": ModelValue{Model: "cpa/mimo"}},
+		ModelHostOverrides: map[string]map[string]ModelValue{
+			"pi": {"flowforge-scribe": {Model: "cpa/flash-c"}},
 		},
 	}
 
 	got := ApplyModelSet(&base, set)
 
-	if got.ModelOverrides["flowforge-reviewer"] != "cpa/mimo" {
+	if got.ModelOverrides["flowforge-reviewer"].Model != "cpa/mimo" {
 		t.Errorf("set should override models_by_name: got %q", got.ModelOverrides["flowforge-reviewer"])
 	}
-	if got.ModelOverrides["flowforge-planner"] != "cpa/glm" {
+	if got.ModelOverrides["flowforge-planner"].Model != "cpa/glm" {
 		t.Errorf("base keys must survive: got %q", got.ModelOverrides["flowforge-planner"])
 	}
-	if got.Models["tool-capable"] != "cpa/flash-a" {
+	if got.Models["tool-capable"].Model != "cpa/flash-a" {
 		t.Errorf("untouched base layer must survive: got %q", got.Models["tool-capable"])
 	}
-	if got.ModelHostOverrides["pi"]["flowforge-scribe"] != "cpa/flash-c" {
+	if got.ModelHostOverrides["pi"]["flowforge-scribe"].Model != "cpa/flash-c" {
 		t.Errorf("set should deep-override models_by_host: got %q", got.ModelHostOverrides["pi"]["flowforge-scribe"])
 	}
-	if base.ModelOverrides["flowforge-reviewer"] != "cpa/glm" {
+	if base.ModelOverrides["flowforge-reviewer"].Model != "cpa/glm" {
 		t.Errorf("ApplyModelSet must not mutate the base config")
 	}
 }
@@ -63,7 +63,7 @@ func TestActiveModelSetRoundTrip(t *testing.T) {
 func TestResolveModelSetByName(t *testing.T) {
 	cfg := &AgentsConfig{
 		ModelSets: map[string]ModelSetConfig{
-			"offpeak": {ModelOverrides: map[string]string{"flowforge-reviewer": "cpa/mimo"}},
+			"offpeak": {ModelOverrides: map[string]ModelValue{"flowforge-reviewer": ModelValue{Model: "cpa/mimo"}}},
 		},
 	}
 	if _, ok := ResolveModelSet(cfg, "offpeak"); !ok {
@@ -139,10 +139,32 @@ agents:
 	if !ok {
 		t.Fatal("model_sets.offpeak missing after load")
 	}
-	if set.ModelOverrides["flowforge-reviewer"] != "cpa/mimo-2.6-pro" {
+	if set.ModelOverrides["flowforge-reviewer"].Model != "cpa/mimo-2.6-pro" {
 		t.Fatalf("models_by_name in set: %+v", set)
 	}
-	if set.Models["tool-capable-read-only"] != "cpa/flash-x" {
+	if set.Models["tool-capable-read-only"].Model != "cpa/flash-x" {
 		t.Fatalf("models in set: %+v", set)
+	}
+}
+
+func TestApplyModelSetIndependentFieldsAndSparseHosts(t *testing.T) {
+	base := AgentsConfig{Models: map[string]ModelValue{"tool-capable": {Model: "provider/base", ReasoningEffort: "high"}}, ModelOverrides: map[string]ModelValue{"flowforge-reviewer": {Model: "provider/reviewer", ReasoningEffort: "medium"}}, ModelHostOverrides: map[string]map[string]ModelValue{"codex": {"flowforge-investigator": {Model: "gpt-base", ReasoningEffort: "high"}, "flowforge-reviewer": {Model: "gpt-review"}}}}
+	set := ModelSetConfig{Models: map[string]ModelValue{"tool-capable": {Model: "provider/new"}}, ModelOverrides: map[string]ModelValue{"flowforge-reviewer": {ReasoningEffort: "low"}}, ModelHostOverrides: map[string]map[string]ModelValue{"codex": {"flowforge-investigator": {ReasoningEffort: "inherit"}}}}
+	got := ApplyModelSet(&base, set)
+	if got.Models["tool-capable"] != (ModelValue{Model: "provider/new", ReasoningEffort: "high"}) {
+		t.Fatal(got.Models)
+	}
+	if got.ModelOverrides["flowforge-reviewer"] != (ModelValue{Model: "provider/reviewer", ReasoningEffort: "low"}) {
+		t.Fatal(got.ModelOverrides)
+	}
+	if got.ModelHostOverrides["codex"]["flowforge-investigator"] != (ModelValue{Model: "gpt-base", ReasoningEffort: "inherit"}) {
+		t.Fatal(got.ModelHostOverrides)
+	}
+	if got.ModelHostOverrides["codex"]["flowforge-reviewer"].Model != "gpt-review" || len(got.ModelHostOverrides) != 1 {
+		t.Fatal("sparse hosts lost")
+	}
+	got.ModelHostOverrides["codex"]["flowforge-reviewer"] = ModelValue{Model: "changed"}
+	if base.ModelHostOverrides["codex"]["flowforge-reviewer"].Model != "gpt-review" || base.Models["tool-capable"].Model != "provider/base" || set.ModelHostOverrides["codex"]["flowforge-investigator"].Model != "" {
+		t.Fatal("inputs mutated")
 	}
 }

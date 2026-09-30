@@ -71,7 +71,7 @@ flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
 - `flowforge agents status [--json]`：报告各 subagent 在各宿主目录中的状态（`current`、`missing`、`drifted`、`project-owned`）。
 - `flowforge assets verify [project] [--json]`：比较运行中二进制内嵌的 Skills 与 agent 规则和所选项目，不修改文件（细节见下文「Managed asset verification」）。
 - `flowforge config get <key>` / `flowforge config set <key> <value> [--dry-run]` / `flowforge config list`：读取、修改或列出配置；键名与取值范围见下文「配置键」，`--dry-run` 只预览不落盘。
-- `flowforge model-set list|show [name]|use <name>`：管理命名 agent 模型方案并切换。`list` 列出已声明方案并标出激活项；`show` 打印某方案的逐角色生效模型表（缺省为激活方案，`default` 显示基础层；`source` 列标注每个值来自哪一层，`agents.models_by_host` 覆盖列在表下）；`use <name>` 切换激活方案（也可用 `default` 回到基础层）并重新部署 subagent，切换是原子的——重新部署失败则激活指针回滚到原值并报错。方案在 `.flowforge/config.yaml` 的 `agents.model_sets` 下声明，激活指针存于 `.flowforge/model-set.active`，缺失即基础层。
+- `flowforge model-set list|show [name]|use <name>`：管理命名 agent 模型方案并切换。`list` 列出已声明方案并标出激活项；`show` 打印某方案的逐宿主/角色的生效 model、effort 表（缺省为激活方案，`default` 显示基础层；两个独立 source 列标注 base/set、层级和完整配置路径，不读取本地产物充当配置来源）；`use <name>` 切换激活方案（也可用 `default` 回到基础层）并重新部署 subagent，重新部署失败则激活指针回滚到原值并报错；配置校验、读取和编译失败发生在产物写入前，中途写入 I/O 失败仍可能留下部分更新的产物。方案在 `.flowforge/config.yaml` 的 `agents.model_sets` 下声明，激活指针存于 `.flowforge/model-set.active`，缺失即基础层。
 - `flowforge completion bash|fish|powershell|zsh`：为指定 shell 生成自动补全脚本。
 - `flowforge upgrade [--dry-run] [--version <v>]`：更新 CLI；`--dry-run` 只显示可用更新而不安装，`--version <v>` 升级到指定版本；已经是相同版本时仍同步当前项目的受管资产与 subagent，降级返回独立错误。
 - `flowforge version`：显示构建注入版本。
@@ -86,6 +86,29 @@ flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
 - `project.<id>.srcDirs`。
 
 仅由配置文件消费、`flowforge config` 不暴露的字段：`version`、`projects[]`（`id`、`srcDirs`）、`knowledge_sources`、`evidence.exempt_proposals`，以及 `agents.disabled`、`agents.hosts`、`agents.max_steps`、`agents.models`、`agents.models_by_name`、`agents.models_by_host`、`agents.model_sets`、`agents.test_file_globs`、`agents.disable_test_guard`。
+
+模型与推理强度配置依据[兼容配置设计 revision 3](proposals/subagent-model-reasoning/design.md#配置表达)。值兼容原字符串及 `{model: ..., reasoning_effort: ...}` 对象，两个字段均可独立声明；对象至少含一项，仅支持这两键，字段须为非空字符串。统一层 `models[profile]` / `models_by_name[name]` 可供多个宿主使用，`models_by_host` 是稀疏覆盖；只声明 Codex 即可，PI/OpenCode 无需重复配置：
+
+```yaml
+agents:
+  hosts: [codex, pi, opencode]
+  models_by_name:
+    flowforge-investigator: {model: cpa/deepseek-v4.1-flash, reasoning_effort: high}
+  models_by_host:
+    codex:
+      flowforge-investigator: gpt-6-luna
+  model_sets:
+    quick:
+      models_by_host:
+        codex:
+          flowforge-investigator: {reasoning_effort: low}
+```
+
+模型与 effort 分别按 `by_host[name] > by_host[profile] > by_name[name] > models[profile] > 本地保留值 > 宿主默认` 解析。方案只覆盖已声明字段：换 model 保留原 effort，effort-only 方案不改 model。`reasoning_effort: inherit` 终止查找，屏蔽低层、本地值和 profile 默认，省略原生字段并交宿主继承。
+
+原生字段为 Codex TOML `model` / `model_reasoning_effort`、Claude YAML `model` / `effort`、OpenCode YAML `model` / `reasoningEffort`、PI YAML `model` / `thinking`。Claude effort 接受 low/medium/high/xhigh/max；PI 接受 off/minimal/low/medium/high/xhigh/max；Codex/OpenCode 做 token 检查，provider/client/model 能力由宿主运行时校验。OpenCode/PI 的最终 model 仍须 `provider/model`，Claude/Codex 接受单 token。所有声明检查结构、键和 token，宿主规则只检查启用宿主、启用角色的最终使用字段，覆盖后的统一值不会被该宿主误拒绝。
+
+`agents deploy` 与 `agents status` 应用同一 active-set、按字段保留 YAML frontmatter/TOML 顶层的本地 model/effort；显式配置优先。无显式 effort 且无本地字段时，Codex/PI 保留 profile 的 high/medium 默认，Claude/OpenCode 省略字段。无配置无本地值的默认产物保持原字节。损坏或不可读的本地文件报路径且阻止写入。解析、原生字段、保留与切换边界见[独立解析与清除](proposals/subagent-model-reasoning/design.md#独立解析与清除)、[原生编译与校验](proposals/subagent-model-reasoning/design.md#原生编译与校验)及[部署与观察](proposals/subagent-model-reasoning/design.md#部署保留与可观察性)。
 
 已弃用且被忽略（仅告警）：`wiki.root` 与 `projects[].wikiRoot`；wiki 根只由 `docs_dir` 决定。
 
@@ -108,3 +131,13 @@ PI 宿主说明：
 `flowforge assets verify [project]` 比较运行中二进制内嵌的 Skills 与 agent rules 和所选项目，不修改任何文件。它把每个文件报告为 `current`、`missing`、`drifted` 或 `project-owned`；`--json` 为工具消费提供同样的事实。缺失或漂移的受管文件返回非零；`project-owned` 文件只作信息提示，验证永不覆盖它们。
 
 `flowforge init` 与 `flowforge upgrade` 显式同步受管资产，然后用同一比较判定同步是否成功。若仍有受管文件不一致，它们打印其路径并提示用户运行 `flowforge assets verify`。
+
+
+<a id="agent-model-state-restoration"></a>
+### 方案切换与部署字段恢复（2026-09-30）
+
+每机器内部快照 `.flowforge/agent-model-state.json` 按产物路径、model/effort 字段分别保存最后生成值和真实本地配置备份。实际字段等于最后生成值时继续使用备份；不同则捕获手改，包括字段删除。显式配置仍优先，临时方案退出或配置字段移除后恢复本地备份或目标 profile/default；`inherit` 暂时省略 effort，保留备份供退出后恢复。删除整文件清掉两字段备份。同值手改无法观察，继续视为生成值。
+
+旧项目缺少快照时按已有保留规则迁移，不猜测旧字段来源；首次成功部署建立快照。快照精确列入 managed gitignore，`.flowforge/subagents/` 仍可提交。坏快照、未知版本或本地字段解析失败带路径报错，deploy/status 共用准备判断，status 完全只读且不会创建快照。配置、读取、编译及快照序列化完成后才写产物。
+
+agent、PI extension 和宿主清理全部成功后，以同目录临时文件加 rename 原子提交快照。单角色部署保持其他记录；实际清理的宿主产物移除记录。最终提交失败保留旧快照、清理临时文件并报错，但产物可能已经更新；沿用非事务部署范围。`model-set use` 失败恢复激活指针，不承诺产物整体回滚。

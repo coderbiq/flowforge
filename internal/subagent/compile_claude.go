@@ -22,6 +22,7 @@ func CompileClaudeCodeWithOptions(def *Definition, opts CompileOptions) ([]byte,
 		Name        string   `yaml:"name"`
 		Description string   `yaml:"description"`
 		Model       string   `yaml:"model"`
+		Effort      string   `yaml:"effort,omitempty"`
 		Skills      []string `yaml:"skills"`
 	}
 
@@ -35,6 +36,7 @@ func CompileClaudeCodeWithOptions(def *Definition, opts CompileOptions) ([]byte,
 		Description: def.Description,
 		Model:       model,
 		Skills:      []string{def.DefaultSkill},
+		Effort:      resolveEffort(opts, ""),
 	}
 
 	fmBytes, err := yaml.Marshal(fm)

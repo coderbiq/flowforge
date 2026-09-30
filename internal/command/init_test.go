@@ -16,6 +16,7 @@ import (
 // single-file entry (the rest of .flowforge/ — e.g. subagents/ custom
 // sources — stays committable, so a bare `.flowforge/` entry is wrong).
 var wantManagedGitignoreEntries = []string{
+	".flowforge/agent-model-state.json",
 	".claude/agents/",
 	".opencode/agent/",
 	".codex/agents/",

@@ -15,11 +15,14 @@ import (
 // never pause for human input mid-session — STATUS: BLOCKED is the only
 // exit for ambiguity).
 type CompileOptions struct {
-	Model         string
-	FallbackModel string
-	EditDeny      []string
-	MaxSteps      *int
-	DenyQuestion  bool
+	ReasoningEffort  string
+	EffortConfigured bool
+	FallbackEffort   string
+	Model            string
+	FallbackModel    string
+	EditDeny         []string
+	MaxSteps         *int
+	DenyQuestion     bool
 }
 
 // resolveModel applies the model precedence: config-pinned Model first, then
@@ -29,6 +32,16 @@ func resolveModel(opts CompileOptions) string {
 		return opts.Model
 	}
 	return opts.FallbackModel
+}
+
+func resolveEffort(opts CompileOptions, fallback string) string {
+	if opts.EffortConfigured {
+		return opts.ReasoningEffort
+	}
+	if opts.FallbackEffort != "" {
+		return opts.FallbackEffort
+	}
+	return fallback
 }
 
 // CompileOpenCode generates an OpenCode native agent definition file with
@@ -42,18 +55,20 @@ func CompileOpenCode(def *Definition) ([]byte, error) {
 // file with explicit compile options applied.
 func CompileOpenCodeWithOptions(def *Definition, opts CompileOptions) ([]byte, error) {
 	type opencodeFrontmatter struct {
-		Description string                 `yaml:"description"`
-		Mode        string                 `yaml:"mode"`
-		Model       string                 `yaml:"model,omitempty"`
-		Steps       *int                   `yaml:"steps,omitempty"`
-		Permission  map[string]interface{} `yaml:"permission,omitempty"`
+		Description     string                 `yaml:"description"`
+		Mode            string                 `yaml:"mode"`
+		Model           string                 `yaml:"model,omitempty"`
+		ReasoningEffort string                 `yaml:"reasoningEffort,omitempty"`
+		Steps           *int                   `yaml:"steps,omitempty"`
+		Permission      map[string]interface{} `yaml:"permission,omitempty"`
 	}
 
 	fm := opencodeFrontmatter{
-		Description: def.Description,
-		Mode:        "subagent",
-		Model:       resolveModel(opts),
-		Steps:       opts.MaxSteps,
+		Description:     def.Description,
+		Mode:            "subagent",
+		Model:           resolveModel(opts),
+		Steps:           opts.MaxSteps,
+		ReasoningEffort: resolveEffort(opts, ""),
 	}
 	if len(opts.EditDeny) > 0 {
 		deny := make(map[string]string, len(opts.EditDeny))

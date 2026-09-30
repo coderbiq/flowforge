@@ -7,6 +7,10 @@ import (
 
 // CompileCodex generates a Codex native agent definition file in TOML format.
 func CompileCodex(def *Definition) ([]byte, error) {
+	return CompileCodexWithOptions(def, CompileOptions{})
+}
+
+func CompileCodexWithOptions(def *Definition, opts CompileOptions) ([]byte, error) {
 	sandboxMode := "workspace-write"
 	if def.Permission == "read-only" {
 		sandboxMode = "read-only"
@@ -17,7 +21,12 @@ func CompileCodex(def *Definition) ([]byte, error) {
 	sb.WriteString(fmt.Sprintf("name = %q\n", def.Name))
 	sb.WriteString(fmt.Sprintf("description = %q\n", def.Description))
 	sb.WriteString(fmt.Sprintf("sandbox_mode = %q\n", sandboxMode))
-	sb.WriteString(fmt.Sprintf("model_reasoning_effort = %q\n", def.ModelProfile.CodexReasoningEffort()))
+	if model := resolveModel(opts); model != "" {
+		sb.WriteString(fmt.Sprintf("model = %q\n", model))
+	}
+	if effort := resolveEffort(opts, def.ModelProfile.CodexReasoningEffort()); effort != "" {
+		sb.WriteString(fmt.Sprintf("model_reasoning_effort = %q\n", effort))
+	}
 	sb.WriteString("developer_instructions = \"\"\"\n")
 
 	// Replace "invoke the Skill tool" instruction with file read directive

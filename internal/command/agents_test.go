@@ -1146,7 +1146,7 @@ func TestOpenCodeModelPinning(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"opencode"}
-	cfg.Agents.Models = map[string]string{"tool-capable": "erasebg-gemini/gemini-3.8-flash-high"}
+	cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "erasebg-gemini/gemini-3.8-flash-high"}}
 	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -1369,7 +1369,7 @@ func TestAgentsModelsValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg.Agents.Models = map[string]string{"sonnet": "x"}
+	cfg.Agents.Models = map[string]config.ModelValue{"sonnet": config.ModelValue{Model: "x"}}
 	if _, err := deploySubagents(projectRoot, cfg, ""); err == nil {
 		t.Error("unknown agents.models key must fail")
 	}
@@ -1385,8 +1385,8 @@ func TestAgentsModelByNameOverridesProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"opencode"}
-	cfg.Agents.Models = map[string]string{"tool-capable": "profile-model/x"}
-	cfg.Agents.ModelOverrides = map[string]string{"flowforge-planner": "name-model/y"}
+	cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "profile-model/x"}}
+	cfg.Agents.ModelOverrides = map[string]config.ModelValue{"flowforge-planner": config.ModelValue{Model: "name-model/y"}}
 	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -1423,7 +1423,7 @@ func TestAgentsModelByNameUnknownErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"opencode"}
-	cfg.Agents.ModelOverrides = map[string]string{"no-such-agent": "m/x"}
+	cfg.Agents.ModelOverrides = map[string]config.ModelValue{"no-such-agent": config.ModelValue{Model: "m/x"}}
 	_, err = deploySubagents(projectRoot, cfg, "")
 	if err == nil {
 		t.Fatal("expected error for unknown models_by_name key, got nil")
@@ -1448,7 +1448,7 @@ func TestAgentsModelByNameUnknownErrors(t *testing.T) {
 }
 
 func TestAgentsProfileKeyOnlyUnchanged(t *testing.T) {
-	deployProfileOnly := func(t *testing.T, overrides map[string]string) string {
+	deployProfileOnly := func(t *testing.T, overrides map[string]config.ModelValue) string {
 		t.Helper()
 		root := t.TempDir()
 		if err := initializeTestProject(root); err != nil {
@@ -1459,7 +1459,7 @@ func TestAgentsProfileKeyOnlyUnchanged(t *testing.T) {
 			t.Fatal(err)
 		}
 		cfg.Agents.Hosts = []string{"opencode"}
-		cfg.Agents.Models = map[string]string{"tool-capable": "profile-model/x"}
+		cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "profile-model/x"}}
 		cfg.Agents.ModelOverrides = overrides
 		if _, err := deploySubagents(root, cfg, ""); err != nil {
 			t.Fatal(err)
@@ -1472,7 +1472,7 @@ func TestAgentsProfileKeyOnlyUnchanged(t *testing.T) {
 	}
 
 	nilOverrides := deployProfileOnly(t, nil)
-	emptyOverrides := deployProfileOnly(t, map[string]string{})
+	emptyOverrides := deployProfileOnly(t, map[string]config.ModelValue{})
 	if nilOverrides != emptyOverrides {
 		t.Error("empty models_by_name must behave like an absent one (no output change)")
 	}
@@ -1489,7 +1489,7 @@ func TestAgentsProfileKeyOnlyUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"opencode"}
-	cfg.Agents.Models = map[string]string{"tool-capable": "profile-model/x"}
+	cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "profile-model/x"}}
 	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -1524,7 +1524,7 @@ func TestStatusUsesSameCompileOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"opencode"}
-	cfg.Agents.Models = map[string]string{"tool-capable": "erasebg-gemini/gemini-3.8-flash-high"}
+	cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "erasebg-gemini/gemini-3.8-flash-high"}}
 	cfg.Agents.MaxSteps = 200
 	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
 		t.Fatal(err)
@@ -1695,7 +1695,7 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 			t.Fatal(err)
 		}
 		cfg.Agents.Hosts = []string{"pi"}
-		cfg.Agents.ModelHostOverrides = map[string]map[string]string{"pi": {"flowforge-implementer": "pinned-by-config/pi"}}
+		cfg.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"pi": {"flowforge-implementer": {Model: "pinned-by-config/pi"}}}
 		if _, err := deploySubagents(projectRoot, cfg, "flowforge-implementer"); err != nil {
 			t.Fatal(err)
 		}
@@ -1744,7 +1744,7 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 			t.Fatal(err)
 		}
 		cfg.Agents.Hosts = []string{"opencode"}
-		cfg.Agents.Models = map[string]string{"tool-capable": "pinned-by-config/y"}
+		cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "pinned-by-config/y"}}
 		if _, err := deploySubagents(projectRoot, cfg, "flowforge-implementer"); err != nil {
 			t.Fatal(err)
 		}
@@ -1805,7 +1805,7 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 			t.Fatal(err)
 		}
 		cfg.Agents.Hosts = []string{"claude"}
-		cfg.Agents.Models = map[string]string{"tool-capable": "pinned-claude/y"}
+		cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "pinned-claude/y"}}
 		if _, err := deploySubagents(projectRoot, cfg, "flowforge-implementer"); err != nil {
 			t.Fatal(err)
 		}
@@ -1994,7 +1994,7 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 		}
 	})
 
-	t.Run("codex redeploy stays byte-identical", func(t *testing.T) {
+	t.Run("codex redeploy preserves local top-level model", func(t *testing.T) {
 		root1 := t.TempDir()
 		if err := initializeTestProject(root1); err != nil {
 			t.Fatal(err)
@@ -2020,8 +2020,8 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 		if deployErr != nil {
 			t.Fatal(deployErr)
 		}
-		if strings.Contains(stderr, ".codex/") && strings.Contains(stderr, "preserved local model") {
-			t.Errorf("codex host has no model concept, unexpected hint: %q", stderr)
+		if !strings.Contains(stderr, ".codex/") || !strings.Contains(stderr, "preserved local model") {
+			t.Errorf("codex local model needs preservation hint: %q", stderr)
 		}
 
 		root2 := t.TempDir()
@@ -2043,8 +2043,8 @@ func TestDeployPreservesLocalModel(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if string(redeployed) != string(fresh) {
-			t.Errorf("codex redeploy output must be byte-identical to a fresh deploy\n got: %q\nwant: %q", redeployed, fresh)
+		if strings.Replace(string(redeployed), "model = \"hacked\"\n", "", 1) != string(fresh) {
+			t.Errorf("codex redeploy must preserve top-level model and reproduce body\n got: %q\nwant: %q", redeployed, fresh)
 		}
 	})
 
@@ -2146,8 +2146,8 @@ func TestAgentsDeployPiModelInjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"pi"}
-	cfg.Agents.ModelHostOverrides = map[string]map[string]string{
-		"pi": {"flowforge-investigator": "cpa/deepseek-v4.1-flash"},
+	cfg.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{
+		"pi": {"flowforge-investigator": {Model: "cpa/deepseek-v4.1-flash"}},
 	}
 	if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
 		t.Fatal(err)
@@ -2246,7 +2246,7 @@ func TestAgentStatusTreatsPreservedModelAsCurrent(t *testing.T) {
 			t.Fatal(err)
 		}
 		cfg.Agents.Hosts = []string{"opencode"}
-		cfg.Agents.Models = map[string]string{"tool-capable": "pinned-by-config/y"}
+		cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "pinned-by-config/y"}}
 		if _, err := deploySubagents(projectRoot, cfg, ""); err != nil {
 			t.Fatal(err)
 		}
@@ -2509,20 +2509,20 @@ func TestResolveModelPrecedence(t *testing.T) {
 			}
 			cfg.Agents.Hosts = []string{"opencode"}
 			if row.hostName != "" || row.hostProfile != "" {
-				inner := map[string]string{}
+				inner := map[string]config.ModelValue{}
 				if row.hostName != "" {
-					inner["flowforge-implementer"] = row.hostName
+					inner["flowforge-implementer"] = config.ModelValue{Model: row.hostName}
 				}
 				if row.hostProfile != "" {
-					inner["tool-capable"] = row.hostProfile
+					inner["tool-capable"] = config.ModelValue{Model: row.hostProfile}
 				}
-				cfg.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": inner}
+				cfg.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": inner}
 			}
 			if row.globalName != "" {
-				cfg.Agents.ModelOverrides = map[string]string{"flowforge-implementer": row.globalName}
+				cfg.Agents.ModelOverrides = map[string]config.ModelValue{"flowforge-implementer": config.ModelValue{Model: row.globalName}}
 			}
 			if row.globalProfile != "" {
-				cfg.Agents.Models = map[string]string{"tool-capable": row.globalProfile}
+				cfg.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: row.globalProfile}}
 			}
 			if row.localModel != "" {
 				writeLocalModelFile(t, implPath(root), row.localModel)
@@ -2549,9 +2549,9 @@ func TestModelsByHostPerHostIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"opencode", "claude"}
-	cfg.Agents.ModelHostOverrides = map[string]map[string]string{
-		"opencode": {"flowforge-implementer": "prov/opencode-model"},
-		"claude":   {"flowforge-implementer": "claude-pinned"},
+	cfg.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{
+		"opencode": {"flowforge-implementer": {Model: "prov/opencode-model"}},
+		"claude":   {"flowforge-implementer": {Model: "claude-pinned"}},
 	}
 	if _, err := deploySubagents(root, cfg, ""); err != nil {
 		t.Fatal(err)
@@ -2574,8 +2574,8 @@ func TestModelsByHostPerHostIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg2.Agents.Hosts = []string{"claude"}
-	cfg2.Agents.ModelHostOverrides = map[string]map[string]string{
-		"claude": {"tool-capable": "haiku"},
+	cfg2.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{
+		"claude": {"tool-capable": {Model: "haiku"}},
 	}
 	if _, err := deploySubagents(root2, cfg2, ""); err != nil {
 		t.Fatal(err)
@@ -2611,23 +2611,22 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "unknown outer host key",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"bogus": {"flowforge-implementer": "p/m"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"bogus": {"flowforge-implementer": {Model: "p/m"}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: `agents.models_by_host: unknown host "bogus"`,
 		},
 		{
-			name: "codex section is a config error",
+			name: "codex section is supported",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"codex": {"flowforge-implementer": "p/m"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"codex": {"flowforge-implementer": {Model: "p/m"}}}
 			},
-			hosts:   hosts("opencode"),
-			wantErr: `agents.models_by_host.codex`,
+			hosts: hosts("codex"),
 		},
 		{
 			name: "unknown inner key on a per-host section",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": {"no-such-agent": "p/m"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"no-such-agent": {Model: "p/m"}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: `agents.models_by_host.opencode: unknown key "no-such-agent"`,
@@ -2635,7 +2634,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "unknown models_by_name key",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelOverrides = map[string]string{"no-such-agent": "p/m"}
+				c.Agents.ModelOverrides = map[string]config.ModelValue{"no-such-agent": config.ModelValue{Model: "p/m"}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: `agents.models_by_name: unknown agent "no-such-agent"`,
@@ -2643,7 +2642,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "profile key is rejected in models_by_name",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelOverrides = map[string]string{"tool-capable": "p/m"}
+				c.Agents.ModelOverrides = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "p/m"}}
 			},
 			hosts:   hosts("opencode", "claude"),
 			wantErr: `agents.models_by_name: unknown agent "tool-capable"`,
@@ -2651,7 +2650,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "unknown models profile key",
 			mutate: func(c *config.Config) {
-				c.Agents.Models = map[string]string{"sonnet": "p/m"}
+				c.Agents.Models = map[string]config.ModelValue{"sonnet": config.ModelValue{Model: "p/m"}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: `agents.models: unknown profile key "sonnet"`,
@@ -2659,7 +2658,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "opencode value without provider prefix",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": {"flowforge-implementer": "sonnet"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: "sonnet"}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: "provider/model",
@@ -2667,7 +2666,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "opencode value with empty model side",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": {"flowforge-implementer": "prov/"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: "prov/"}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: "provider/model",
@@ -2675,7 +2674,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "opencode value with two slashes",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": {"flowforge-implementer": "a/b/c"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: "a/b/c"}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: "provider/model",
@@ -2683,7 +2682,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "value with inner whitespace",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": {"flowforge-implementer": "pro vider/model"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: "pro vider/model"}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: "whitespace",
@@ -2691,7 +2690,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "empty value",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": {"flowforge-implementer": ""}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: ""}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: "non-empty",
@@ -2699,14 +2698,14 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "claude single token is legal",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"claude": {"flowforge-implementer": "sonnet"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"claude": {"flowforge-implementer": {Model: "sonnet"}}}
 			},
 			hosts: hosts("claude"),
 		},
 		{
 			name: "claude value with whitespace is illegal",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"claude": {"flowforge-implementer": "my model"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"claude": {"flowforge-implementer": {Model: "my model"}}}
 			},
 			hosts:   hosts("claude"),
 			wantErr: "whitespace",
@@ -2714,7 +2713,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "global value failing one enabled host must suggest models_by_host",
 			mutate: func(c *config.Config) {
-				c.Agents.Models = map[string]string{"tool-capable": "sonnet"}
+				c.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "sonnet"}}
 			},
 			hosts:   hosts("opencode", "claude"),
 			wantErr: "agents.models_by_host",
@@ -2722,21 +2721,21 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "same global value is fine when only claude is enabled",
 			mutate: func(c *config.Config) {
-				c.Agents.Models = map[string]string{"tool-capable": "sonnet"}
+				c.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "sonnet"}}
 			},
 			hosts: hosts("claude"),
 		},
 		{
 			name: "disabled host values do not block deploy",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"pi": {"flowforge-implementer": "no-slash"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"pi": {"flowforge-implementer": {Model: "no-slash"}}}
 			},
 			hosts: hosts("claude"),
 		},
 		{
 			name: "enabled pi requires provider/model",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"pi": {"flowforge-implementer": "sonnet"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"pi": {"flowforge-implementer": {Model: "sonnet"}}}
 			},
 			hosts:   hosts("pi"),
 			wantErr: "provider/model",
@@ -2744,7 +2743,7 @@ func TestValidateModelConfig(t *testing.T) {
 		{
 			name: "profile key is legal in a per-host section",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"opencode": {"tool-capable": "p/m"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"tool-capable": {Model: "p/m"}}}
 			},
 			hosts: hosts("opencode"),
 		},
@@ -2781,21 +2780,21 @@ func TestModelsByHostValidationFailFast(t *testing.T) {
 		{
 			name: "unknown host",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"bogus": {"flowforge-implementer": "p/m"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"bogus": {"flowforge-implementer": {Model: "p/m"}}}
 			},
 			wantIn: `agents.models_by_host: unknown host "bogus"`,
 		},
 		{
-			name: "codex section",
+			name: "invalid codex model token",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]string{"codex": {"flowforge-implementer": "p/m"}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"codex": {"flowforge-implementer": {Model: "bad token"}}}
 			},
 			wantIn: "codex",
 		},
 		{
 			name: "global value invalid for an enabled host",
 			mutate: func(c *config.Config) {
-				c.Agents.Models = map[string]string{"tool-capable": "sonnet"}
+				c.Agents.Models = map[string]config.ModelValue{"tool-capable": config.ModelValue{Model: "sonnet"}}
 				c.Agents.Hosts = []string{"opencode", "claude"}
 			},
 			wantIn: "agents.models_by_host",
@@ -2847,9 +2846,9 @@ func TestStatusUsesSameCompileOptionsModelsByHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg.Agents.Hosts = []string{"opencode", "claude"}
-	cfg.Agents.ModelHostOverrides = map[string]map[string]string{
-		"opencode": {"flowforge-implementer": "prov/oc"},
-		"claude":   {"flowforge-implementer": "opus-pinned"},
+	cfg.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{
+		"opencode": {"flowforge-implementer": {Model: "prov/oc"}},
+		"claude":   {"flowforge-implementer": {Model: "opus-pinned"}},
 	}
 	if _, err := deploySubagents(root, cfg, ""); err != nil {
 		t.Fatal(err)
@@ -2866,5 +2865,289 @@ func TestStatusUsesSameCompileOptionsModelsByHost(t *testing.T) {
 	}
 	if got := readDeployedModel(t, filepath.Join(root, ".claude", "agents", "flowforge-implementer.md")); got != "opus-pinned" {
 		t.Errorf("claude model = %q, want %q", got, "opus-pinned")
+	}
+}
+
+// These tests use actual configuration files and deployed native artifacts.
+func loadReasoningConfig(t *testing.T, root, text string) *config.Config {
+	t.Helper()
+	if err := os.WriteFile(config.ConfigPath(root), []byte("version_check: false\n"+text), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cfg
+}
+func snapshotAgentArtifacts(t *testing.T, root string) map[string][]byte {
+	t.Helper()
+	out := map[string][]byte{}
+	for _, dir := range []string{".claude/agents", ".codex/agents", ".opencode/agent", ".pi/agents", ".pi/extensions"} {
+		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, entry os.DirEntry, err error) error {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() {
+				return nil
+			}
+			body, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			out[path] = body
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return out
+}
+func assertArtifactsEqual(t *testing.T, want, got map[string][]byte) {
+	t.Helper()
+	if len(want) != len(got) {
+		t.Fatalf("artifact set changed: %d != %d", len(want), len(got))
+	}
+	for path, body := range want {
+		if !bytes.Equal(body, got[path]) {
+			t.Fatalf("artifact changed: %s", path)
+		}
+	}
+}
+func TestSparseCodexOverridesAndIndependentEffort(t *testing.T) {
+	root := t.TempDir()
+	if err := initializeTestProject(root); err != nil {
+		t.Fatal(err)
+	}
+	cfg := loadReasoningConfig(t, root, `agents:
+  hosts: [codex, pi, opencode]
+  models:
+    tool-capable: {model: provider/shared, reasoning_effort: low}
+    tool-capable-read-only: {model: provider/readonly, reasoning_effort: high}
+  models_by_name:
+    flowforge-investigator: {reasoning_effort: medium}
+  models_by_host:
+    codex:
+      flowforge-investigator: gpt-codex
+`)
+	if _, err := deploySubagents(root, cfg, ""); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ path, wantModel, wantEffort string }{
+		{".codex/agents/flowforge-investigator.toml", `model = "gpt-codex"`, `model_reasoning_effort = "medium"`},
+		{".pi/agents/flowforge-investigator.md", "model: provider/readonly", "thinking: medium"},
+		{".opencode/agent/flowforge-investigator.md", "model: provider/readonly", "reasoningEffort: medium"},
+		{".codex/agents/flowforge-implementer.toml", `model = "provider/shared"`, `model_reasoning_effort = "low"`},
+	} {
+		data, err := os.ReadFile(filepath.Join(root, tc.path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), tc.wantModel) || !strings.Contains(string(data), tc.wantEffort) {
+			t.Fatalf("%s: %s", tc.path, data)
+		}
+	}
+	status, err := computeSubagentStatus(root, cfg)
+	if err != nil || !status.Current {
+		t.Fatalf("status: %#v %v", status, err)
+	}
+}
+func TestNativeEffortPreservationAndExplicitClear(t *testing.T) {
+	for _, host := range []string{"codex", "claude", "opencode", "pi"} {
+		t.Run(host, func(t *testing.T) {
+			root := t.TempDir()
+			if err := initializeTestProject(root); err != nil {
+				t.Fatal(err)
+			}
+			cfg := loadReasoningConfig(t, root, "agents:\n  hosts: ["+host+"]\n")
+			if _, err := deploySubagents(root, cfg, ""); err != nil {
+				t.Fatal(err)
+			}
+			target := allHostTargets()[0]
+			for _, h := range allHostTargets() {
+				if h.key == host {
+					target = h
+				}
+			}
+			path := filepath.Join(root, target.relDir, "flowforge-investigator"+target.ext)
+			effortKey := map[string]string{"codex": "model_reasoning_effort", "claude": "effort", "opencode": "reasoningEffort", "pi": "thinking"}[host]
+			content := "---\nmodel: provider/local\n" + effortKey + ": xhigh\n---\nstale body\n"
+			if host == "codex" {
+				content = "model = \"gpt-local\"\nmodel_reasoning_effort = \"ultra\"\ndeveloper_instructions = \"\"\"\nmodel = \"body-fake\"\nmodel_reasoning_effort = \"body-fake\"\n\"\"\"\n"
+			}
+			if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := deploySubagents(root, cfg, "flowforge-investigator"); err != nil {
+				t.Fatal(err)
+			}
+			body, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantModel, wantEffort := "provider/local", "xhigh"
+			if host == "codex" {
+				wantModel = "gpt-local"
+				wantEffort = "ultra"
+			}
+			if !strings.Contains(string(body), wantModel) || !strings.Contains(string(body), wantEffort) || strings.Contains(string(body), "body-fake") {
+				t.Fatalf("local fields/body: %s", body)
+			}
+			status, err := computeSubagentStatus(root, cfg)
+			if err != nil || !status.Current {
+				t.Fatalf("preserved status: %#v %v", status, err)
+			}
+			cfg = loadReasoningConfig(t, root, "agents:\n  hosts: ["+host+"]\n  models_by_name:\n    flowforge-investigator: {model: provider/explicit}\n")
+			if _, err := deploySubagents(root, cfg, "flowforge-investigator"); err != nil {
+				t.Fatal(err)
+			}
+			body, err = os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(body), "provider/explicit") || !strings.Contains(string(body), wantEffort) {
+				t.Fatalf("model-only config must preserve effort: %s", body)
+			}
+			cfg = loadReasoningConfig(t, root, "agents:\n  hosts: ["+host+"]\n  models:\n    tool-capable-read-only: {reasoning_effort: high}\n  models_by_name:\n    flowforge-investigator: {reasoning_effort: inherit}\n")
+			if _, err := deploySubagents(root, cfg, "flowforge-investigator"); err != nil {
+				t.Fatal(err)
+			}
+			body, err = os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(body), effortKey) || !strings.Contains(string(body), wantModel) {
+				t.Fatalf("inherit must clear effort and restore retained local model: %s", body)
+			}
+		})
+	}
+}
+func TestEffectiveHostValidationAndFailureLeavesBytes(t *testing.T) {
+	cases := []struct{ name, extra, path string }{
+		{"pi effort", "  models_by_name:\n    flowforge-investigator: {reasoning_effort: ultra}\n", "agents.models_by_name.flowforge-investigator.reasoning_effort"},
+		{"claude effort", "  models_by_host:\n    claude:\n      flowforge-investigator: {reasoning_effort: off}\n", "agents.models_by_host.claude.flowforge-investigator.reasoning_effort"},
+		{"inactive set effective effort", "  model_sets:\n    unused:\n      models_by_name:\n        flowforge-investigator: {reasoning_effort: ultra}\n", "agents.model_sets.unused.models_by_name.flowforge-investigator.reasoning_effort"},
+		{"disabled host token", "  models_by_host:\n    codex:\n      flowforge-investigator: {model: 'bad token'}\n", "agents.models_by_host.codex.flowforge-investigator.model"},
+		{"leading space", "  models_by_name:\n    flowforge-investigator: {model: ' provider/model'}\n", "agents.models_by_name.flowforge-investigator.model"},
+		{"invalid effective model", "  models_by_name:\n    flowforge-investigator: sonnet\n", "agents.models_by_name.flowforge-investigator.model"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			if err := initializeTestProject(root); err != nil {
+				t.Fatal(err)
+			}
+			cfg := loadReasoningConfig(t, root, "agents:\n  hosts: [claude,pi,opencode]\n")
+			if _, err := deploySubagents(root, cfg, ""); err != nil {
+				t.Fatal(err)
+			}
+			before := snapshotAgentArtifacts(t, root)
+			cfg = loadReasoningConfig(t, root, "agents:\n  hosts: [claude,pi,opencode]\n"+tc.extra)
+			_, deployErr := deploySubagents(root, cfg, "")
+			_, statusErr := computeSubagentStatus(root, cfg)
+			if deployErr == nil || statusErr == nil || deployErr.Error() != statusErr.Error() || !strings.Contains(deployErr.Error(), tc.path) {
+				t.Fatalf("diagnostic parity/path: deploy=%v status=%v", deployErr, statusErr)
+			}
+			assertArtifactsEqual(t, before, snapshotAgentArtifacts(t, root))
+		})
+	}
+	t.Run("covered fields and disabled agent", func(t *testing.T) {
+		root := t.TempDir()
+		if err := initializeTestProject(root); err != nil {
+			t.Fatal(err)
+		}
+		cfg := loadReasoningConfig(t, root, `agents:
+  hosts: [claude, pi, opencode, codex]
+  disabled: [flowforge-scribe]
+  models_by_name:
+    flowforge-investigator: {model: gpt-single-token, reasoning_effort: ultra}
+    flowforge-scribe: {model: invalid-for-pi, reasoning_effort: ultra}
+  models_by_host:
+    pi:
+      flowforge-investigator: {model: provider/pi, reasoning_effort: high}
+    opencode:
+      flowforge-investigator: {model: provider/opencode}
+    claude:
+      flowforge-investigator: {reasoning_effort: max}
+    codex:
+      flowforge-investigator: {model: gpt-codex}
+`)
+		if _, err := deploySubagents(root, cfg, ""); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := computeSubagentStatus(root, cfg); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+func TestCorruptLocalPinsFailBeforeAnyWrite(t *testing.T) {
+	for _, host := range []string{"codex", "pi"} {
+		for _, failure := range []string{"parse", "unreadable"} {
+			t.Run(host+failure, func(t *testing.T) {
+				root := t.TempDir()
+				if err := initializeTestProject(root); err != nil {
+					t.Fatal(err)
+				}
+				cfg := loadReasoningConfig(t, root, "agents:\n  hosts: ["+host+"]\n")
+				if _, err := deploySubagents(root, cfg, ""); err != nil {
+					t.Fatal(err)
+				}
+				target := allHostTargets()[0]
+				for _, h := range allHostTargets() {
+					if h.key == host {
+						target = h
+					}
+				}
+				// Last agent proves earlier agents are never written before a late failure.
+				path := filepath.Join(root, target.relDir, "flowforge-scribe"+target.ext)
+				if failure == "parse" {
+					bad := "---\nmodel: [\n---\nbody\n"
+					if host == "codex" {
+						bad = "model = [\n"
+					}
+					if err := os.WriteFile(path, []byte(bad), 0644); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					if err := os.Remove(path); err != nil {
+						t.Fatal(err)
+					}
+					if err := os.Mkdir(path, 0755); err != nil {
+						t.Fatal(err)
+					}
+				}
+				before := snapshotAgentArtifacts(t, root)
+				_, depErr := deploySubagents(root, cfg, "")
+				_, statusErr := computeSubagentStatus(root, cfg)
+				if depErr == nil || statusErr == nil || depErr.Error() != statusErr.Error() || !strings.Contains(depErr.Error(), path) {
+					t.Fatalf("pin diagnostic: %v / %v", depErr, statusErr)
+				}
+				assertArtifactsEqual(t, before, snapshotAgentArtifacts(t, root))
+			})
+		}
+	}
+}
+
+func TestExplicitDisabledTargetStillValidatesEffectiveFields(t *testing.T) {
+	root := t.TempDir()
+	if err := initializeTestProject(root); err != nil {
+		t.Fatal(err)
+	}
+	cfg := loadReasoningConfig(t, root, `agents:
+  hosts: [pi]
+  disabled: [flowforge-investigator]
+  models_by_name:
+    flowforge-investigator: {model: provider/model, reasoning_effort: ultra}
+`)
+	_, err := deploySubagents(root, cfg, "flowforge-investigator")
+	if err == nil || !strings.Contains(err.Error(), "agents.models_by_name.flowforge-investigator.reasoning_effort") {
+		t.Fatalf("explicitly selected disabled target must validate before write: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".pi/agents/flowforge-investigator.md")); !os.IsNotExist(err) {
+		t.Fatal("invalid target was written")
 	}
 }

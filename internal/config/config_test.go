@@ -2,8 +2,10 @@ package config
 
 import (
 	"bytes"
+	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -451,5 +453,117 @@ projects:
 	}
 	if !strings.Contains(err.Error(), "unknown project config field: wikiRoot") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadSaveModelObjects(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ConfigDirName), 0755); err != nil {
+		t.Fatal(err)
+	}
+	data := "agents:\n  models_by_name:\n    flowforge-investigator: {model: provider/model, reasoning_effort: high}\n"
+	if err := os.WriteFile(ConfigPath(root), []byte(data), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cfg.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	again, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(cfg.Agents, again.Agents) {
+		t.Fatalf("roundtrip: %#v != %#v", cfg.Agents, again.Agents)
+	}
+}
+
+func TestLoadModelValueStrictPaths(t *testing.T) {
+	for _, raw := range []string{"null", "42", "true", "[]", "{}", "{model: null}", "{model: 42}", "{model: true}", "{model: ''}", "{reasoning_effort: null}", "{reasoning_effort: 42}", "{reasoning_effort: false}", "{reasoning_effort: ''}", "{model: provider/model, unknown: high}"} {
+		for _, layer := range []string{"models_by_name", "model_sets.quick.models_by_name"} {
+			t.Run(layer+raw, func(t *testing.T) {
+				root := t.TempDir()
+				if err := os.MkdirAll(filepath.Join(root, ConfigDirName), 0755); err != nil {
+					t.Fatal(err)
+				}
+				prefix := "agents:\n  models_by_name:\n    flowforge-investigator: "
+				if layer != "models_by_name" {
+					prefix = "agents:\n  model_sets:\n    quick:\n      models_by_name:\n        flowforge-investigator: "
+				}
+				if err := os.WriteFile(ConfigPath(root), []byte(prefix+raw+"\n"), 0644); err != nil {
+					t.Fatal(err)
+				}
+				_, err := Load(root)
+				path := "agents." + layer + ".flowforge-investigator"
+				if err == nil || !strings.Contains(err.Error(), path) {
+					t.Fatalf("want strict error at %s, got %v", path, err)
+				}
+			})
+		}
+	}
+}
+
+func TestLoadSaveIndependentModelFields(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ConfigDirName), 0755); err != nil {
+		t.Fatal(err)
+	}
+	data := `agents:
+  models:
+    tool-capable: provider/base
+  models_by_name:
+    flowforge-investigator: {reasoning_effort: high}
+    flowforge-reviewer: {model: provider/reviewer}
+  models_by_host:
+    codex:
+      flowforge-investigator: {model: gpt-codex, reasoning_effort: inherit}
+  model_sets:
+    quick:
+      models_by_name:
+        flowforge-reviewer: {reasoning_effort: low}
+`
+	if err := os.WriteFile(ConfigPath(root), []byte(data), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.Agents.ModelOverrides["flowforge-investigator"]; got.Model != "" || got.ReasoningEffort != "high" {
+		t.Fatalf("effort only: %#v", got)
+	}
+	if err := cfg.Save(root); err != nil {
+		t.Fatal(err)
+	}
+	again, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(cfg.Agents, again.Agents) {
+		t.Fatalf("independent field roundtrip changed config")
+	}
+	var decoded Config
+	body, err := os.ReadFile(ConfigPath(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := yaml.Unmarshal(body, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(decoded.Agents.Models, cfg.Agents.Models) || !reflect.DeepEqual(decoded.Agents.ModelOverrides, cfg.Agents.ModelOverrides) || !reflect.DeepEqual(decoded.Agents.ModelHostOverrides, cfg.Agents.ModelHostOverrides) || !reflect.DeepEqual(decoded.Agents.ModelSets, cfg.Agents.ModelSets) {
+		t.Fatal("direct YAML decoder diverges")
+	}
+}
+
+func TestDirectYAMLRejectsNullModelFields(t *testing.T) {
+	for _, raw := range []string{"null", "{model: null}", "{reasoning_effort: false}", "{unknown: high}"} {
+		var cfg Config
+		err := yaml.Unmarshal([]byte("agents:\n  models_by_name:\n    flowforge-investigator: "+raw+"\n"), &cfg)
+		if err == nil {
+			t.Fatalf("direct YAML accepted %s", raw)
+		}
 	}
 }

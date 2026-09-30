@@ -1,6 +1,6 @@
 # ADR 0002: 部署产物本地化与六级模型优先级链
 
-日期：2026-09-25 · 状态：已接受 · 来源提案：[deploy-artifact-localization](../proposals/deploy-artifact-localization/design.md)
+日期：2026-09-25 · 状态：已接受 · 来源提案：[deploy-artifact-localization](../proposals/deploy-artifact-localization/design.md)；2026-09-30 局部更新依据：[subagent-model-reasoning revision 3](../proposals/subagent-model-reasoning/design.md)，替代原 Codex 排除规则并扩展独立 effort 配置。
 
 ## 背景
 
@@ -9,9 +9,10 @@
 ## 决策
 
 1. **产物本地化**：部署产物与 `.flowforge/config.yaml` 是**每机器文件**——init/upgrade 自动 gitignore（幂等追加；config 必须单文件条目而非 `.flowforge/` 目录，自定义源仍入库）；存量已跟踪产物经 `git ls-files` 检测后输出可复制 `git rm --cached -r` 指引，**绝不自动改 git 索引**。
-2. **`models_by_host`** 嵌套双键 map（外层宿主键 → 内层 agent 名 | profile 档位键）；**per-host 层整体压过全局层**，同层内 name 键 > profile 键——六级链：`by_host[name] > by_host[profile] > by_name[name] > models[profile] > preserve-merge 回填 > 宿主默认`。
+2. **`models_by_host`** 嵌套双键 map（外层宿主键 → 内层 agent 名 | profile 档位键）；**model 与 reasoning_effort 各自按 per-host 层优先于全局层解析**，同层内 name 键 > profile 键——六级链：`by_host[name] > by_host[profile] > by_name[name] > models[profile] > preserve-merge 回填 > 宿主默认`。
 3. **pi 注入**：pi frontmatter 增 `model` 字段（Description/Thinking 之间），取链解析值，空则省略键——未配置项目产物逐字节不变；preserve-merge 对 pi 真实化，提示文案指向 `models_by_name/models_by_host` 真实通道。
-4. **格式级 fail-fast 校验**（`validateModelConfig`，deploy/status 两路径任何写入之前、同一报错）：键全量校验；`models_by_name` 只收 agent 名（惰性键=配置损坏信号）；`models_by_host.codex` 即错（编译器丢弃 model）；值按启用宿主规则（opencode/pi 必须 `provider/model`，claude 单 token）。
+4. **格式级 fail-fast 校验**（`validateModelConfig`，deploy/status 两路径任何写入之前、同一报错）：键全量校验；`models_by_name` 只收 agent 名（惰性键=配置损坏信号）；Codex 与其他宿主同样支持 model；所有声明校验结构/键/token，基础方案及各命名方案的合并结果按启用宿主、启用角色最终使用值校验（opencode/pi 必须 `provider/model`，claude/codex 单 token），被覆盖的统一值不重复施加该宿主专属规则。
+5. **独立 effort 与保留**：原字符串规范化为 model-only，对象允许 model/effort 任一字段；命名方案按字段覆盖。`inherit` 屏蔽所有低层 effort 并省略宿主字段。Codex/Claude/OpenCode/PI 分别输出 `model_reasoning_effort` / `effort` / `reasoningEffort` / `thinking`；部署和 status 共用准备流程、应用 active-set，显式字段优先于本地 YAML/TOML pin，所有编译完成后才开始写入。方案失败恢复激活指针，中途 I/O 失败不承诺产物回滚。
 
 ## 取舍与被拒替代
 
@@ -24,10 +25,19 @@
 ## 后果
 
 - config 是每机器文件：入库即需求问题 2 的可移植性事故，gitignore 是契约不是便利。
-- `by_name` 写 profile 键直接报错（收敛裁决，rev 3）；codex 无 per-host 键。
+- `by_name` 写 profile 键直接报错（收敛裁决，rev 3）；Codex 支持稀疏 per-host 覆盖，未声明宿主/角色/字段继续继承统一层。
 - 六级链被表驱动测试钉死；未配置项目经双二进制 sha256 清单保证逐字节回归零。
 - GIIS 形态实证：既有全局 profile 钉扎**零 config 变更**自动作用于 pi 宿主。
 
 ## 验证
 
+以下保留 2026-09-25 原提案完工证据；2026-09-30 扩展的验收要求与证据由[新提案执行票](../proposals/subagent-model-reasoning/issues/01-model-reasoning-config.md#done-and-verify)承载。
+
 票 01-03 证据四元组（六级链/校验矩阵/幂等 gitignore/索引不变/逐字节回归）+ GIIS 实弹（v5.11.0 deploy：investigator / reviewer-lite / implementer 的 pi 产物均带 `model: cpa/deepseek-v4.1-flash`）。
+
+
+### 部署字段快照决策（2026-09-30）
+
+采用每机器版本 1 快照 `.flowforge/agent-model-state.json`，分别记录 model/effort 的最后生成值及本地备份。只比较上一方案的当前配置无法还原已经编辑或删除的历史声明；只记录 generated/local 标签则会在临时显式覆盖时丢失原本地值。两份字段状态让方案切换和配置移除可恢复，同时维持显式配置优先及原有非事务部署边界。
+
+迁移、字段与文件删除、`inherit`、只读 status 和提交失败范围见 [CLI 部署字段恢复规则](../cli-design.md#agent-model-state-restoration)。

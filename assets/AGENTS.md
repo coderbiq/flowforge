@@ -131,3 +131,16 @@ unless a Change explicitly targets them. Host-level enforcement examples:
 ## Per-machine deploy artifacts
 
 Deploy artifacts (`.claude/agents/`, `.opencode/agent/`, `.codex/agents/`, `.pi/agents/`, `.pi/extensions/`, `.agents/`) and `.flowforge/config.yaml` are per-machine files: `flowforge init` records them in `.gitignore` automatically; user-authored agents meant for the repository opt in with `git add -f`.
+
+Configure per-machine models in `.flowforge/config.yaml`: `agents.models` (profile), `models_by_name` (role), and sparse `models_by_host` overrides. Values accept a model string or `{model: ..., reasoning_effort: ...}`; each field resolves independently in host-name > host-profile > name > profile > local deployed field > host-default order. Declare only `models_by_host.codex` when other hosts should share the unified configuration. Named `model_sets` merge only declared fields. `reasoning_effort: inherit` omits the native effort field and prevents lower-layer/local fallback. Native effort keys: Codex `model_reasoning_effort`, Claude `effort`, OpenCode `reasoningEffort`, PI `thinking`. `model-set show` reports independent configuration sources; deploy/status share active-set resolution and local YAML/TOML preservation. A failed switch restores its active pointer; an I/O failure during artifact writes can leave partial updates.
+
+```yaml
+agents:
+  models_by_name:
+    flowforge-investigator: {model: cpa/deepseek-v4.1-flash, reasoning_effort: high}
+  models_by_host:
+    codex:
+      flowforge-investigator: gpt-6-luna
+```
+
+Here Codex uses its model override and inherits the unified effort; PI/OpenCode use the unified model and effort. Uncovered roles continue to inherit the unified configuration.

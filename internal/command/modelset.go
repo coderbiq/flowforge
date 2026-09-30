@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"flowforge/internal/config"
-	"flowforge/internal/subagent"
+	"strings"
 )
 
 // newModelSetCmd builds the `flowforge model-set` command group:
@@ -15,7 +15,7 @@ import (
 //	list          — every declared set (plus the implicit base layer),
 //	                marking the currently active one
 //	use <name>    — switch the active set and redeploy; on deploy failure
-//	                the pointer rolls back (atomic switch)
+//	                the pointer rolls back (pointer rollback)
 //	show [name]   — the effective per-agent model table for a set
 //	                (default: the active set), with base/set source marks
 //
@@ -90,9 +90,9 @@ func newModelSetUseCmd() *cobra.Command {
 		Long: `Switch the active model set and redeploy agents.
 
 <name> may be a set declared in agents.model_sets, or "default" to return
-to the base agent model layers. The switch is atomic: if the redeploy
-fails, the active pointer is restored to its previous value and the deploy
-error is reported.`,
+to the base agent model layers. If redeploy fails, the active pointer is restored to its previous value.
+Configuration, reading and compilation failures occur before artifact writes;
+an I/O failure during writing can leave partially updated artifacts.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			projectRoot, cfg, err := loadForModelSet()
@@ -190,49 +190,55 @@ marks which layer each value comes from. Host-specific overrides
 				return fmt.Errorf("discovering subagent sources: %w", err)
 			}
 
+			hosts, err := resolveHostTargets(cfg)
+			if err != nil {
+				return err
+			}
+			if err := validateModelConfig(cfg, defs, hosts); err != nil {
+				return err
+			}
 			cmd.Printf("model set: %s\n\n", name)
-			names := make([]string, 0, len(defs))
-			byName := make(map[string]*subagent.Definition, len(defs))
-			for _, def := range defs {
-				names = append(names, def.Name)
-				byName[def.Name] = def
+			cmd.Printf("  HOST       AGENT                            MODEL                                    MODEL SOURCE                                         EFFORT             EFFORT SOURCE\n")
+			disabled := map[string]bool{}
+			for _, n := range cfg.Agents.Disabled {
+				disabled[n] = true
 			}
-			sort.Strings(names)
-			var setCfg config.ModelSetConfig
-			hasSet := false
-			if name != "default" {
-				setCfg = cfg.Agents.ModelSets[name]
-				hasSet = true
-			}
-			for _, n := range names {
-				def := byName[n]
-				model := eff.ModelOverrides[n]
-				src := "base"
-				if hasSet {
-					if _, inSet := setCfg.ModelOverrides[n]; inSet {
-						src = "set"
+			for _, h := range hosts {
+				for _, def := range defs {
+					if disabled[def.Name] {
+						continue
 					}
-				}
-				if model == "" {
-					model = eff.Models[string(def.ModelProfile)]
-					src = "base"
-					if hasSet {
-						if _, inSet := setCfg.Models[string(def.ModelProfile)]; inSet {
-							src = "set"
+					model, modelPath := resolveModelField(&eff, def, h.key, false)
+					effort, effortPath := resolveModelField(&eff, def, h.key, true)
+					source := func(path string, isEffort bool) string {
+						if path == "" {
+							return "default"
 						}
+						if name != "default" && declaredAt(cfg.Agents.ModelSets[name], path, isEffort) {
+							return "set:" + "agents.model_sets." + name + strings.TrimPrefix(path, "agents")
+						}
+						return "base:" + path
 					}
+					modelSource, effortSource := source(modelPath, false), source(effortPath, true)
 					if model == "" {
 						model = "(host default)"
-						src = "-"
+						if h.key == "claude" {
+							model = def.ModelProfile.ClaudeModel()
+						}
 					}
-				}
-				cmd.Printf("  %-32s %-40s %s\n", n, model, src)
-			}
-			for _, host := range sortedHostKeys(eff.ModelHostOverrides) {
-				cmd.Printf("\n  models_by_host.%s:\n", host)
-				inner := eff.ModelHostOverrides[host]
-				for _, k := range sortedKeys(inner) {
-					cmd.Printf("    %-30s %s\n", k, inner[k])
+					if effort == "inherit" {
+						effort = "(host inherit)"
+					} else if effort == "" {
+						switch h.key {
+						case "codex":
+							effort = def.ModelProfile.CodexReasoningEffort()
+						case "pi":
+							effort = def.ModelProfile.PiThinking()
+						default:
+							effort = "(host default)"
+						}
+					}
+					cmd.Printf("  %-10s %-32s %-40s %-52s %-18s %s\n", h.key, def.Name, model, modelSource, effort, effortSource)
 				}
 			}
 			return nil
@@ -240,7 +246,7 @@ marks which layer each value comes from. Host-specific overrides
 	}
 }
 
-func sortedKeys(m map[string]string) []string {
+func sortedKeys(m map[string]config.ModelValue) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
 		out = append(out, k)
@@ -249,7 +255,7 @@ func sortedKeys(m map[string]string) []string {
 	return out
 }
 
-func sortedHostKeys(m map[string]map[string]string) []string {
+func sortedHostKeys(m map[string]map[string]config.ModelValue) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
 		out = append(out, k)

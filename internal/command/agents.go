@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"unicode"
 
@@ -174,8 +172,8 @@ func allHostTargets() []hostTarget {
 		{"opencode", filepath.Join(".opencode", "agent"), ".md", func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error) {
 			return subagent.CompileOpenCodeWithOptions(def, opts)
 		}},
-		{"codex", filepath.Join(".codex", "agents"), ".toml", func(def *subagent.Definition, _ subagent.CompileOptions) ([]byte, error) {
-			return subagent.CompileCodex(def)
+		{"codex", filepath.Join(".codex", "agents"), ".toml", func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error) {
+			return subagent.CompileCodexWithOptions(def, opts)
 		}},
 		{"pi", filepath.Join(".pi", "agents"), ".md", func(def *subagent.Definition, opts subagent.CompileOptions) ([]byte, error) {
 			return subagent.CompilePiWithOptions(def, opts)
@@ -267,19 +265,14 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition, hostKey
 	if cfg.Agents.MaxSteps < -1 {
 		return opts, fmt.Errorf("agents.max_steps: invalid value %d (supported: positive budget, 0 = default %d, -1 = unlimited)", cfg.Agents.MaxSteps, defaultImplementerMaxSteps)
 	}
-	// Precedence (design d-model-channels, six levels): the per-host layer
-	// (models_by_host.<host>) beats the global layer; within a layer a
-	// name key beats a profile key; config beats the preserve-merge
-	// fallback resolved inside the compilers (resolveModel), which beats
-	// the host defaults. Empty values fall through to the next level.
-	if model := cfg.Agents.ModelHostOverrides[hostKey][def.Name]; model != "" {
-		opts.Model = model
-	} else if model := cfg.Agents.ModelHostOverrides[hostKey][string(def.ModelProfile)]; model != "" {
-		opts.Model = model
-	} else if model := cfg.Agents.ModelOverrides[def.Name]; model != "" {
-		opts.Model = model
-	} else {
-		opts.Model = cfg.Agents.Models[string(def.ModelProfile)]
+	model, _ := resolveModelField(&cfg.Agents, def, hostKey, false)
+	effort, _ := resolveModelField(&cfg.Agents, def, hostKey, true)
+	opts.Model = model
+	if effort != "" {
+		opts.EffortConfigured = true
+		if effort != "inherit" {
+			opts.ReasoningEffort = effort
+		}
 	}
 	if !cfg.Agents.DisableTestGuard && def.Name == "flowforge-implementer" {
 		if len(cfg.Agents.TestFileGlobs) > 0 {
@@ -321,82 +314,6 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition, hostKey
 // (models_by_name keys), extended to accept profile keys alongside agent
 // names. Key iteration is sorted so deploy and status report the identical
 // first error.
-func validateModelConfig(cfg *config.Config, defs []*subagent.Definition, enabledHosts []hostTarget) error {
-	knownAgents := make(map[string]bool, len(defs))
-	for _, def := range defs {
-		knownAgents[def.Name] = true
-	}
-	knownHost := make(map[string]bool)
-	for _, h := range allHostTargets() {
-		knownHost[h.key] = true
-	}
-	enabled := make(map[string]bool, len(enabledHosts))
-	for _, h := range enabledHosts {
-		enabled[h.key] = true
-	}
-	validInnerKey := func(key string) bool {
-		return knownAgents[key] || validModelProfileKeys[key]
-	}
-
-	if err := validateModelLayers("agents", cfg.Agents.Models, cfg.Agents.ModelOverrides, cfg.Agents.ModelHostOverrides, knownAgents, knownHost, enabled, validInnerKey); err != nil {
-		return err
-	}
-	// Named model sets (agents.model_sets) follow exactly the base-layer
-	// rules: same key legality, same value formats (design
-	// model-sets-switching d-set-validation). Errors carry the set name so
-	// the user knows which overlay is broken.
-	for _, name := range config.ModelSetNames(&cfg.Agents) {
-		set := cfg.Agents.ModelSets[name]
-		if err := validateModelLayers("agents.model_sets."+name, set.Models, set.ModelOverrides, set.ModelHostOverrides, knownAgents, knownHost, enabled, validInnerKey); err != nil {
-			return fmt.Errorf("model set %q: %w", name, err)
-		}
-	}
-	return nil
-}
-
-// validateModelLayers applies the base-layer model validation rules to one
-// named set of layers. where is the config path prefix ("agents" for the
-// base layers, "agents.model_sets.<name>" for a set).
-func validateModelLayers(where string, models, byName map[string]string, byHost map[string]map[string]string, knownAgents, knownHost, enabled map[string]bool, validInnerKey func(string) bool) error {
-	for _, key := range slices.Sorted(maps.Keys(models)) {
-		if !validModelProfileKeys[key] {
-			return fmt.Errorf("%s.models: unknown profile key %q (supported: tool-capable, tool-capable-read-only)", where, key)
-		}
-		if err := validateGlobalModelValue(where+".models."+key, models[key], enabled); err != nil {
-			return err
-		}
-	}
-	for _, key := range slices.Sorted(maps.Keys(byName)) {
-		if !knownAgents[key] {
-			return fmt.Errorf("%s.models_by_name: unknown agent %q (profile keys belong in %s.models or %s.models_by_host)", where, key, where, where)
-		}
-		if err := validateGlobalModelValue(where+".models_by_name."+key, byName[key], enabled); err != nil {
-			return err
-		}
-	}
-	for _, host := range slices.Sorted(maps.Keys(byHost)) {
-		if host == "codex" {
-			return fmt.Errorf("%s.models_by_host.codex: codex has no per-agent model (the compiler drops model)", where)
-		}
-		if !knownHost[host] {
-			return fmt.Errorf("%s.models_by_host: unknown host %q (supported: claude, opencode, pi)", where, host)
-		}
-		inner := byHost[host]
-		for _, key := range slices.Sorted(maps.Keys(inner)) {
-			if !validInnerKey(key) {
-				return fmt.Errorf("%s.models_by_host.%s: unknown key %q (expected an agent name or a profile key: tool-capable, tool-capable-read-only)", where, host, key)
-			}
-			if !enabled[host] {
-				continue // disabled host: keys validated, values skipped
-			}
-			if err := validateModelValueForHost(where+".models_by_host."+host+"."+key, inner[key], host); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // validateModelValueForHost checks one model value against one host's format
 // rule: every host requires a non-empty token without inner whitespace or
 // control characters; opencode and pi additionally require the provider/model
@@ -426,18 +343,6 @@ func validateModelValueForHost(where, value, host string) error {
 // host, so it must satisfy each such host's format rule; a failure points
 // at agents.models_by_host for host-specific configuration. The host order
 // is fixed so the reported error is deterministic.
-func validateGlobalModelValue(where, value string, enabled map[string]bool) error {
-	for _, host := range []string{"claude", "opencode", "pi"} {
-		if !enabled[host] {
-			continue
-		}
-		if err := validateModelValueForHost(where, value, host); err != nil {
-			return fmt.Errorf("%w; configure agents.models_by_host for per-host models", err)
-		}
-	}
-	return nil
-}
-
 // piExtensionRelPath is the host-scoped pi extension deployed alongside
 // the .pi/agents files whenever the pi host is enabled. It provides the
 // implementer's test-file guard and the flowforge_frontier/flowforge_check
@@ -522,122 +427,39 @@ func cleanDeselectedHosts(projectRoot string, selected []hostTarget, allDefs []*
 // preserved (config-pinned models always win). Returns the list of deployed
 // subagent names.
 func deploySubagents(projectRoot string, cfg *config.Config, targetName string) ([]string, error) {
-	// Model-set overlay (design model-sets-switching): apply the active
-	// named model set on top of the base layers before validation and
-	// compilation, so the precedence chain below resolves the merged
-	// layers. The pointer is per-machine state (.flowforge/model-set.active).
-	eff, activeSet, err := config.EffectiveAgents(cfg, projectRoot)
+	prepared, err := prepareSubagents(projectRoot, cfg, targetName)
 	if err != nil {
 		return nil, err
 	}
-	if activeSet != "" {
-		cfg2 := *cfg
-		cfg2.Agents = eff
-		cfg = &cfg2
-	}
-	hosts, err := resolveHostTargets(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Discover sources (built-in + project-custom)
-	definitions, err := discoverSubagentSources(projectRoot)
-	if err != nil {
-		return nil, err
-	}
-	allDefs := definitions
-
-	// Validate the model config layers (agents.models, models_by_name,
-	// models_by_host) against the full discovered set before any directory
-	// or artifact write.
-	if err := validateModelConfig(cfg, allDefs, hosts); err != nil {
-		return nil, err
-	}
-
-	// Filter by targetName if specified
-	if targetName != "" {
-		found := false
-		for _, def := range definitions {
-			if def.Name == targetName {
-				definitions = []*subagent.Definition{def}
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, fmt.Errorf("subagent %q not found in built-in or project sources", targetName)
-		}
-	} else {
-		// Filter out disabled subagents
-		disabled := make(map[string]bool)
-		for _, name := range cfg.Agents.Disabled {
-			disabled[name] = true
-		}
-		var filtered []*subagent.Definition
-		for _, def := range definitions {
-			if !disabled[def.Name] {
-				filtered = append(filtered, def)
-			}
-		}
-		definitions = filtered
-	}
-
-	if len(definitions) == 0 {
+	if len(prepared.definitions) == 0 {
 		return nil, nil
 	}
-
-	// Create enabled host directories
-	for _, h := range hosts {
+	for _, h := range prepared.hosts {
 		if err := os.MkdirAll(filepath.Join(projectRoot, h.relDir), 0755); err != nil {
 			return nil, fmt.Errorf("creating directory %s: %w", h.relDir, err)
 		}
 	}
-
-	// Compile and write to each enabled host
-	var deployed []string
-	for _, def := range definitions {
-		for _, h := range hosts {
-			opts, err := resolveCompileOptions(cfg, def, h.key)
-			if err != nil {
-				return nil, err
-			}
-			path := filepath.Join(projectRoot, h.relDir, def.Name+h.ext)
-			content, err := h.compile(def, opts)
-			if err != nil {
-				return nil, fmt.Errorf("compiling %s for %s: %w", def.Name, h.key, err)
-			}
-			// Preserve-merge: when config does not pin a model for this
-			// definition and the existing deployed file carries a local
-			// `model:` the fresh compile would not reproduce, recompile
-			// with it as the fallback and say so on stderr. Hosts whose
-			// files carry no yaml frontmatter `model` (codex TOML) are
-			// naturally unaffected.
-			if opts.Model == "" {
-				if existing := deployedModel(path); existing != "" && existing != frontmatterModel(content) {
-					fallbackOpts := opts
-					fallbackOpts.FallbackModel = existing
-					content, err = h.compile(def, fallbackOpts)
-					if err != nil {
-						return nil, fmt.Errorf("compiling %s for %s: %w", def.Name, h.key, err)
-					}
-					fmt.Fprintf(os.Stderr, "  info: preserved local model %q for %s (set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)\n", existing, filepath.Join(h.relDir, def.Name+h.ext))
-				}
-			}
-			if err := os.WriteFile(path, content, 0644); err != nil {
-				return nil, fmt.Errorf("writing %s: %w", path, err)
-			}
+	for _, output := range prepared.outputs {
+		if err := os.WriteFile(output.path, output.content, 0644); err != nil {
+			return nil, fmt.Errorf("writing %s: %w", output.path, err)
 		}
+		for _, hint := range output.hints {
+			fmt.Fprintln(os.Stderr, hint)
+		}
+	}
+	if err := deployPiExtension(projectRoot, prepared.hosts); err != nil {
+		return nil, err
+	}
+	if err := cleanDeselectedHosts(projectRoot, prepared.hosts, prepared.allDefs); err != nil {
+		return nil, err
+	}
+	if err := writeAgentModelState(projectRoot, prepared.stateBytes); err != nil {
+		return nil, err
+	}
+	var deployed []string
+	for _, def := range prepared.definitions {
 		deployed = append(deployed, def.Name)
 	}
-
-	if err := deployPiExtension(projectRoot, hosts); err != nil {
-		return nil, err
-	}
-
-	if err := cleanDeselectedHosts(projectRoot, hosts, allDefs); err != nil {
-		return nil, err
-	}
-
 	return deployed, nil
 }
 
@@ -661,16 +483,6 @@ func frontmatterModel(data []byte) string {
 		return ""
 	}
 	return strings.TrimSpace(fm.Model)
-}
-
-// deployedModel returns the `model` key from the yaml frontmatter of an
-// existing deployed file. Missing or unreadable files yield "".
-func deployedModel(path string) string {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	return frontmatterModel(data)
 }
 
 // discoverSubagentSources reads subagent definitions from built-in assets and project-custom sources.
