@@ -8,6 +8,7 @@ coverage/
 
 # FlowForge runtime state
 .flowforge/
+.pi/subagents/
 # ff-wiki directories are tracked per-project; do not blanket-ignore
 
 # Production
@@ -29,6 +30,7 @@ vendor/
 internal/command/assets/
 
 # Misc
+__pycache__/
 .DS_Store
 .env
 .env.local
