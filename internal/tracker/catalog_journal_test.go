@@ -382,3 +382,33 @@ func TestJournalForceInitRequiresReason(t *testing.T) {
 		t.Fatalf("warning must report the missing reason: %q", found[0].Message)
 	}
 }
+
+// A journal carries a frontmatter id but registers no authority: it must not be
+// held to the identified-authority positive-revision rule (dogfood migration
+// surfaced this as invalid-metadata on every journal artifact).
+func TestJournalWithIDWithoutRevisionProducesNoDiagnostics(t *testing.T) {
+	root := t.TempDir()
+	path := writeJournalArtifact(t, root, ""+
+		"  - {round: 1, stage: align, action: done, ts: \"2026-10-12T09:00:00Z\"}\n"+
+		"  - {round: 1, stage: design, action: done, ts: \"2026-10-12T09:00:00Z\"}\n")
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Diagnostics) != 0 {
+		t.Fatalf("journal id without revision must stay out of the authority projection: %#v", catalog.Diagnostics)
+	}
+	var artifact *tracker.Artifact
+	for _, candidate := range catalog.Artifacts {
+		if candidate.Path == path {
+			artifact = candidate
+		}
+	}
+	if artifact == nil {
+		t.Fatalf("journal artifact not discovered: %#v", catalog.Artifacts)
+	}
+	if artifact.ID == "" || artifact.Revision != 0 {
+		t.Fatalf("fixture must carry an id without a revision: id=%q revision=%d", artifact.ID, artifact.Revision)
+	}
+}

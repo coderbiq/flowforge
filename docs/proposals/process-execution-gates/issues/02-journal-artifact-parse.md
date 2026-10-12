@@ -75,6 +75,18 @@ flowforge:
   - artifact: internal/tracker/catalog_journal_test.go
 
 
+- [x] 8. Fix: `internal/tracker/catalog_semantics.go` buildSemanticDiagnostics 的 ID/revision 循环跳过 `role: journal` artifact（日志零 authority 投影的语义完备——journal 带 id 不注册 authority、不要求 revision；dogfood 迁移后 23 个 journal 全量报 invalid-metadata 暴露）；`internal/tracker/catalog_journal_test.go` 追加子用例：带 id 无 revision 的 journal 零诊断
+  - cmd: GOPROXY=https://goproxy.cn,direct go test ./internal/tracker/... -run 'Journal'
+  - exit: 0
+  - output: ok flowforge/internal/tracker（含 TestJournalWithIDWithoutRevisionProducesNoDiagnostics）
+  - artifact: internal/tracker/catalog_semantics.go
+
+- [x] 9. Fix: `internal/command/catalog_discovery.go` discoverProposalCatalog 移除 cwd 回退——`FindProjectRoot(dir)` 失败（目录不在任何 project 内）时不再 `FindProjectRoot(".")` 继承仓库 config；语义修正：外部目录不继承本仓 exempt/armed 配置（dogfood 第二发现：提交 journal.migrated 后 7 个 frontier 夹具测试被武装门禁拦截；FindProjectRoot 已绝对化向上走，相对 --dir 场景不受影响）
+  - cmd: GOPROXY=https://goproxy.cn,direct go test ./internal/...
+  - exit: 0
+  - output: 5 包 ok（含原 7 个 FAIL 的 frontier 测试全恢复）
+  - artifact: internal/command/catalog_discovery.go
+
 ## Constraints
 
 - must journal 为纯日志角色：不进 DAG、不产生 consumes、Executable=false — design#B1
@@ -177,3 +189,79 @@ flowforge:
 - **Verification**：`go test ./internal/tracker/... -run 'Journal'` ok；`-run 'RoleLocationMatrix'` ok（含 journal）；`go test ./internal/...` 5 包全绿；go build/vet/gofmt clean
 - **Review dispositions**：双轴 Round 1 零发现（dismissed：journal 手写 consumes 禁止性校验非 v1 契约项）；Changes 6/7 测试经 additive 裁决主会话代落盘（Blocked evidence 已消费转 Verified contracts）；golangci-lint 环境豁免同 01 票
 - **Fixed point**：未 commit 工作树
+
+> Write-set 裁决扩张（2026-10-12，Fix Change 8）：`internal/tracker/catalog_semantics.go`（仅 journal 跳过分支）、`internal/tracker/catalog_journal_test.go`（仅追加）。
+
+### Round 2
+- Fixed point: dogfood 迁移后全仓 check（23 journal 全报 invalid-metadata "Identified authority requires a positive revision"）
+- Gaps: 1 — journal 零 authority 投影未覆盖 buildSemanticDiagnostics 的 ID/revision 通用规则（catalog_semantics.go:12-16）
+- Disposition: Fix Change 8 创建；write-set 裁决扩张 catalog_semantics.go（journal 跳过分支）
+- Escalated to dual axes: no（单一语义缺口，代码路径已定位；Fix 后由主会话复跑全仓 check 收口）
+- Resolution: Fix 8 交付（journal 跳过分支 + 测试代落盘）；dogfood 第二发现 → Fix 9（catalog_discovery cwd 回退移除）；复跑全仓 `go test ./internal/...` 5 包 ok、`make dev` 后全仓 check 23 条 invalid-metadata 清零、exit 0，存量 warning 基线不变（202 evidence-missing/10 upstream-changed/10 legacy-metadata/5 missing-required-metadata/4 untracked-upstream）
+
+## Fix Change 8 execution note (2026-10-12 follow-up)
+
+- **代码已落盘**：`internal/tracker/catalog_semantics.go:14-16` `buildSemanticDiagnostics` 的 ID/revision 循环条件改为 `if a.ID != "" && a.Role != RoleJournal {`（journal 带 id 不注册 authority、不要求 revision）；`Areas` 循环与 consumes 解析未动，非 journal artifact 的 id/revision 规则不变。
+- Change 8 测试子用例经 additive 裁决由主会话代落盘（dogfood 轮，2026-10-12），原 Blocked evidence 节已消费。
+- **验证**：
+  - `gofmt -l internal/tracker/` 无输出；`go vet ./internal/tracker/` exit 0
+  - `GOPROXY=https://goproxy.cn,direct go test -run 'Journal' ./internal/tracker/` → `ok flowforge/internal/tracker`，exit 0
+  - `GOPROXY=https://goproxy.cn,direct go test ./internal/tracker/` → ok，exit 0
+  - 行为对照（临时 harness `internal/tracker/zzfixverify`，运行后已删除）：journal(id=feature-journal, revision=0) → 零诊断；对照 requirement(id, revision=0) → 仍报 `invalid-metadata`。两条 `PASS`，exit 0
+  - **端到端**（fresh `go run ./cmd/flowforge check --dir docs/proposals`，非陈旧 `./bin`）：23 个 journal 文件、`invalid-metadata` 0 条、`Identified authority requires a positive revision` 0 条、journal 家族诊断 0 条，exit 0
+- **全量套件读法**：`internal/tracker`/`config`/`subagent`/`update` 全绿；`internal/command` FAIL，但**改动前既有**（以 HEAD 版 `catalog_semantics.go` 复跑同样 FAIL；失败点为 `journal-missing` blocker —— `.flowforge/config.yaml` 已 committed `journal.migrated: true`，frontier 测试夹具无 journal.md 被武装门禁拦截），与本 Fix 无关，未越界修改 `internal/command`。
+- **Write-set compliance**：仅修改 `internal/tracker/catalog_semantics.go`（票面裁决扩张的 journal 跳过分支内）；未 commit / 未 stage / 未改 **Status**。
+
+## Blocked evidence
+
+**Blocker:** 运行时保护策略拒绝实现者写入 `*_test.go`，Change 8 的测试子用例无法落盘。
+
+**Verbatim error（`edit internal/tracker/catalog_journal_test.go`，工具调用失败）**
+
+```
+protected test file (matched **/*_test.go, source: FlowForge defaults): preset acceptance tests are authored by Plan; if the task requires editing it, report STATUS: BLOCKED instead
+```
+
+**Commands tried**
+1. `edit internal/tracker/catalog_journal_test.go`（文件末尾追加新函数，既有断言不动）→ 拒绝，上条错误
+2. 替代行为验证：临时 harness `GOPROXY=https://goproxy.cn,direct go run ./internal/tracker/zzfixverify` → exit 0
+3. 端到端：`GOPROXY=https://goproxy.cn,direct go run ./cmd/flowforge check --dir docs/proposals` → exit 0，23 journal 零 `invalid-metadata`
+
+**Next hypothesis / remedy（主会话执行）**
+1. 将下述新函数追加至 `internal/tracker/catalog_journal_test.go` 末尾（additive，既有断言不动）；
+2. 复跑 `GOPROXY=https://goproxy.cn,direct go test -run 'Journal' ./internal/tracker/` 与 `go test ./internal/...`（`internal/command` 既有失败见上）；
+3. 票面勾选 Change 8 并收口（本会话未勾选、未改 **Status**）。
+
+### 待落盘追加：`internal/tracker/catalog_journal_test.go`（append-only）
+
+```go
+// A journal carries a frontmatter id but registers no authority: it must not be
+// held to the identified-authority positive-revision rule (dogfood migration
+// surfaced this as invalid-metadata on every journal artifact).
+func TestJournalWithIDWithoutRevisionProducesNoDiagnostics(t *testing.T) {
+	root := t.TempDir()
+	path := writeJournalArtifact(t, root, ""+
+		"  - {round: 1, stage: align, action: done, ts: \"2026-10-12T09:00:00Z\"}\n"+
+		"  - {round: 1, stage: design, action: done, ts: \"2026-10-12T09:00:00Z\"}\n")
+
+	catalog, err := tracker.DiscoverArtifacts(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(catalog.Diagnostics) != 0 {
+		t.Fatalf("journal id without revision must stay out of the authority projection: %#v", catalog.Diagnostics)
+	}
+	var artifact *tracker.Artifact
+	for _, candidate := range catalog.Artifacts {
+		if candidate.Path == path {
+			artifact = candidate
+		}
+	}
+	if artifact == nil {
+		t.Fatalf("journal artifact not discovered: %#v", catalog.Artifacts)
+	}
+	if artifact.ID == "" || artifact.Revision != 0 {
+		t.Fatalf("fixture must carry an id without a revision: id=%q revision=%d", artifact.ID, artifact.Revision)
+	}
+}
+```

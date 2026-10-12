@@ -11,20 +11,13 @@ import (
 // discoverProposalCatalog discovers proposal artifacts for a scan directory,
 // applying project-level evidence exemptions when a FlowForge project config
 // is discoverable. The project root is resolved from the scanned directory
-// first (so `check --dir <other-project>` applies that project's exemptions)
-// and falls back to the working directory. A missing config keeps legacy
-// zero-option semantics; a corrupt config warns on stderr and degrades to
-// zero options rather than failing the scan.
+// itself (so `check --dir <other-project>` applies that project's exemptions
+// and out-of-project directories never inherit the cwd repo's config).
+// A missing config keeps legacy zero-option semantics; a corrupt config warns
+// on stderr and degrades to zero options rather than failing the scan.
 func discoverProposalCatalog(dir string) (*tracker.Catalog, error) {
 	opts := tracker.Options{}
-	projectRoot, err := config.FindProjectRoot(dir)
-	if err != nil {
-		projectRoot, err = config.FindProjectRoot(".")
-		if err != nil {
-			projectRoot = ""
-		}
-	}
-	if projectRoot != "" {
+	if projectRoot, err := config.FindProjectRoot(dir); err == nil {
 		if cfg, err := config.Load(projectRoot); err == nil {
 			opts.ExemptProposals = cfg.Evidence.ExemptProposals
 			opts.StandardsExemptProposals = cfg.Standards.ExemptProposals

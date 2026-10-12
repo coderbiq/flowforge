@@ -11,7 +11,9 @@ func (c *Catalog) buildSemanticDiagnostics(standardsExempt map[string]bool) {
 	index := map[string]authorityRef{}
 	ambiguous := map[string]bool{}
 	for _, a := range c.Artifacts {
-		if a.ID != "" {
+		// A journal carries a frontmatter id but registers no authority: it is
+		// a pure log and must not be held to the positive-revision rule.
+		if a.ID != "" && a.Role != RoleJournal {
 			if a.Revision < 1 {
 				c.addDiagnostic(Diagnostic{Code: DiagnosticInvalidMetadata, Severity: SeverityWarning, Artifact: a.Path, Area: a.ID, Message: "Identified authority requires a positive revision", Source: SourceLocation{Path: a.Path}})
 			} else {
