@@ -63,3 +63,5 @@ competitor-reports
 .pi/extensions/
 .agents/
 .flowforge/config.yaml
+# flowforge: managed deploy artifacts (per-machine)
+.flowforge/agent-model-state.json

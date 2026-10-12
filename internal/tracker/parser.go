@@ -39,7 +39,7 @@ func parseIssueData(filePath string, data []byte) (*Issue, error) {
 
 	baseName := filepath.Base(filePath)
 	featureDir := ""
-	if baseName == "spec.md" || baseName == "map.md" {
+	if baseName == "spec.md" || baseName == "map.md" || baseName == "journal.md" {
 		featureDir = filepath.Base(filepath.Dir(filePath))
 	} else if filepath.Base(filepath.Dir(filePath)) == "issues" {
 		featureDir = filepath.Base(filepath.Dir(filepath.Dir(filePath)))

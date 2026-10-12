@@ -67,6 +67,33 @@ Delete synonymous headings, implementation commonplaces, exploration that change
 - Let a ticket refine a local detail only when it preserves approved responsibility, interfaces, seams, DAG order, constraints, and acceptance behavior.
 - Resume solution design when the discovery changes any of those approved facts; update affected authority and coverage before planning or implementation continues.
 
+### 9. Record the journal event
+
+After the settled design decisions are written to authority, append this run's event to the proposal journal `<docs_dir>/proposals/<feature>/journal.md` by hand (v1 ships no `journal stamp` subcommand). When the file is absent, create it from the frontmatter skeleton:
+
+```markdown
+---
+flowforge:
+  schema: 1
+  role: journal
+  id: <feature>-journal
+  events:
+    - {round: 1, stage: design, action: done, ts: 2026-10-12T09:00:00Z, by: flowforge-solution-design}
+---
+```
+
+One event is one flow mapping in the `events` list; append it at the end and never edit or delete an earlier line.
+
+- `round` — the journal's active round; a redo writes a fresh round's `design` `done` event (open that round with a stage-less `round-open` first) and never rewrites a historical entry
+- `stage` — `design`
+- `action` — `done`, or `skipped` with a mandatory `reason` when the requirement needed no design work
+- `ts` — UTC timestamp of the append
+- `by` — `flowforge-solution-design`
+- `reason` — required when `action` is `skipped`
+- `source` — stage-less round events only; `round-open` requires `user`, `review`, or `verification`
+- `artifacts` — optional artifact file names this event produced
+- `backfill` — optional `true`; written by `flowforge journal init`, not by this step
+
 ## Completion
 
 Return authority links, scoped diagnostics, areas Plan may consume, supporting verdict links, semantic titles/links for decisions added or changed this run, and material compression actions. Do not repeat decision bodies or assign a synthetic quality score. Every affected area has an explicit coverage result; every area recommended to Plan passes the responsibility/interface/seam/migration/verification completeness checklist applicable to it.

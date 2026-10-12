@@ -58,6 +58,33 @@ An unresolved requirement fact uses a scoped [schema v1 open item](../_shared/SC
 - Responsibility, interface, seam, cross-module flow/order, migration, or verification-strategy decisions go to `flowforge-solution-design` with the requirement authority link/revision.
 - Missing primary-source facts may detour through Research, then return to the same requirement question.
 
+### 6. Record the journal event
+
+After the accepted requirement facts are persisted, append this run's event to the proposal journal `<docs_dir>/proposals/<feature>/journal.md` by hand (v1 ships no `journal stamp` subcommand). When the file is absent, create it from the frontmatter skeleton:
+
+```markdown
+---
+flowforge:
+  schema: 1
+  role: journal
+  id: <feature>-journal
+  events:
+    - {round: 1, stage: align, action: done, ts: 2026-10-12T09:00:00Z, by: flowforge-align}
+---
+```
+
+One event is one flow mapping in the `events` list; append it at the end and never edit or delete an earlier line.
+
+- `round` — the journal's active round; a redo first opens a new round with a stage-less `round-open` event instead of rewriting an earlier entry
+- `stage` — `align`
+- `action` — `done`, or `skipped` when the requirement question was settled without this stage producing artifacts
+- `ts` — UTC timestamp of the append
+- `by` — `flowforge-align`
+- `reason` — required when `action` is `skipped`
+- `source` — stage-less round events only; `round-open` requires `user`, `review`, or `verification`
+- `artifacts` — optional artifact file names this event produced
+- `backfill` — optional `true`; written by `flowforge journal init`, not by this step
+
 ## Completion
 
 Return the authority link and revision, requirement decisions changed this run, scoped unknowns/waivers, affected areas, and the next owner. Every requirement question that changes the solution space is resolved, explicitly scoped, or waived with a reason.

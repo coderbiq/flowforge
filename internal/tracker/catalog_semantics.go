@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (c *Catalog) buildSemanticDiagnostics() {
+func (c *Catalog) buildSemanticDiagnostics(standardsExempt map[string]bool) {
 	index := map[string]authorityRef{}
 	ambiguous := map[string]bool{}
 	for _, a := range c.Artifacts {
@@ -82,6 +82,9 @@ func (c *Catalog) buildSemanticDiagnostics() {
 				}
 			}
 		}
+	}
+	for _, diagnostic := range discoverDesignClausesDiagnostics(c, standardsExempt) {
+		c.addDiagnostic(diagnostic)
 	}
 	for _, a := range c.Artifacts {
 		for _, w := range a.Waivers {

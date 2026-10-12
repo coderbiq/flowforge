@@ -167,6 +167,34 @@ Return the review outcome: if fix Changes were created, return the change number
 
 Review must not write code, merge the two axes, or silently waive a finding. Every finding either becomes a fix Change, a design return, a repair ticket, or an authority-owned disposition recorded in the Review rounds section.
 
+### 8. Record the journal event
+
+After the review dispositions are recorded — and, when this round produced zero findings, after the ticket closes — append this round's event to the proposal journal `<docs_dir>/proposals/<feature>/journal.md` by hand (v1 ships no `journal stamp` subcommand). When the file is absent, create it from the frontmatter skeleton:
+
+```markdown
+---
+flowforge:
+  schema: 1
+  role: journal
+  id: <feature>-journal
+  events:
+    - {round: 1, stage: review, action: done, ts: 2026-10-12T09:00:00Z, by: flowforge-review}
+    - {round: 1, action: round-close, ts: 2026-10-12T09:30:00Z, by: flowforge-review, source: review}
+---
+```
+
+One event is one flow mapping in the `events` list; append it at the end and never edit or delete an earlier line.
+
+- `round` — the journal's active round
+- `stage` — `review`; the `round-close` event below is stage-less
+- `action` — `done`, or `skipped` with a mandatory `reason`; append the stage-less `round-close` event when this review round finishes
+- `ts` — UTC timestamp of the append
+- `by` — `flowforge-review`
+- `reason` — required when `action` is `skipped`
+- `source` — `review` on this stage's `round-close` event; `round-open` requires `user`, `review`, or `verification`
+- `artifacts` — optional artifact file names this event produced
+- `backfill` — optional `true`; written by `flowforge journal init`, not by this step
+
 ## Why two axes
 
 A change can pass one axis and fail the other:

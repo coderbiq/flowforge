@@ -14,6 +14,13 @@ type Options struct {
 	// ExemptProposals lists proposal directory names whose tickets skip
 	// evidence diagnostics entirely (legacy adoption path).
 	ExemptProposals []string
+	// StandardsExemptProposals lists proposal directory names whose tickets
+	// skip standards-marker diagnostics entirely (legacy adoption path).
+	StandardsExemptProposals []string
+	// JournalMigrated arms the journal stage gate (design B3). While the
+	// migration marker is unset the gate is fully silent, so legacy
+	// repositories see no new diagnostics.
+	JournalMigrated bool
 }
 
 var (

@@ -28,14 +28,24 @@ type Config struct {
 	Agents           AgentsConfig            `yaml:"agents,omitempty" mapstructure:"agents"`
 	Standards        StandardsConfig         `yaml:"standards,omitempty" mapstructure:"standards"`
 	Evidence         EvidenceConfig          `yaml:"evidence,omitempty" mapstructure:"evidence"`
+	Journal          JournalConfig           `yaml:"journal,omitempty" mapstructure:"journal"`
 }
 
 type StandardsConfig struct {
-	Guide string `yaml:"guide,omitempty" mapstructure:"guide"`
+	Guide           string   `yaml:"guide,omitempty" mapstructure:"guide"`
+	ExemptProposals []string `yaml:"exempt_proposals,omitempty" mapstructure:"exempt_proposals"`
 }
 
 type EvidenceConfig struct {
 	ExemptProposals []string `yaml:"exempt_proposals,omitempty" mapstructure:"exempt_proposals"`
+}
+
+// JournalConfig carries the repository-level proposal-journal migration
+// marker (design B5). Migrated arms the stage gate; MigratedAt records when
+// the one-shot `journal init` ran.
+type JournalConfig struct {
+	Migrated   bool   `yaml:"migrated,omitempty" mapstructure:"migrated"`
+	MigratedAt string `yaml:"migrated_at,omitempty" mapstructure:"migrated_at"`
 }
 
 type AgentsConfig struct {
@@ -95,6 +105,7 @@ func (c *Config) Save(projectRoot string) error {
 		Agents           AgentsConfig            `yaml:"agents,omitempty"`
 		Standards        StandardsConfig         `yaml:"standards,omitempty"`
 		Evidence         EvidenceConfig          `yaml:"evidence,omitempty"`
+		Journal          JournalConfig           `yaml:"journal,omitempty"`
 	}
 
 	payload := fileConfig{
@@ -106,6 +117,7 @@ func (c *Config) Save(projectRoot string) error {
 		Agents:           c.Agents,
 		Standards:        c.Standards,
 		Evidence:         c.Evidence,
+		Journal:          c.Journal,
 	}
 
 	data, err := yaml.Marshal(payload)

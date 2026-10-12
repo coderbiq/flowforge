@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -44,6 +45,8 @@ func (s *ConfigService) Get(key string) (string, error) {
 			return guide, nil
 		}
 		return DefaultStandardsGuide, nil
+	case key == "journal.migrated":
+		return fmt.Sprintf("%t", s.fileStore.Config().Journal.Migrated), nil
 	default:
 		return "", fmt.Errorf("unknown config key: %s", key)
 	}
@@ -73,6 +76,15 @@ func (s *ConfigService) Set(key, value string) error {
 			return fmt.Errorf("standards.guide must not be empty")
 		}
 		s.fileStore.Config().Standards.Guide = value
+		if err := s.fileStore.Save(); err != nil {
+			return err
+		}
+	case key == "journal.migrated":
+		migrated, err := strconv.ParseBool(strings.TrimSpace(value))
+		if err != nil {
+			return fmt.Errorf("journal.migrated must be true or false, got: %s", value)
+		}
+		s.fileStore.Config().Journal.Migrated = migrated
 		if err := s.fileStore.Save(); err != nil {
 			return err
 		}

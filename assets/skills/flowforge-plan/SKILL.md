@@ -138,6 +138,33 @@ Keep `Blocked by` human-visible even when metadata carries consumption. Omit emp
 
 Run `flowforge check --dir <docs_dir>/proposals` and `flowforge frontier --dir <docs_dir>/proposals`. Correct cycles, dangling edges, blockers, and gaps. Explain retained warnings and any exact waiver or explicit gap override; do not persist a readiness phase or rewrite status merely to make work appear executable.
 
+### 5. Record the journal event
+
+After the tickets are published and validated, append this run's event to the proposal journal `<docs_dir>/proposals/<feature>/journal.md` by hand (v1 ships no `journal stamp` subcommand). When the file is absent, create it from the frontmatter skeleton:
+
+```markdown
+---
+flowforge:
+  schema: 1
+  role: journal
+  id: <feature>-journal
+  events:
+    - {round: 1, stage: plan, action: done, ts: 2026-10-12T09:00:00Z, by: flowforge-plan}
+---
+```
+
+One event is one flow mapping in the `events` list; append it at the end and never edit or delete an earlier line.
+
+- `round` — the journal's active round, the round the published increments belong to
+- `stage` — `plan`
+- `action` — `done`, or `skipped` with a mandatory `reason`
+- `ts` — UTC timestamp of the append
+- `by` — `flowforge-plan`
+- `reason` — required when `action` is `skipped`
+- `source` — stage-less round events only; `round-open` requires `user`, `review`, or `verification`
+- `artifacts` — optional artifact file names this event produced
+- `backfill` — optional `true`; written by `flowforge journal init`, not by this step
+
 ## Completion
 
 Return created ticket links, the approved DAG, consumed authority revisions, diagnostics and dispositions, and the current frontier. Every ticket is independently verifiable, locally sufficient, free of hidden design choices, and small enough for one fresh context.

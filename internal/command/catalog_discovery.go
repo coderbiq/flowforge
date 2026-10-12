@@ -27,6 +27,8 @@ func discoverProposalCatalog(dir string) (*tracker.Catalog, error) {
 	if projectRoot != "" {
 		if cfg, err := config.Load(projectRoot); err == nil {
 			opts.ExemptProposals = cfg.Evidence.ExemptProposals
+			opts.StandardsExemptProposals = cfg.Standards.ExemptProposals
+			opts.JournalMigrated = cfg.Journal.Migrated
 		} else if !os.IsNotExist(err) {
 			fmt.Fprintf(os.Stderr, "warning: loading %s: %v (evidence exemptions ignored)\n", config.ConfigPath(projectRoot), err)
 		}

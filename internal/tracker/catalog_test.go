@@ -122,7 +122,7 @@ func TestArtifactRoleLocationMatrix(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	roles := []string{"requirement", "design", "spec", "evidence", "research", "map"}
+	roles := []string{"requirement", "design", "spec", "evidence", "research", "map", "journal"}
 	for _, role := range roles {
 		body := "---\nflowforge:\n  schema: 1\n  role: " + role + "\n---\n# " + role + "\n"
 		if err := os.WriteFile(filepath.Join(feature, role+".md"), []byte(body), 0o644); err != nil {

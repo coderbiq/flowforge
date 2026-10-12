@@ -566,3 +566,183 @@ func TestRenderPiWorkflowEmptyBatch(t *testing.T) {
 		t.Fatalf("empty batch must not emit the loop skeleton, got: %q", out)
 	}
 }
+
+func standardsGateFrontierFixture(t *testing.T, gatedConstraints string) string {
+	t.Helper()
+	root := t.TempDir()
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	execContract := "## Execution detail\n\n### Verified contracts\n\n- catalog.go owns ticket diagnostics.\n\n### Execution scenarios\n\n- Success: marked ticket stays ready.\n- Failure: unmarked ticket leaves the queue.\n\n### Expected tests\n\n- go test ./internal/command/...\n\n### Generated artifacts\n\n- Not applicable — diagnostics are computed at runtime.\n\n### Conventions\n\n- Reuse existing blocker projection.\n"
+	write := func(name, constraints string) {
+		t.Helper()
+		body := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n# " + name + "\n**Status:** open\n**Blocked by:** None\n\n" + execContract + "\n## Constraints\n\n" + constraints + "\n"
+		if err := os.WriteFile(filepath.Join(issues, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("01-marked.md", "- must keep behavior\n- Write set: internal/tracker/\n")
+	write("02-gated.md", gatedConstraints)
+	return root
+}
+
+func runStandardsGateFrontier(t *testing.T, root string) (string, string, error) {
+	t.Helper()
+	cmd := newFrontierCmd()
+	frontierDir, frontierQuiet, frontierJSON, frontierStrict, frontierIncludeGaps = root, true, false, false, false
+	var stdout, stderr bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	err := cmd.RunE(cmd, nil)
+	return stdout.String(), stderr.String(), err
+}
+
+// TestFrontierExcludesStandardsMarkerMissingTickets pins the blocker arm: a
+// Write-set ticket without any standards marker leaves the dispatch queue and
+// frontier prints the repair guidance on stderr.
+func TestFrontierExcludesStandardsMarkerMissingTickets(t *testing.T) {
+	root := standardsGateFrontierFixture(t, "- keep the change small\n- Write set: internal/tracker/\n")
+	stdoutText, stderrText, err := runStandardsGateFrontier(t, root)
+	if err != errPolicyViolation {
+		t.Fatalf("blocker must fail the frontier policy: err=%v stdout=%q stderr=%q", err, stdoutText, stderrText)
+	}
+	if !strings.Contains(stdoutText, "01-marked.md") || strings.Contains(stdoutText, "02-gated.md") {
+		t.Fatalf("missing-marker ticket must leave the ready queue: stdout=%q", stdoutText)
+	}
+	if !strings.Contains(stderrText, string(tracker.DiagnosticStandardsMarkerMissing)) || !strings.Contains(stderrText, "return to Plan and rerun standards extraction") {
+		t.Fatalf("stderr must carry the standards gate guidance: stderr=%q", stderrText)
+	}
+}
+
+// TestFrontierExcludesStandardsPendingTickets pins the warning arm: a pending
+// ticket is escalated out of ready (the implementer preflight would only
+// bounce it) while the diagnostic itself stays a warning, not a blocker.
+func TestFrontierExcludesStandardsPendingTickets(t *testing.T) {
+	root := standardsGateFrontierFixture(t, "- standards: pending\n- Write set: internal/tracker/\n")
+	stdoutText, stderrText, err := runStandardsGateFrontier(t, root)
+	if err != nil {
+		t.Fatalf("pending ticket must not raise a blocker policy error: err=%v stdout=%q stderr=%q", err, stdoutText, stderrText)
+	}
+	if !strings.Contains(stdoutText, "01-marked.md") || strings.Contains(stdoutText, "02-gated.md") {
+		t.Fatalf("pending ticket must leave the ready queue: stdout=%q", stdoutText)
+	}
+	if !strings.Contains(stderrText, string(tracker.DiagnosticStandardsPending)) || !strings.Contains(stderrText, "return to Plan and rerun standards extraction") {
+		t.Fatalf("stderr must carry the standards gate guidance: stderr=%q", stderrText)
+	}
+}
+
+// --- 03: journal stage gate exclusion (arming) ---
+
+// journalGateFrontierFixture writes a project config plus one marker-complete
+// Write-set ticket and deliberately no journal.md, so the armed stage gate is
+// the only gate in play.
+func journalGateFrontierFixture(t *testing.T, configBody string) string {
+	t.Helper()
+	root := t.TempDir()
+	configDir := filepath.Join(root, ".flowforge")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("version: 5.0.0\n"+configBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	issues := filepath.Join(root, "feature", "issues")
+	if err := os.MkdirAll(issues, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	execContract := "## Execution detail\n\n### Verified contracts\n\n- catalog.go owns ticket diagnostics.\n\n### Execution scenarios\n\n- Success: gated ticket stays out.\n- Failure: missing journal blocks dispatch.\n\n### Expected tests\n\n- go test ./internal/command/...\n\n### Generated artifacts\n\n- Not applicable — diagnostics are computed at runtime.\n\n### Conventions\n\n- Reuse existing blocker projection.\n"
+	body := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n# 01-gated.md\n**Status:** open\n**Blocked by:** None\n\n" + execContract + "\n## Constraints\n\n- must keep behavior\n- Write set: internal/tracker/\n"
+	if err := os.WriteFile(filepath.Join(issues, "01-gated.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+// writeJournalGateJournal gives the fixture's proposal a complete active-round
+// journal (align skipped with reason, design done).
+func writeJournalGateJournal(t *testing.T, root string) {
+	t.Helper()
+	dir := filepath.Join(root, "feature")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := "---\nflowforge:\n  schema: 1\n  role: journal\n  id: feature-journal\n  events:\n" +
+		"  - {round: 1, stage: align, action: skipped, reason: \"fast-track\"}\n" +
+		"  - {round: 1, stage: design, action: done}\n" +
+		"---\n# Journal\n"
+	if err := os.WriteFile(filepath.Join(dir, "journal.md"), []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestFrontierExcludesJournalGateBlockers pins the generic blocker channel both
+// journal gate codes ride: SeverityBlocker alone moves them out of ready, so
+// classifyReady needs no journal-specific branch.
+func TestFrontierExcludesJournalGateBlockers(t *testing.T) {
+	missing := &tracker.Issue{ID: "01", FilePath: "01.md"}
+	incomplete := &tracker.Issue{ID: "02", FilePath: "02.md"}
+	clean := &tracker.Issue{ID: "03", FilePath: "03.md"}
+	diagnostics := []tracker.Diagnostic{
+		{Code: tracker.DiagnosticJournalMissing, Severity: tracker.SeverityBlocker, Artifact: missing.FilePath},
+		{Code: tracker.DiagnosticJournalStageIncomplete, Severity: tracker.SeverityBlocker, Artifact: incomplete.FilePath},
+	}
+
+	gotClean, gotWarnings, gotGaps, gotBlocked := classifyReady([]*tracker.Issue{missing, incomplete, clean}, diagnostics)
+	if len(gotClean) != 1 || gotClean[0] != clean {
+		t.Fatalf("clean = %#v, want only %s", gotClean, clean.FilePath)
+	}
+	if len(gotBlocked) != 2 || gotBlocked[0] != missing || gotBlocked[1] != incomplete {
+		t.Fatalf("journal gate blockers must leave ready: blocked=%#v", gotBlocked)
+	}
+	if len(gotWarnings) != 0 || len(gotGaps) != 0 {
+		t.Fatalf("unexpected buckets: warnings=%#v gaps=%#v", gotWarnings, gotGaps)
+	}
+}
+
+// TestFrontierJournalGateUsesConfigMarker is the end-to-end arming check:
+// catalog_discovery passes config journal.migrated into tracker.Options, so a
+// migrated project with no journal.md drops the ticket and names the code.
+func TestFrontierJournalGateUsesConfigMarker(t *testing.T) {
+	root := journalGateFrontierFixture(t, "journal:\n  migrated: true\n  migrated_at: \"2026-10-12T09:00:00Z\"\n")
+	stdoutText, stderrText, err := runStandardsGateFrontier(t, root)
+	if err != errPolicyViolation {
+		t.Fatalf("journal-missing blocker must fail the frontier policy: err=%v stdout=%q stderr=%q", err, stdoutText, stderrText)
+	}
+	if strings.Contains(stdoutText, "01-gated.md") {
+		t.Fatalf("gated ticket must leave the ready queue: stdout=%q", stdoutText)
+	}
+	if !strings.Contains(stderrText, string(tracker.DiagnosticJournalMissing)) {
+		t.Fatalf("stderr must name the journal gate code: stderr=%q", stderrText)
+	}
+}
+
+// TestFrontierJournalGateSilentWhenMarkerUnset pins the arming lever end to
+// end: the same proposal without the marker keeps its ticket ready.
+func TestFrontierJournalGateSilentWhenMarkerUnset(t *testing.T) {
+	root := journalGateFrontierFixture(t, "journal:\n  migrated: false\n")
+	stdoutText, stderrText, err := runStandardsGateFrontier(t, root)
+	if err != nil {
+		t.Fatalf("unarmed gate must not block: err=%v stdout=%q stderr=%q", err, stdoutText, stderrText)
+	}
+	if !strings.Contains(stdoutText, "01-gated.md") {
+		t.Fatalf("unarmed gate must keep the ticket ready: stdout=%q stderr=%q", stdoutText, stderrText)
+	}
+	if strings.Contains(stderrText, string(tracker.DiagnosticJournalMissing)) {
+		t.Fatalf("unarmed gate must stay silent: stderr=%q", stderrText)
+	}
+}
+
+// TestFrontierJournalGatePassesCompleteActiveRound pins the success scenario:
+// an armed project whose journal finished align and design dispatches normally.
+func TestFrontierJournalGatePassesCompleteActiveRound(t *testing.T) {
+	root := journalGateFrontierFixture(t, "journal:\n  migrated: true\n")
+	writeJournalGateJournal(t, root)
+	stdoutText, stderrText, err := runStandardsGateFrontier(t, root)
+	if err != nil {
+		t.Fatalf("complete active round must stay ready: err=%v stdout=%q stderr=%q", err, stdoutText, stderrText)
+	}
+	if !strings.Contains(stdoutText, "01-gated.md") {
+		t.Fatalf("complete active round must keep the ticket ready: stdout=%q stderr=%q", stdoutText, stderrText)
+	}
+}

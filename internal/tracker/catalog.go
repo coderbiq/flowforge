@@ -22,6 +22,7 @@ const (
 	RoleEvidence    ArtifactRole = "evidence"
 	RoleResearch    ArtifactRole = "research"
 	RoleMap         ArtifactRole = "map"
+	RoleJournal     ArtifactRole = "journal"
 )
 
 type DiagnosticCode string
@@ -58,6 +59,12 @@ const (
 	DiagnosticEvidenceRepeatFailure       DiagnosticCode = "evidence-repeat-failure"
 	DiagnosticDanglingRepairReference     DiagnosticCode = "dangling-repair-reference"
 	DiagnosticMissingReciprocalRepair     DiagnosticCode = "missing-reciprocal-repair"
+	DiagnosticJournalInvalidEvent         DiagnosticCode = "journal-invalid-event"
+	DiagnosticJournalMissing              DiagnosticCode = "journal-missing"
+	DiagnosticJournalStageIncomplete      DiagnosticCode = "journal-stage-incomplete"
+	DiagnosticStandardsMarkerMissing      DiagnosticCode = "standards-marker-missing"
+	DiagnosticStandardsPending            DiagnosticCode = "standards-pending"
+	DiagnosticStandardsClausesMissing     DiagnosticCode = "standards-clauses-missing"
 )
 
 type Diagnostic struct {
@@ -112,7 +119,10 @@ type Artifact struct {
 	Consumes   map[string]map[string]int `json:"consumes,omitempty"`
 	OpenItems  []OpenItem                `json:"open_items,omitempty"`
 	Waivers    []Waiver                  `json:"waivers,omitempty"`
+	Journal    *JournalState             `json:"journal,omitempty"`
 	Body       string                    `json:"-"`
+
+	journalEvents []JournalEvent
 }
 
 type Catalog struct {
@@ -180,6 +190,7 @@ type catalogMetadata struct {
 	Consumes  map[string]map[string]int `yaml:"consumes"`
 	OpenItems []OpenItem                `yaml:"open_items"`
 	Waivers   []Waiver                  `yaml:"waivers"`
+	Events    []JournalEvent            `yaml:"events"`
 }
 
 func DiscoverArtifacts(root string) (*Catalog, error) {
@@ -198,6 +209,10 @@ func DiscoverArtifactsWithConfig(root string, opts Options) (*Catalog, error) {
 	for _, name := range opts.ExemptProposals {
 		exempt[name] = true
 	}
+	standardsExempt := make(map[string]bool, len(opts.StandardsExemptProposals))
+	for _, name := range opts.StandardsExemptProposals {
+		standardsExempt[name] = true
+	}
 	artifactBase := resolveArtifactBase(root)
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
@@ -214,6 +229,12 @@ func DiscoverArtifactsWithConfig(root string, opts Options) (*Catalog, error) {
 		if artifact.Executable && !exempt[featureForPath(path)] {
 			diagnostics = append(diagnostics, discoverEvidenceDiagnostics(artifactBase, path, artifact.Body)...)
 		}
+		if artifact.Executable && !standardsExempt[featureForPath(path)] {
+			diagnostics = append(diagnostics, discoverStandardsDiagnostics(path, artifact.Body, artifact.Ticket.Status.IsTerminal())...)
+		}
+		if artifact.Role == RoleJournal {
+			diagnostics = append(diagnostics, discoverJournalDiagnostics(path, artifact.journalEvents)...)
+		}
 		catalog.Artifacts = append(catalog.Artifacts, artifact)
 		if artifact.Executable && artifact.Ticket != nil {
 			catalog.Tickets = append(catalog.Tickets, artifact.Ticket)
@@ -226,7 +247,8 @@ func DiscoverArtifactsWithConfig(root string, opts Options) (*Catalog, error) {
 	}
 
 	sort.Slice(catalog.Artifacts, func(i, j int) bool { return catalog.Artifacts[i].Path < catalog.Artifacts[j].Path })
-	catalog.buildSemanticDiagnostics()
+	catalog.Diagnostics = append(catalog.Diagnostics, discoverStageGateDiagnostics(catalog, opts)...)
+	catalog.buildSemanticDiagnostics(standardsExempt)
 	catalog.validateRepairReferences()
 	return catalog, nil
 }
@@ -259,6 +281,11 @@ func discoverArtifact(path string) (*Artifact, []Diagnostic, error) {
 			metadata := envelope.FlowForge
 			artifact.Schema, artifact.Role, artifact.ID, artifact.Revision = metadata.Schema, metadata.Role, metadata.ID, metadata.Revision
 			artifact.Areas, artifact.Consumes, artifact.OpenItems, artifact.Waivers = metadata.Areas, metadata.Consumes, metadata.OpenItems, metadata.Waivers
+			artifact.journalEvents = metadata.Events
+			if metadata.Role == RoleJournal {
+				state := FoldJournal(metadata.Events)
+				artifact.Journal = &state
+			}
 			if metadata.Schema == 0 || metadata.Role == "" {
 				diagnostics = append(diagnostics, warning(DiagnosticMissingMetadata, path, "FlowForge schema and role are required"))
 				if inIssues {
@@ -406,7 +433,7 @@ func warning(code DiagnosticCode, path, message string) Diagnostic {
 
 func validRole(role ArtifactRole) bool {
 	switch role {
-	case RoleRequirement, RoleDesign, RoleSpec, RoleTicket, RoleEvidence, RoleResearch, RoleMap:
+	case RoleRequirement, RoleDesign, RoleSpec, RoleTicket, RoleEvidence, RoleResearch, RoleMap, RoleJournal:
 		return true
 	default:
 		return false

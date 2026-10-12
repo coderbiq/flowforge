@@ -48,6 +48,7 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 			g := tracker.BuildGraph(issues)
 			frontier := g.ComputeFrontier()
 			ready, readyWarnings, gaps, contentBlocked := classifyReady(frontier.Ready, catalog.Diagnostics)
+			reportStandardsGateExclusions(cmd, frontier.Ready, catalog.Diagnostics)
 			for _, issue := range contentBlocked {
 				frontier.Blocked = append(frontier.Blocked, tracker.BlockedInfo{Issue: issue, WaitingOn: []string{"content-blocker"}})
 			}
@@ -141,6 +142,11 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 	return cmd
 }
 
+// classifyReady buckets ready tickets by their highest unwaived diagnostic
+// severity. The standards gate rides the same channels: `standards-marker-
+// missing` is a blocker, while `standards-pending` is a warning that is
+// escalated to blocked so a pending ticket never reaches the dispatch queue
+// (the implementer preflight would only bounce it).
 func classifyReady(ready []*tracker.Issue, diagnostics []tracker.Diagnostic) (clean, warnings, gaps, blocked []*tracker.Issue) {
 	for _, issue := range ready {
 		severity := tracker.DiagnosticSeverity("")
@@ -148,7 +154,7 @@ func classifyReady(ready []*tracker.Issue, diagnostics []tracker.Diagnostic) (cl
 			if d.Artifact != issue.FilePath || d.Waiver != nil || d.Code == tracker.DiagnosticLegacyMetadata {
 				continue
 			}
-			if d.Severity == tracker.SeverityBlocker {
+			if d.Severity == tracker.SeverityBlocker || d.Code == tracker.DiagnosticStandardsPending {
 				severity = tracker.SeverityBlocker
 				break
 			}
@@ -172,6 +178,26 @@ func classifyReady(ready []*tracker.Issue, diagnostics []tracker.Diagnostic) (cl
 		}
 	}
 	return
+}
+
+// reportStandardsGateExclusions writes one stderr line per ready ticket the
+// standards marker gate removed from the dispatch queue, naming the ticket
+// and the missing stage work (rerun standards extraction from Plan).
+func reportStandardsGateExclusions(cmd *cobra.Command, ready []*tracker.Issue, diagnostics []tracker.Diagnostic) {
+	for _, issue := range ready {
+		for _, d := range diagnostics {
+			if d.Artifact != issue.FilePath || d.Waiver != nil || !isStandardsGateCode(d.Code) {
+				continue
+			}
+			fmt.Fprintf(cmd.ErrOrStderr(), "%s %s#%s: %s — return to Plan and rerun standards extraction before dispatch\n", d.Severity, issue.Feature, issue.ID, d.Code)
+		}
+	}
+}
+
+// isStandardsGateCode reports the diagnostics whose tickets must leave the
+// dispatch queue: a missing marker or an unfinished transcription.
+func isStandardsGateCode(code tracker.DiagnosticCode) bool {
+	return code == tracker.DiagnosticStandardsMarkerMissing || code == tracker.DiagnosticStandardsPending
 }
 
 func catalogPolicyError(diagnostics []tracker.Diagnostic, strict bool) error {
