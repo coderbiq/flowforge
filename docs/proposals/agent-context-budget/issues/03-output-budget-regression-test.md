@@ -4,7 +4,7 @@ flowforge:
   role: ticket
   consumes:
     requirements:
-      agent-context-budget-requirements: 2
+      agent-context-budget-requirements: 3
     design:
       budget-contract: 1
 ---
@@ -23,7 +23,7 @@ flowforge:
 
 体积 Bug 修复后需要防回归护栏：notebook 会持续增长（GIIS 已 39 proposals / 197 tickets），无测试约束的输出会在未来再次无界膨胀。预算以最紧宿主为准（Codex 展示上限 < 16KB，实现期若核实更紧值则同步下调常量——常量调整属 01 票 Write set，本票断言引用常量而非硬编码数字）。测试分离：本票预置的测试文件即验收测试，后续执行者不得修改。
 
-Authority: [requirements](../requirements.md#agent-context-budget-requirements) rev 2; design area [budget-contract](../design.md#d3-budget-contract).
+Authority: [requirements](../requirements.md#agent-context-budget-requirements) rev 3; design area [budget-contract](../design.md#d3-budget-contract).
 
 ## Touch points
 

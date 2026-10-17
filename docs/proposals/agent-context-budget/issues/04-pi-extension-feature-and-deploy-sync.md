@@ -4,7 +4,7 @@ flowforge:
   role: ticket
   consumes:
     requirements:
-      agent-context-budget-requirements: 2
+      agent-context-budget-requirements: 3
     design:
       scope-selection: 1
 ---
@@ -23,7 +23,7 @@ PI 宿主获得作用域入口：`flowforge_frontier` / `flowforge_check` 原生
 
 MCP 封装当前零参数（`assets/pi/flowforge.ts:260,269` `parameters: Type.Object({})`）且强制 `["frontier","--json"]`——GIIS 死亡链的直接入口（原生工具绕过 bash 截断，1.35MB 全量入上下文）。01/02 票交付 CLI 收敛后，封装自动受益；本票补作用域参数入口并让提示词与机制对齐（技能文本只说 "for this ticket" 却无机制支撑）。`assets/` 是唯一真源，部署副本（`.pi/extensions/`、`.agents/skills/`）必须逐字节同步——drift 是缺陷。
 
-Authority: [requirements](../requirements.md#agent-context-budget-requirements) rev 2; design area [scope-selection](../design.md#d6-scope-selection);另见 D4 MCP 封装与部署节。
+Authority: [requirements](../requirements.md#agent-context-budget-requirements) rev 3; design area [scope-selection](../design.md#d6-scope-selection);另见 D4 MCP 封装与部署节。
 
 ## Touch points
 

@@ -3,7 +3,7 @@ flowforge:
   schema: 1
   role: requirement
   id: agent-context-budget-requirements
-  revision: 2
+  revision: 3
 ---
 
 <a id="agent-context-budget-requirements"></a>
@@ -13,7 +13,7 @@ flowforge:
 
 ## 一、可观察结果
 
-1. **输出有界**：`flowforge frontier` 与 `flowforge check` 的 agent-facing 默认输出（含 `--json`）存在硬性字节预算（上限数值由 design 裁定，量级 ~16KB），不随 notebook 的 issue 数量线性增长。ready 队列保持完整可执行信息（id / feature / title / file_path / 依赖）。
+1. **输出有界**：`flowforge frontier` 与 `flowforge check` 的 agent-facing 默认输出（含 `--json`）存在硬性字节预算（上限数值由 design 裁定，量级 ~16KB）；噪声部分（票面正文、逐条 diagnostics）不随 notebook 规模增长。ready 队列本体按条目数线性，条目为无正文最小投影（id / feature / file_path / 依赖；title 省略——slug 已含于 file_path）——S1 场景（197 tickets）实测 14,558B ≤ 预算；超大队列的分页/采样记入 design 后续备注。
 2. **128k 窗口可入场**：窗口 128k 级模型的子代理按技能规定完成入场 frontier/check 调用序列后，会话上下文增量远低于窗口上限，不再出现 `stopReason: "length"` 入场死亡。
 3. **票面不经 CLI**：frontier 输出不含任何 `Issue.Body`（票面全文）；票面内容一律以 `file_path` 引用，由消费者按文件读取（"文件负责内容"）。
 4. **细节按需可取**：人类与脚本可用 `--full`（或等价机制）获得与现状等价的全量输出；blocker 级诊断在默认输出中逐条可见（门禁可诊断性不降级）。

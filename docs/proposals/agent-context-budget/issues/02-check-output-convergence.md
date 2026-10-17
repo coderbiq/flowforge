@@ -4,7 +4,7 @@ flowforge:
   role: ticket
   consumes:
     requirements:
-      agent-context-budget-requirements: 2
+      agent-context-budget-requirements: 3
     design:
       check-output: 1
       scope-selection: 1
@@ -24,7 +24,7 @@ flowforge:
 
 check 文本模式经 `printDiagnostics` 无界打印每条 diagnostic（`internal/command/check.go:82`），GIIS 实测 402KB；四个 bash 宿主的截断（30K-50KB）会把输出拦腰砍断，截断 JSON/文本可级联成假 `STATUS: BLOCKED`。本票复用 01 票建立的共享收敛机制（`summarizeDiagnostics`、`MaxAgentOutputBytes`）。收敛只动打印层，不动判定层——CI 门禁依赖 exit code。
 
-Authority: [requirements](../requirements.md#agent-context-budget-requirements) rev 2; design areas [check-output](../design.md#d2-check-convergence), [scope-selection](../design.md#d6-scope-selection).
+Authority: [requirements](../requirements.md#agent-context-budget-requirements) rev 3; design areas [check-output](../design.md#d2-check-convergence), [scope-selection](../design.md#d6-scope-selection).
 
 ## Touch points
 

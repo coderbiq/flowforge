@@ -14,6 +14,8 @@ flowforge:
     - {round: 2, stage: align, action: done, ts: "2026-10-17T02:35:00Z", by: flowforge-align, artifacts: [requirements.md], backfill: true}
     - {round: 3, stage: align, action: skipped, reason: "requirement authority 未变（rev 2 自 round 2 起有效），round 3 仅扩充 design 事实（宿主矩阵），无新需求澄清工作", ts: "2026-10-17T02:35:00Z", by: flowforge-plan}
     - {round: 3, stage: plan, action: done, ts: "2026-10-17T02:35:00Z", by: flowforge-plan, artifacts: [issues/01-frontier-output-convergence.md, issues/02-check-output-convergence.md, issues/03-output-budget-regression-test.md, issues/04-pi-extension-feature-and-deploy-sync.md]}
+    - {round: 3, stage: review, action: done, ts: "2026-10-17T02:47:49Z", by: flowforge-review, artifacts: [issues/01-frontier-output-convergence.md]}
+    - {round: 3, action: round-close, ts: "2026-10-17T02:47:49Z", by: flowforge-review, source: review}
 ---
 
 # Journal: agent-context-budget
@@ -26,3 +28,5 @@ flowforge:
 - **design done（round 2）**：作用域缺口量化（96% 噪音；MCP 零参数 `flowforge.ts:260,269`；CLI `--dir` 目录级作用域已存在）并入需求结果 6 与场景 S5；新增 D6 作用域选择（`--feature` flag + MCP 可选 feature 参数 + implement 技能一行作用域提示），requirements/design 升 rev 2。
 - **design done（round 3）**：宿主矩阵入 design 已解析事实（四宿主同病、症状各异：PI 原生工具无截断放最重、Claude Code 30K/OpenCode 50KB/Codex 更紧的截断致 JSON 断裂与 BLOCKED 级联）；D3 增补"预算常量以最紧宿主为准、实现期核对 Codex 展示上限"。CLI 层收敛是唯一全宿主修复点，方案 A 选择被反向验证。design 升 rev 3。
 - **plan done（round 3）**：四张 tracer 票发布——01 frontier 收敛+共享预算机制（无阻塞）、02 check 收敛（←01）、03 预算回归测试（←01,02）、04 PI 扩展/技能提示/部署同步（←01,02）。round 2 align 补记（backfill，requirements rev 2 事实发生于 round 2）；round 3 align skipped（需求未变）。design rev 4：机器 open item 降级为正文备注（它本不该门禁票 03）。四票待 flowforge-refine-ticket 填充 Execution contract。
+
+- **review done（round 3，票 01）**：Round 0 收敛审计抓出 1 处 partial（`--feature` 文本通道 diagnostics 未作用域化）→ Fix 6 已修复复验（作用域文本 3,785B）；双轴零未决发现（Standards 无；Spec 2 项记录性发现走 authority-owned 处置：requirements r3 队列线性措辞、design r5 TicketRef 字段修订）。票 01 关闭，Completion evidence 落票面。**round 3 close**。

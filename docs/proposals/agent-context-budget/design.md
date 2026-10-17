@@ -3,7 +3,7 @@ flowforge:
   schema: 1
   role: design
   id: agent-context-budget-design
-  revision: 4
+  revision: 5
   consumes:
     requirements:
       agent-context-budget-requirements: 2
@@ -76,7 +76,7 @@ flowforge:
 
 ### D1 frontier `--json` 新 schema <a id="d1-frontier-schema"></a>
 
-- `ready[]` / `ready_with_warnings[]` / `gaps[]` / `claimed[]`：`{id, feature, title, file_path, blocked_by[]}`（删除 `body`、`mod_time` 等正文性字段）。
+- `ready[]` / `ready_with_warnings[]` / `gaps[]` / `claimed[]`：`{id, feature, file_path, blocked_by[]}`（`TicketRef`——r5 修订：实施期为满足预算省略 `title`，slug 已含于 file_path；`blocked[]` 保留 title 供叙事）。删除 `body`、`mod_time` 等正文性字段。
 - `blocked[]`：`{id, feature, title, waiting_on[]}`。
 - `diagnostics`：`{counts: {"<severity>:<code>": n}, blockers: [{severity, code, artifact, message(≤160 chars)}], sample_warnings: [{code, artifact}] × ≤5}`——blocker 逐条保留（门禁可诊断性），warning/gap 聚合计数 + 样例。
 - 顶层提示字段 `"detail": "pass --full for complete bodies and diagnostics"`。
@@ -127,4 +127,4 @@ flowforge:
 
 ## 六、后续备注（非机器 open item）
 
-<a id="open-other-commands-audit"></a>- `status` / `inspect` / `agents` 等命令的输出体积未审计；预算契约是否泛化为全局 CLI 输出契约，由后续独立 proposal 裁定（不阻塞本设计四区域与四张票）。
+<a id="open-other-commands-audit"></a>- `status` / `inspect` / `agents` / `frontier --quiet` 等通道的输出体积未审计（--quiet 保持全局无界，票 01 明确不动）；预算契约是否泛化、以及超大队列（>~190 ready 条目）的分页/采样，由后续独立 proposal 裁定（不阻塞本设计区域与票据）。

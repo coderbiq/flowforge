@@ -40,8 +40,6 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 					return err
 				}
 			}
-			// --feature projects output inside whatever root --dir (or the
-			// default) selected; callers point --dir at the proposals root.
 
 			catalog, err := discoverProposalCatalog(dir)
 			if err != nil {
@@ -151,7 +149,7 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 					fmt.Printf("◇ #%s %s (%s)\n", issue.ID, issue.Title, issue.FilePath)
 				}
 			}
-			printDiagnosticsForMode(cmd, catalog.Diagnostics, frontierFull)
+			printDiagnosticsForMode(cmd, scopedDiagnostics, frontierFull)
 
 			if len(frontier.Claimed) > 0 {
 				fmt.Println("\n=== CLAIMED (In Progress) ===")
