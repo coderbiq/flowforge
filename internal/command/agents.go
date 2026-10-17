@@ -317,9 +317,10 @@ func resolveCompileOptions(cfg *config.Config, def *subagent.Definition, hostKey
 // validateModelValueForHost checks one model value against one host's format
 // rule: every host requires a non-empty token without inner whitespace or
 // control characters; opencode and pi additionally require the provider/model
-// shape (exactly one slash, both sides non-empty); claude accepts any single
-// token (alias, inherit, or full model id). Existence is never queried
-// (purely local, deterministic).
+// shape — at least one slash with no empty segment — so both plain
+// provider/model refs and nested gateway refs (magpie/vendor/model) pass;
+// claude accepts any single token (alias, inherit, or full model id).
+// Existence is never queried (purely local, deterministic).
 func validateModelValueForHost(where, value, host string) error {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
@@ -331,7 +332,7 @@ func validateModelValueForHost(where, value, host string) error {
 		}
 	}
 	if host == "opencode" || host == "pi" {
-		if strings.Count(trimmed, "/") != 1 || strings.HasPrefix(trimmed, "/") || strings.HasSuffix(trimmed, "/") {
+		if !strings.Contains(trimmed, "/") || strings.HasPrefix(trimmed, "/") || strings.HasSuffix(trimmed, "/") || strings.Contains(trimmed, "//") {
 			return fmt.Errorf("%s: model value %q invalid for host %q (want provider/model)", where, value, host)
 		}
 	}

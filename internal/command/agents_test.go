@@ -2672,9 +2672,23 @@ func TestValidateModelConfig(t *testing.T) {
 			wantErr: "provider/model",
 		},
 		{
-			name: "opencode value with two slashes",
+			name: "opencode nested gateway ref with multiple slashes",
 			mutate: func(c *config.Config) {
-				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: "a/b/c"}}}
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: "magpie/openrouter/google/gemini-3-flash"}}}
+			},
+			hosts: hosts("opencode"),
+		},
+		{
+			name: "pi nested gateway ref with multiple slashes",
+			mutate: func(c *config.Config) {
+				c.Agents.ModelOverrides = map[string]config.ModelValue{"flowforge-implementer": {Model: "magpie/vendor/model-id"}}
+			},
+			hosts: hosts("pi"),
+		},
+		{
+			name: "value with empty middle segment",
+			mutate: func(c *config.Config) {
+				c.Agents.ModelHostOverrides = map[string]map[string]config.ModelValue{"opencode": {"flowforge-implementer": {Model: "a//b"}}}
 			},
 			hosts:   hosts("opencode"),
 			wantErr: "provider/model",
