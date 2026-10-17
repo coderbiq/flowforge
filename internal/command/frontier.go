@@ -21,6 +21,8 @@ var (
 	frontierStrict      bool
 	frontierIncludeGaps bool
 	frontierPiWorkflow  bool
+	frontierFeature     string
+	frontierFull        bool
 )
 
 func newFrontierCmd() *cobra.Command {
@@ -38,6 +40,8 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 					return err
 				}
 			}
+			// --feature projects output inside whatever root --dir (or the
+			// default) selected; callers point --dir at the proposals root.
 
 			catalog, err := discoverProposalCatalog(dir)
 			if err != nil {
@@ -48,11 +52,29 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 			g := tracker.BuildGraph(issues)
 			frontier := g.ComputeFrontier()
 			ready, readyWarnings, gaps, contentBlocked := classifyReady(frontier.Ready, catalog.Diagnostics)
-			reportStandardsGateExclusions(cmd, frontier.Ready, catalog.Diagnostics)
+			// Default agent-facing output already carries gate exclusions inside
+			// the summarized blockers list (standards-marker-missing is blocker
+			// severity); the per-ticket stderr lines ride the same stream as the
+			// JSON and would break the output budget, so they stay --full-only.
+			if frontierFull {
+				reportStandardsGateExclusions(cmd, frontier.Ready, catalog.Diagnostics)
+			}
 			for _, issue := range contentBlocked {
 				frontier.Blocked = append(frontier.Blocked, tracker.BlockedInfo{Issue: issue, WaitingOn: []string{"content-blocker"}})
 			}
 			frontier.Ready = effectiveReady(ready, readyWarnings, gaps, frontierStrict, frontierIncludeGaps)
+
+			scopedDiagnostics := filterDiagnosticsByFeature(catalog.Diagnostics, frontierFeature)
+			if frontierFeature != "" {
+				// Output projection only: the graph above stays global so
+				// cross-feature WaitingOn references survive verbatim.
+				ready = filterIssuesByFeature(ready, frontierFeature)
+				readyWarnings = filterIssuesByFeature(readyWarnings, frontierFeature)
+				gaps = filterIssuesByFeature(gaps, frontierFeature)
+				frontier.Ready = filterIssuesByFeature(frontier.Ready, frontierFeature)
+				frontier.Claimed = filterIssuesByFeature(frontier.Claimed, frontierFeature)
+				frontier.Blocked = filterBlockedByFeature(frontier.Blocked, frontierFeature)
+			}
 
 			if frontierPiWorkflow {
 				cmd.Println(renderPiWorkflow(frontier.Ready, dir))
@@ -60,8 +82,29 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 			}
 
 			if frontierJSON {
-				out := map[string]interface{}{"ready": ready, "ready_with_warnings": readyWarnings, "gaps": gaps, "claimed": frontier.Claimed, "blocked": frontier.Blocked, "diagnostics": catalog.Diagnostics}
-				data, err := json.MarshalIndent(out, "", "  ")
+				var out map[string]interface{}
+				if frontierFull {
+					out = map[string]interface{}{"ready": ready, "ready_with_warnings": readyWarnings, "gaps": gaps, "claimed": frontier.Claimed, "blocked": frontier.Blocked, "diagnostics": catalog.Diagnostics}
+				} else {
+					out = map[string]interface{}{
+						"ready":                 ticketRefs(ready),
+						"ready_with_warnings":   ticketRefs(readyWarnings),
+						"gaps":                  ticketRefs(gaps),
+						"claimed":               ticketRefs(frontier.Claimed),
+						"blocked":               blockedSummaries(frontier.Blocked),
+						"diagnostics":           summarizeDiagnostics(scopedDiagnostics),
+						"detail":                "pass --full for complete bodies and diagnostics",
+					}
+				}
+				// Default output marshals compact: agents parse it and every
+				// indentation byte counts against MaxAgentOutputBytes. --full
+				// keeps the indented legacy form below.
+				var data []byte
+				if frontierFull {
+					data, err = json.MarshalIndent(out, "", "  ")
+				} else {
+					data, err = json.Marshal(out)
+				}
 				if err != nil {
 					return err
 				}
@@ -108,7 +151,7 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 					fmt.Printf("◇ #%s %s (%s)\n", issue.ID, issue.Title, issue.FilePath)
 				}
 			}
-			printDiagnostics(cmd, catalog.Diagnostics)
+			printDiagnosticsForMode(cmd, catalog.Diagnostics, frontierFull)
 
 			if len(frontier.Claimed) > 0 {
 				fmt.Println("\n=== CLAIMED (In Progress) ===")
@@ -138,6 +181,8 @@ then projects clean, warning, gap, claimed, and blocked executable work.`,
 	cmd.Flags().BoolVar(&frontierStrict, "strict", false, "Emit only clean ready tickets")
 	cmd.Flags().BoolVar(&frontierIncludeGaps, "include-gaps", false, "Include gap tickets while preserving diagnostics")
 	cmd.Flags().BoolVar(&frontierPiWorkflow, "pi-workflow", false, "Output a pi-subagents workflowScript for the ready batch (takes precedence over --json and --quiet)")
+	cmd.Flags().StringVar(&frontierFeature, "feature", "", "Proposal slug to scope output to (graph stays global; discovery stays at the proposals root)")
+	cmd.Flags().BoolVar(&frontierFull, "full", false, "Emit the complete legacy output (ticket bodies and every diagnostic)")
 
 	return cmd
 }

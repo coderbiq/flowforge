@@ -226,17 +226,150 @@ func TestFrontierExcludesIncompleteExecutionContractsUnlessGapsAreIncluded(t *te
 
 func TestFrontierJSONCarriesAllGroupsAndDiagnostics(t *testing.T) {
 	cmd := newFrontierCmd()
-	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps = frontierGapFixture(t), true, false, false, false
+	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps, frontierFeature, frontierFull = frontierGapFixture(t), true, false, false, false, "", false
 	var stdout bytes.Buffer
 	cmd.SetOut(&stdout)
 	if err := cmd.RunE(cmd, nil); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{`"ready"`, `"ready_with_warnings"`, `"gaps"`, `"claimed"`, `"blocked"`, `"diagnostics"`} {
-		if !strings.Contains(stdout.String(), key) {
-			t.Fatalf("JSON missing %s: %s", key, stdout.String())
+	out := stdout.String()
+	for _, key := range []string{`"ready"`, `"ready_with_warnings"`, `"gaps"`, `"claimed"`, `"blocked"`, `"diagnostics"`, `"counts"`, `"detail"`} {
+		if !strings.Contains(out, key) {
+			t.Fatalf("JSON missing %s: %s", key, out)
 		}
 	}
+	if strings.Contains(out, `"body"`) {
+		t.Fatalf("default JSON must not carry ticket bodies: %s", out)
+	}
+
+	cmdFull := newFrontierCmd()
+	// Flag registration resets package vars to defaults; re-assert both modes.
+	frontierJSON, frontierFull = true, true
+	var stdoutFull bytes.Buffer
+	cmdFull.SetOut(&stdoutFull)
+	if err := cmdFull.RunE(cmdFull, nil); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stdoutFull.String(), `"body"`) {
+		t.Fatalf("--full JSON must carry ticket bodies: %s", stdoutFull.String())
+	}
+	frontierFull = false
+}
+
+func featureProjectionFixture(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	fm := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n"
+	execContract := "\n\n## Execution detail\n\n### Verified contracts\n\n- frontier.go owns the frontier projection.\n\n### Execution scenarios\n\n- Success: scoped output lists only the feature's tickets.\n- Failure: cross-feature references stay visible.\n\n### Expected tests\n\n- go test ./internal/command/...\n\n### Generated artifacts\n\n- Not applicable.\n\n### Conventions\n\n- Reuse existing frontier logic.\n"
+
+	write := func(feature, name, blockedBy string) {
+		issues := filepath.Join(root, feature, "issues")
+		if err := os.MkdirAll(issues, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		body := fm + "# " + strings.TrimSuffix(name, ".md") + "\n**Status:** open\n**Blocked by:** " + blockedBy + "\n" + execContract
+		if err := os.WriteFile(filepath.Join(issues, name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("featureA", "01-ready.md", "None")
+	write("featureA", "02-waiting.md", "01")
+	write("featureB", "03-other.md", "None")
+	return root
+}
+
+func TestFrontierFeatureProjection(t *testing.T) {
+	cmd := newFrontierCmd()
+	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps, frontierFeature, frontierFull = featureProjectionFixture(t), true, false, false, false, "featureA", false
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("frontier failed: %v", err)
+	}
+	var result struct {
+		Ready []struct {
+			ID      string `json:"id"`
+			Feature string `json:"feature"`
+		} `json:"ready"`
+		Blocked []struct {
+			ID        string   `json:"id"`
+			WaitingOn []string `json:"waiting_on"`
+		} `json:"blocked"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		t.Fatalf("unmarshal: %v stdout=%q", err, stdout.String())
+	}
+	for _, entry := range result.Ready {
+		if entry.Feature != "featureA" {
+			t.Fatalf("scoped ready must contain only featureA tickets, got feature %q", entry.Feature)
+		}
+		if entry.ID == "03" {
+			t.Fatal("scoped ready must not contain featureB tickets")
+		}
+	}
+	foundWaiting := false
+	for _, b := range result.Blocked {
+		if b.ID == "02" {
+			foundWaiting = true
+			if len(b.WaitingOn) == 0 || !strings.Contains(b.WaitingOn[0], "01") {
+				t.Fatalf("blocked 02 must keep its waiting_on reference to 01, got %v", b.WaitingOn)
+			}
+		}
+		if b.ID == "03" {
+			t.Fatal("scoped blocked must not contain featureB tickets")
+		}
+	}
+	if !foundWaiting {
+		t.Fatal("in-feature blocked ticket 02 must appear in scoped output")
+	}
+	if len(stdout.String()) > MaxAgentOutputBytes {
+		t.Fatalf("scoped JSON exceeds MaxAgentOutputBytes: %d bytes", len(stdout.String()))
+	}
+}
+
+func TestFrontierTextModeSummary(t *testing.T) {
+	// A ready ticket keeps the text path past its empty-queue early exit; a
+	// contract-less ticket in another feature supplies gap diagnostics.
+	root := featureProjectionFixture(t)
+	brokenDir := filepath.Join(root, "featureB", "issues")
+	if err := os.MkdirAll(brokenDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	broken := "---\nflowforge:\n  schema: 1\n  role: ticket\n---\n# 04-broken\n**Status:** open\n**Blocked by:** None\n"
+	if err := os.WriteFile(filepath.Join(brokenDir, "04-broken.md"), []byte(broken), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := newFrontierCmd()
+	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps, frontierFeature, frontierFull = root, false, false, false, false, "", false
+	var stdout, stderr bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	if err := cmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("frontier failed: %v", err)
+	}
+	errText := stderr.String()
+	if !strings.Contains(errText, "diagnostics gap:execution-contract-incomplete:") {
+		t.Fatalf("summary must carry a count line, stderr=%q", errText)
+	}
+	if !strings.Contains(errText, "--full for all diagnostics") {
+		t.Fatalf("summary must carry the --full hint, stderr=%q", errText)
+	}
+	if strings.Contains(errText, " — ") {
+		t.Fatalf("default text mode must not print verbatim diagnostic messages, stderr=%q", errText)
+	}
+
+	cmdFull := newFrontierCmd()
+	frontierFull = true
+	var stdoutFull, stderrFull bytes.Buffer
+	cmdFull.SetOut(&stdoutFull)
+	cmdFull.SetErr(&stderrFull)
+	if err := cmdFull.RunE(cmdFull, nil); err != nil {
+		t.Fatalf("frontier --full failed: %v", err)
+	}
+	if !strings.Contains(stderrFull.String(), " — ") {
+		t.Fatalf("--full must print verbatim diagnostics with messages, stderr=%q", stderrFull.String())
+	}
+	frontierFull = false
 }
 
 func TestBlockedEvidenceFrontierClassification(t *testing.T) {
@@ -452,8 +585,8 @@ func TestFrontierExcludesNeedsRepairAndDispatchesRepair(t *testing.T) {
 	var result struct {
 		Ready   []*tracker.Issue `json:"ready"`
 		Blocked []struct {
-			Issue     *tracker.Issue `json:"issue"`
-			WaitingOn []string       `json:"waiting_on"`
+			ID        string   `json:"id"`
+			WaitingOn []string `json:"waiting_on"`
 		} `json:"blocked"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
@@ -475,7 +608,7 @@ func TestFrontierExcludesNeedsRepairAndDispatchesRepair(t *testing.T) {
 	}
 	var downstreamBlocked bool
 	for _, b := range result.Blocked {
-		if b.Issue != nil && b.Issue.ID == "03" {
+		if b.ID == "03" {
 			downstreamBlocked = true
 			found := false
 			for _, w := range b.WaitingOn {
