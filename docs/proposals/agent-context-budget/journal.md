@@ -40,3 +40,5 @@ flowforge:
 - **review done（round 4，票 02）**：Round 0 零 gap（1 项 unrequested 记录性驳回）；双轴零发现（`--full` 与旧版字节级一致 268,597=268,597 为等价性硬证据）。票 02 关闭。注：round 3 的 round-close 系票 01 复审后误提前写入——round 4 经 round-open 重启承接余票。
 
 - **review done（round 4，票 03/04）**：双票 Round 0 零 gap、双轴零发现。#03 四通道实测 7,470/8,160/97/215 ≤ 16,384（真 stdio 管道测量）；#04 部署副本字节一致，热验证待下会话扩展重载（时序属性）。提案四票全部关闭。**round 4 close**。
+
+- **post-close 修复（票 01 测试缺陷）**：`frontier_test.go` 两处 `cmdFull := newFrontierCmd()` 后只重设模式位、漏重设 `frontierDir`——flag 注册会将包级变量重置为默认，导致 `--full` 段误扫**默认解析的仓库真实 notebook** 而非夹具。此前"通过"是仓库 notebook 状态恰好含带逐条格式的诊断（隐性依赖），提案全票关闭后状态变化即暴露（`go test -count=1` 复现）。修复：夹具根捕获为局部变量并在 cmd 重建后重申。教训与 #03 发现同源：**测试的真实性取决于它测的是夹具还是环境**。已随修复提交推送。

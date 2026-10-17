@@ -227,8 +227,9 @@ func TestFrontierExcludesIncompleteExecutionContractsUnlessGapsAreIncluded(t *te
 }
 
 func TestFrontierJSONCarriesAllGroupsAndDiagnostics(t *testing.T) {
+	root := frontierGapFixture(t)
 	cmd := newFrontierCmd()
-	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps, frontierFeature, frontierFull = frontierGapFixture(t), true, false, false, false, "", false
+	frontierDir, frontierJSON, frontierQuiet, frontierStrict, frontierIncludeGaps, frontierFeature, frontierFull = root, true, false, false, false, "", false
 	var stdout bytes.Buffer
 	cmd.SetOut(&stdout)
 	if err := cmd.RunE(cmd, nil); err != nil {
@@ -245,8 +246,9 @@ func TestFrontierJSONCarriesAllGroupsAndDiagnostics(t *testing.T) {
 	}
 
 	cmdFull := newFrontierCmd()
-	// Flag registration resets package vars to defaults; re-assert both modes.
-	frontierJSON, frontierFull = true, true
+	// Flag registration resets package vars to defaults; re-assert dir and
+	// both modes -- missing dir here silently scans the repo notebook.
+	frontierDir, frontierJSON, frontierFull = root, true, true
 	var stdoutFull bytes.Buffer
 	cmdFull.SetOut(&stdoutFull)
 	if err := cmdFull.RunE(cmdFull, nil); err != nil {
@@ -361,7 +363,8 @@ func TestFrontierTextModeSummary(t *testing.T) {
 	}
 
 	cmdFull := newFrontierCmd()
-	frontierFull = true
+	// Flag registration resets package vars to defaults; re-assert dir too.
+	frontierDir, frontierFull = root, true
 	var stdoutFull, stderrFull bytes.Buffer
 	cmdFull.SetOut(&stdoutFull)
 	cmdFull.SetErr(&stderrFull)
