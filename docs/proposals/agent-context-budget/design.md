@@ -6,7 +6,7 @@ flowforge:
   revision: 5
   consumes:
     requirements:
-      agent-context-budget-requirements: 2
+      agent-context-budget-requirements: 3
   areas:
     frontier-output:
       revision: 1

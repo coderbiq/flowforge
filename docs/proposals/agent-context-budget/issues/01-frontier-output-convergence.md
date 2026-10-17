@@ -4,7 +4,7 @@ flowforge:
   role: ticket
   consumes:
     requirements:
-      agent-context-budget-requirements: 2
+      agent-context-budget-requirements: 3
     design:
       frontier-output: 1
       scope-selection: 1

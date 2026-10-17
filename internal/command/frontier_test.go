@@ -44,12 +44,13 @@ func TestCheckJSONIncludesCatalogWhenThereAreNoTickets(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd := newCheckCmd()
-	checkDir, checkJSON, checkStrict = root, true, false
+	checkDir, checkJSON, checkStrict, checkFull = root, true, false, true
 	var stdout bytes.Buffer
 	cmd.SetOut(&stdout)
 	if err := cmd.RunE(cmd, nil); err != nil {
 		t.Fatal(err)
 	}
+	checkFull = false
 	if output := stdout.String(); !strings.Contains(output, `"issues_count": 0`) || !strings.Contains(output, `"diagnostics"`) || !strings.Contains(output, `"artifacts_count": 1`) {
 		t.Fatalf("incomplete JSON: %s", output)
 	}
@@ -57,8 +58,8 @@ func TestCheckJSONIncludesCatalogWhenThereAreNoTickets(t *testing.T) {
 
 func TestStrictCheckValidatesRequirementAndDesignWithoutTickets(t *testing.T) {
 	root := t.TempDir()
-	previousDir, previousJSON, previousStrict := checkDir, checkJSON, checkStrict
-	defer func() { checkDir, checkJSON, checkStrict = previousDir, previousJSON, previousStrict }()
+	previousDir, previousJSON, previousStrict, previousFull := checkDir, checkJSON, checkStrict, checkFull
+	defer func() { checkDir, checkJSON, checkStrict, checkFull = previousDir, previousJSON, previousStrict, previousFull }()
 	requirements := `---
 flowforge:
   schema: 1
@@ -96,7 +97,7 @@ See [requirements](requirements.md#intake-requirements).
 			t.Fatal(err)
 		}
 		cmd := newCheckCmd()
-		checkDir, checkJSON, checkStrict = root, json, strict
+		checkDir, checkJSON, checkStrict, checkFull = root, json, strict, true
 		var stdout bytes.Buffer
 		cmd.SetOut(&stdout)
 		err := cmd.RunE(cmd, nil)
@@ -141,12 +142,13 @@ func TestCheckReportsClosedTicketWithoutCompletionEvidence(t *testing.T) {
 	}
 
 	cmd := newCheckCmd()
-	checkDir, checkJSON, checkStrict = root, true, false
+	checkDir, checkJSON, checkStrict, checkFull = root, true, false, true
 	var stdout bytes.Buffer
 	cmd.SetOut(&stdout)
 	if err := cmd.RunE(cmd, nil); err != nil {
 		t.Fatal(err)
 	}
+	checkFull = false
 	if output := stdout.String(); !strings.Contains(output, `"code": "missing-completion-evidence"`) {
 		t.Fatalf("check omitted completion evidence diagnostic: %s", output)
 	}

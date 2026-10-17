@@ -14,6 +14,8 @@ var (
 	checkDir    string
 	checkJSON   bool
 	checkStrict bool
+	checkFeature string
+	checkFull    bool
 )
 
 func newCheckCmd() *cobra.Command {
@@ -46,6 +48,10 @@ func newCheckCmd() *cobra.Command {
 
 			g := tracker.BuildGraph(issues)
 			result := g.CheckDependencies()
+			// --feature scopes only the reported diagnostics; the validity
+			// computation below stays on the full unwaived set so a scoped
+			// view never relaxes the graph gate.
+			scopedDiagnostics := filterDiagnosticsByFeature(catalog.Diagnostics, checkFeature)
 
 			isValid := !result.HasCycles && len(result.Dangling) == 0 && len(result.SelfBlocked) == 0
 			for _, diagnostic := range catalog.Diagnostics {
@@ -58,16 +64,37 @@ func newCheckCmd() *cobra.Command {
 			}
 
 			if checkJSON {
-				out := map[string]interface{}{
-					"valid":           isValid,
-					"issues_count":    len(issues),
-					"cycles":          result.Cycles,
-					"dangling":        result.Dangling,
-					"self_blocked":    result.SelfBlocked,
-					"diagnostics":     catalog.Diagnostics,
-					"artifacts_count": len(catalog.Artifacts),
+				var out map[string]interface{}
+				if checkFull {
+					out = map[string]interface{}{
+						"valid":           isValid,
+						"issues_count":    len(issues),
+						"cycles":          result.Cycles,
+						"dangling":        result.Dangling,
+						"self_blocked":    result.SelfBlocked,
+						"diagnostics":     catalog.Diagnostics,
+						"artifacts_count": len(catalog.Artifacts),
+					}
+				} else {
+					out = map[string]interface{}{
+						"valid":           isValid,
+						"issues_count":    len(issues),
+						"cycles":          result.Cycles,
+						"dangling":        result.Dangling,
+						"self_blocked":    result.SelfBlocked,
+						"diagnostics":     summarizeDiagnostics(scopedDiagnostics),
+						"artifacts_count": len(catalog.Artifacts),
+						"detail":          "pass --full for complete diagnostics",
+					}
 				}
-				data, err := json.MarshalIndent(out, "", "  ")
+				// Compact default keeps the agent-facing channel inside
+				// MaxAgentOutputBytes; --full keeps the indented legacy form.
+				var data []byte
+				if checkFull {
+					data, err = json.MarshalIndent(out, "", "  ")
+				} else {
+					data, err = json.Marshal(out)
+				}
 				if err != nil {
 					return err
 				}
@@ -79,7 +106,10 @@ func newCheckCmd() *cobra.Command {
 			}
 
 			cmd.Printf("Checked %d issues in %s\n", len(issues), dir)
-			printDiagnostics(cmd, catalog.Diagnostics)
+			if checkFeature != "" {
+				cmd.Printf("(diagnostics scoped to %s; validity computed globally)\n", checkFeature)
+			}
+			printDiagnosticsForMode(cmd, scopedDiagnostics, checkFull)
 
 			if isValid {
 				cmd.Println("✓ Dependency graph is healthy. No cycles or dangling references found.")
@@ -114,6 +144,8 @@ func newCheckCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&checkDir, "dir", "d", "", "Directory to scan for issues (default: <docs_dir>/proposals)")
 	cmd.Flags().BoolVar(&checkJSON, "json", false, "Output in JSON format")
 	cmd.Flags().BoolVar(&checkStrict, "strict", false, "Make unwaived warnings and gaps fail validation")
+	cmd.Flags().StringVar(&checkFeature, "feature", "", "Proposal slug to scope reported diagnostics to (validity stays global)")
+	cmd.Flags().BoolVar(&checkFull, "full", false, "Emit the complete legacy output (every diagnostic verbatim)")
 
 	return cmd
 }

@@ -16,6 +16,10 @@ flowforge:
     - {round: 3, stage: plan, action: done, ts: "2026-10-17T02:35:00Z", by: flowforge-plan, artifacts: [issues/01-frontier-output-convergence.md, issues/02-check-output-convergence.md, issues/03-output-budget-regression-test.md, issues/04-pi-extension-feature-and-deploy-sync.md]}
     - {round: 3, stage: review, action: done, ts: "2026-10-17T02:47:49Z", by: flowforge-review, artifacts: [issues/01-frontier-output-convergence.md]}
     - {round: 3, action: round-close, ts: "2026-10-17T02:47:49Z", by: flowforge-review, source: review}
+    - {round: 4, action: round-open, source: review, reason: "票 01 复审后误提前 round-close；round 4 承接票 02-04 的实施与复审", ts: "2026-10-17T02:51:47Z"}
+    - {round: 4, stage: align, action: skipped, reason: "requirement authority 未变（r3 自 round 3 尾部有效），round 4 仅承接票据实施与复审", ts: "2026-10-17T02:52:03Z", by: flowforge-plan}
+    - {round: 4, stage: design, action: done, reason: "", ts: "2026-10-17T02:52:03Z", by: flowforge-solution-design, artifacts: [requirements.md, design.md]}
+    - {round: 4, stage: review, action: done, ts: "2026-10-17T02:51:47Z", by: flowforge-review, artifacts: [issues/02-check-output-convergence.md]}
 ---
 
 # Journal: agent-context-budget
@@ -30,3 +34,5 @@ flowforge:
 - **plan done（round 3）**：四张 tracer 票发布——01 frontier 收敛+共享预算机制（无阻塞）、02 check 收敛（←01）、03 预算回归测试（←01,02）、04 PI 扩展/技能提示/部署同步（←01,02）。round 2 align 补记（backfill，requirements rev 2 事实发生于 round 2）；round 3 align skipped（需求未变）。design rev 4：机器 open item 降级为正文备注（它本不该门禁票 03）。四票待 flowforge-refine-ticket 填充 Execution contract。
 
 - **review done（round 3，票 01）**：Round 0 收敛审计抓出 1 处 partial（`--feature` 文本通道 diagnostics 未作用域化）→ Fix 6 已修复复验（作用域文本 3,785B）；双轴零未决发现（Standards 无；Spec 2 项记录性发现走 authority-owned 处置：requirements r3 队列线性措辞、design r5 TicketRef 字段修订）。票 01 关闭，Completion evidence 落票面。**round 3 close**。
+
+- **review done（round 4，票 02）**：Round 0 零 gap（1 项 unrequested 记录性驳回）；双轴零发现（`--full` 与旧版字节级一致 268,597=268,597 为等价性硬证据）。票 02 关闭。注：round 3 的 round-close 系票 01 复审后误提前写入——round 4 经 round-open 重启承接余票。
