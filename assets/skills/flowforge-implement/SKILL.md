@@ -16,6 +16,7 @@ Read project invariants, the ticket, its linked requirement/design authorities a
 - A blocker stops dependent work.
 - A gap stops only affected work unless the caller explicitly includes gaps; preserve the diagnostic in the report.
 - A warning remains visible; strict policy may exclude it.
+- Scope tool output when working a single proposal: pass `feature: <slug>` to `flowforge_frontier` / `flowforge_check` (projects that proposal's queue and diagnostics; validity stays global).
 - An upstream revision mismatch is reviewed against current meaning before execution.
 
 Do not advance status to express readiness. Begin only when the ticket's Delivery, design context, decided Changes, Constraints, and feasible Done and verify method form an executable contract.

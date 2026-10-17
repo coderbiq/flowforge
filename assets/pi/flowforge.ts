@@ -257,8 +257,16 @@ export default function flowforgeExtension(pi: ExtensionAPI): void {
 		label: "FlowForge Frontier",
 		description: "Compute unblocked, ready-to-execute FlowForge tickets as JSON (wraps `flowforge frontier --json`).",
 		promptSnippet: "List ready FlowForge tickets",
-		parameters: Type.Object({}),
-		execute: async () => runCli(binary, ["frontier", "--json"]),
+		parameters: Type.Object({
+			feature: Type.Optional(Type.String({ description: "Proposal slug to scope output to (graph stays global; pass only when working one proposal)" })),
+		}),
+		execute: async (args) => {
+			const cliArgs = ["frontier", "--json"];
+			if (args?.feature) {
+				cliArgs.push("--feature", args.feature);
+			}
+			return runCli(binary, cliArgs);
+		},
 	});
 
 	pi.registerTool({
@@ -266,7 +274,15 @@ export default function flowforgeExtension(pi: ExtensionAPI): void {
 		label: "FlowForge Check",
 		description: `Validate the FlowForge proposal graph in ${proposalsDir} (wraps \`flowforge check --dir ${proposalsDir}\`).`,
 		promptSnippet: "Validate the FlowForge proposal graph",
-		parameters: Type.Object({}),
-		execute: async () => runCli(binary, ["check", "--dir", proposalsDir]),
+		parameters: Type.Object({
+			feature: Type.Optional(Type.String({ description: "Proposal slug to scope reported diagnostics to (validity stays global)" })),
+		}),
+		execute: async (args) => {
+			const cliArgs = ["check", "--dir", proposalsDir];
+			if (args?.feature) {
+				cliArgs.push("--feature", args.feature);
+			}
+			return runCli(binary, cliArgs);
+		},
 	});
 }
