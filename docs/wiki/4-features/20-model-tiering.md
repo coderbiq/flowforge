@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[外部材料接入](external-material-intake.md)
+[外部材料接入](21-external-material-intake.md)

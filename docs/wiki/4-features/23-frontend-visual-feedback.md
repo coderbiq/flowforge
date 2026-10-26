@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[多宿主部署与配置](host-and-model-configuration.md)
+[多宿主部署与配置](24-host-and-model-configuration.md)

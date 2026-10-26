@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[复杂项目中的结论传递问题](../2-problems/problem-continuity.md)
+[复杂项目中的结论传递问题](../2-problems/05-problem-continuity.md)

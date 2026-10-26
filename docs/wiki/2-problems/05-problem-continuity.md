@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[信息取用问题](problem-retrieval.md)
+[信息取用问题](06-problem-retrieval.md)

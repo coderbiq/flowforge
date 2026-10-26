@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[需求与设计持久化](../4-features/authority-artifacts.md)
+[需求与设计持久化](../4-features/12-authority-artifacts.md)

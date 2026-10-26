@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[精准上下文的取舍](precision-vs-recall-in-context.md)
+[精准上下文的取舍](04-precision-vs-recall-in-context.md)

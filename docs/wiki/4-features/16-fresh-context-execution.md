@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[版本追踪](revision-tracking.md)
+[版本追踪](17-revision-tracking.md)

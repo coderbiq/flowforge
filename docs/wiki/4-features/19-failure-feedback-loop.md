@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[模型分工](model-tiering.md)
+[模型分工](20-model-tiering.md)

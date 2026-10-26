@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-前往 [Agent 如何组织 Context](agent-context-processing.md)，把模型层讨论延伸到实际工作循环。
+前往 [Agent 如何组织 Context](03-agent-context-processing.md)，把模型层讨论延伸到实际工作循环。

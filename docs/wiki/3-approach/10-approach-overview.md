@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[Skill 与 CLI 分工](skill-and-cli-split.md)
+[Skill 与 CLI 分工](11-skill-and-cli-split.md)

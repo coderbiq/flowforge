@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[总体解法](../3-approach/approach-overview.md)
+[总体解法](../3-approach/10-approach-overview.md)

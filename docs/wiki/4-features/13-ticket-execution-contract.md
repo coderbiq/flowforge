@@ -19,4 +19,4 @@
 
 ## 阅读衔接
 
-[规范转录](standards-transcription.md)
+[规范转录](14-standards-transcription.md)
