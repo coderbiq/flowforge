@@ -1,238 +1,111 @@
 # FlowForge
 
-FlowForge 是一个面向 AI 协同工程的本地优先工作流。你用业务语言提出目标，FlowForge 将它逐步整理为可追溯的需求、可解释的设计、可独立验证的任务和可核对的交付证据；Markdown 保存这些内容，工程 Skill 分配分析、设计、规划、实施与审查的责任，Go CLI 负责确定性的工件检查和 DAG 计算。它可以在 Claude Code、OpenCode、Codex 和 PI 等 Agent 宿主中使用同一套方法。
+FlowForge 帮助你与 AI Agent 持续完成复杂工程需求：在讨论中保存已确认的需求与设计，为每项工作准备充分、适用的上下文，再通过依赖检查、实施、审查和证据反馈逐步交付。工程 Skill 指导 Agent 分工，Markdown 保存可追溯的结论和实际结果，CLI 计算依赖与检查工件关系。你通过对话提出目标、确认取舍和推动工作，Agent 负责使用这些机制，让下一步能够接续已经确认的事实。
 
-```text
-用户目标
-   ↓
-需求与设计：确认要解决什么、如何负责
-   ↓
-任务准备：形成局部上下文、动作、约束和验证方法
-   ↓
-check / frontier：检查关系并计算当前可推进任务
-   ↓
-执行与审查：在边界内修改、验证、反馈
-   ↓
-Completion evidence：记录实际交付
-   ↓
-重新计算下一轮，或返回需求 / 设计处理未决问题
-```
-
-你不需要先学习 Markdown 模板、手工建立 proposal 或自己维护任务依赖。第一次使用只需要完成初始化，然后在 Agent 会话里描述目标。
+适用于 Claude Code、OpenCode、Codex 和 PI 等 Agent 宿主。想先了解设计原理，可以阅读 [FlowForge Wiki](docs/wiki/README.md)；下面从第一次使用开始。
 
 ## 快速开始
 
-下面是一条从 0 开始的最短路径。命令在项目根目录执行；FlowForge 会从当前目录向上查找 `.flowforge/config.yaml`。
+### 1. 让 Agent 为项目准备 FlowForge
 
-### 1. 安装并确认版本
+先在你使用的 Agent 工具中打开项目目录，确保它能够读取项目文件并执行必要的本地操作。然后发送：
 
-Linux / macOS：
+> 请根据 https://github.com/coderbiq/flowforge 的当前安装说明，为这个项目安装并初始化 FlowForge。先检查已有配置，保留项目自己的规则，根据我当前使用的 Agent 工具准备所需的 Skill、角色和扩展。完成后告诉我文档保存在哪里，以及是否还有需要我处理的环境问题。
 
-```bash
-curl -fsSL https://github.com/coderbiq/flowforge/releases/latest/download/install.sh | bash
-flowforge version
-```
+Agent 可以从[发布页](https://github.com/coderbiq/flowforge/releases/latest)、[安装脚本](scripts/install.sh)（[Windows 版本](scripts/install.ps1)）和 [CLI 配置说明](docs/cli-design.md)核对具体操作。模型账号、登录和宿主授权由你在所用工具中完成；需要人工操作时，Agent 应说明具体步骤。
 
-Windows PowerShell：
+准备完成后，你应知道：项目文档存放在哪里、当前会话能否使用 FlowForge 的 Skill 和角色、是否存在尚未解决的环境问题。默认文档目录是 `ff-wiki/`，已有项目可以采用自己的目录。若宿主需要重新加载项目配置，按提示重载或重新打开会话。
 
-```powershell
-irm https://github.com/coderbiq/flowforge/releases/latest/download/install.ps1 | iex
-flowforge version
-```
+### 2. 让 Agent 了解项目约定
 
-如果你使用其他安装方式，也只需要确认 `flowforge version` 能正常运行。
+在第一次正式提需求前，可以说：
 
-### 2. 初始化当前项目
+> 请检查这个项目已有的架构、分层、测试和提交约定，完善 FlowForge 的项目规范提取指南。引用真实存在的规则；尚未确定的约定列出来和我确认。
 
-在项目根目录运行：
+这一步让后续任务能够采用项目自己的规范。默认指南可以作为起点，定制后的指南应指向项目真实的规范来源。已有项目通常只需首次梳理，并在约定改变时更新。
 
-```bash
-flowforge init
-```
+如果这是一个空项目，可以先告诉 Agent 你希望构建什么、有哪些技术限制，再一起确定必要的项目约定。
 
-初始化会建立或同步 FlowForge 所需的项目结构，包括：
+### 3. 描述你想实现的结果
 
-- `.flowforge/config.yaml`：项目配置和文档根目录设置；
-- `ff-wiki/`：默认文档根目录，包含 `CONTEXT.md`、`adr/`、`proposals/` 和 `agents/`；
-- `.agents/skills/`：项目使用的工程 Skill；
-- 各宿主和本机配置所需的受管部署资产。
+选择一个具体目标开始。例如：
 
-默认文档根目录是 `ff-wiki`。如果项目已有自己的文档目录，可以先设置再同步：
+> 我想增加用户数据导出功能。导出结果必须遵守页面查询权限，不能因为改成后台任务就绕过权限。请先调查现有实现，和我确认需求与设计，暂时不要改代码。
 
-```bash
-flowforge config set docs_dir my-wiki
-flowforge init --force
-```
+Agent 应先调查代码和文档，再与你讨论仓库无法回答的取舍。例如：用户提交导出后权限被收回，后台执行时应如何处理？你确认的结论应进入项目文档，供后续设计和实施使用。
 
-`init --force` 会同步受管资产，但保留已有项目配置和项目自定义内容。受管部署产物与本机配置会加入 `.gitignore`，因为模型和宿主部署通常是每台机器自己的设置。
+此时你应能看懂三件事：本次要交付什么、哪些内容不在范围内、还有什么问题没有决定。文档和任务可以由 Agent 创建，你可以直接阅读、批注或要求它解释。
 
-### 3. 让规范说明符合当前项目
+如果已有材料，也可以从它开始：
 
-初始化会部署 `<docs_dir>/agents/standards.md`。它提供一个可工作的通用规范提取指南，但还不了解你的项目分层、测试和提交约定。
+> 以 `docs/export-prd.md` 为起点，核对哪些要求仍然有效、哪些是旧设计，先列出冲突和需要我确认的问题。
 
-建议第一次提出正式需求前，让 Agent 根据项目实际情况定制它：
+FlowForge 将同一项工作的需求、设计、任务与证据组织为一个 proposal（提案）。较小的工作可以保持紧凑，内容复杂时再分成独立文档。
 
-> 读一下这个项目的分层约定、测试规范和提交规范，把 `ff-wiki/agents/standards.md` 重写成能指导后续 ticket 的规范提取说明。保留项目真实存在的规则，不要凭空添加规范。
+### 4. 确认方案，然后授权实施
 
-这是一次性的项目准备，不是每个需求都要重复。也可以以后直接编辑该文件。后续流程会把适用规范从需求和设计中整理成任务的 `Constraints` 与 `Conventions`，而不是让每个执行者临时翻阅全部规范。
+当需求和方案已经说清楚，可以说：
 
-如果项目需要进一步确认 issue tracker、领域词汇、ADR 和 Agent 规则，可以在会话中请求 Agent 执行 FlowForge 的 setup 流程；它会先检查现状，再让你确认要写入的项目规则。
+> 这个方案可以。请把确认的结论保存下来，拆成可验证的任务，说明第一步交付什么，然后开始实施。
 
-### 4. 部署角色（推荐；使用 PI 时必须准备扩展）
+Agent 会准备任务的局部依据、修改范围和验证方法，检查前置条件，再推进当前能做的工作。每轮返回时，应说明实际完成了什么、做了哪些验证、是否存在问题，以及下一步是什么。
 
-如果希望把流程角色部署成宿主可直接调用的 subagent，运行：
+如果任务拆分让你看不懂，可以直接要求调整：
 
-```bash
-flowforge agents deploy
-flowforge agents status
-```
+> 先解释每项任务给用户带来什么变化，以及为什么要按这个顺序做。
 
-`agents status` 会报告角色是 `current`、`missing`、`drifted` 还是项目自有文件。没有部署角色时，你仍可以在主 Agent 会话中使用项目 Skill；部署角色适合批量执行、独立审查和跨会话交接。
+### 5. 在同一目标下继续推进
 
-PI 还需要先安装 `pi-subagents`：
+目标和授权范围已经明确后，可以直接说：
 
-```bash
-pi install npm:pi-subagents
-```
+> 继续。
 
-然后再次运行：
+同时有多个提案时，带上名称：
 
-```bash
-flowforge agents deploy
-```
+> 继续推进数据导出提案。先核对当前进展，完成下一项可以执行的工作。
 
-不同宿主的配置、模型和权限可能不同。它们属于本机运行环境，不要把某台机器的模型配置或部署产物当成项目需求提交。
+Agent 应从当前文档和实际结果恢复进展，实施后进行验证与审查。有问题就修复；需要改变需求或设计时，将具体问题交还给你。任务完成时要保留交付证据，供后续工作核对。
 
-### 5. 用业务语言提出第一个需求
+你关注的是目标和取舍；执行分工、任务依赖、检查工具以及证据格式由 Agent 按流程处理。具体机制见 [执行与协作](docs/wiki/06-execution-and-collaboration.md)和[验证与反馈](docs/wiki/07-verification-and-feedback.md)。
 
-在 Claude Code、OpenCode、Codex 或 PI 会话中，直接描述你想要的结果。例如：
+## 日常怎样和 Agent 配合
 
-> 我想增加用户数据导出功能。导出结果必须遵守页面查询权限，不能因为改成后台任务就绕过权限。请先调查现有的权限查询和导出代码，和我确认需求与设计，暂时不要直接改代码。
+除了“继续”，下面这些对话覆盖了常见情况：
 
-你不需要：
+| 当前需要 | 可以这样说 | 应得到的结果 |
+|---|---|---|
+| 查看进展 | “数据导出做到哪里了？哪些已验证，哪些还没完成？” | 已交付行为、验证依据、剩余工作和阻塞 |
+| 理解方案 | “为什么这里需要新增一个模块？依据是什么？” | 设计理由、替代方案和来源 |
+| 纠正理解 | “权限应在后台执行时重新判断，请检查哪些设计和任务受影响。” | 更新后的结论及受影响工作的处理安排 |
+| 处理卡点 | “先说明卡在哪里、已经试过什么、需要我决定什么。” | 失败事实、已尝试的方法和明确的下一步 |
+| 暂停工作 | “先暂停实施，保存当前进展、未完成修改和下一步入口。” | 可供恢复的记录，以及工作区当前状态 |
+| 换会话接手 | “继续这个提案，请读取它的需求、设计、任务和已有证据后再推进。” | 核对当前事实后的继续安排；提供提案路径更容易定位 |
+| 核对交付 | “按已确认的需求检查实际交付，列出遗漏、验证结果和未解决问题。” | 对照要求的检查结论及修复安排 |
 
-- 手工创建 proposal 目录；
-- 先写 `requirements.md`、`design.md` 或 ticket；
-- 记住每个 Skill 的名称；
-- 在事实还没核实时决定接口；
-- 直接把一份旧 PRD 当成当前要求。
+用户负责说明目标、确认产品取舍、纠正误解和判断可接受的结果。Agent 负责调查、维护文档、准备任务、实施、验证和汇报。你可以随时要求解释或改变方向；改变已经确认的要求时，Agent 应同步检查设计、任务和实现受到的影响。
 
-Agent 通常会先读取代码和现有文档，区分仓库事实、候选需求、设计选择、证据和未知项；只有仓库无法回答的产品取舍才需要你确认。确认后的内容会落到对应工件，而不是只停留在对话中。
+## 怎样知道这项工作完成了
 
-如果你的起点是一份旧 PRD、旧 proposal、故障报告或设计笔记，可以直接告诉 Agent 来源位置，并说明哪些内容需要重新确认。FlowForge 会先分类来源，不会机械地把历史文字转换成执行动作。
+可以要求 Agent 给出交付说明：
 
-### 6. 确认设计后，开始推进
+> 请总结这项需求实际交付了什么，对照确认过的要求列出验证依据，说明审查问题如何处理，以及是否还有未完成或需要我验收的内容。
 
-当需求和设计已经对齐，可以说：
+一份有用的交付说明应让你找到实际变更、验证结果和未解决事项。“暂时没有可执行任务”可能是因为仍有阻塞；只有核对交付和剩余问题后，才能判断工作是否完成。
 
-> 继续推进这个 proposal，先检查当前有哪些可以执行的任务。
+如果发现遗漏，可以继续说：
 
-或者：
+> 这里还没有满足原来的权限要求，请记录问题并安排修复。
 
-> 继续执行下一批任务；如果有设计缺口或阻塞，先说明原因，不要自行猜测。
+Agent 应保留问题和处理结果，更新受影响的工作。任务交付后的提案归档、长期知识整理可以另行安排。
 
-Agent 会沿着当前工件事实推进：
+## 深入了解
 
-```text
-读取需求、设计和任务上下文
-   → 生成或补齐可执行任务
-   → 运行 check / frontier
-   → 执行当前任务并验证
-   → Review 检查 Standards 与 Specification
-   → 记录证据或形成修复反馈
-   → 重新计算下一批
-```
-
-任务按真实前置条件声明 `Blocked by`，而不是按阅读顺序全部串行。图上没有依赖也不代表可以安全并发修改同一文件；执行者仍需遵守任务的 Write set 和验证条件。
-
-### 7. 之后通常只需要说“继续”
-
-每次继续前，Agent 应以当前 `frontier` 为准，而不是凭会话记忆猜下一张票。一次任务使用一个新的执行上下文，任务文件、证据和 frontier 负责在会话之间传递状态。
-
-执行结束后的收口取决于执行模式：
-
-- **轻量模式**：Implement 按任务机械执行、运行预定检查并写 `Implementation note`；独立 Review 在零发现且交付条件满足时写 `Completion evidence`、关闭任务并发布下一 frontier。
-- **完整模式**：Implement 在同一工作链中调用 Review；Review 返回发现和处置结果，Implement 负责最终 Completion evidence、关闭任务和发布下一 frontier。
-- **发现问题时**：任务不会因为勾选了 Change 就自动关闭。普通实现问题形成 `Fix:` Change；需要改变责任或接口时返回设计；严重或跨边界的问题形成 repair ticket。
-
-如果执行者被阻塞，它应保留原始错误、尝试过的命令和下一假设。你不需要在新会话里重新讲一遍历史；Agent 会先消费这段失败事实，再决定是补齐任务事实、修复实现，还是返回需求或设计。
-
-## 你需要做什么
-
-FlowForge 负责把工程信息组织成可继续工作的工件，但它不替你做产品取舍。用户和 Agent 的分工大致如下：
-
-| 你负责 | Agent / FlowForge 负责 |
+| 你想了解 | 阅读入口 |
 |---|---|
-| 说明目标、用户价值和可观察结果 | 调查代码、文档和现有行为 |
-| 确认范围、异常场景和产品取舍 | 区分来源事实、需求、设计、证据和未知 |
-| 批准或纠正需求与设计理解 | 把确认内容写入权威工件 |
-| 询问不理解的任务、批次或诊断 | 形成任务、声明真实依赖并计算 frontier |
-| 在需要人决定时处理阻塞 | 在 Write set 内实施、验证、审查并记录证据 |
-| 决定是否接受有明确理由的风险 | 把失败分流为 Fix、repair、设计返回或需求返回 |
-
-你可以随时说：
-
-- “这张票具体要交付什么？”
-- “为什么它现在不能执行？”
-- “这个设计决定是从哪来的？”
-- “继续，但遇到未决需求先停下来。”
-- “把当前批次重新解释得更清楚。”
-
-## 最常用的观察命令
-
-推进通常由 Agent 自动运行；你可以用下面的命令查看当前事实：
-
-```bash
-flowforge status
-flowforge check
-flowforge frontier
-flowforge agents status
-```
-
-| 命令 | 用途 |
-|---|---|
-| `flowforge status` | 按 feature 查看任务生命周期和 DAG 概况 |
-| `flowforge check` | 检查循环、悬空依赖、工件关系、诊断和证据 |
-| `flowforge frontier` | 查看当前无真实依赖阻塞的任务，并区分 clean、warning、gap、claimed 和 blocked |
-| `flowforge agents status` | 检查角色部署是否缺失或漂移 |
-
-注意：
-
-- `check` 通过不等于每张票都可以执行；任务仍可能有 gap 或执行契约缺口。
-- `frontier` 为空不等于 proposal 已完成，也可能是任务仍被阻塞、存在 gap，或全部任务已经结束。
-- `--include-gaps` 只改变候选展示，不会补齐缺失事实，也不能绕过 Implement 的开工检查。
-- 任务关闭表示该交付有证据，不等于整个 proposal 已归档；提案归档和长期知识沉淀属于后续维护流程。
-
-PI 会话安装并部署扩展后，可以使用 `flowforge_frontier` 和 `flowforge_check` 原生工具。需要批量运行时可以使用：
-
-```bash
-flowforge frontier --pi-workflow
-```
-
-当前 PI workflow 按任务逐票使用 fresh 上下文并 fail-fast；它不是自动并行执行器。完整 CLI 参数和策略见 [CLI 行为与策略](docs/cli-design.md)。
-
-## 接下来读什么
-
-| 你想了解 | 阅读 |
-|---|---|
-| 为什么复杂 Agent 工作需要精准上下文 | [Wiki 01：背景与原理](docs/wiki/01-background-and-principles.md) |
-| FlowForge 的完整信息流 | [Wiki 02：整体设计](docs/wiki/02-overall-design.md) |
-| 需求、设计和修订如何维护 | [Wiki 03：需求与设计管理](docs/wiki/03-requirements-and-design.md) |
-| 任务如何变成可执行上下文 | [Wiki 04：任务上下文](docs/wiki/04-task-context.md) |
-| 依赖、诊断和 frontier 如何工作 | [Wiki 05：依赖与推进](docs/wiki/05-dependencies-and-progress.md) |
-| 角色、交接、模型和宿主如何协作 | [Wiki 06：执行与协作](docs/wiki/06-execution-and-collaboration.md) |
-| 验证、审查、失败和修复如何闭环 | [Wiki 07：验证与反馈](docs/wiki/07-verification-and-feedback.md) |
-| 想看具体痛点和完整场景 | [场景导览](docs/scenarios.md) |
-| 想理解工件与模块边界 | [架构与权威模型](docs/architecture.md) |
-| 想查命令、配置和宿主行为 | [CLI 行为与策略](docs/cli-design.md) |
-| 想查 Skill 的职责和路由 | [Skill 职责与协作](docs/skill-system.md) |
-| 想查项目术语和系统不变量 | [域词汇表](docs/CONTEXT.md) |
-
-## 开发
-
-```bash
-make dev
-GOPROXY=https://goproxy.cn,direct go test ./internal/...
-```
+| 背景原理、整体设计及各组机制 | [FlowForge Wiki](docs/wiki/README.md) |
+| 旧 PRD、批量执行、前端验证等场景 | [场景导览](docs/scenarios.md) |
+| 工件职责和实现模块 | [架构与权威模型](docs/architecture.md) |
+| Skill 分工与协作 | [Skill 系统](docs/skill-system.md) |
+| 安装后的配置、宿主部署和工具行为 | [CLI 行为与策略](docs/cli-design.md) |
 
 FlowForge 采用 MIT 许可证。
