@@ -104,10 +104,10 @@ FlowForge 可以将角色定义编译到 Claude Code、OpenCode、Codex 和 PI �
 ## 仓库依据
 
 1. [项目协作与执行策略](../../AGENTS.md)：执行单元、入口阅读、任务分派与本机配置原则。
-2. [执行角色定义](../../assets/subagents/flowforge-implementer.md)：职责、停止条件与结果契约；其他角色见 [Skill 与角色系统](../skill-system.md)。
+2. [执行角色定义](../../assets/subagents/flowforge-implementer.md)：职责、停止条件与结果契约；其他角色见 [Skill 与角色系统](../reference/skill-system.md)。
 3. [Implement](../../assets/skills/flowforge-implement/SKILL.md)：轻量与完整模式、实施边界和返回方式。
 4. [Handoff](../../assets/skills/flowforge-handoff/SKILL.md)：临时会话交接与正式工件的关系。
 5. [Frontier 脚本生成](../../internal/command/frontier.go)：当前 PI 批次的 fresh、顺序运行和检查 gate。
-6. [CLI 与配置说明](../cli-design.md)：角色部署、漂移检查、模型独立配置与切换恢复边界。
+6. [CLI 与配置说明](../reference/cli-design.md)：角色部署、漂移检查、模型独立配置与切换恢复边界。
 
 [上一篇：依赖与推进](05-dependencies-and-progress.md) · [返回目录](README.md) · [下一篇：验证与反馈](07-verification-and-feedback.md)

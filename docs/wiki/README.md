@@ -17,7 +17,7 @@ FlowForge 如何让 Agent 在多轮讨论、任务执行和会话交接中持续
 ## 使用与技术参考
 
 - [项目 README](../../README.md)：通过与 Agent 对话，从创建 proposal 到交付。
-- [场景导览](../scenarios.md)：旧 PRD、批量执行、前端验证等使用场景。
-- [架构文档](../architecture.md)：工件职责、实现模块与系统约束。
-- [Skill 系统](../skill-system.md)：各流程的职责和协作方式。
-- [CLI 行为与配置](../cli-design.md)：工具行为、配置项与宿主部署。
+- [场景导览](scenarios.md)：旧 PRD、批量执行、前端验证等使用场景。
+- [架构文档](../reference/architecture.md)：工件职责、实现模块与系统约束。
+- [Skill 系统](../reference/skill-system.md)：各流程的职责和协作方式。
+- [CLI 行为与配置](../reference/cli-design.md)：工具行为、配置项与宿主部署。

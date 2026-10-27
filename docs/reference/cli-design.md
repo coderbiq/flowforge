@@ -87,7 +87,7 @@ flowforge frontier [--dir <path>] [--json] [--quiet] [--strict] [--include-gaps]
 
 仅由配置文件消费、`flowforge config` 不暴露的字段：`version`、`projects[]`（`id`、`srcDirs`）、`knowledge_sources`、`evidence.exempt_proposals`，以及 `agents.disabled`、`agents.hosts`、`agents.max_steps`、`agents.models`、`agents.models_by_name`、`agents.models_by_host`、`agents.model_sets`、`agents.test_file_globs`、`agents.disable_test_guard`。
 
-模型与推理强度配置依据[兼容配置设计 revision 3](proposals/subagent-model-reasoning/design.md#配置表达)。值兼容原字符串及 `{model: ..., reasoning_effort: ...}` 对象，两个字段均可独立声明；对象至少含一项，仅支持这两键，字段须为非空字符串。统一层 `models[profile]` / `models_by_name[name]` 可供多个宿主使用，`models_by_host` 是稀疏覆盖；只声明 Codex 即可，PI/OpenCode 无需重复配置：
+模型与推理强度配置依据[兼容配置设计 revision 3](../../ff-wiki/proposals/subagent-model-reasoning/design.md#配置表达)。值兼容原字符串及 `{model: ..., reasoning_effort: ...}` 对象，两个字段均可独立声明；对象至少含一项，仅支持这两键，字段须为非空字符串。统一层 `models[profile]` / `models_by_name[name]` 可供多个宿主使用，`models_by_host` 是稀疏覆盖；只声明 Codex 即可，PI/OpenCode 无需重复配置：
 
 ```yaml
 agents:
@@ -108,7 +108,7 @@ agents:
 
 原生字段为 Codex TOML `model` / `model_reasoning_effort`、Claude YAML `model` / `effort`、OpenCode YAML `model` / `reasoningEffort`、PI YAML `model` / `thinking`。Claude effort 接受 low/medium/high/xhigh/max；PI 接受 off/minimal/low/medium/high/xhigh/max；Codex/OpenCode 做 token 检查，provider/client/model 能力由宿主运行时校验。OpenCode/PI 的最终 model 仍须 `provider/model`，Claude/Codex 接受单 token。所有声明检查结构、键和 token，宿主规则只检查启用宿主、启用角色的最终使用字段，覆盖后的统一值不会被该宿主误拒绝。
 
-`agents deploy` 与 `agents status` 应用同一 active-set、按字段保留 YAML frontmatter/TOML 顶层的本地 model/effort；显式配置优先。无显式 effort 且无本地字段时，Codex/PI 保留 profile 的 high/medium 默认，Claude/OpenCode 省略字段。无配置无本地值的默认产物保持原字节。损坏或不可读的本地文件报路径且阻止写入。解析、原生字段、保留与切换边界见[独立解析与清除](proposals/subagent-model-reasoning/design.md#独立解析与清除)、[原生编译与校验](proposals/subagent-model-reasoning/design.md#原生编译与校验)及[部署与观察](proposals/subagent-model-reasoning/design.md#部署保留与可观察性)。
+`agents deploy` 与 `agents status` 应用同一 active-set、按字段保留 YAML frontmatter/TOML 顶层的本地 model/effort；显式配置优先。无显式 effort 且无本地字段时，Codex/PI 保留 profile 的 high/medium 默认，Claude/OpenCode 省略字段。无配置无本地值的默认产物保持原字节。损坏或不可读的本地文件报路径且阻止写入。解析、原生字段、保留与切换边界见[独立解析与清除](../../ff-wiki/proposals/subagent-model-reasoning/design.md#独立解析与清除)、[原生编译与校验](../../ff-wiki/proposals/subagent-model-reasoning/design.md#原生编译与校验)及[部署与观察](../../ff-wiki/proposals/subagent-model-reasoning/design.md#部署保留与可观察性)。
 
 已弃用且被忽略（仅告警）：`wiki.root` 与 `projects[].wikiRoot`；wiki 根只由 `docs_dir` 决定。
 

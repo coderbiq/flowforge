@@ -1,6 +1,6 @@
 # FlowForge 场景导览
 
-这 8 个场景每个回答三个问题：**解决什么痛点、你敲什么命令、feature 从哪个 proposal 来**。命令与角色名以当前二进制和 `assets/` 实物为准；新手主线（安装 → 说出需求 → frontier 循环）见 [README 快速开始](../README.md#快速开始)。场景对话均为虚构的通用示例。
+这 8 个场景每个回答三个问题：**解决什么痛点、你敲什么命令、feature 从哪个 proposal 来**。命令与角色名以当前二进制和 `assets/` 实物为准；新手主线（安装 → 说出需求 → frontier 循环）见 [README 快速开始](../../README.md#快速开始)。场景对话均为虚构的通用示例。
 
 ## 场景 1：说出一个需求，看它变成 proposal
 
@@ -21,7 +21,7 @@ flowforge frontier   # 展示无阻塞就绪批次
 
 **涉及 feature**：对话驱动立项（import → align → solution-design → plan 全部由 agent 承担）；文件事实驱动的 DAG 检查与 frontier 投影；warning/gap/blocker 三档处置。
 
-**来源**：[documentation-contract-refinement](proposals/documentation-contract-refinement/spec.md)
+**来源**：[documentation-contract-refinement](../../ff-wiki/proposals/documentation-contract-refinement/spec.md)
 
 ## 场景 2：从一份旧 PRD 起步
 
@@ -37,7 +37,7 @@ flowforge assets verify    # 只读核对：项目内受管 skill 与二进制�
 
 **涉及 feature**：外部材料分类交接（不机械转换文档）；受管资产漂移核对。
 
-**来源**：[external-material-intake](proposals/external-material-intake/requirements.md)
+**来源**：[external-material-intake](../../ff-wiki/proposals/external-material-intake/requirements.md)
 
 ## 场景 3：用便宜模型批量执行一个 proposal
 
@@ -56,7 +56,7 @@ flowforge assets verify    # 只读核对：项目内受管 skill 与二进制�
 
 **涉及 feature**：轻量执行契约；evidence 四元组门禁；steps 预算与 fail-fast；blocked evidence 持久化与消费；repair ticket 分流；refine-ticket 五段契约。
 
-**来源**：[lightweight-execution-contract](proposals/lightweight-execution-contract/spec.md)、[fast-executor-reliability](proposals/fast-executor-reliability/requirements.md)、[ticket-refinement-contract](proposals/ticket-refinement-contract/requirements.md)、[executor-loop-hardening](proposals/executor-loop-hardening/requirements.md)、[blocked-evidence-persistence](proposals/blocked-evidence-persistence/requirements.md)
+**来源**：[lightweight-execution-contract](../../ff-wiki/proposals/lightweight-execution-contract/spec.md)、[fast-executor-reliability](../../ff-wiki/proposals/fast-executor-reliability/requirements.md)、[ticket-refinement-contract](../../ff-wiki/proposals/ticket-refinement-contract/requirements.md)、[executor-loop-hardening](../../ff-wiki/proposals/executor-loop-hardening/requirements.md)、[blocked-evidence-persistence](../../ff-wiki/proposals/blocked-evidence-persistence/requirements.md)
 
 ## 场景 4：角色工厂——一次派一批票
 
@@ -75,7 +75,7 @@ flowforge agents status            # 检查部署漂移（current/missing/drifte
 
 **涉及 feature**：subagent 生命周期管理（deploy/remove/status）；通用能力角色；PI 一等宿主（原生工具 + 测试文件写拦截）；`--pi-workflow` 批次脚本。
 
-**来源**：[subagent-lifecycle](proposals/subagent-lifecycle/requirements.md)、[generic-role-orchestration](proposals/generic-role-orchestration/requirements.md)、[pi-host-integration](proposals/pi-host-integration/requirements.md)
+**来源**：[subagent-lifecycle](../../ff-wiki/proposals/subagent-lifecycle/requirements.md)、[generic-role-orchestration](../../ff-wiki/proposals/generic-role-orchestration/requirements.md)、[pi-host-integration](../../ff-wiki/proposals/pi-host-integration/requirements.md)
 
 ## 场景 5：限额时段换模型，不换流程
 
@@ -95,7 +95,7 @@ flowforge model-set show           # 查看当前方案
 
 **涉及 feature**：命名模型方案一键切换（自动重部署 + 回滚）；flash 工作面扩展（investigator / reviewer-lite / explore）；执行者价值度量。
 
-**来源**：[model-sets-switching](proposals/model-sets-switching/requirements.md)、[flash-worksurface-expansion](proposals/flash-worksurface-expansion/requirements.md)、[executor-value-measurement](proposals/executor-value-measurement/requirements.md)
+**来源**：[model-sets-switching](../../ff-wiki/proposals/model-sets-switching/requirements.md)、[flash-worksurface-expansion](../../ff-wiki/proposals/flash-worksurface-expansion/requirements.md)、[executor-value-measurement](../../ff-wiki/proposals/executor-value-measurement/requirements.md)
 
 ## 场景 6：前端票自证"好看"
 
@@ -107,7 +107,7 @@ flowforge model-set show           # 查看当前方案
 
 **涉及 feature**：前端规范生命周期；截图自审循环；视觉条款级双轴复核。PoC 实测把一处暗底暗字从对比度 1.12:1 修到 18.43:1 才放行。
 
-**来源**：[frontend-standards-lifecycle](proposals/frontend-standards-lifecycle/requirements.md)、[frontend-vision-loop-poc](proposals/frontend-vision-loop-poc/requirements.md)
+**来源**：[frontend-standards-lifecycle](../../ff-wiki/proposals/frontend-standards-lifecycle/requirements.md)、[frontend-vision-loop-poc](../../ff-wiki/proposals/frontend-vision-loop-poc/requirements.md)
 
 ## 场景 7：规范不靠人肉抄进每张卡
 
@@ -129,7 +129,7 @@ flowforge model-set show           # 查看当前方案
 
 **涉及 feature**：规范提取说明项目定制化（standards.md 重写 + `standards.guide` 指向）；规范注入链（Align 挑选 → Design 转写 → Plan 机械转录 → 缺规范退回）；description-driven dispatch 三段约束。
 
-**来源**：[standards-injection](proposals/standards-injection/requirements.md)、[skill-routing-simplification](proposals/skill-routing-simplification/requirements.md)
+**来源**：[standards-injection](../../ff-wiki/proposals/standards-injection/requirements.md)、[skill-routing-simplification](../../ff-wiki/proposals/skill-routing-simplification/requirements.md)
 
 ## 场景 8：多机协作不互踩
 
@@ -144,4 +144,4 @@ flowforge model-set show           # 查看当前方案
 
 **涉及 feature**：模型本地化（models_by_host 六级链）；部署产物 gitignore 自动化；手写 model 保留；wiki 配置单轨。
 
-**来源**：[deploy-artifact-localization](proposals/deploy-artifact-localization/requirements.md)、[agent-model-preservation](proposals/agent-model-preservation/requirements.md)、[wiki-config-single-track](proposals/wiki-config-single-track/requirements.md)
+**来源**：[deploy-artifact-localization](../../ff-wiki/proposals/deploy-artifact-localization/requirements.md)、[agent-model-preservation](../../ff-wiki/proposals/agent-model-preservation/requirements.md)、[wiki-config-single-track](../../ff-wiki/proposals/wiki-config-single-track/requirements.md)

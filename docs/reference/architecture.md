@@ -61,7 +61,7 @@ Markdown 是内容接口。Agent 直接读写文件；CLI 不接受大段需求�
 - `internal/update`：CLI 更新与同版本资产同步。
 - `assets/skills`、`assets/subagents`、`assets/agents`（`domain.md` / `issue-tracker.md` / `standards.md` / `triage-labels.md`）、`assets/AGENTS.md`、`assets/pi/flowforge.ts`（PI 项目级扩展，随 `pi` 宿主部署）：编译进二进制并部署到目标项目的生产资产。
 
-Subagent 名册为混合模型，共 12 个角色：8 个流程角色（`analyst` / `architect` / `planner` / `implementer` / `reviewer` / `investigator` / `frontend-implementer` / `frontend-reviewer`，绑定 flowforge-* skill）+ 4 个通用能力角色（`flowforge-batch-analyst` / `flowforge-scribe` / `flowforge-executor` / `flowforge-reviewer-lite`，`default_skill` 仅作方法材料，见 [ADR 0001](adr/0001-hybrid-generic-subagent-roles.md)）。`assets/AGENTS.md` 的 `## Generic capability dispatch`（能力键调度）先于 `## Subagent delegation`（流程委派）声明，顺序即适用优先级。
+Subagent 名册为混合模型，共 12 个角色：8 个流程角色（`analyst` / `architect` / `planner` / `implementer` / `reviewer` / `investigator` / `frontend-implementer` / `frontend-reviewer`，绑定 flowforge-* skill）+ 4 个通用能力角色（`flowforge-batch-analyst` / `flowforge-scribe` / `flowforge-executor` / `flowforge-reviewer-lite`，`default_skill` 仅作方法材料，见 [ADR 0001](../../ff-wiki/adr/0001-hybrid-generic-subagent-roles.md)）。`assets/AGENTS.md` 的 `## Generic capability dispatch`（能力键调度）先于 `## Subagent delegation`（流程委派）声明，顺序即适用优先级。
 
 `docs_dir` 默认为 `ff-wiki`（d04e955 起），可为相对项目根目录或绝对路径。命令从任意子目录向上定位 `.flowforge/config.yaml`；发现损坏配置时返回错误，不静默退回其他目录。没有 FlowForge 配置的普通目录使用 `<startDir>/ff-wiki/proposals` 作为兼容默认值（向上找不到配置时不静默回退到其它目录）。
 

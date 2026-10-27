@@ -116,10 +116,10 @@ FlowForge 的整体收益、成本和正确率尚无系统性实测结果。效�
 
 ## 仓库依据
 
-1. [架构与权威模型](../architecture.md)：组成部分、职责分工与工件形态。
+1. [架构与权威模型](../reference/architecture.md)：组成部分、职责分工与工件形态。
 2. [共享工件契约](../../assets/skills/_shared/ARTIFACT-CONTRACT.md)：内容职责、局部交接、来源关系和执行审查循环。
 3. [Align](../../assets/skills/flowforge-align/SKILL.md) 与 [Solution Design](../../assets/skills/flowforge-solution-design/SKILL.md)：需求与设计的形成、维护和交接职责。
 4. [Plan](../../assets/skills/flowforge-plan/SKILL.md)：任务增量、规范转录、执行细节准备与图发布。
-5. [Implement](../../assets/skills/flowforge-implement/SKILL.md) 与 [CLI 行为](../cli-design.md)：执行前检查、验证证据和确定性计算的边界。
+5. [Implement](../../assets/skills/flowforge-implement/SKILL.md) 与 [CLI 行为](../reference/cli-design.md)：执行前检查、验证证据和确定性计算的边界。
 
 [上一篇：背景与原理](01-background-and-principles.md) · [返回目录](README.md) · [下一篇：需求与设计管理](03-requirements-and-design.md)

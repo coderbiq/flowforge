@@ -12,7 +12,7 @@ FlowForge 是一套与 AI Agent 协作开发的工作流。它把需求、设计
 
 > 帮我在这个项目中安装和配置 FlowForge，项目地址是 https://github.com/coderbiq/flowforge 。
 
-Agent 会检查已有配置，安装 FlowForge，准备工程 Skill 和当前工具使用的子代理角色，并建立保存项目文档的目录。它还需要核对当前环境是否能够使用这些角色；例如 PI 的子代理能力需要相应扩展。安装依据见[发布页](https://github.com/coderbiq/flowforge/releases/latest)、[安装脚本](scripts/install.sh)（[Windows](scripts/install.ps1)）和[配置说明](docs/cli-design.md)。需要登录、授权或重新加载会话时，按 Agent 给出的提示操作。
+Agent 会检查已有配置，安装 FlowForge，准备工程 Skill 和当前工具使用的子代理角色，并建立保存项目文档的目录。它还需要核对当前环境是否能够使用这些角色；例如 PI 的子代理能力需要相应扩展。安装依据见[发布页](https://github.com/coderbiq/flowforge/releases/latest)、[安装脚本](scripts/install.sh)（[Windows](scripts/install.ps1)）和[配置说明](docs/reference/cli-design.md)。需要登录、授权或重新加载会话时，按 Agent 给出的提示操作。
 
 接着，让它了解项目的规则：
 
@@ -115,9 +115,9 @@ Proposal 保存了这项工作的需求、设计、任务和证据，你可以�
 ## 深入了解
 
 - [FlowForge Wiki](docs/wiki/README.md)：背景原理、整体设计，以及需求、任务、依赖、执行和反馈如何连接。
-- [场景导览](docs/scenarios.md)：旧 PRD、批量执行、前端验证等使用场景。
-- [Skill 系统](docs/skill-system.md)：各流程的职责和协作方式。
-- [架构与权威模型](docs/architecture.md)：项目工件和实现模块。
-- [CLI 行为与配置](docs/cli-design.md)：供配置环境、排查问题和开发集成时查阅。
+- [场景导览](docs/wiki/scenarios.md)：旧 PRD、批量执行、前端验证等使用场景。
+- [Skill 系统](docs/reference/skill-system.md)：各流程的职责和协作方式。
+- [架构与权威模型](docs/reference/architecture.md)：项目工件和实现模块。
+- [CLI 行为与配置](docs/reference/cli-design.md)：供配置环境、排查问题和开发集成时查阅。
 
 FlowForge 采用 MIT 许可证。
