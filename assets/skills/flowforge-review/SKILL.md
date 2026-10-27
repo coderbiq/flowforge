@@ -24,6 +24,16 @@ For committed scope, capture `git diff <fixed-point>...HEAD` and `git log <fixed
 
 Confirm the fixed point resolves and the complete scoped diff is non-empty. A bad ref, omitted untracked file, or empty scope fails here.
 
+Resolve closeout ownership before reviewing, using the caller's declared execution mode (which takes precedence), then the ticket's mode:
+
+| Invocation | Review responsibility | Completion evidence and `closed` owner |
+|---|---|---|
+| Separate review after lightweight implementation | Review, fix planning, Review rounds, and clean-round closeout | Review |
+| Review invoked by full-mode Implement | Review, fix planning, and Review rounds; return dispositions to Implement | Implement |
+| Explicitly read-only review, or no ticket/confirmed execution mode | Return findings and suggested dispositions without artifact writes | No closure in this invocation |
+
+An explicit read-only request takes precedence over either execution mode. Use the last branch when ownership cannot be established; a clean report alone does not authorize closure. Read-only reviews skip artifact mutations in steps 3b, 6, and 8.
+
 ### 2. Resolve the effective specification
 
 Resolve, in order:
@@ -103,7 +113,7 @@ Each finding must carry a severity tag: **[Critical]** (crash/data loss/security
 
 End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes: that's the reranking the separation exists to prevent.
 
-Return findings to the implementation owner. Review records no completion evidence, changes no ticket status, and silently waives nothing. When proposal documentation is in the diff, report information-value findings under Standards and keep them distinct from implementation conformance.
+Return findings to the implementation owner. At this aggregation step, record no Completion evidence and change no ticket status; subsequent fix planning and closeout follow the ownership resolved in step 1. Review silently waives nothing. When proposal documentation is in the diff, report information-value findings under Standards and keep them distinct from implementation conformance.
 
 ### 6. Fix planning
 
@@ -151,7 +161,9 @@ Append fix Changes to the ticket's Changes section and record the round. The lig
 
 **If zero findings:**
 
-Write Completion evidence in the ticket using the Implementation note's verification results plus review dispositions from all rounds:
+For full-mode Implement, return the clean review and all finding dispositions to the implementation owner. Implement writes Completion evidence, closes the ticket after its own closeout checks, and publishes the next frontier. Review continues to steps 7–8 without writing Completion evidence or closing the ticket.
+
+For a separate review after lightweight implementation, Review writes Completion evidence, closes the ticket, and publishes the next frontier only after the clean review and its closeout checks. If findings exist, neither mode closes the ticket until the findings are corrected or authoritatively dispositioned. Use the verified Implementation note results plus review dispositions from all rounds to write Completion evidence:
 
 - delivered behavior;
 - commands run and observed results (from Implementation note);
@@ -169,7 +181,7 @@ Review must not write code, merge the two axes, or silently waive a finding. Eve
 
 ### 8. Record the journal event
 
-After the review dispositions are recorded — and, when this round produced zero findings, after the ticket closes — append this round's event to the proposal journal `<docs_dir>/proposals/<feature>/journal.md` by hand (v1 ships no `journal stamp` subcommand). When the file is absent, create it from the frontmatter skeleton:
+For a mutating review, after recording the review dispositions and any Review-owned closeout, append this round's event to the proposal journal `<docs_dir>/proposals/<feature>/journal.md` by hand (v1 ships no `journal stamp` subcommand). When the file is absent, create it from the frontmatter skeleton:
 
 ```markdown
 ---
@@ -186,7 +198,7 @@ flowforge:
 One event is one flow mapping in the `events` list; append it at the end and never edit or delete an earlier line.
 
 - `round` — the journal's active round
-- `stage` — `review`; the `round-close` event below is stage-less
+- `stage` — `review`; the `round-close` event below is stage-less. Closing a review round records the end of this review invocation, not proof that the ticket is closed; in full mode Implement still owns ticket closeout.
 - `action` — `done`, or `skipped` with a mandatory `reason`; append the stage-less `round-close` event when this review round finishes
 - `ts` — UTC timestamp of the append
 - `by` — `flowforge-review`

@@ -82,7 +82,7 @@ The source link is a relative path with an anchor (e.g. `../docs/dependency-rule
   
   A schema-managed executable ticket missing any section or carrying only placeholder content is diagnosed `execution-contract-incomplete` (gap). Plan publishes the skeleton headings; Refine Ticket fills them with facts. Implement refuses to execute a ticket with this gap regardless of `--include-gaps`.
 - **Implementation note:** written by the implementer after execution; records completed Changes, commands run and results, files modified, and write-set compliance. Not evidence—a status report for the review agent.
-- **Review rounds:** accumulates review history per round; each round records the fixed point (commit SHA), Standards/Spec findings, fix Changes created, and disposition. A clean round (zero findings) triggers Completion evidence and closure.
+- **Review rounds:** accumulates review history per round; each round records the fixed point (commit SHA), Standards/Spec findings, fix Changes created, and disposition. A clean round (zero findings) returns to the closeout owner defined below; it does not itself prove ticket closure.
 
 ## Execution and review loop
 
@@ -92,11 +92,13 @@ When the implementer is a lightweight model and review runs as a separate sessio
 2. **Implement** (lightweight mode) executes unchecked Changes in order, runs mechanical self-checks (build, focused tests, full verify), checks off completed Changes, writes an Implementation note, and stops. It does not review, close the ticket, or make design decisions.
 3. **Review** runs the dual-axis review on the fixed change set. If findings exist, it translates each fixable finding into a new unchecked `Fix:` Change appended to the ticket. If a finding requires an architecture/seam/interface change, it marks the finding as a design return instead. It records the round in Review rounds.
 4. **Implement** re-executes the new fix Changes. Steps 3-4 repeat.
-5. When a review round produces zero findings, **Review** writes Completion evidence and closes the ticket.
+5. When a review round produces zero findings, the closeout owner writes Completion evidence and closes the ticket: Review in the separate lightweight loop, or Implement in full mode after Review returns its findings.
 
-**Substantive finding → repair ticket:** If a finding is High/Critical, changes an execution contract or acceptance criterion, crosses the write set, or alters a boundary downstream work depends on, Review does not append it to the original ticket. Instead, it creates a new repair ticket (`**Repair of:** <original-id>`, `**Status:** open`), sets the original to `needs-repair`, rewires downstream `Blocked by` to the repair, and records the repair reference in the original's Review rounds. The repair ticket enters the frontier independently; the original stays non-executable until the repair passes its own clean review, after which Review writes the repair's evidence back to the original and closes both. `Repair of:` is provenance, not a DAG edge.
+**Substantive finding → repair ticket:** If a finding is High/Critical, changes an execution contract or acceptance criterion, crosses the write set, or alters a boundary downstream work depends on, Review does not append it to the original ticket. Instead, it creates a new repair ticket (`**Repair of:** <original-id>`, `**Status:** open`), sets the original to `needs-repair`, rewires downstream `Blocked by` to the repair, and records the repair reference in the original's Review rounds. The repair ticket enters the frontier independently; the original stays non-executable until the repair passes its own clean review, after which the closeout owner links the repair's evidence back to the original and closes both once their delivery conditions are satisfied. `Repair of:` is provenance, not a DAG edge.
 
-A capable agent that owns the full turn may implement, invoke review, resolve findings, write evidence, and close in one continuous session. The loop above applies when implement and review are separate sessions with asymmetric capability.
+Closeout ownership follows the declared execution mode: in the separate lightweight loop, Review writes Completion evidence and closes the ticket after a clean round; in full mode, Review returns findings and dispositions, and Implement writes Completion evidence and closes after verification and disposition checks. An explicitly read-only review never mutates artifacts or closes a ticket. When mode or ownership is unknown, return findings without closing.
+
+Review records its review event and round completion in the proposal journal for mutating reviews. A completed review round is distinct from a closed ticket: full-mode Implement retains closeout ownership. The loop above applies when implement and review are separate sessions with asymmetric capability.
 
 ## Diagnostics
 
