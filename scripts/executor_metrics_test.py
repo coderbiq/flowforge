@@ -88,7 +88,7 @@ def tool_part(tool="bash", command=None, output=None):
     return {"type": "tool", "tool": tool, "state": state}
 
 
-def dispatch_and_report_parts(ticket_line="ticket docs/proposals/timeline/issues/06-x.md here",
+def dispatch_and_report_parts(ticket_line="ticket ff-wiki/proposals/timeline/issues/06-x.md here",
                               report="STATUS: COMPLETED\n\n### Summary\ndone"):
     return [text_part(f"你是 implementer。{ticket_line}"), text_part(report)]
 
@@ -215,7 +215,7 @@ class SessionMetricsTests(unittest.TestCase):
     def test_corrupt_part_json_skipped_and_counted(self):
         conn = make_conn()
         add_session(conn, "ses_f")
-        add_part(conn, "ses_f", text_part("docs/proposals/p/issues/09-y.md"))
+        add_part(conn, "ses_f", text_part("ff-wiki/proposals/p/issues/09-y.md"))
         add_part(conn, "ses_f", step_part(), tc=BASE_TS + 1)
         add_part(conn, "ses_f", '{"type": "tool", "tool": "bash", "state": {"in', tc=BASE_TS + 2)
         add_part(conn, "ses_f", tool_part("bash", "true", "exit code 0"), tc=BASE_TS + 3)
@@ -1490,7 +1490,7 @@ class DecisionTemplateTests(unittest.TestCase):
     (ticket 03 Generated artifacts; design d-decision-gates 收口产物)."""
 
     PATH = (pathlib.Path(__file__).resolve().parents[1]
-            / "docs/proposals/executor-value-measurement/DECISION.md")
+            / "ff-wiki/proposals/executor-value-measurement/DECISION.md")
 
     def test_template_exists_with_required_placeholders(self):
         text = self.PATH.read_text(encoding="utf-8")

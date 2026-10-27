@@ -173,7 +173,7 @@ func splitFrontmatter(data []byte) (frontmatter, body []byte, ok bool) {
 	return rest[:end], rest[after:], true
 }
 
-// DiscoverIssues scans a root directory (e.g. docs/proposals/) for all issues.
+// DiscoverIssues scans a root directory (e.g. ff-wiki/proposals/) for all issues.
 func DiscoverIssues(root string) ([]*Issue, error) {
 	catalog, err := DiscoverArtifacts(root)
 	if err != nil {

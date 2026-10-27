@@ -3,9 +3,9 @@
 opencode SQLite DB into an append-only observations.md.
 
 Authorities:
-- design: docs/proposals/executor-value-measurement/design.md (d-extraction, d-cost)
-- design: docs/proposals/flash-worksurface-expansion/design.md (d-phase-1)
-- requirements: docs/proposals/executor-value-measurement/requirements.md
+- design: ff-wiki/proposals/executor-value-measurement/design.md (d-extraction, d-cost)
+- design: ff-wiki/proposals/flash-worksurface-expansion/design.md (d-phase-1)
+- requirements: ff-wiki/proposals/executor-value-measurement/requirements.md
 
 Zero third-party dependencies (python3 stdlib only). The DB is always opened
 read-only via a ``file:...?mode=ro`` URI; observations.md is append-only with
@@ -16,14 +16,14 @@ Usage:
         --db ~/.local/share/opencode/opencode.db \
         --project tangram-v2 \
         [--agents flowforge-implementer,explore] \
-        --out docs/proposals/executor-value-measurement/observations.md \
+        --out ff-wiki/proposals/executor-value-measurement/observations.md \
         [--since <epoch-ms|ISO8601>] \
         [--epochs "name:<T,name:T1-T2,name:>T2"] \
         [--price-override '{"flash":[in,out,cacheR],...}']
 
     python3 scripts/executor_metrics.py report \
-        --obs docs/proposals/executor-value-measurement/observations.md \
-        [--out docs/proposals/executor-value-measurement/report.md] \
+        --obs ff-wiki/proposals/executor-value-measurement/observations.md \
+        [--out ff-wiki/proposals/executor-value-measurement/report.md] \
         [--epochs "name:<T,name:T1-T2,name:>T2"] \
         [--project-root /path/to/target-repo] \
         [--price-override '{"flash":[in,out,cacheR],...}']
