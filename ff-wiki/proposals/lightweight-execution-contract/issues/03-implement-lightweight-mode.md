@@ -18,7 +18,7 @@ The Implement skill supports a lightweight mode where a flash model executes unc
 
 The current Implement skill assumes one capable agent owns the entire turn: implement, invoke review, resolve findings, write evidence, and close. When the implementer is a flash model, it cannot review, and the review runs as a separate session. The Implement skill needs a mode that produces a structured status (Implementation note) and stops, so the review agent can pick up.
 
-See [spec](../spec.md) and [artifact contract](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md).
+See [spec](../spec.md) and [artifact contract](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md).
 
 ## Touch points
 

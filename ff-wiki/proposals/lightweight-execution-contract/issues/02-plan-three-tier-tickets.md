@@ -18,7 +18,7 @@ The Plan skill produces tickets with three information tiers: human-priority (De
 
 The current Plan skill already uses the enhanced schema (Delivery, Design context, Touch points, Changes, Constraints, Done and verify) from the documentation-contract-refinement. But Touch points stay at concept level, Changes describe intent, and Done and verify lack expected results. The three-tier model adds density without making tickets unreadable: humans see Tier 1 and Tier 2; the `---` separator lets them skip Tier 3.
 
-See [spec](../spec.md) and [artifact contract](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md).
+See [spec](../spec.md) and [artifact contract](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md).
 
 ## Touch points
 

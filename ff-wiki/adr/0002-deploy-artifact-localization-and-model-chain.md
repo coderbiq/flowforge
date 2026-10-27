@@ -40,4 +40,4 @@
 
 采用每机器版本 1 快照 `.flowforge/agent-model-state.json`，分别记录 model/effort 的最后生成值及本地备份。只比较上一方案的当前配置无法还原已经编辑或删除的历史声明；只记录 generated/local 标签则会在临时显式覆盖时丢失原本地值。两份字段状态让方案切换和配置移除可恢复，同时维持显式配置优先及原有非事务部署边界。
 
-迁移、字段与文件删除、`inherit`、只读 status 和提交失败范围见 [CLI 部署字段恢复规则](../cli-design.md#agent-model-state-restoration)。
+迁移、字段与文件删除、`inherit`、只读 status 和提交失败范围见 [CLI 部署字段恢复规则](../../docs/reference/cli-design.md#agent-model-state-restoration)。

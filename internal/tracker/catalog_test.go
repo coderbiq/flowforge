@@ -516,7 +516,7 @@ func TestEndToEndRepairDAGPath(t *testing.T) {
 
 func TestRepositoryAndTangramProposalLayouts(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
-	flowforge, err := tracker.DiscoverArtifacts(filepath.Join(repoRoot, "docs", "proposals"))
+	flowforge, err := tracker.DiscoverArtifacts(filepath.Join(repoRoot, "ff-wiki", "proposals"))
 	if err != nil {
 		t.Fatal(err)
 	}

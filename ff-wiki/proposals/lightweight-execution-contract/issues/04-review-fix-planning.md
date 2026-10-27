@@ -18,7 +18,7 @@ The Review skill gains a fix-planning phase: after completing the dual-axis revi
 
 The current Review skill returns findings to the implementation owner and stops. When the implementer is a flash model in a separate session, nobody translates findings into executable steps. The fix-planning phase bridges this gap: the review agent has the findings in context and can most efficiently write mechanical fix Changes that the flash implementer can re-execute.
 
-See [spec](../spec.md) and [artifact contract](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md).
+See [spec](../spec.md) and [artifact contract](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md).
 
 ## Touch points
 

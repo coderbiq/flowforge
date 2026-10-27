@@ -161,7 +161,7 @@ func TestEvidenceArtifactBaseResolvesRepositoryRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scanRoot := filepath.Join(repoRoot, "docs", "proposals")
+	scanRoot := filepath.Join(repoRoot, "ff-wiki", "proposals")
 	changes := "- [x] 1. Shipped code\n    - cmd: go test ./...\n    - exit: 0\n    - output: \"ok\"\n    - artifact: internal/app/code.go\n"
 	path := writeEvidenceTicket(t, scanRoot, "feature-repo", "01-repo.md", ticketBody(changes))
 
