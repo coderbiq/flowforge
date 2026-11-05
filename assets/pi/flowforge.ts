@@ -267,10 +267,16 @@ export function resolveThroughLinks(target: string): string {
 	return auditPath(target).resolved;
 }
 
-/** True when `candidate` is `root` or lives inside it. */
+/**
+ * True when `candidate` is `root` or lives inside it. Containment is decided on
+ * whole path segments: only an explicit `..` segment escapes the root, so an
+ * ordinary child whose name merely starts with two dots still counts as inside.
+ */
 function isWithinPath(root: string, candidate: string): boolean {
 	const relative = path.relative(root, candidate);
-	return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+	if (relative === "") return true;
+	if (path.isAbsolute(relative)) return false;
+	return relative !== ".." && !relative.startsWith(`..${path.sep}`);
 }
 
 /**

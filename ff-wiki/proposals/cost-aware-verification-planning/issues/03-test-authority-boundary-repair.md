@@ -58,7 +58,11 @@ Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首�
   - output: 'GROUP grant-zone: {"total":160,"passed":160,"failed":0}; SUMMARY: original=38/38; repair=228; failures=0; passed=266; no built-in write/edit executed (deployed .pi/extensions/flowforge.ts)'
   - artifact: .pi/extensions/flowforge.ts
 
-- [ ] 5. Fix: 在 `assets/pi/flowforge.ts:isWithinPath` 按完整路径段判断父目录：仅 `relative === '..'` 或以 `'..' + path.sep` 开头视为父目录越界，仍拒绝 absolute；空 relative 与含 `..` 名称的普通子路径属于根内。恢复有效精确授权的 `..allowed_test.go`、`..fixtures/allowed_test.go` 正常 write/edit；拒绝授权目录内 `..unused.json` 的 write/edit；普通 `fixtures/allowed_test.go` 仍允许，真正 `../outside_test.go` 仍拒绝。完成后按下述 Fix 5 单独复验组构建、部署、实跑并追加本 Change 的 cmd/exit/output/artifact 四元组，不改写 Changes 1–4 的历史证据。
+- [x] 5. Fix: 在 `assets/pi/flowforge.ts:isWithinPath` 按完整路径段判断父目录：仅 `relative === '..'` 或以 `'..' + path.sep` 开头视为父目录越界，仍拒绝 absolute；空 relative 与含 `..` 名称的普通子路径属于根内。恢复有效精确授权的 `..allowed_test.go`、`..fixtures/allowed_test.go` 正常 write/edit；拒绝授权目录内 `..unused.json` 的 write/edit；普通 `fixtures/allowed_test.go` 仍允许，真正 `../outside_test.go` 仍拒绝。完成后按下述 Fix 5 单独复验组构建、部署、实跑并追加本 Change 的 cmd/exit/output/artifact 四元组，不改写 Changes 1–4 的历史证据。
+  - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`
+  - exit: 0
+  - output: 'GROUP fix5-path-segments: {"total":10,"passed":10,"failed":0}; SUMMARY: original=38/38; repair=238; failures=0; passed=276; no built-in write/edit executed'
+  - artifact: assets/pi/flowforge.ts
 
 ### Fix 5 作者授权与复验合同（主会话裁决）
 
@@ -210,6 +214,42 @@ run; no grant is issued, no ticket is closed.
   模型/guard 配置；未签发授权、未关票、未 push）。
 - 交主会话：修后 `f1a5111…修后HEAD` 完整授权实现范围的 independent Round 0 与
   Standards/Spec 双轴、修后新 native 作者签发/撤销实跑、03/00 收敛与最终推送。
+
+### Fix 5（新鲜轻量实现上下文，2026-11-05）
+
+起始 HEAD `36c9c8f`（作者追加10观察的 probe 提交）；上面 Changes 1–4 的记录不改写。
+
+- Restatement：Change 5 = 仅改 `assets/pi/flowforge.ts:isWithinPath`，以完整路径段判父目录
+  （仅 `relative === '..'` 或 `'..' + path.sep` 开头越界，仍拒 absolute；空 relative 与
+  `..` 名称前缀的普通子路径属根内），验收即已追加的 `fix5-path-segments` 10观察 + 旧266项。
+  与票面一致，未扩范围。
+- Preflight：`touchesGrantRecords`（并受 `testWriteDenial` 两处消费：授权目录区与项目根）
+  共享该 helper，改后语义不变（true=在根内/相等）；未改签名、调用次序或返回语义。
+  写集：`assets/pi/flowforge.ts`、本票、`evidence/03-implementation.md`；`internal/command/assets/**`、
+  `bin/flowforge`、`.pi/extensions/flowforge.ts`、`.pi/agents/flowforge-planner.md` 由现有
+  `make dev`/`agents deploy` 生成。`evidence/03-fix5-implementation.md` 为本轮派发明示新增
+  （与作者 `03-fix5-authoring.md` 同约定），不在票面 Write set 字面清单，已在该文件与本节记录。
+- 完成：Change 5 已勾选（无未完成 Change、无 design return）。实跑（详见
+  [03-fix5-implementation.md](../evidence/03-fix5-implementation.md)）：
+  - source 矩阵 exit 0，276/276（fix5 组 10/10，旧266项逐项重跑通过，`failures=0`）。
+  - `make dev` exit 0（`v5.13.1-39-g36c9c8f-dirty`）→ `./bin/flowforge agents deploy flowforge-planner`
+    exit 0（仅 planner + 共享扩展）。
+  - deployed 矩阵 exit 0，276/276（`HOST: … source …/.pi/extensions/flowforge.ts`）。
+  - `shasum -a 256` 三份同为 `ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b`；
+    两条 `cmp` exit 0。
+  - `go test -count=1 ./internal/command -run '^TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)$' -v`
+    exit 0，两例 PASS。
+  - `go test ./internal/...` exit 1：唯一失败为既有 `TestIssueTrackerDescribesRepairWorkflow`
+    （`assets_deploy_test.go:610: open ../../docs/agents/issue-tracker.md: no such file or directory`，
+    归 01 Change 8）；其余包 ok/no test files；其他失败无豁免也未出现，不宣称全仓绿。
+  - `check --full` exit 0（03 无 gap；01 warning、02 gap 保留）、`frontier --json` exit 0
+    （ready 仅 03）、`git diff --check` exit 0。
+- 边界：预设 probe 只读（sha256 `8e28ffd5…873c0f9` 未变）；未签发/撤销授权、未执行被保护工具
+  写入、未改设计/全局保护/模型配置/CLI、未再委派、未 push、未关票。原 native 证据仅拟复用，
+  本上下文不批准其适用性，也不声称本轮实跑 native；复用条件与实际 diff 的吻合仍由新的独立
+  Round 0 判定。
+- Write-set 合规：所有落盘修改均在 Write set 或上述由现有构建/部署命令生成的授权产物内
+  （唯一例外为派发指定新增的 `evidence/03-fix5-implementation.md`，已显式记录）。
 
 
 ## Review rounds

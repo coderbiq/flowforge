@@ -217,3 +217,29 @@ gap: execution-contract-incomplete ff-wiki/proposals/cost-aware-verification-pla
 - 后续仍待主会话组织：修后新背景 Plan 的未授权拒绝→精确签发→正常 write/edit→越界与授权
   目录拒绝→撤销后拒绝的真实 native 证据；`f1a5111…修后HEAD` 完整授权实现范围的独立
   Round 0 与 Standards/Spec 双轴；03/00 收敛与最终推送；01 的合法作者 Go 测试与 Refine。
+
+## Fix 5 追加（2026-11-05，新鲜轻量实现上下文）
+
+Changes 1–4 的上述记录保持原样不改写。Fix 5（SPEC-01 机械修复）在
+`36c9c8f` 之后单独执行，完整事实见
+[03-fix5-implementation.md](03-fix5-implementation.md)；本节只列关键结果。
+
+- 产品差分：仅 `assets/pi/flowforge.ts:isWithinPath`（8 insertions / 2 deletions）。父目录越界
+  改为完整路径段判定（`relative === ".."` 或以 `.. + path.sep` 开头），仍拒绝 absolute；
+  空 relative 与含 `..` 名称的普通子路径属根内。nonce、环境捕获、grant 读取/撤销、UTC 校验
+  与 `tool_call` 接缝未改。
+- source 矩阵 exit 0：`GROUP fix5-path-segments: {"total":10,"passed":10,"failed":0}`、
+  `SUMMARY: original=38/38; repair=238; failures=0; passed=276`（旧266项逐项重跑通过）。
+- `make dev` exit 0（`v5.13.1-39-g36c9c8f-dirty`）→ `./bin/flowforge agents deploy flowforge-planner`
+  exit 0（仅 planner + 共享扩展）；deployed 矩阵 exit 0，同 276/276、0 失败。
+- `shasum -a 256` 三份同为 `ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b`，
+  两条 `cmp` 均 exit 0。已启动闭包仍不能由文件 hash 证明。
+- `go test -count=1 ./internal/command -run '^TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)$' -v`
+  exit 0（两例 PASS）；`go test ./internal/...` exit 1，唯一失败仍为既有
+  `TestIssueTrackerDescribesRepairWorkflow`（`assets_deploy_test.go:610: open ../../docs/agents/issue-tracker.md: no such file or directory`，归 01 Change 8），
+  其他包 ok/no test files；其他失败无豁免，也未出现，不宣称全仓绿。
+- `check --full` exit 0（03 无 gap；01 warning、02 gap 保留）、`frontier --json` exit 0
+  （ready 仅 03，03→01→02 阻塞链不变）、`git diff --check` exit 0。
+- 未改预设 probe（sha256 `8e28ffd5...873c0f9` 未变）、未签发/撤销授权、未执行底层写入、
+  未改设计/配置/CLI、未再委派、未 push、未关票。原 native 证据仅拟复用，本上下文不批准其
+  适用性，也不声称本轮实跑 native。
