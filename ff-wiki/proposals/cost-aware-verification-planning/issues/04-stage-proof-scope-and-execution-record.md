@@ -14,7 +14,7 @@ flowforge:
 # 04: 恢复阶段证明门禁适用范围与执行记录
 
 **Blocked by:** None
-**Status:** open
+**Status:** closed
 **Mode:** lightweight
 **Repair of:** cost-aware-verification-planning/01
 
@@ -150,3 +150,16 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 独立报告：`/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/outputs/268987cd-c392-4c15-9ddf-032d124a7a67/rule-package-repair.audit-04.md`。完整范围16cce8e...32722d7，missing0/partial1/contradicts0/unrequested0；A04/A05已证伪，技术证明与lint复用有效；A06发现Go/check次数及比较基线失实，两轴尚未运行。
 
 主会话接受A06为Medium机械记录缺口，直接执行Fix4；不改任何验收/产品/测试，不新建repair。Fix verification：本轮必须独立核对原始toolCall、原位更正两个文档、diff-check及图检查；复用32722d7的产品/测试/构建/部署和c990efb的lint，条件为实际差分仅该两份记录。若出现产品/配置/测试变更，返回权威扩大复验。新独立Round0须确认实际差分及A06更正后才能进入双轴。原报告、旧错误及重复运行偏离均保留，不以新的套件运行改写过去。
+
+### 最终收敛 — ec29633
+
+- Round 0: zero gaps；完整01/04范围16cce8e...ec29633，原完整检查与记录增量复核连续覆盖。
+- Standards: 硬违规0；1项非阻塞Low覆盖说明滞后已由主会话更正，原文保留。
+- Spec: 0 findings。
+- Findings: none
+- Disposition: 主会话独立收敛后关闭04及关联原01；未删除历史失败/repair/流程偏离。
+- Evidence: [独立审查原文与裁决](../evidence/01-final-review.md)。
+
+## Completion evidence
+
+七面成本感知规则及G0保护测试已交付；04恢复阶段proof适用范围并纠正真实运行记录。产品固定点32722d7，审查终点ec29633；完整内部Go240 PASS/0 FAIL/3既有SKIP，七面source→embedded→两种docs_dir隔离部署一致；c990efb整文件lint经独立确认复用，全仓历史lint失败保留。Round0零gap、独立Standards与Spec已收敛，主会话批准关闭，详见[最终审查](../evidence/01-final-review.md)、[04实施与偏离](../evidence/04-implementation.md)、[01实施](../evidence/01-implementation.md)。关闭04同时关联关闭原01；02受控模型情景及本项目部署仍须后续验收。

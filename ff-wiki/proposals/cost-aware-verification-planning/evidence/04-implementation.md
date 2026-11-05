@@ -8,7 +8,7 @@ flowforge:
 
 # 04 阶段证明门禁范围与执行记录修复
 
-本记录覆盖 [04 修复票](../issues/04-stage-proof-scope-and-execution-record.md) 的 Changes 1–3。它证明源规则收窄、记录可溯源与源→嵌入→隔离部署一致，不证明模型遵从新语义；三组语义反例由独立 Round 0 核源，02 另做模型实测。
+本记录覆盖 [04 修复票](../issues/04-stage-proof-scope-and-execution-record.md) 的实现Changes及后续记录修正。它证明源规则收窄、记录可溯源与源→嵌入→隔离部署一致，不证明模型遵从新语义；三组语义反例由独立 Round 0 核源，02 另做模型实测。
 
 ## 固定点与实际差分
 

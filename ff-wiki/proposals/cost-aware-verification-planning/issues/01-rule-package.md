@@ -14,7 +14,7 @@ flowforge:
 # 01: 规则实现及必要保护性测试
 
 **Blocked by:** 03
-**Status:** needs-repair
+**Status:** closed
 **Mode:** lightweight
 **Repair:** 04
 
@@ -338,3 +338,15 @@ Round 0 另记录九项已证伪候选（实现者未改测试、新测试真实
 Round 0 另记录九项已证伪候选及保留边界（原 A01–A03 不复报；不得把最终 PASS 说成伪造；模型行为与本项目部署仍归 02），均不升级为缺口。
 
 主会话经 `contact_supervisor need_decision` 明示裁决 **NEXT: BLOCKED**：A04 保留 `contradicts`/Medium，按 review 既有 design-return 通道（`assets/skills/flowforge-review/SKILL.md:85`、`:131`）转 repair/design return；A05 `partial`/Medium 作为同一 repair 内的记录恢复，不另造产品范围。设计所有者就 A04 作出裁决并写入 [04 Design context](04-stage-proof-scope-and-execution-record.md)：设计 rev3 语义不变——只有需求/设计/票面明确要求某个既有阶段正向证明作为入场条件的消费/发布任务才受该门禁；单纯有上游交付不增加 stage-proof 要求；G 不以其将产生的同一证明为入场条件，P 缺失 G 证明不派发，普通 A→B 局部依赖不加门禁；若 G 本身被权威明确要求另一个更早且不同的阶段证明，仍检查该独立入场条件。不改 requirements/design/Schema/CLI，无新的需求待用户确认。本次只发布记录与 04 合同、README/journal；不自行修产品或本票原 Implementation note——`evidence/01-implementation.md` 与票内 Fix 11–13 记录段（含“执行前”“本轮各一次/唯一一次”“全部 edit/write”）的修正归 04 Change 2。
+
+### Round 3 — 最终收敛 ec29633
+
+- Round 0: zero gaps，完整16cce8e...ec29633覆盖；04修复与A06记录更正已独立核实。
+- Standards: 硬违规0，非阻塞Low覆盖说明已由主会话更正，原文保留。
+- Spec: 0 findings。
+- Findings: none
+- Disposition: 主会话批准关闭04，并关联其正向证据关闭01；原A01–A06与全部返工/流程偏离保留。
+
+## Completion evidence
+
+七面规则与G0保护测试已交付，04修复阶段proof适用范围及真实记录；产品固定点32722d7、审查终点ec29633。完整内部Go240 PASS/0 FAIL/3既有SKIP；七面源/嵌入/两种docs_dir隔离部署一致；c990efb整文件lint经独立确认复用，全仓历史失败保留。Round0零gap与双轴收敛原文见[最终审查](../evidence/01-final-review.md)，实施及偏离见[01记录](../evidence/01-implementation.md)与[04记录](../evidence/04-implementation.md)。02受控模型情景和项目部署尚须后续验收，不因本票关闭冒称完成。
