@@ -11,6 +11,7 @@ flowforge:
     - {round: 2, stage: align, action: done, ts: "2026-11-05T09:53:58.948Z", by: flowforge-align, artifacts: [requirements.md, source-notes.md]}
     - {round: 2, stage: design, action: done, ts: "2026-11-05T10:18:25.210Z", by: flowforge-solution-design, artifacts: [design.md, design/test-authority.md]}
     - {round: 2, stage: plan, action: done, ts: "2026-11-05T10:18:25.210Z", by: flowforge-plan, artifacts: [issues/00-test-authority.md, issues/01-rule-package.md, issues/02-controlled-acceptance-and-deploy.md]}
+    - {round: 2, stage: review, action: done, ts: "2026-11-05T10:55:00Z", by: flowforge-review, reason: "00 Round0三partial；主会话裁决substantive repair，双轴未启动，03待Plan及Refine", artifacts: [issues/00-test-authority.md, issues/03-test-authority-boundary-repair.md, issues/01-rule-package.md]}
 ---
 
 # 阶段记录
@@ -61,3 +62,15 @@ Plan 已加载 flowforge-refine-ticket，核实01仓库事实；但写入预设�
 用户明确“允许，继续”，批准受限Plan/Refine作者入口前置修复。需求/设计升至revision 2，新增独立作者入口设计及00票，真实依赖调整为00→01→02。主会话根据两份只读事实简报裁决：bindings不证明角色授权，采用真实会话实例、主会话签发的短期精确文件记录，背景子运行不能修改记录。无全局disable，不声称OS沙箱。
 
 已预设真实PI loader/runner内存probe：`node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent` 实跑exit=1，断言 `missing read-only flowforge_test_authority entry`，Node v22.16.0。尚未修改生产TS或受保护Go测试；此red属于新增作者接口，不冒充01 Go测试已执行。01此前工具拒绝保留为历史，00完成和合法作者实跑后再解除。
+
+## Round 2：00审计阻塞与03修复交接
+
+实现 `7cb27d8` 提交00 Changes 1–4；native证据 `6061b6c` 记录真实授权主链 NATIVE_VERIFIED 与授权撤销。独立Round 0以 `f1a51117b0baf5af6801238b2a12206ad6697b29...6061b6c3dc0229a9a3a79b790cff632d7ac3bb94` 为完整范围，原矩阵source/deployed各38/38通过，但三项边界反例均独立重现：dangling symlink豁免、year-only expiry获准、symlinked `.flowforge` 的物理授权记录路径可写。分类为0 missing / 3 partial / 0 contradicts / 0 unrequested；Standards与Spec两轴均未启动，不能记为零发现通过。
+
+主会话裁决 BLOCKED + substantive repair：GAP-01/03为High，GAP-02为Medium；不改需求、接口或验证目标，无design return。机械记录者按裁决创建03骨架、把00改为needs-repair、将01依赖由00转03，02仍依赖01；未改生产代码、测试、模型或保护配置。原缺陷、native历史事实、01旧docs路径唯一Go失败及01/02原诊断均保留。
+
+03实施前必须由合法Plan/refine作者保留原38项并新增边界断言，在当前实现实际观察red，再完成五节；轻量实现者不能修改probe。修后须重新做source/deployed矩阵、目标Go与全内包实际检查、新背景Plan正常授权/越界/撤销，审查范围仍覆盖从f1a5111起的完整授权实现。旧native证据仅作历史参考，不能代替修后实跑。
+
+本次仅记录00审计处置，未关闭00或03，未追加proposal round-close。下一步由主会话继续03合法测试作者与Refine，再派发新鲜实施上下文，随后回到01/02。沿用本journal已记录的Beads数据库及旧flowforge-progress/flowforge-docs技能缺失事实；此次bd prime退出0无输出，bd list报告no beads database found，技能搜索未发现对应SKILL.md。未初始化数据库、未伪造索引同步或任务登记。
+
+本次机械记录校验：`./bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning` exit=0，4 issues，无循环/悬空引用；仅保留01 `blocked-evidence-present`、02 `execution-contract-incomplete`及03待Refine的同名gap。`./bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning --json` exit=0，ready为空、gaps=[03]、01等待03、02等待01，00不进入可执行队列。`git diff --check` exit=0。本轮只改文档，未重跑Go或行为矩阵；上述历史行为结果不冒充本轮执行。

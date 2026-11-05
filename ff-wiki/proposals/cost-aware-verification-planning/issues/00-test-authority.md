@@ -14,7 +14,7 @@ flowforge:
 # 00: 为指定 Plan/Refine 实例提供受限测试写入
 
 **Blocked by:** None
-**Status:** open
+**Status:** needs-repair
 **Mode:** lightweight
 
 ## Delivery
@@ -155,3 +155,23 @@ source TS由make dev进入embedded再由新bin agents deploy进入本机extensio
 未触碰受保护 Go 测试与模型配置。
 
 ## Review rounds
+
+### Round 0
+
+- Fixed point: base `f1a51117b0baf5af6801238b2a12206ad6697b29` → HEAD `6061b6c3dc0229a9a3a79b790cff632d7ac3bb94`；实现 `7cb27d8`，native证据 `6061b6c`。
+- Gaps: 3 — missing 0 / partial 3 / contradicts 0 / unrequested 0。
+- Disposition: 主会话裁决 BLOCKED，substantive repair route；三项均为既定设计 partial，不改需求/接口，无 design return。未在00追加机械Fix规避High路由。
+- GAP-01 [High]: dangling symlink获作者豁免；`assets/pi/flowforge.ts:196-210,365-381` 的realpath失败祖先回退丢失link；应以lstat检查既有组件，包括项目内/外缺失目标，解析异常默认拒绝。
+- GAP-02 [Medium]: `expiresAt: '2099'` 被当有效未来时间；`assets/pi/flowforge.ts:309-316` 仅Date.parse；应验证完整UTC timestamp（秒、可选毫秒、Z）、合法日期round-trip及未来时间。
+- GAP-03 [High]: `.flowforge` 指向外部目录时，通过physical授权记录路径可写；`assets/pi/flowforge.ts:333-346,423-444` 仅保护lexical grantDir；修复同时保护实际位置、别名、祖先和缺失record，并覆盖dangling `.flowforge` 指向未建外部目录。
+- 三项source/deployed独立真实loader/runner均为 expectedBlocked=true / actualBlocked=false；只发tool_call事件，未执行底层write。原38项通过不覆盖上述三项。
+- Escalated to dual axes: no — Round 0非零gap，返回修复。
+- Standards: 未运行（原文 `[]`），不标记通过。
+- Spec: 未运行（原文 `[]`），不标记通过；三项Round 0缺陷不冒充已运行的Spec轴结论。
+- Fix changes: none。
+- Design returns: none。
+- Repair: `cost-aware-verification-planning-03` — [03修复票](03-test-authority-boundary-repair.md)；主会话将GAP-01/03判为High、GAP-02判为Medium。00进入needs-repair；01依赖从00转03，02仍依赖01。
+- Native: [00-native-authority.md](../evidence/00-native-authority.md) 已记录真实授权/越界/撤销主链，授权已撤销；其后发现边界失败，整体未通过。上方Implementation note的native待执行是 `7cb27d8` 历史状态，已由 `6061b6c` 补充，不删除原事实。03必须重新做修后native验证。
+- Known baseline failure: 全内包唯一失败 `TestIssueTrackerDescribesRepairWorkflow` 的旧 `../../docs/agents/issue-tracker.md` 路径，保留01 Change 8归属；不得宣称全仓绿。
+- 原始实现/native/Round0报告分别位于 `/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/outputs/0f72baff-9045-4f91-a56c-615ecbf8e1ad/` 的 `test-authority-delivery.implement-00-0.md`、`test-authority-delivery.native-00-0.md`、`test-authority-delivery.audit-00-0.md`。审计完整diff `/tmp/flowforge-r0-cQCagotI/full.diff` sha256 `11bb5aa0ec6af075b75da1af5cb1c962d19bbac586a00c995058085c45f57beb`；独立边界输出为同目录 `boundary-probe-source.log:1-4` 和 `boundary-probe-deployed.log:1-4`。这些为已收到报告的引用，机械记录者未重新执行行为验收。
+- Next: 主会话派发03合法Plan作者扩展预设probe、实际red及Refine，再派发新鲜实施上下文。00/03均未关闭，不写Completion evidence。

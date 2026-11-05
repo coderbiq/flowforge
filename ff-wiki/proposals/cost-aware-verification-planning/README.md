@@ -2,7 +2,7 @@
 
 在保留轻量机械执行、预设测试保护、Plan/refine 和独立审查的前提下，减少实施期间重复的重验证、环境准备、修复派发和取证。
 
-消费需求 revision 2 与设计 revision 2，用户已明确批准受限测试作者入口前置修复，执行顺序为 **00 → 01 → 02**。00 的真实 PI 内存验收已在旧源观测到 red（缺少授权状态入口）；01 的 Go 预设测试仍待合法作者落地，02 等待01后 Refine。尚未声明任何票实施完成，不迁移 GIIS 合同。
+消费需求 revision 2 与设计 revision 2，用户已明确批准受限测试作者入口前置修复。00 已交付实现与 native 主链证据，但独立 Round 0 发现三项 partial，主会话裁决 substantive repair：00 为 **needs-repair**，后续真实依赖为 **03 → 01 → 02**，03 的 Repair of 指向00。03当前仅发布修复骨架，须先由合法Plan作者扩充预设回归、实际观察red并完成Refine；01的Go预设测试仍待合法作者落地，02等待01后Refine。尚无关票或整体通过声明，不迁移GIIS合同。
 
 ## 阅读入口
 
@@ -12,6 +12,7 @@
 | [设计](design.md) | 验证分配、机械检查时机、Fix 复验、证据生命周期、兼容部署与验证办法 |
 | [来源归类](source-notes.md) | 调查事实、用户确认边界、拒绝采用的建议、历史依据与未知 |
 | [00 合法测试作者入口](issues/00-test-authority.md) / [接口设计](design/test-authority.md) | 指定实际会话实例、短期精确文件授权、默认拒绝及真实 native 验收 |
+| [03 授权边界修复](issues/03-test-authority-boundary-repair.md) | 修复dangling symlink、UTC时间格式和授权目录物理路径保护；原00仍非终态 |
 | [01 规则实现及必要保护性测试](issues/01-rule-package.md) | 全部源规则修改、保护接缝、已知外部阻塞与恢复条件 |
 | [02 受控验收与部署](issues/02-controlled-acceptance-and-deploy.md) | 依赖01；九类情景及全部变体、正向门禁、源/嵌入/部署一致性及项目部署 |
 | [规划基线](evidence/planning-baseline.md) | 四文件既有漂移、实际测试结果与已知流程债 |
