@@ -13,9 +13,14 @@
  *    FlowForge defaults). Escape valve: `agents.disable_test_guard: true`.
  *    `bash` is never intercepted (command content cannot be matched by
  *    path globs reliably).
- * 2. Native LLM tools `flowforge_frontier` / `flowforge_check` wrapping the
+ * 2. Licensed test-author entry: a read-only `flowforge_test_authority` tool
+ *    plus per-session, per-instance, exact-file grant records under
+ *    `.flowforge/test-author-grants/`. Only a background native runner child
+ *    session may consume a grant, and only the main session may issue one.
+ *    See the "Licensed test-author entry" note above the factory.
+ * 3. Native LLM tools `flowforge_frontier` / `flowforge_check` wrapping the
  *    FlowForge CLI (PATH first, then <project>/bin/flowforge).
- * 3. Raw-script delegation model guard: blocks `subagent` dispatches made
+ * 4. Raw-script delegation model guard: blocks `subagent` dispatches made
  *    through `workflowScript`/`workflowScriptPath` without an explicit
  *    `model` — such runs silently inherit the orchestrating session's
  *    model and bypass the per-role model pins deployed by `flowforge
@@ -25,7 +30,8 @@
  */
 
 import { execFile } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import * as path from "node:path";
 import { Type } from "typebox";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -40,6 +46,15 @@ const DEFAULT_TEST_FILE_GLOBS: string[] = [
 	"**/*.test.tsx",
 	"**/*.spec.ts",
 ];
+
+/** Project-relative directory holding licensed test-author grant records. */
+const GRANT_DIR_REL = ".flowforge/test-author-grants";
+/** A session id may only be used as a file name when it is a safe id. */
+const SAFE_SESSION_ID = /^[A-Za-z0-9-]+$/;
+/** Roles the main session may write into a grant record. */
+const TEST_AUTHOR_ROLES = ["plan", "refine"] as const;
+/** Exact grant record shape; any other field invalidates the record. */
+const GRANT_FIELDS = ["version", "sessionId", "instanceId", "projectRoot", "role", "paths", "expiresAt"];
 
 interface FlowForgeProjectConfig {
 	docsDir: string;
@@ -174,6 +189,198 @@ function pathCandidates(target: string, projectRoot: string): string[] {
 	return candidates;
 }
 
+/**
+ * Canonicalize an absolute path through the deepest existing ancestor, so a
+ * target that does not exist yet still resolves the symlinks that do exist.
+ */
+export function resolveThroughLinks(target: string): string {
+	const requested = path.resolve(target);
+	let prefix = requested;
+	const rest: string[] = [];
+	for (;;) {
+		try {
+			const real = realpathSync(prefix);
+			return rest.length > 0 ? path.join(real, ...rest) : real;
+		} catch {
+			const parent = path.dirname(prefix);
+			if (parent === prefix) return requested;
+			rest.unshift(path.basename(prefix));
+			prefix = parent;
+		}
+	}
+}
+
+/** True when `candidate` is `root` or lives inside it. */
+function isWithinPath(root: string, candidate: string): boolean {
+	const relative = path.relative(root, candidate);
+	return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+/**
+ * True when a write target touches the grant-record zone: inside the directory,
+ * the directory itself, or any of its ancestors (so a child cannot replace the
+ * directory wholesale). The resolved form carries the same decision through
+ * symlinked aliases of the directory.
+ */
+function touchesGrantRecords(candidate: string, grantDir: string): boolean {
+	return isWithinPath(grantDir, candidate) || isWithinPath(candidate, grantDir);
+}
+
+/**
+ * A grant may only list concrete project-relative files: no globs, no absolute
+ * paths, no `.`/`..` segments, no Windows separators, no empty segment.
+ */
+function isPlainGrantPath(value: unknown): value is string {
+	if (typeof value !== "string" || value.length === 0 || value.includes("\\")) return false;
+	if (/[*?[\]{}]/.test(value)) return false;
+	if (path.isAbsolute(value)) return false;
+	return value.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
+
+interface TestAuthorGrant {
+	role: (typeof TEST_AUTHOR_ROLES)[number];
+	paths: string[];
+	expiresAt: string;
+}
+
+type GrantState =
+	| { status: "unsupported"; reason: string }
+	| { status: "missing"; reason: string }
+	| { status: "invalid"; reason: string }
+	| { status: "valid"; grant: TestAuthorGrant };
+
+interface GrantExpectation {
+	sessionId: string;
+	instanceId: string;
+	projectRoot: string;
+}
+
+/**
+ * Strictly parse one grant record against the live session identity. Every
+ * rejection path is a denial: unknown fields, wrong types, empty or glob range,
+ * traversal, wrong project/role/session/instance, and past or unparsable
+ * expiry all invalidate the record instead of narrowing its meaning.
+ */
+export function evaluateTestAuthorGrant(raw: string, expected: GrantExpectation): GrantState {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return { status: "invalid", reason: "grant record is not valid JSON" };
+	}
+	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+		return { status: "invalid", reason: "grant record is not an object" };
+	}
+	const record = parsed as Record<string, unknown>;
+	const keys = Object.keys(record).sort();
+	const expectedKeys = [...GRANT_FIELDS].sort();
+	if (keys.length !== expectedKeys.length || keys.some((key, index) => key !== expectedKeys[index])) {
+		return { status: "invalid", reason: `grant record fields must be exactly ${GRANT_FIELDS.join(", ")}` };
+	}
+	if (record.version !== 1) {
+		return { status: "invalid", reason: "unsupported grant version" };
+	}
+	if (typeof record.sessionId !== "string" || record.sessionId !== expected.sessionId) {
+		return { status: "invalid", reason: "grant sessionId does not match this session" };
+	}
+	if (typeof record.instanceId !== "string" || record.instanceId.length === 0 || record.instanceId !== expected.instanceId) {
+		return { status: "invalid", reason: "grant instanceId does not match this session instance" };
+	}
+	if (
+		typeof record.projectRoot !== "string" ||
+		!path.isAbsolute(record.projectRoot) ||
+		resolveThroughLinks(record.projectRoot) !== expected.projectRoot
+	) {
+		return { status: "invalid", reason: "grant projectRoot does not match this project" };
+	}
+	if (typeof record.role !== "string" || !(TEST_AUTHOR_ROLES as readonly string[]).includes(record.role)) {
+		return { status: "invalid", reason: "grant role must be plan or refine" };
+	}
+	if (!Array.isArray(record.paths) || record.paths.length === 0) {
+		return { status: "invalid", reason: "grant paths must be a non-empty array" };
+	}
+	const paths: string[] = [];
+	for (const entry of record.paths) {
+		if (!isPlainGrantPath(entry)) {
+			return { status: "invalid", reason: "grant paths must be concrete project-relative files (no globs, directories, absolute paths, or traversal)" };
+		}
+		paths.push(entry);
+	}
+	if (typeof record.expiresAt !== "string") {
+		return { status: "invalid", reason: "grant expiresAt must be an ISO timestamp string" };
+	}
+	const expiry = Date.parse(record.expiresAt);
+	if (Number.isNaN(expiry) || expiry <= Date.now()) {
+		return { status: "invalid", reason: "grant has expired or its expiry cannot be parsed" };
+	}
+	return { status: "valid", grant: { role: record.role as TestAuthorGrant["role"], paths, expiresAt: record.expiresAt } };
+}
+
+interface TestWriteContext {
+	projectRoot: string;
+	grantDir: string;
+	globs: string[];
+	globSource: string;
+	eligible: boolean;
+	readGrantState: () => GrantState;
+}
+
+/**
+ * Decide whether one `write`/`edit` target must be denied. `undefined` allows
+ * the call; a string is the block reason. Grant records are never writable by
+ * an eligible child, and a valid grant only ever covers its listed exact files.
+ */
+export function testWriteDenial(target: string, context: TestWriteContext): string | undefined {
+	const { projectRoot, grantDir, globs, globSource, eligible } = context;
+	const requested = path.resolve(projectRoot, target);
+	const resolved = resolveThroughLinks(requested);
+
+	if (eligible && (touchesGrantRecords(requested, grantDir) || touchesGrantRecords(resolved, grantDir))) {
+		return `protected test-authority record (${GRANT_DIR_REL}): grant records are issued by the main session and a background session cannot write them, their directory, or its parents`;
+	}
+
+	const matched =
+		matchesAnyGlob(target, globs, projectRoot) ??
+		matchesAnyGlob(requested, globs, projectRoot) ??
+		(resolved === requested ? undefined : matchesAnyGlob(resolved, globs, projectRoot));
+	if (!matched) return undefined;
+
+	const blocked = (detail: string) => `protected test file (matched ${matched}, source: ${globSource}): ${detail}`;
+
+	if (!eligible) {
+		return blocked("preset acceptance tests are authored by Plan; if the task requires editing it, report STATUS: BLOCKED instead");
+	}
+
+	const state = context.readGrantState();
+	if (state.status === "missing") {
+		return blocked(`no test-author grant for this session instance (${state.reason})`);
+	}
+	if (state.status === "invalid") {
+		return blocked(`test-author grant rejected: ${state.reason}`);
+	}
+	if (state.status === "unsupported") {
+		return blocked("test-author grants are only consumable by a background native runner child session");
+	}
+
+	if (!isWithinPath(projectRoot, requested)) {
+		return blocked("test-author grants only cover paths inside the project root");
+	}
+	if (!state.grant.paths.some((entry) => path.resolve(projectRoot, entry) === requested)) {
+		return blocked("the test-author grant does not list this file");
+	}
+	try {
+		if (statSync(requested).isDirectory()) {
+			return blocked("test-author grants list files, not directories");
+		}
+	} catch {
+		// Not created yet: the exact-file match above already decides.
+	}
+	if (resolved !== requested) {
+		return blocked("test-author grants do not extend through symbolic links or aliases");
+	}
+	return undefined;
+}
+
 /** PATH first (executable presence check), then <project>/bin/flowforge. */
 export function resolveFlowForgeBinary(projectRoot: string): string {
 	const pathEnv = process.env.PATH || "";
@@ -214,22 +421,103 @@ function runCli(binary: string, args: string[]): Promise<CliToolResult> {
 }
 
 export default function flowforgeExtension(pi: ExtensionAPI): void {
-	const projectRoot = process.cwd();
+	const projectRoot = resolveThroughLinks(process.cwd());
 	const config = readFlowForgeConfig(path.join(projectRoot, ".flowforge", "config.yaml"));
 	const globs = config.testFileGlobs.length > 0 ? config.testFileGlobs : DEFAULT_TEST_FILE_GLOBS;
 	const globSource = config.testFileGlobs.length > 0 ? "agents.test_file_globs (.flowforge/config.yaml)" : "FlowForge defaults";
+
+	// Licensed test-author entry.
+	//
+	// A grant is a short-lived, exact-file record the *main* session writes with
+	// its normal file tools; this extension never issues one. Eligibility is the
+	// native-runner child handshake captured here at factory time and never
+	// re-read from the process environment, because background runners share the
+	// process. Session identity (`sessionId`) and the per-start `instanceId` come
+	// from `session_start`, so a resumed/reloaded run never inherits an old grant.
+	//
+	// Boundaries: this is not an OS sandbox. `bash` stays unintercepted, a child
+	// can only ever consume the exact files its grant lists, all background
+	// sessions are denied write/edit on the grant directory and its ancestors,
+	// and every read/parse failure falls back to the default test-write denial.
+	const eligible = process.env.PI_SUBAGENT_CHILD === "1" && process.env.PI_SUBAGENT_RUNNER_PID === String(process.pid);
+	const grantDir = path.join(projectRoot, GRANT_DIR_REL);
+	const session: { sessionId?: string; instanceId?: string } = {};
+
+	const grantPathFor = (sessionId: string | undefined): string =>
+		sessionId ? path.join(grantDir, `${sessionId}.json`) : "";
+
+	const readGrantState = (): GrantState => {
+		if (!eligible) {
+			return { status: "unsupported", reason: "only a background native runner child session can consume test-author grants" };
+		}
+		const { sessionId, instanceId } = session;
+		if (!sessionId || !instanceId) {
+			return { status: "missing", reason: "this session has no live instance identity" };
+		}
+		let raw: string;
+		try {
+			raw = readFileSync(grantPathFor(sessionId), "utf8");
+		} catch {
+			return { status: "missing", reason: "no grant record for this session" };
+		}
+		return evaluateTestAuthorGrant(raw, { sessionId, instanceId, projectRoot });
+	};
+
+	pi.on("session_start", (_event, ctx) => {
+		let sessionId: string | undefined;
+		try {
+			const live = ctx?.sessionManager?.getSessionId?.();
+			sessionId = typeof live === "string" && SAFE_SESSION_ID.test(live) ? live : undefined;
+		} catch {
+			sessionId = undefined;
+		}
+		session.sessionId = sessionId;
+		session.instanceId = randomUUID();
+	});
+
+	pi.on("session_shutdown", () => {
+		delete session.sessionId;
+		delete session.instanceId;
+	});
+
+	pi.registerTool({
+		name: "flowforge_test_authority",
+		label: "FlowForge Test Authority",
+		description:
+			"Read-only status of this session's licensed test-author entry: session id, per-start instance id, canonical project root, grant record path, whether this session may consume a grant at all, and the current grant state. It reports only and cannot issue or widen a grant.",
+		promptSnippet: "Read this session's test-author grant status",
+		parameters: Type.Object({}),
+		execute: async () => {
+			const sessionId = session.sessionId ?? "";
+			const instanceId = session.instanceId ?? "";
+			const grantPath = grantPathFor(session.sessionId);
+			const state = readGrantState();
+			const grant =
+				state.status === "valid"
+					? { status: state.status, role: state.grant.role, paths: state.grant.paths, expiresAt: state.grant.expiresAt, reason: "" }
+					: { status: state.status, role: "", paths: [] as string[], expiresAt: "", reason: state.reason };
+			const details = { sessionId, instanceId, projectRoot, grantPath, eligible, grant };
+			return {
+				content: [{ type: "text" as const, text: JSON.stringify(details, null, 2) }],
+				details,
+			};
+		},
+	});
 
 	if (!config.disableTestGuard) {
 		pi.on("tool_call", (event: { toolName?: string; input?: { path?: unknown } }) => {
 			if (event.toolName !== "write" && event.toolName !== "edit") return;
 			const target = typeof event.input?.path === "string" ? event.input.path : "";
 			if (!target) return;
-			const matched = matchesAnyGlob(target, globs, projectRoot);
-			if (!matched) return;
-			return {
-				block: true,
-				reason: `protected test file (matched ${matched}, source: ${globSource}): preset acceptance tests are authored by Plan; if the task requires editing it, report STATUS: BLOCKED instead`,
-			};
+			let reason: string | undefined;
+			try {
+				reason = testWriteDenial(target, { projectRoot, grantDir, globs, globSource, eligible, readGrantState });
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				return { block: true, reason: `test-author authority check failed (${message}): refusing the write` };
+			}
+			if (!reason) return;
+			return { block: true, reason };
 		});
 	}
 

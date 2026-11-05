@@ -33,10 +33,26 @@ flowforge:
 
 ## Changes
 
-- [ ] 1. 在 `assets/pi/flowforge.ts` 按设计实现严格授权记录解析和路径限制：只读具体 session grant；校验全部字段、role、project/instance/session、UTC未来expiry、具体相对paths；不接受未知字段、glob、目录、空范围和symlink豁免。保护授权目录及其父目录覆盖、别名；默认无效授权仍执行原拒绝。
-- [ ] 2. 在同文件 factory 捕获 native runner 资格，session_start 捕获真实sessionId与新instanceId，shutdown清除；新增只读 `flowforge_test_authority` 状态工具。工具 details 严格包含 sessionId、instanceId、projectRoot、grantPath、eligible，另可说明授权状态；sessionId必须是安全ID。主会话允许签发记录，背景子会话无论是否获授权都不能通过 write/edit 改记录。保持默认glob、配置开关、raw-script guard与现有CLI工具行为，更新源注释说明操作边界。
-- [ ] 3. 内存验收通过后 `make dev` 同步嵌入并构建，以 `bin/flowforge agents deploy flowforge-planner` 仅部署规划角色及共享扩展作本机验收。保存source/embedded/deployed哈希；按旧漂移基线解释生成差分，不改模型配置、不发布外部版本。
-- [ ] 4. 将实际命令、red→green、被拒绝分支及部署记录写到 `evidence/00-implementation.md` 和本票 Implementation note；提交实现，交主会话安排新的 native 作者验收与独立审查，尚未发生的 native 结果明确标为待执行。
+- [x] 1. 在 `assets/pi/flowforge.ts` 按设计实现严格授权记录解析和路径限制：只读具体 session grant；校验全部字段、role、project/instance/session、UTC未来expiry、具体相对paths；不接受未知字段、glob、目录、空范围和symlink豁免。保护授权目录及其父目录覆盖、别名；默认无效授权仍执行原拒绝。
+    - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`
+    - exit: 0
+    - output: `PASS 20: dot segment denied` / `PASS 29: symlink parent denied` / `PASS 32: grant directory alias denied`
+    - artifact: assets/pi/flowforge.ts
+- [x] 2. 在同文件 factory 捕获 native runner 资格，session_start 捕获真实sessionId与新instanceId，shutdown清除；新增只读 `flowforge_test_authority` 状态工具。工具 details 严格包含 sessionId、instanceId、projectRoot、grantPath、eligible，另可说明授权状态；sessionId必须是安全ID。主会话允许签发记录，背景子会话无论是否获授权都不能通过 write/edit 改记录。保持默认glob、配置开关、raw-script guard与现有CLI工具行为，更新源注释说明操作边界。
+    - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`
+    - exit: 0
+    - output: `PASS 35: shutdown revokes instance` / `PASS 36: same session restart rejects old grant` / `PASS: 38 guard observations; no built-in write/edit executed`
+    - artifact: assets/pi/flowforge.ts
+- [x] 3. 内存验收通过后 `make dev` 同步嵌入并构建，以 `bin/flowforge agents deploy flowforge-planner` 仅部署规划角色及共享扩展作本机验收。保存source/embedded/deployed哈希；按旧漂移基线解释生成差分，不改模型配置、不发布外部版本。
+    - cmd: `GOPROXY=https://goproxy.cn,direct make dev && ./bin/flowforge agents deploy flowforge-planner`
+    - exit: 0
+    - output: `✓ Deployed 1 subagent(s) ... - flowforge-planner`
+    - artifact: internal/command/assets/pi/flowforge.ts
+- [x] 4. 将实际命令、red→green、被拒绝分支及部署记录写到 `evidence/00-implementation.md` 和本票 Implementation note；提交实现，交主会话安排新的 native 作者验收与独立审查，尚未发生的 native 结果明确标为待执行。
+    - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent .pi/extensions/flowforge.ts`
+    - exit: 0
+    - output: `PASS: 38 guard observations; no built-in write/edit executed`
+    - artifact: ff-wiki/proposals/cost-aware-verification-planning/evidence/00-implementation.md
 
 ## Constraints
 
@@ -85,5 +101,57 @@ source TS由make dev进入embedded再由新bin agents deploy进入本机extensio
 只保留本次授权机制的必要说明，不改无关字段或部署策略。代码实现前须完整读取Pi官方extensions文档及protected-paths/permission-gate示例；无需重查已确定的业务方案。
 
 ## Implementation note
+
+**执行模式**：lightweight（dispatch 声明）。Changes 1–4 全部完成，未做设计裁决。
+
+**完成情况**
+
+1. 完成。`assets/pi/flowforge.ts` 新增 `evaluateTestAuthorGrant` / `testWriteDenial` /
+   `resolveThroughLinks`：只读 `.flowforge/test-author-grants/<sessionId>.json`，严格校验
+   字段集合、`version`、`sessionId`、`instanceId`、canonical `projectRoot`、`role ∈ {plan,refine}`、
+   具体相对 `paths`（无 glob/绝对路径/`.`/`..`/空段）、未来 `expiresAt`；任何读取或
+   解析失败回到原拒绝。授权目录本身、目录内文件、其父目录（含 `.flowforge` 与项目根）
+   及指向它的别名对 eligible 子会话一律拒绝。
+2. 完成。factory 只捕获一次 native runner 资格（`PI_SUBAGENT_CHILD` + 本进程
+   `PI_SUBAGENT_RUNNER_PID`）；`session_start` 从真实 `ctx.sessionManager.getSessionId()`
+   取安全 sessionId 并 `randomUUID()` 生成新 instanceId；`session_shutdown` 清除两者。
+   新增只读工具 `flowforge_test_authority`，details 固定含 `sessionId`、`instanceId`、
+   `projectRoot`、`grantPath`、`eligible` 及授权状态；默认 glob、`disable_test_guard`、
+   raw-script guard、`flowforge_frontier`/`flowforge_check` 行为不变，源注释写明边界
+   （非 OS 沙箱、bash 不拦截、不能自签发）。
+3. 完成。`make dev` 同步嵌入并构建，`bin/flowforge agents deploy flowforge-planner`
+   只部署规划角色与共享扩展。source/embedded/deployed 扩展 sha256 均为
+   `33881dff2e19f4a1c00a3b00a346a652f2615177bdb9f96da5d1c98b831eb153`；`bin/flowforge`
+   为 `2fcc1f034ee6ca5f6bbe8d7acee8f18f1eba506be3cd122006e6a1ec5b6c16d1`。旧 embedded 的
+   feature 参数漂移（票中已声明）在同步时消除，未改模型配置、未发布外部版本。
+4. 完成。证据见 `evidence/00-implementation.md`（red→green、命令、哈希、拒绝分支、
+   部署记录、未执行项）。
+
+**命令与结果**
+
+- 内存矩阵（真实 loader/runner，未改动预设 probe）：exit 0，38 条观察全过；实现前同命令
+  exit 非 0（`missing read-only flowforge_test_authority entry`）。
+- 部署矩阵（同一命令加 `.pi/extensions/flowforge.ts`）：exit 0，38 条观察全过。
+- `make dev`：exit 0；`agents deploy flowforge-planner`：exit 0。
+- `go test -count=1 ./internal/command -run '^TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)$' -v`：
+  PASS（exit 0）。
+- `go test ./internal/...`：exit 1，唯一失败 `TestIssueTrackerDescribesRepairWorkflow`
+  （`assets_deploy_test.go:610: open ../../docs/agents/issue-tracker.md: no such file or directory`），
+  即本票 Done and verify 已点名的 01（Change 8）待修项；不据此声称全仓绿。
+
+**待执行（不由实现者完成）**
+
+- native 作者验收：主会话派发新背景 `flowforge-planner`，读取只读状态→无授权写入被拒→
+  仅对该实例与 `.flowforge/test-author-probe/allowed_test.go` 签发→正常 write/edit 成功、
+  未列文件/授权记录写入被拒→撤销后拒绝。**当前状态：待执行**，实现者未自授权、未伪造结果。
+- 独立 Round 0 与双轴审查、关票：待主会话安排。本票 `**Status:**` 保持 open。
+
+**修改文件**：`assets/pi/flowforge.ts`（唯一源改动）；`make dev`/`deploy` 生成物
+（`internal/command/assets/pi/flowforge.ts`、`bin/flowforge`、`.pi/extensions/flowforge.ts`，
+均 gitignore）；`evidence/00-implementation.md`；本票。
+
+**Write set 合规**：All modifications within write set。未修改预设 probe
+（sha256 `8982aef59489971ce1d954f2b8a72910e3790e8a25948d744a5fd6d26d1559b7` 前后一致）、
+未触碰受保护 Go 测试与模型配置。
 
 ## Review rounds
