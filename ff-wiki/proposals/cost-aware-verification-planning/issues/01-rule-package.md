@@ -41,20 +41,56 @@ flowforge:
 
 ## Changes
 
-- [ ] 1. 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 hand-offs / execution loop 统一定义验证所有者、局部/阶段正向证明、完整 schedule 的覆盖/时机/命令/预期/记录、旧票兼容、共享实跑与历史复用区别；保存四元组，明确实际差分后的独立确认、失效后 repair 与发布门禁。其他技能只引用共同语义。
-- [ ] 2. 在 `assets/skills/flowforge-solution-design/SKILL.md` 的验证策略检查纳入行为/风险→局部证明→阶段证明/触发表；真实环境若为本票承诺必需不能移走。增加重型验证必要性/共享/成本未知的说明，不增前置阶段。
-- [ ] 3. 在 `assets/skills/flowforge-plan/SKILL.md` 的切票与发布流程纳入唯一阶段归属、真实开始依赖、发布需正向证明、纯验证票的非空记录及关联实现范围；在 Done and verify 给可选 Verification schedule 的完整要素及重型理由。保留 title/Delivery/依赖批准、Mode、五节空骨架及 standards 转抄。
-- [ ] 4. 在 `assets/skills/flowforge-refine-ticket/SKILL.md` 五节核实步骤加入组范围、观察时机、真实命令/环境、成功失败反例与逐验收项覆盖；检查残缺安排及失效引用返回原规划方，不能猜值、删验收或修改保护测试。
-- [ ] 5. 在 `assets/skills/flowforge-implement/SKILL.md` Phase 0/0b、3a–3e、Full mode 及 Publish frontier 协调三条路径：完整授权安排按组末验证后勾选；无安排保留原每 Change build 和全部检查；声明采用但不完整先 Blocked evidence 并返回。一次实跑可共享但不能记成多次；收口只确认完整有效覆盖，失败即停/重试限制不变；不得自行分组、选测、拟定复用或改测试。
-- [ ] 6. 在 `assets/skills/flowforge-review/SKILL.md` Fix planning / Review rounds 发布针对固定点的 Fix verification（发现/编号/写集/关键反例、本轮实跑、拟复用原版本环境与覆盖、扩大条件）；Round 0 对实际差分检查新证据和旧适用性，零 gap 后独立双轴。保留关闭所有者及 design return/High-Critical/跨写集等 repair 边界；汇齐同固定点发现为机械批次，分别记录 review 调用/Fix批次/partial复发，禁止凭轮数豁免或扩张验收。
-- [ ] 7. 在 `assets/agents/issue-tracker.md` Publishing、Execution and review loop、Deterministic checks 对齐新解释与旧票兼容，纠正旧 Tier 3 描述为现有五节，引用共享权威；不增加状态/Schema/CLI 能力，不将 frontier Ready 或阶段终态解释为正向验收。
+- [x] 1. 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 hand-offs / execution loop 统一定义验证所有者、局部/阶段正向证明、完整 schedule 的覆盖/时机/命令/预期/记录、旧票兼容、共享实跑与历史复用区别；保存四元组，明确实际差分后的独立确认、失效后 repair 与发布门禁。其他技能只引用共同语义。
+    - cmd: `go test ./internal/command -run 'Test(CostAwareRulePackageSourceEmbeddedDeployed|PackagedSkillPointersResolve|PlanPublishesExecutionDetailSkeleton|PlanSkillDeclaresModeLine|ArtifactContractDocumentsExecutionContractSections|AgentRulesDescribeGenericCapabilityDispatch|ImplementSkillCarriesWeakExecutorContract|ReviewSkillCarriesRound0Audit|ReviewSkillDescribesRepairEscalation|IssueTrackerDescribesRepairWorkflow)$' -count=1`（G1 共享本次运行，下同）
+    - exit: 0
+    - output: `ok	flowforge/internal/command	0.671s`；`TestCostAwareRulePackageSourceEmbeddedDeployed` 七个子项全部通过
+    - artifact: `assets/skills/_shared/ARTIFACT-CONTRACT.md`
+- [x] 2. 在 `assets/skills/flowforge-solution-design/SKILL.md` 的验证策略检查纳入行为/风险→局部证明→阶段证明/触发表；真实环境若为本票承诺必需不能移走。增加重型验证必要性/共享/成本未知的说明，不增前置阶段。
+    - cmd: 同上 G1 定向规则包命令（共享本次运行）
+    - exit: 0
+    - output: `ok	flowforge/internal/command	0.671s`；`PackagedSkillPointersResolve`、`AgentRulesDescribeGenericCapabilityDispatch` 与 `CostAwareRulePackageSourceEmbeddedDeployed/skills/flowforge-solution-design/SKILL.md` 通过
+    - artifact: `assets/skills/flowforge-solution-design/SKILL.md`
+- [x] 3. 在 `assets/skills/flowforge-plan/SKILL.md` 的切票与发布流程纳入唯一阶段归属、真实开始依赖、发布需正向证明、纯验证票的非空记录及关联实现范围；在 Done and verify 给可选 Verification schedule 的完整要素及重型理由。保留 title/Delivery/依赖批准、Mode、五节空骨架及 standards 转抄。
+    - cmd: 同上 G1 定向规则包命令（共享本次运行）
+    - exit: 0
+    - output: `ok	flowforge/internal/command	0.671s`；`PlanPublishesExecutionDetailSkeleton`、`PlanSkillDeclaresModeLine` 与 `.../flowforge-plan/SKILL.md` 子项通过
+    - artifact: `assets/skills/flowforge-plan/SKILL.md`
+- [x] 4. 在 `assets/skills/flowforge-refine-ticket/SKILL.md` 五节核实步骤加入组范围、观察时机、真实命令/环境、成功失败反例与逐验收项覆盖；检查残缺安排及失效引用返回原规划方，不能猜值、删验收或修改保护测试。
+    - cmd: 同上 G1 定向规则包命令（共享本次运行）
+    - exit: 0
+    - output: `ok	flowforge/internal/command	0.671s`；`PackagedSkillPointersResolve` 与 `.../flowforge-refine-ticket/SKILL.md` 子项通过
+    - artifact: `assets/skills/flowforge-refine-ticket/SKILL.md`
+- [x] 5. 在 `assets/skills/flowforge-implement/SKILL.md` Phase 0/0b、3a–3e、Full mode 及 Publish frontier 协调三条路径：完整授权安排按组末验证后勾选；无安排保留原每 Change build 和全部检查；声明采用但不完整先 Blocked evidence 并返回。一次实跑可共享但不能记成多次；收口只确认完整有效覆盖，失败即停/重试限制不变；不得自行分组、选测、拟定复用或改测试。
+    - cmd: 同上 G1 定向规则包命令（共享本次运行）
+    - exit: 0
+    - output: `ok	flowforge/internal/command	0.671s`；`ImplementSkillCarriesWeakExecutorContract` 与 `.../flowforge-implement/SKILL.md` 子项通过
+    - artifact: `assets/skills/flowforge-implement/SKILL.md`
+- [x] 6. 在 `assets/skills/flowforge-review/SKILL.md` Fix planning / Review rounds 发布针对固定点的 Fix verification（发现/编号/写集/关键反例、本轮实跑、拟复用原版本环境与覆盖、扩大条件）；Round 0 对实际差分检查新证据和旧适用性，零 gap 后独立双轴。保留关闭所有者及 design return/High-Critical/跨写集等 repair 边界；汇齐同固定点发现为机械批次，分别记录 review 调用/Fix批次/partial复发，禁止凭轮数豁免或扩张验收。
+    - cmd: 同上 G1 定向规则包命令（共享本次运行）
+    - exit: 0
+    - output: `ok	flowforge/internal/command	0.671s`；`ReviewSkillCarriesRound0Audit`、`ReviewSkillDescribesRepairEscalation` 与 `.../flowforge-review/SKILL.md` 子项通过
+    - artifact: `assets/skills/flowforge-review/SKILL.md`
+- [x] 7. 在 `assets/agents/issue-tracker.md` Publishing、Execution and review loop、Deterministic checks 对齐新解释与旧票兼容，纠正旧 Tier 3 描述为现有五节，引用共享权威；不增加状态/Schema/CLI 能力，不将 frontier Ready 或阶段终态解释为正向验收。
+    - cmd: 同上 G1 定向规则包命令（共享本次运行）；tracker 侧 `go test ./internal/tracker -run 'Test(CostAwareSharedRunPreservesEvidenceGate|ExecutionContractCompletenessAppliesOnlyToManagedExecutableTickets|EvidenceQuadrupleParsing|NeedsRepairIsNonExecutableAndRepairProvenanceIsParsed)$' -count=1`
+    - exit: 0
+    - output: `ok	flowforge/internal/command	0.671s`；`IssueTrackerDescribesRepairWorkflow` 通过、`ok	flowforge/internal/tracker	0.418s`
+    - artifact: `assets/agents/issue-tracker.md`
 - [x] 8. 由合法Plan/refine作者在G0通过已批准的实例授权，用正常文件工具将 `internal/command/assets_deploy_test.go:TestIssueTrackerDescribesRepairWorkflow` 的读取路径 `docs` 改为 `ff-wiki`；保留 `strings.Contains(string(data), "repair")` 与原失败消息。同时落地预设 `TestCostAwareRulePackageSourceEmbeddedDeployed` 和 `TestCostAwareSharedRunPreservesEvidenceGate`，记录实际运行与基线。路径维护有真实旧失败→修后通过；两个兼容回归可基线green，不能伪造red。后续轻量实现者对全部测试只读。G0仅执行本项；精确补丁、实例及撤权记录见 [测试作者证据](../evidence/01-test-authoring.md)。
     - cmd: GOPROXY=https://goproxy.cn,direct go test -v ./internal/...
     - exit: 0
     - output: "两个新增测试及旧路径修正通过；全部内包执行用例通过，0 failures，3项既有环境SKIP"
     - artifact: ff-wiki/proposals/cost-aware-verification-planning/evidence/01-test-authoring.md
-- [ ] 9. 按 `Makefile:dev` 执行 `make dev`，从 `assets/**` 生成 `internal/command/assets/**` 并构建新二进制；将最终 diff 对照 [实施前漂移基线](../evidence/planning-baseline.md#源与嵌入漂移)。允许同步既有 PI feature 参数漂移，不修改 PI 源或引入无关差异。
-- [ ] 10. 在 `evidence/01-implementation.md` 记录固定点（含未提交文件时完整快照）、实际命令/退出/输出、源→嵌入差分归因、每个 Change 的覆盖及未执行项；在本票 Implementation note 写真实结果后停止，由主会话收敛独立 Review，不自行关票。
+- [x] 9. 按 `Makefile:dev` 执行 `make dev`，从 `assets/**` 生成 `internal/command/assets/**` 并构建新二进制；将最终 diff 对照 [实施前漂移基线](../evidence/planning-baseline.md#源与嵌入漂移)。允许同步既有 PI feature 参数漂移，不修改 PI 源或引入无关差异。
+    - cmd: `GOPROXY=https://goproxy.cn,direct make dev`
+    - exit: 0
+    - output: `GOTMPDIR=$(pwd)/.tmp go build -ldflags="-s -w -X flowforge/internal/version.injected=v5.13.1-43-gba037e7-dirty" -trimpath -o bin/flowforge ./cmd/flowforge`；随后 `git diff --no-index --stat assets internal/command/assets` exit 0 且无输出
+    - artifact: internal/command/assets/skills/_shared/ARTIFACT-CONTRACT.md
+- [x] 10. 在 `evidence/01-implementation.md` 记录固定点（含未提交文件时完整快照）、实际命令/退出/输出、源→嵌入差分归因、每个 Change 的覆盖及未执行项；在本票 Implementation note 写真实结果后停止，由主会话收敛独立 Review，不自行关票。
+    - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`（G2 共享本次运行）
+    - exit: 0
+    - output: 5 个包 `ok`（command 8.982s / config / subagent / tracker 0.308s / update），240 个顶层用例 PASS、0 FAIL、3 项既有环境 SKIP
+    - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/01-implementation.md`
 
 ## Constraints
 
@@ -125,5 +161,54 @@ G0产生两个新Go测试及 [01-test-authoring.md](../evidence/01-test-authorin
 - G0只授权精确三测试路径；授权撤销后测试只读，Refine不得借文档维护再改测试。兼容回归允许baseline green，不制造red；全仓lint旧失败与G0指定lint通过分开表述。[Conventions]
 
 ## Implementation note
+
+### Phase 0 restatement（执行前）
+
+- Change 1 → 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 新增共享小节，定义验证所有者、局部/阶段正向证明、schedule 覆盖/时机/命令/预期/记录与三路执行、旧票兼容、共享实跑与历史复用、实际差分后独立确认/失效 repair/发布门禁，保留四元组；验收命令 G1 定向规则包子项 `TestCostAwareRulePackageSourceEmbeddedDeployed/ARTIFACT-CONTRACT.md`（源/嵌入/部署一致）。
+- Change 2 → 在 `assets/skills/flowforge-solution-design/SKILL.md` 验证策略检查加入行为/风险→局部证明→阶段证明/触发表、真实环境不可移走、重型验证必要性/共享/成本未知，不新增前置阶段；验收命令同上定向子项。
+- Change 3 → 在 `assets/skills/flowforge-plan/SKILL.md` 切票/发布流程加入唯一阶段归属、真实开始依赖、消费方需正向证明、纯验证票非空记录+关联实现范围、Done and verify 可选 `Verification schedule` 完整要素与重型理由，保留 title/Delivery/依赖批准、Mode、五节骨架、standards 转抄；验收命令同上。
+- Change 4 → 在 `assets/skills/flowforge-refine-ticket/SKILL.md` 五节核实加入组范围、观察时机、真实命令/环境、成功失败反例、逐验收项覆盖，残缺/失效引用返回规划方且不猜值/不删验收/不动保护测试；验收命令同上。
+- Change 5 → 在 `assets/skills/flowforge-implement/SKILL.md` 的 Phase 0/0b、3a–3e、Full mode、Publish frontier 协调完整/无/残缺三路，组末验证后勾选、共享不重复计数、收口只确认完整覆盖、失败即停与重试上限不变、不得自行分组/选测/复用/改测试；验收命令同上 + `TestImplementSkillCarriesWeakExecutorContract`。
+- Change 6 → 在 `assets/skills/flowforge-review/SKILL.md` Fix planning 发布 `Fix verification`（发现/编号/写集/反例、本轮实跑、拟复用版本环境覆盖、扩大条件），Round 0 对实际差分核对新证据与旧适用性，评审记录分别记 review 调用/Fix 批次/partial 复发，保留关闭所有者与 repair/design return 边界；验收命令同上 + `TestReviewSkillCarriesRound0Audit`、`TestReviewSkillDescribesRepairEscalation`。
+- Change 7 → 在 `assets/agents/issue-tracker.md` Publishing 的 Tier 3 纠正为现有五节、Execution and review loop 与 Deterministic checks 对齐新解释/旧票兼容并引用共享权威，不新增状态/Schema/CLI、不把 Ready 或终态当正向验收；验收命令同上 + `TestIssueTrackerDescribesRepairWorkflow`。
+- Change 9 → 执行 `make dev`（源→`internal/command/assets`→`bin/flowforge`）；验收：`TestCostAwareRulePackageSourceEmbeddedDeployed` 七子项全过 + 最终 diff 对照 `planning-baseline.md#源与嵌入漂移` 归因。
+- Change 10 → 写 `evidence/01-implementation.md` 与本 Implementation note；验收：G2 全内包 `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` 0 failures（3 项既有环境 SKIP 如实列出）与整文件 lint `0 issues.`，逐 Change 四元组与源→嵌入差分归因可核对。
+
+### Phase 0b preflight（执行前）
+
+约束落点：
+
+- 直接文件工具维护 proposal Markdown → 全部编辑用 edit/write，无 CLI 生成。
+- 不改 Issue Schema 头/CLI 签名 → 不动本票 frontmatter、`internal/**` 非生成代码、命令与 linter 参数。
+- 测试作者/实现者分离、测试只读 → 三个 Go 测试零修改；本 session `flowforge_test_authority` 为 `grant.status=missing`。
+- 旧结果不充新执行/结构诊断不充行为证明 → 共享小节与 evidence 明写四元组归属、复用判据、结构测试边界。
+- 猜测规则（no-speculation） → 不新增验收项，只按 Changes 1–7 描述落点。
+- assets 可不部署材料 → 七面源文件 + `make dev` 同步，隔离部署由既有测试验证。
+- 不改 DAG/Catalog/evidence 四字段/默认 Mode/旧票；保留 Round 0、双轴、零未处置发现、substantive→repair → 落在 review/共享小节的既有结构表述。
+- Write set 合规 → 只改七个源规则 + 本票 + `evidence/01-implementation.md`；`internal/command/assets/**` 与 `bin/flowforge` 仅 `make dev` 生成。
+
+执行情景落点：Success（G1 七面源规则完成后一次 `make dev`，定向规则包/tracker 通过）→ Changes 1–7、9；Failure（声明采用但缺项/引用失效）→ 共享小节第三路 + implement Phase 0b/3a 阻塞返回；Failure（源/嵌入/部署真实差异）→ `TestCostAwareRulePackageSourceEmbeddedDeployed` 失败即停，不改断言；Failure（残缺安排不隐式减测）→ 旧票路径保留原逐 Change build 与全部检查。
+
+### 执行结果（3d）
+
+完成：Changes 1–7、9、10。未由本会话执行：Change 8（G0 已由合法测试作者完成，本次对全部测试只读）。
+
+命令与结果（每条各执行一次，共享关系见 Changes 四元组）：
+
+| 命令 | 结果 |
+| --- | --- |
+| `GOPROXY=https://goproxy.cn,direct make dev` | exit 0；`go build ... -o bin/flowforge ./cmd/flowforge` |
+| `git diff --no-index --stat assets internal/command/assets` | exit 0，无输出（源=嵌入） |
+| G1 定向规则包 `go test ./internal/command -run 'Test(...)$' -count=1` | exit 0，`ok flowforge/internal/command 0.671s` |
+| G1 tracker `go test ./internal/tracker -run 'Test(...)$' -count=1` | exit 0，`ok flowforge/internal/tracker 0.418s` |
+| `bin/flowforge init` + `assets verify --json`（隔离目录 `/tmp/ff-iso`） | exit 0；七面源与部署副本 `cmp` 一致，全部 `state: current` |
+| `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` | exit 0；240 PASS / 0 FAIL / 3 项既有环境 SKIP |
+| `golangci-lint 2.15.0 run --timeout 2m --new-from-rev 16cce8e --whole-files --max-issues-per-linter 0 --max-same-issues 0 ./cmd/... ./internal/...` | exit 0，`0 issues.` |
+
+修改文件（8 个，均属源或本票工件）：`assets/skills/_shared/ARTIFACT-CONTRACT.md`、`assets/skills/flowforge-solution-design/SKILL.md`、`assets/skills/flowforge-plan/SKILL.md`、`assets/skills/flowforge-refine-ticket/SKILL.md`、`assets/skills/flowforge-implement/SKILL.md`、`assets/skills/flowforge-review/SKILL.md`、`assets/agents/issue-tracker.md`、`ff-wiki/proposals/cost-aware-verification-planning/issues/01-rule-package.md`，另新增 `ff-wiki/proposals/cost-aware-verification-planning/evidence/01-implementation.md`。`internal/command/assets/**` 与 `bin/flowforge` 仅由 `make dev` 生成。
+
+Write-set 合规：All modifications within write set。三个 Go 测试、`assets/pi/**`、`internal/**` 非生成代码、其他 proposal 均未改动；未委派、未 push、未关票、未改 `**Status:**`、未做本项目部署。
+
+收口覆盖确认：Done and verify 每条均有本次运行或（适用时）待 Review 核实的既有结果；结构/一致性结果不等同模型行为或阶段验收，也不替代 02 的真实情景与全规则部署。本仓自身 `.agents/**`（每机部署，早于 `ba037e7`）与 `ff-wiki/agents/issue-tracker.md`（等于 `HEAD` 源内容，仅缺本票新增）未刷新，详细边界见 [实施记录](../evidence/01-implementation.md#部署边界如实保留)。
 
 ## Review rounds

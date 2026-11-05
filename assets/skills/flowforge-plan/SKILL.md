@@ -23,6 +23,8 @@ Read the design authority's `## Standards clauses` section. Transcribe each `mus
 
 Each ticket delivers one narrow, end-to-end behavior that can be verified independently in one fresh context. Use only blocking edges that genuinely prevent the increment from starting.
 
+Assign each proof to exactly one owning ticket. Cross-ticket proof belongs to a normal `role: ticket` stage ticket that depends on the delivered tickets, and a release or use ticket needing combined proof depends on that stage ticket. A local ticket claims only behavior it proves; when existing text claims more, return to the authority that wrote it instead of deleting the command. A pure-verification ticket delivers a non-empty verification record naming the implementation fixed point, reproducible commands, results, and boundaries, together with the implementation scope it covers. See [verification ownership and reuse](../_shared/ARTIFACT-CONTRACT.md#verification-ownership-and-reuse).
+
 For a wide mechanical refactor that cannot land vertically, use expand–migrate–contract: add the compatible form, migrate green batches, then remove the old form after every batch. Keep independent migrations parallel in the DAG.
 
 Present each proposed title, Delivery, and Blocked by relationship for approval. Revise the graph until those three facts are accepted.
@@ -49,6 +51,7 @@ Then write three information tiers. Include file paths and symbols as coordinate
 - **Changes:** ordered, mechanical actions, each as `- [ ] N. <action naming the target file and symbol>`.
 - **Constraints:** ticket-specific invariants, plus `must`/`must not` standards clauses transcribed from the design authority's Standards clauses tagged `[Constraints]`. Include a `Write set:` line listing the only directories or files the implementer may modify.
 - **Done and verify:** pair each observable condition with an exact command and the expected result (e.g. "all pass, 0 failures" or named test cases that must pass).
+- **Optional `Verification schedule`:** when the ticket adopts one, write `### Verification schedule` inside Done and verify. For each group state which Changes and acceptance items it covers, when it runs, the exact command the ticket already defines with its expected result, and where the result is saved; a heavy item carries one line on why it must run there and whether it shares a stage run, and an unmeasured cost is written as unknown. Tickets without it keep the previous execution rules. The element list and the three execution paths are shared: [verification schedule](../_shared/ARTIFACT-CONTRACT.md#verification-schedule).
 
 **Tier 3 — agent execution detail** (after a `---` separator):
 

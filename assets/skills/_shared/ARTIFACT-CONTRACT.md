@@ -100,6 +100,38 @@ Closeout ownership follows the declared execution mode: in the separate lightwei
 
 Review records its review event and round completion in the proposal journal for mutating reviews. A completed review round is distinct from a closed ticket: full-mode Implement retains closeout ownership. The loop above applies when implement and review are separate sessions with asymmetric capability.
 
+## Verification ownership and reuse
+
+**Local proof** shows one ticket's own promised behavior. **Stage proof** shows a combination of independently delivered tickets, before a release or real use that needs the whole. Both are positive: an executed observation with its command, result, fixed point, and coverage. A passing structure check, `frontier` Ready, or a terminal ticket state is not evidence.
+
+Owners: Solution Design selects the verification strategy, seams, and where a real environment is required; Plan assigns each proof to exactly one owning ticket in Done and verify; Refine verifies the exact command, environment, and counterexamples; Implement runs the published checks and records what actually ran; Review judges coverage and reuse for the fixed change set. No role moves proof a local promise needs to a later stage, and no role infers a stage pass from a local one.
+
+A local ticket closes only its own contract. Cross-ticket proof belongs to a normal `role: ticket` stage ticket that depends on the delivered tickets; a release or use ticket needing combined proof depends on that stage ticket. A pure-verification ticket delivers a non-empty record naming the implementation fixed point, reproducible commands, actual results, and boundaries, and review receives the linked implementation scope with it. When a later Fix invalidates combined proof, the affected acceptance item returns through the existing repair path and the consumer waits for new valid proof; the old report stays history.
+
+### Verification schedule
+
+A ticket adopts a schedule by writing `### Verification schedule` inside `Done and verify`. It is ticket prose, not a schema field or CLI capability: acceptance behavior and its exact commands stay in Done and verify, and the five Execution detail sections stay Refine's.
+
+An adopted schedule answers, per group: which Changes and acceptance items it covers, when it runs, the exact command and expected result, and where the result is saved. A heavy item carries one line on why it must run there and whether it shares a stage run; an unmeasured cost is stated as unknown. It names only commands the ticket already defines.
+
+Three execution paths:
+
+- **Complete authorized schedule** — Implement executes by group. A group's Changes stay unchecked until its checks pass at the group's end; one real run may cover several enumerated Changes.
+- **No schedule** — the previous rules apply unchanged: build after each Change and run every Done and verify command. Old tickets are never migrated by inference.
+- **Declared but incomplete, contradictory, or pointing at a missing command** — stop before touching files, record the failure as `## Blocked evidence`, and return to the planning owner. No role completes the schedule by guessing.
+
+A check the schedule already ran is not repeated because the same command also appears in another step; closeout confirms instead that every acceptance item holds valid evidence.
+
+### Shared runs and reused evidence
+
+Each completed Change keeps its quadruple (`cmd` / `exit` / `output` / `artifact`). A run shared by a group writes its own quadruple under every Change it covers, naming that shared run; one execution is never counted as several. Original Change quadruples keep their original attribution and are never rewritten with a later run.
+
+Reuse is a judgement about whether an earlier result still proves the current version. Review owns it for a fixed change set; Implement never selects it. A reused record names where the original execution is, what it proved, the implementation, test, configuration, and environment it proved it on, why the current diff leaves it intact, and who confirmed that. A fixed point is a commit or a complete working-tree snapshot; a drifting HEAD alone identifies nothing.
+
+Reuse is refused when the source or version is unknown, related code, assertions, configuration, dependencies, or environment changed with impact not excluded, the old evidence never covered the behavior, a real observation was replaced by a mock, or the acceptance tool changed and a false pass cannot be excluded. The owner then supplements the check or blocks the ticket; choosing the cheaper path is not an implementer decision.
+
+Before dispatching a Fix, Review publishes the re-verification plan: what must actually run this round, what is proposed for reuse with its version and coverage, and what expands the check. After the Fix returns, an independent Round 0 tests the plan against the actual diff — new Fix Changes carry this round's evidence, older items carry traceable and still-valid proof — and reaches zero gaps before the dual axes start. A copied old quadruple, or an acceptance claim with no valid proof, fails that check even when the CLI format check passes.
+
 ## Diagnostics
 
 - `warning`: work can proceed with a named risk; strict policy may filter it.

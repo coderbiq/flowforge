@@ -34,13 +34,15 @@ If a fact cannot be verified — conflicting API shape, missing schema, unclear 
 
 Write or complete all five sections under the ticket's existing `## Execution detail` heading. Each section must carry verified content, not template text:
 
-- **Verified contracts** — precise contract facts with file/symbol/anchor evidence (e.g. `internal/tracker/catalog.go:discoverArtifact` owns ticket diagnostics).
-- **Execution scenarios** — at least one success path and one failure path with observable results (e.g. "Success: a complete ticket is eligible" / "Failure: a missing section is diagnosed").
-- **Expected tests** — runnable commands or named test cases with assertions (e.g. `go test ./internal/tracker/...` — all pass).
+- **Verified contracts** — precise contract facts with file/symbol/anchor evidence (e.g. `internal/tracker/catalog.go:discoverArtifact` owns ticket diagnostics); for an adopting ticket, also its schedule groups, each group's Change scope, when it runs, and the commands those groups name.
+- **Execution scenarios** — at least one success path and one failure path with observable results (e.g. "Success: a complete ticket is eligible" / "Failure: a missing section is diagnosed"), each with the real command and environment it needs, including the counterexample that must fail.
+- **Expected tests** — runnable commands or named test cases with assertions (e.g. `go test ./internal/tracker/...` — all pass), stating which Done and verify acceptance item each check covers.
 - **Generated artifacts** — producer → artifact → consumer sync assertions, or an explicit `Not applicable` reason stating why no artifact is produced.
 - **Conventions** — local non-obvious conventions and transcribed `must`/`must not` standards clauses tagged `[Conventions]` that the implementer needs.
 
 Do not duplicate the `Write set` — verify it exists in Constraints, is narrow enough, and is consistent with the execution scenarios.
+
+A ticket that adopts a [verification schedule](../_shared/ARTIFACT-CONTRACT.md#verification-schedule) is verified on the same evidence: every group cites its real command and environment, its success and failure observations, and the acceptance items it covers. A schedule that is incomplete, contradictory, or names a command the ticket does not define is not filled by guessing — return it to the planning owner with the missing fact named. Never drop or narrow a Done and verify item so a schedule fits, and never edit a protected preset test to make a check pass.
 
 ### 5. Verify readiness
 

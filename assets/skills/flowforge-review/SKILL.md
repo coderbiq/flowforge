@@ -80,6 +80,7 @@ Run one read-only converge-audit pass before spawning the dual-axis sub-agents. 
 - **Intent source (the only source of truth):** the ticket's Changes, Constraints, and Done and verify, plus the linked effective-specification authorities from step 2. Do **not** trust the Implementation note's self-report; cross-check any evidence quadruple in the ticket against the actual diff (content honesty — the CLI already checks format honesty).
 - **Object:** the fixed diff captured in step 1. **Unit of audit:** every Change, one at a time.
 - **Output:** a gap list; each gap is classified exactly one of `missing` (spec asked, diff has none), `partial` (delivered incompletely), `contradicts` (delivered opposite to the authority's meaning), or `unrequested` (in the diff, not asked for), and each carries `file:line` evidence.
+- **Evidence coverage:** for each Change, a check that actually ran in this round, or proof that an earlier result still applies on this diff — new Fix Changes carry this round's evidence and older items carry traceable, still-valid proof, judged under [shared runs and reused evidence](../_shared/ARTIFACT-CONTRACT.md#shared-runs-and-reused-evidence). A copied old quadruple or an acceptance item with no valid proof is a gap even when the CLI format check passes.
 - **Noise control:** only report gaps that affect an acceptance term. You may dismiss a candidate gap, but you must record the reason — never silently.
 - **Disposition:** `missing`/`partial` gaps are mechanical — translate them into `Fix:` Changes per step 6 and return to the implementer; this round does not escalate to the dual axes. A `contradicts` gap that turns on authority meaning goes through the existing design-return channel.
 
@@ -121,6 +122,8 @@ After aggregating findings, determine the next action based on whether findings 
 
 **If findings exist:**
 
+**Publish the Fix verification** in the same round record, before the Fix Changes reach the implementer. It states: the findings and their numbers with the allowed write set; the counterexample and expected result that exposes a partial fix; the checks that must actually run this round and the acceptance items they cover; the earlier evidence proposed for reuse with its version, environment, and coverage; and what expands the check (a larger diff than expected, a shared interface or configuration change, or a change in tool trust). It arranges runs and never deletes a Done and verify item. Round count, elapsed time, or reviewer count never waives a finding or widens acceptance: changing acceptance behavior, its observation method, the write set, or the verification strategy stays on the existing design-return or substantive finding → repair path however much it would save.
+
 For each finding, classify it:
 
 - **Fixable**: a concrete implementation issue (missing test, wrong logic, code smell, missing migration). Translate it into a new unchecked Change appended to the ticket's Changes section, using the format `- [ ] N. Fix: <mechanical action naming the target file and symbol>`. Continue the ticket's existing Change numbering. Fix Changes are mechanical descriptions, not code—the implementer writes the code.
@@ -150,14 +153,16 @@ Then record the round in the ticket's Review rounds section (after the `---` sep
 ### Round N
 
 - Fixed point: <commit SHA>
+- Fix verification: <this round's must-run checks, proposed reuse with version and coverage, and expansion conditions — or "none, no Fix this round">
 - Standards: <findings or "none">
 - Spec: <findings or "none">
 - Fix changes: <change numbers created, or "none">
 - Design returns: <areas and reasons, or "none">
 - Repair: <repair ticket id and reason, or "none">
+- Counts: <review invocations / Fix batches actually dispatched / recurrences of the same problem>
 ```
 
-Append fix Changes to the ticket's Changes section and record the round. The lightweight implementer re-executes the new fix Changes in its next session. If a repair ticket was created, the repair ticket enters the frontier independently; the original stays `needs-repair` until the repair passes its own review.
+Append fix Changes to the ticket's Changes section and record the round. Record review invocations, actual Fix batches, and recurrences of the same problem as separate counts; round titles and reviewer counts are not performance results. The lightweight implementer re-executes the new fix Changes in its next session. If a repair ticket was created, the repair ticket enters the frontier independently; the original stays `needs-repair` until the repair passes its own review.
 
 **If zero findings:**
 
