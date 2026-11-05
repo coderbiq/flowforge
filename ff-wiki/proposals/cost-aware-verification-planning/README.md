@@ -2,7 +2,7 @@
 
 在保留轻量机械执行、预设测试保护、Plan/refine 和独立审查的前提下，减少实施期间重复的重验证、环境准备、修复派发和取证。
 
-消费需求 revision 2 与设计 revision 2，用户已明确批准受限测试作者入口前置修复。**00 与03已验收并closed**：00原三项partial经03 substantive repair修复（`93f07a4`），03首轮SPEC-01经合法作者追加10观察及真实red（`36c9c8f`）、Fix5路径段修复（`2a924c1`）和完整范围复审收敛。独立Round0零gap，source/deployed各276/276；Spec新增0、SPEC-01已修，Standards无硬违规，README阶段发现已在本次更新。独立Round0与Spec核实后，主会话批准仅复用03普通路径的历史native主链（产品`93f07a4`、证据`7314735`），不是Fix5本轮重新握手。原失败、High repair及范围裁决保留在票内。
+消费需求 revision 2 与设计 revision 3，用户已明确批准受限测试作者入口前置修复。**00 与03已验收并closed**：00原三项partial经03 substantive repair修复（`93f07a4`），03首轮SPEC-01经合法作者追加10观察及真实red（`36c9c8f`）、Fix5路径段修复（`2a924c1`）和完整范围复审收敛。独立Round0零gap，source/deployed各276/276；Spec新增0、SPEC-01已修，Standards无硬违规，README阶段发现已在本次更新。独立Round0与Spec核实后，主会话批准仅复用03普通路径的历史native主链（产品`93f07a4`、证据`7314735`），不是Fix5本轮重新握手。原失败、High repair及范围裁决保留在票内。
 
 依赖仍为 **03 → 01 → 02**，03已关闭。主会话下一步恢复01的合法Go作者、实际red与Refine；01正文blocked evidence和旧docs路径Go失败尚未解除，CLI投影不能替代前置工作。02仍等待01，且须补齐执行合同与受控验收。本proposal尚未完成或round-close，不宣称全仓绿，不迁移GIIS合同。
 

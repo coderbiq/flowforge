@@ -14,6 +14,7 @@ flowforge:
     - {round: 2, stage: review, action: done, ts: "2026-11-05T10:55:00Z", by: flowforge-review, reason: "00 Round0三partial；主会话裁决substantive repair，双轴未启动，03待Plan及Refine", artifacts: [issues/00-test-authority.md, issues/03-test-authority-boundary-repair.md, issues/01-rule-package.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T11:47:38Z", by: flowforge-review, reason: "03修后native及Round0完成；双轴主会话裁决FIX，接受SPEC-01为Fix5，F1保留既有范围边界，F2更新导航；未关票", artifacts: [issues/03-test-authority-boundary-repair.md, README.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T12:13:52Z", by: flowforge-review, reason: "Fix5完整范围Round0零gap；Standards硬违规0且STD-F5-01已文档收敛，Spec新增0且SPEC-01已修；主会话CLOSE关闭03和00，native仅复用03历史主链；01/02继续", artifacts: [issues/03-test-authority-boundary-repair.md, issues/00-test-authority.md, README.md, evidence/03-fix5-implementation.md]}
+    - {round: 2, stage: design, action: done, ts: "2026-11-05T12:28:02.969Z", by: flowforge-solution-design, artifacts: [design.md, evidence/01-lint-baseline.md]}
 ---
 
 # 阶段记录
@@ -108,3 +109,7 @@ Standards轴硬违规0，STD-F5-01 [Low, information value] 指出README仍待�
 本次机械记录实跑 `./bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --full` 与 `./bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning --json` 均exit0：00/03 closed且无03 gap；仅01 `blocked-evidence-present` warning和02 `execution-contract-incomplete` gap。frontier `ready=null`、01 `ready_with_warnings`（blocked_by=[03]）、02 blocked等待01；真实前置阻塞仍优先于投影。
 
 `git diff --check` exit0。固定HEAD `2a924c1` 的 `git diff --check f1a51117b0baf5af6801238b2a12206ad6697b29...HEAD` 仍exit2，仅证据行39展示诊断；授权整理已消除当前工作树问题，未改动该历史提交的diff。文档修订后只对最终记录HEAD重新验证，不把两种基准混记。提交前仅暂存本派发的五个文档，不推送。
+
+## 01恢复前的验证策略核实
+
+主会话在00/03关闭后核实01实施前lint基线并发布设计revision3，01/02消费同步。官方临时golangci-lint 2.15.0校验下载SHA后可用；全仓typecheck被既有throwaway原型阻断，产品包显示既有lint报告，均保留实际失败。01门禁改为固定基线16cce8e以来所有新增/修改Go文件的整文件lint零问题，完整内部Go回归仍须全通过，不让执行者自行缩范围。详见evidence/01-lint-baseline.md。G0由指定Plan实例执行原Change8及两个预设回归，G1轻量实现者对所有测试只读；兼容测试可实际基线green，禁止制造red。

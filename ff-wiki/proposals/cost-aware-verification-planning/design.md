@@ -3,7 +3,7 @@ flowforge:
   schema: 1
   role: design
   id: cost-aware-verification-planning-design
-  revision: 2
+  revision: 3
   consumes:
     requirements:
       cost-aware-verification-planning-requirements: 2
@@ -14,7 +14,7 @@ flowforge:
 <a id="cost-aware-verification-planning-design"></a>
 # 成本感知的验证规划与修复复验：设计
 
-消费 [需求 revision 2](requirements.md#cost-aware-verification-planning-requirements) 与 [测试作者入口设计 revision 1](design/test-authority.md#cost-aware-test-authority-design)。验证安排仍采用现有 Markdown 契约与角色分工，不新增 Issue Schema、CLI 签名、任务状态机或自动缓存平台。revision 2 按用户明确授权增加 PI 合法作者入口前置修复；原有验证规划方案不变。
+消费 [需求 revision 2](requirements.md#cost-aware-verification-planning-requirements) 与 [测试作者入口设计 revision 1](design/test-authority.md#cost-aware-test-authority-design)。验证安排仍采用现有 Markdown 契约与角色分工，不新增 Issue Schema、CLI 签名、任务状态机或自动缓存平台。revision 2 按用户明确授权增加 PI 合法作者入口前置修复；revision 3 在01开始前根据实测lint基线明确修改文件门禁及兼容回归基线，原有成本感知规则方案不变。
 
 <a id="decision"></a>
 ## 方案选择
@@ -170,7 +170,9 @@ Review 在既有 `Review rounds` 中记录本轮 `Fix verification`，与新增 
 - 源/部署技能链接与既有格式：`go test ./internal/command -run 'Test(PackagedSkillPointersResolve|PlanPublishesExecutionDetailSkeleton|PlanSkillDeclaresModeLine|ArtifactContractDocumentsExecutionContractSections|AgentRulesDescribeGenericCapabilityDispatch)$' -count=1`。
 - Catalog、证据、journal、依赖兼容：`go test ./internal/tracker ./internal/command`；关注旧票缺 schedule 不新增诊断、现有证据/阶段门禁不回退。
 - 资产同步构建：`make dev`；在隔离仓库执行新二进制的部署与 `assets verify --json`，分别检查 source→embedded 和 binary→deployed，不混为一个证明。
-- 按项目要求最终运行 `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`，以及代码变更涉及的 lint。现存测试/部署路径债先作为基线事实记录，不静默删测试或改断言使其通过。
+- 按项目要求最终运行 `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`，要求全部通过；旧docs路径由合法作者执行01 Change8修正，保留原repair断言。
+- 01实施前实测全仓lint被旧throwaway原型typecheck阻断，产品包也有既有报告，详见 [lint基线与精确门禁](evidence/01-lint-baseline.md)。本次门禁为固定工具2.15.0对相对 `16cce8e` 所有新增/修改Go文件整文件lint，覆盖cmd/internal、包含测试、关闭输出数量截断但不关闭任何linter，必须exit 0。Plan固化精确命令，Review核对全部改动文件覆盖及基线来源；新增其他Go包时返回权威扩大范围。全仓失败如实保留，不声称全仓lint通过；不把本需求扩大为历史代码清理。
+- 两项新增Go回归保护既有交付接缝/门禁兼容，允许实际基线直接green；必须证明测试实际存在且被执行，不故意制造失败或把旧docs失败当作它们的red。新规则行为仍由01完整语义审查和02实际受控情景证明。
 
 **待 Plan 固化的受控情景：**
 
