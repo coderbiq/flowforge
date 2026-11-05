@@ -14,8 +14,9 @@ flowforge:
 # 01: 规则实现及必要保护性测试
 
 **Blocked by:** 03
-**Status:** open
+**Status:** needs-repair
 **Mode:** lightweight
+**Repair:** 04
 
 ## Delivery
 
@@ -281,3 +282,50 @@ Round 0 另记录九项已证伪候选（实现者未改测试、新测试真实
 - Design returns: none
 - Repair: none
 - Counts: review 调用 1 / Fix 批次 1（11–13 同批）/ 同一问题复发 0
+
+### Round 2
+
+- Fixed point: `c990efb`（父 `348f0f4`）；审查范围 `16cce8e...c990efb`
+- Fix verification: 采用 Round 1 发布的 11–13 安排；本轮无新增 Fix verification
+- Standards: 未运行 — Round 0 报 1 partial + 1 contradicts，按 [review 第 3b 步](../../../../assets/skills/flowforge-review/SKILL.md) 不进入双轴；两轴报告为空
+- Spec: 未运行 — 同上
+- Fix changes: none
+- Design returns: A04 阶段证明门禁适用范围（`contradicts`/Medium，权威含义问题，经既有 design-return/repair 通道交设计所有者）；A05（`partial`/Medium）作为同一 repair 内的记录恢复，不另造产品范围
+- Repair: 04（[04 合同](04-stage-proof-scope-and-execution-record.md)）；本票改 `needs-repair`，02 的 `**Blocked by:**` 由 01 改 04，00/03 保持 closed
+- Counts: review 调用 2 / Fix 批次 1（11–13 同批）/ 同一问题复发 0
+
+修后独立只读 Round 0 固定范围 `16cce8e7991e6e2ff7d084c8128d818fe6e64597...c990efb8dc36d04b452801a941629de76c975d9a`，missing 0 / partial 1 / contradicts 1 / unrequested 0。报告与命令日志随审查产物保存于 `/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/outputs/862b108c-74be-4c8a-b6ce-4f429752919d/`：`rule-package-delivery.audit-01-1.md` 及同目录 `.diff`（147242 字节，SHA-256 `0c695217837b5e5bbfddfe4bfb5f11df8b53ca18516ebfb9bb1e131c95b0dad7`）、`.tests.log`、`.lint.log`、`.deploy.log`、`.check.log`、`.integrity.log`、`.history-evidence.log`。审查者未写票、未改状态、未代裁决；最终源快照的回归、整文件 lint、七面源/嵌入/隔离部署与指针检查通过，Go 测试未改。以下两项为审查原文（`rule-package-delivery.audit-01-1.md:13–23`、`:25–41`）：
+
+> **A04 — contradicts — [Medium] 阶段证明门禁扩大到所有上游交付消费者**
+>
+> **实际引用：**`assets/skills/_shared/ARTIFACT-CONTRACT.md:113`：`A ticket that consumes another ticket's delivery ... requires positive stage proof.`；`assets/skills/flowforge-plan/SKILL.md:28` 同样要求消费任何另一交付的票写正向 stage proof。共享 `:105` 已明确定义 stage proof 为多个独立交付的组合证明，不能把它重新解释成单票 local proof。
+>
+> **权威：**`design.md:50–64` 明确局部票闭合自身契约、阶段验收票 G 消费局部交付并产生组合证明、需要完整证明的发布/实际使用票 P 才依赖 G；`:64` 的前提是“派发需要阶段证明的消费/发布票前”。01 Change 12（`issues/01-rule-package.md:99`）也保留“一切需要阶段正向证明的消费/发布”的限制，而非所有有上游的票。
+>
+> **具体反例：**A、B 已有适用版本的局部证明并通过独立审查，G 的交付正是首次运行 A+B 组合验收，P 等待 G。G 会消费 A/B 的交付，按共享 `:113` 和 plan `:28`，派发前已经必须存在正向 stage proof；但该证明正应由 G 产生。局部证明按 `:105–109` 又不能充当组合证明，因此本来合法的 G 被阻断。同理，普通 A→B 局部接口依赖会被无依据加上阶段门禁。此处是规则的确定性语义反例，不声称已在模型情景中观测到，后者属于02。
+>
+> **反证尝试：**implement `:30` 和 tracker `:72` 使用“when ... needs ... stage proof”的较窄前提，但没有撤销唯一共享权威 `:113` 的广义要求；plan 反而再次扩大它。共享 `:109` 的正确 G/P 分工与该新句直接冲突，也没有为“产生证明的验收票”提供安全例外。不能以执行者自行选择较窄解释消除冲突。
+>
+> **影响及建议处置：**原 A02 的“终态无正向证明仍可派发”已被修补，但出现了反向的错误阻断。应恢复权威规定的适用条件，并保持无证明/过期证明的真实发布拒绝路径。此为 authority meaning 的 contradicts，交主会话按既有 design-return/repair 边界裁决，审查者不自行增加新验收或发布机械修复。
+
+> **A05 — partial — [Medium] Change 10 的真实执行记录不完整，部分过程声明与原始轨迹相反**
+>
+> **当前工件引用：**`evidence/01-implementation.md:112` 标题为“实际命令与结果（本轮各一次）”，`:135` 写“唯一一次全内包运行”及一次 make/test/lint/部署/check 各计一次。票 `issues/01-rule-package.md:229,235` 把 Fix 的 restatement/preflight 标成“执行前”，`:237` 声称 proposal Markdown “全部 edit/write”。
+>
+> **直接证据：**原始 `61b27f54-eaed-4a1d-b658-3e23df77b157_flowforge-implementer_transcript.jsonl`：
+>
+> - `:188–202` 首次真实 make、全内包、lint；toolResult `:194` 是 exit 0、command **9.850s**、tracker **1.108s**、240 PASS/0 FAIL/3 SKIP；`:202` 为 `0 issues.`。
+> - `:204–210` 首次两处隔离目录 `/tmp/ff-fixA-7XHacA` 和 `/tmp/ff-fixB-ZwyS8a` init/verify，52 current，七面一致。
+> - `:255–265` 随后实际修改 implement 的 pre-flight 标题和 Phase0句子，形成新的源快照。
+> - `:275–289` 第二次 make、全内包、lint及两处新隔离目录；`:281` 是最终记录所引用的 command **9.902s**、tracker **0.765s**，`:285` 为 lint exit 0 / `0 issues.`。
+> - `:299–305` 用 bash/Python 截去原 Fix 证据段，再以 bash heredoc 写入新段；`:307–309` 用 bash/Python 写票内勾选及四元组；`:311–313` 才插入标成“执行前”的 Fix restatement/preflight。整个运行的 edit/write 调用在此之前只修改规则源，未提前写入这两段。
+>
+> 上述命令及真实 toolResult 原文已提取到同目录 `rule-package-delivery.audit-01-1.history-evidence.log`，每项保留原 transcript 文件与行号。不是根据实现者的总结推断。
+>
+> **反证和限定：**两次验证之间确实改变了源文件，第二次构建/回归/部署有合理的版本变化依据；本发现**不是**“相同固定点无理由重跑”，也不否定最终四元组的真实 PASS。“仅最终源快照各跑一次”可以准确描述最后一批，但当前工件写的是“本轮各一次”，没有留下首批及其失效原因；也无法解释事后步骤被标成执行前、bash写入被报成全部edit/write。
+>
+> **验收影响与建议处置：**Change 10（票 `:89`）要求真实命令/结果/覆盖，Constraints（`:112,115`）要求文件工具维护及证据诚实，R6/R9 与设计证据生命周期要求可独立核验和真实次数。最终测试成功不修复这些记录缺口。需保留两批版本/运行结果与重跑原因，明确最终采用哪批；纠正“执行前”“全部edit/write”的失实声明，并记录实际流程偏离及其主会话处置。不能再补跑一次来冒充历史已按顺序执行。此项建议作为记录修复处理，不要求重写测试或无依据重做技术验收。
+
+Round 0 另记录九项已证伪候选及保留边界（原 A01–A03 不复报；不得把最终 PASS 说成伪造；模型行为与本项目部署仍归 02），均不升级为缺口。
+
+主会话经 `contact_supervisor need_decision` 明示裁决 **NEXT: BLOCKED**：A04 保留 `contradicts`/Medium，按 review 既有 design-return 通道（`assets/skills/flowforge-review/SKILL.md:85`、`:131`）转 repair/design return；A05 `partial`/Medium 作为同一 repair 内的记录恢复，不另造产品范围。设计所有者就 A04 作出裁决并写入 [04 Design context](04-stage-proof-scope-and-execution-record.md)：设计 rev3 语义不变——只有需求/设计/票面明确要求某个既有阶段正向证明作为入场条件的消费/发布任务才受该门禁；单纯有上游交付不增加 stage-proof 要求；G 不以其将产生的同一证明为入场条件，P 缺失 G 证明不派发，普通 A→B 局部依赖不加门禁；若 G 本身被权威明确要求另一个更早且不同的阶段证明，仍检查该独立入场条件。不改 requirements/design/Schema/CLI，无新的需求待用户确认。本次只发布记录与 04 合同、README/journal；不自行修产品或本票原 Implementation note——`evidence/01-implementation.md` 与票内 Fix 11–13 记录段（含“执行前”“本轮各一次/唯一一次”“全部 edit/write”）的修正归 04 Change 2。

@@ -13,7 +13,7 @@ flowforge:
 
 # 02: 受控情景验收、源/嵌入/部署一致性及本项目部署
 
-**Blocked by:** 01
+**Blocked by:** 04
 **Status:** open
 **Mode:** lightweight
 

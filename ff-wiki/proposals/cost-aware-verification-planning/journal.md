@@ -16,6 +16,7 @@ flowforge:
     - {round: 2, stage: review, action: done, ts: "2026-11-05T12:13:52Z", by: flowforge-review, reason: "Fix5完整范围Round0零gap；Standards硬违规0且STD-F5-01已文档收敛，Spec新增0且SPEC-01已修；主会话CLOSE关闭03和00，native仅复用03历史主链；01/02继续", artifacts: [issues/03-test-authority-boundary-repair.md, issues/00-test-authority.md, README.md, evidence/03-fix5-implementation.md]}
     - {round: 2, stage: design, action: done, ts: "2026-11-05T12:28:02.969Z", by: flowforge-solution-design, artifacts: [design.md, evidence/01-lint-baseline.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T13:11:58Z", by: flowforge-review, reason: "01独立只读Round0报3项partial（A01 Fix复验执行入口、A02初次发布派发阻断、A03 tracker指针隔离部署失效）；主会话裁决NEXT: FIX，追加Fix 11–13并发布Round 1 Fix verification，两轴本轮未运行；01仍open，02仍待Refine，未round-close", artifacts: [issues/01-rule-package.md, README.md]}
+    - {round: 2, stage: review, action: done, ts: "2026-11-05T13:48:00Z", by: flowforge-review, reason: "01修后独立只读Round0报partial 1（A05执行记录）与contradicts 1（A04阶段证明门禁过宽）；主会话裁决NEXT: BLOCKED，新建04 repair/design-return，01改needs-repair，02 Blocked by改04；两轴未运行，未round-close", artifacts: [issues/01-rule-package.md, issues/04-stage-proof-scope-and-execution-record.md, issues/02-controlled-acceptance-and-deploy.md, README.md, journal.md]}
 ---
 
 # 阶段记录
@@ -114,3 +115,13 @@ Standards轴硬违规0，STD-F5-01 [Low, information value] 指出README仍待�
 ## 01恢复前的验证策略核实
 
 主会话在00/03关闭后核实01实施前lint基线并发布设计revision3，01/02消费同步。官方临时golangci-lint 2.15.0校验下载SHA后可用；全仓typecheck被既有throwaway原型阻断，产品包显示既有lint报告，均保留实际失败。01门禁改为固定基线16cce8e以来所有新增/修改Go文件的整文件lint零问题，完整内部Go回归仍须全通过，不让执行者自行缩范围。详见evidence/01-lint-baseline.md。G0由指定Plan实例执行原Change8及两个预设回归，G1轻量实现者对所有测试只读；兼容测试可实际基线green，禁止制造red。
+
+## Round 2：01 Fix 11–13 修后 Round 0 与 04 repair
+
+01 修后独立只读 Round 0（固定 `16cce8e...c990efb`）报 missing 0 / partial 1 / contradicts 1 / unrequested 0：A04 `contradicts`/Medium（shared `ARTIFACT-CONTRACT.md:113` 与 plan `SKILL.md:28` 把阶段证明门禁扩大到所有上游交付消费者，反例是应产生组合证明的 G 被自身尚待产生的证明阻断）、A05 `partial`/Medium（`evidence/01-implementation.md:112,135` 与票内 Fix 11–13 记录只留最后一批并含“执行前”“全部 edit/write”失实声明，原始 transcript 有前后两批真实运行）。两项发现原文与命令日志见 01 票 Review rounds Round 2 及审查产物目录 `rule-package-delivery.audit-01-1.{md,diff,tests.log,lint.log,deploy.log,check.log,integrity.log,history-evidence.log}`；最终源快照的回归、整文件 lint、七面源/嵌入/隔离部署与指针检查通过，Go 测试未改。
+
+主会话经 `contact_supervisor need_decision` 明示裁决 NEXT: BLOCKED：A04 按 review 既有 design-return 通道转 repair，A05 作为同一 repair 内的记录恢复，不另造产品范围。设计所有者同时裁决 A04 语义：只有需求/设计/票面明确要求既有阶段正向证明作为入场条件的消费/发布任务才受门禁；单纯有上游交付不增加 stage-proof 要求；G 不以其将产生的同一证明为入场条件，P 缺失 G 证明不派发，普通 A→B 局部依赖不加门禁；若 G 本身被权威要求另一个更早且不同的阶段证明仍检查该独立条件。该裁决写入 [04 Design context](issues/04-stage-proof-scope-and-execution-record.md)，不改 requirements/design/Schema/CLI，无新的需求待确认。
+
+本次只发布记录与 04 合同：新建 `issues/04-stage-proof-scope-and-execution-record.md`（`Repair of:` 用 feature 限定键 `cost-aware-verification-planning/01`，因全局 `01` 裸 ID 会被其他 proposal 同名票占用并产生 `missing-reciprocal-repair` 警告；限定键下无新增诊断），01 改 `needs-repair` 并在 Review rounds 记 Round 2，02 `Blocked by` 由 01 改 04，README 更新阶段事实；00/03 保持 closed。未修改产品或原 Implementation note（01 记录修正及其 A05 恢复归 04 Change 2），未派发实现、未签发 grant、不 push、未 round-close 整个 proposal。
+
+本次机械记录实跑：`./bin/flowforge check --dir ff-wiki/proposals` exit 0，107 issues，诊断计数与改动前基线一致（19 evidence-artifact-missing、202 evidence-missing、10 legacy-metadata、5 missing-required-metadata、4 untracked-upstream），唯一 gap 仍为 02 `execution-contract-incomplete`，图健康；`./bin/flowforge frontier --json` exit 0，ready=[04]，02 blocked waiting_on=[04]，01 因 needs-repair 不进入可执行队列；`git diff --check` exit 0。未重跑 Go 或行为矩阵；此前的测试/lint/部署结果为接收到的历史证据，不冒充本轮执行。
