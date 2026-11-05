@@ -15,6 +15,7 @@ flowforge:
     - {round: 2, stage: review, action: done, ts: "2026-11-05T11:47:38Z", by: flowforge-review, reason: "03修后native及Round0完成；双轴主会话裁决FIX，接受SPEC-01为Fix5，F1保留既有范围边界，F2更新导航；未关票", artifacts: [issues/03-test-authority-boundary-repair.md, README.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T12:13:52Z", by: flowforge-review, reason: "Fix5完整范围Round0零gap；Standards硬违规0且STD-F5-01已文档收敛，Spec新增0且SPEC-01已修；主会话CLOSE关闭03和00，native仅复用03历史主链；01/02继续", artifacts: [issues/03-test-authority-boundary-repair.md, issues/00-test-authority.md, README.md, evidence/03-fix5-implementation.md]}
     - {round: 2, stage: design, action: done, ts: "2026-11-05T12:28:02.969Z", by: flowforge-solution-design, artifacts: [design.md, evidence/01-lint-baseline.md]}
+    - {round: 2, stage: review, action: done, ts: "2026-11-05T13:11:58Z", by: flowforge-review, reason: "01独立只读Round0报3项partial（A01 Fix复验执行入口、A02初次发布派发阻断、A03 tracker指针隔离部署失效）；主会话裁决NEXT: FIX，追加Fix 11–13并发布Round 1 Fix verification，两轴本轮未运行；01仍open，02仍待Refine，未round-close", artifacts: [issues/01-rule-package.md, README.md]}
 ---
 
 # 阶段记录
