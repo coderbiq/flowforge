@@ -8,6 +8,7 @@ Feature artifacts live under `<docs_dir>/proposals/<feature-slug>/` (default `do
 - Human semantic prose is authoritative. Machine IDs and revisions support traceability.
 - Only `issues/*.md` is executable. A ticket keeps `Blocked by` and `Status` directly below its title.
 - Use `requirements.md`, `design.md`, `spec.md`, `map.md`, or `evidence/*.md` only when independent consumption, review, lifecycle, or readability requires them.
+- The shared contract is the consuming project's `.agents/skills/_shared/ARTIFACT-CONTRACT.md`. Pointers in this file name only its section; the path is read from the project root, so it resolves at any `<docs_dir>` depth.
 
 ## Publishing
 
@@ -15,7 +16,7 @@ Write and edit Markdown files directly. A ticket carries three information tiers
 
 - **Tier 1 (human-priority):** Delivery, Design context, Blocked by — no file paths, readable in seconds.
 - **Tier 2 (shared execution contract):** Touch points with file paths and symbols, Changes as `- [ ]` checkbox mechanical steps, Constraints including a `Write set:` line, Done and verify with exact commands and expected results.
-- **Optional `### Verification schedule`:** a ticket that adopts one writes it inside Done and verify; each group states the Changes and acceptance items it covers, when it runs, the exact command with its expected result, and where the record is saved. Tickets without it keep the previous execution rules; grouping, its elements, and the three execution paths are shared at [verification schedule](../../assets/skills/_shared/ARTIFACT-CONTRACT.md#verification-schedule).
+- **Optional `### Verification schedule`:** a ticket that adopts one writes it inside Done and verify; each group states the Changes and acceptance items it covers, when it runs, the exact command with its expected result, and where the record is saved. Tickets without it keep the previous execution rules; grouping, its elements, and the three execution paths are defined in the shared contract's `Verification schedule` section.
 - **Tier 3 (agent execution detail):** After a `---` separator, Execution detail with its five subsections (Verified contracts, Execution scenarios, Expected tests, Generated artifacts, Conventions), Implementation note (written by implementer after execution), Review rounds (accumulated by reviewer).
 
 Keep only real DAG dependencies and omit empty template sections.
@@ -27,14 +28,14 @@ Do not store readiness phases. Record scoped gaps and blockers on the authority 
 When the implementer is a lightweight model and review runs as a separate session:
 
 1. **Plan** creates the ticket with all Changes unchecked.
-2. **Implement (lightweight)** executes unchecked Changes mechanically — by the adopted schedule's groups when the ticket has one — runs build and tests, checks off completed Changes, writes an Implementation note, and stops. It does not review, close, or make design decisions.
-3. **Review** publishes the round's `Fix verification` — the checks that must run this round, the reuse proposed with its version and coverage, and the conditions that expand the check — together with any `Fix:` Changes, confirms reused evidence against the actual diff before the dual axes, then runs the dual-axis review. If findings exist, it appends `Fix:` Changes to the ticket and records the round. If a finding needs an architecture change, it marks it as a design return instead.
+2. **Implement (lightweight)** executes unchecked Changes mechanically — by the groups of the round's effective verification entry, resolved in the shared contract's `Effective verification entry` order; without one it keeps the per-Change rules — runs build and tests, checks off completed Changes, writes an Implementation note, and stops. It does not review, close, or make design decisions.
+3. **Review** publishes the round's `Fix verification` — the checks that must run this round, the reuse proposed with its version and coverage, and the conditions that expand the check — together with any `Fix:` Changes, confirms reused evidence against the actual diff before the dual axes, then runs the dual-axis review. The entry governs only the Fixes it lists and keeps every original Done and verify item in force. If findings exist, it appends `Fix:` Changes to the ticket and records the round. If a finding needs an architecture change, it marks it as a design return instead.
 4. **Implement** re-executes the fix Changes. Steps 3-4 repeat.
 5. When a review round produces zero findings, **Review** writes Completion evidence and closes the ticket.
 
 **Substantive finding → repair ticket:** High/Critical, contract-changing, cross-write-set, or boundary-altering findings are not appended to the original ticket. Review creates a new repair ticket with `**Repair of:** <original-id>` (provenance, not a DAG edge) and `**Status:** open`, sets the original to `needs-repair` (nonterminal, non-executable), rewires downstream `Blocked by` to the repair, and records the repair reference in the original's Review rounds. The repair enters the frontier; the original does not. After the repair passes its own clean review, Review writes the repair's evidence back to the original and closes both.
 
-A capable agent may own the full turn (implement, review, evidence, close) in one session. See the artifact contract's [execution and review loop](../../assets/skills/_shared/ARTIFACT-CONTRACT.md#execution-and-review-loop) for details.
+A capable agent may own the full turn (implement, review, evidence, close) in one session. See the shared contract's `Execution and review loop` section for details.
 
 ## Proposal journal
 
@@ -68,4 +69,4 @@ A non-terminal ticket with a Write set must carry one of three markers in Constr
 - Run `flowforge check` after changing artifacts or dependencies.
 - Run `flowforge frontier` to obtain the next unblocked executable tickets.
 - Use `--strict` when warnings and gaps must fail policy; use `--include-gaps` only as an explicit risk acceptance. Diagnostics remain visible.
-- These checks validate structure and graph facts. A clean `check`, a Ready frontier, or a terminal ticket state does not show that verification is sufficient or that evidence still applies; those stay Implement and Review judgements.
+- These checks validate structure and graph facts. A clean `check`, a Ready frontier, or a terminal ticket state does not show that verification is sufficient or that evidence still applies; those stay Implement and Review judgements. Before dispatching a ticket that needs another ticket's stage proof, the dispatching owner confirms an actual positive acceptance record for the version being consumed, with its own independent review; never-passed work, a terminal state without a record, and stale or mismatched proof all mean no dispatch (shared contract, `Stage proof before dispatch`).

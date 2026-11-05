@@ -25,6 +25,8 @@ Each ticket delivers one narrow, end-to-end behavior that can be verified indepe
 
 Assign each proof to exactly one owning ticket. Cross-ticket proof belongs to a normal `role: ticket` stage ticket that depends on the delivered tickets, and a release or use ticket needing combined proof depends on that stage ticket. A local ticket claims only behavior it proves; when existing text claims more, return to the authority that wrote it instead of deleting the command. A pure-verification ticket delivers a non-empty verification record naming the implementation fixed point, reproducible commands, results, and boundaries, together with the implementation scope it covers. See [verification ownership and reuse](../_shared/ARTIFACT-CONTRACT.md#verification-ownership-and-reuse).
 
+A ticket that consumes another delivery, or needs the whole before a release or real use, also writes the positive stage proof it depends on: the record's location, the version it must cover, and the role that confirms it before dispatch. The gate is then checkable at launch instead of inferred from a DAG edge — see [stage proof before dispatch](../_shared/ARTIFACT-CONTRACT.md#stage-proof-before-dispatch).
+
 For a wide mechanical refactor that cannot land vertically, use expand–migrate–contract: add the compatible form, migrate green batches, then remove the old form after every batch. Keep independent migrations parallel in the DAG.
 
 Present each proposed title, Delivery, and Blocked by relationship for approval. Revise the graph until those three facts are accepted.

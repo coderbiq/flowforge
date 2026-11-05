@@ -25,7 +25,9 @@ Do not advance status to express readiness. Begin only when the ticket's Deliver
 
 **Execution-contract pre-flight:** Before any implementation mode starts, verify the ticket has no `execution-contract-incomplete` gap. If the catalog reports this gap, stop and return the ticket to `flowforge-refine-ticket` — the contract must be filled with verified repository evidence before implementation. This preflight is non-negotiable: `--include-gaps` on the frontier or a caller request to include gaps does not bypass it. A ticket visible only through `frontier --include-gaps` because of an incomplete contract is explicitly not eligible for implementation.
 
-**Verification schedule pre-flight:** Read the ticket's optional `### Verification schedule` under the shared [verification schedule semantics](../_shared/ARTIFACT-CONTRACT.md#verification-schedule) and resolve which of the three paths applies: complete and authorized (execute by its groups), absent (the per-Change and full self-check rules below, unchanged), or declared but incomplete, contradictory, or pointing at an undefined command (stop before touching files, record `## Blocked evidence`, and return to the planning owner). Grouping, choosing checks, and proposing reuse stay with the authority that wrote the schedule.
+**Verification schedule pre-flight:** Resolve the round's single effective verification entry under the shared [effective verification entry](../_shared/ARTIFACT-CONTRACT.md#effective-verification-entry) order: this round's `Fix verification` when one governs the Fix Changes being executed, otherwise the ticket's complete [Verification schedule](../_shared/ARTIFACT-CONTRACT.md#verification-schedule), otherwise the per-Change and full Done rules below, unchanged. Complete (execute what it publishes, by its groups), absent (the old rules), and declared but incomplete, contradictory, mismatched to the fixed point, or pointing at an undefined command (stop before touching files, record `## Blocked evidence`, and return to the owner who published it — Review for a Fix verification, the planning owner for a schedule). Grouping, choosing checks, and proposing reuse stay with that authority.
+
+**Stage proof pre-flight:** When the ticket needs another ticket's stage proof to consume or publish, confirm the referenced positive acceptance record exists, matches the version this ticket consumes, and carries its independent review. Missing, mismatched, or stale proof is a `STATUS: BLOCKED` return to the dispatching owner; the executor never waives it or substitutes a cheaper check.
 
 ### 2. Determine execution mode
 
@@ -41,11 +43,11 @@ You are an editor, not a designer: every decision has already been made in the t
 
 #### Phase 0: Restate before executing
 
-Before touching any file, write the execution restatement at the top of the Implementation note: for every unchecked Change, one line restating the action plus the acceptance command that will verify it (from Done and verify or Expected tests). A Change covered by a schedule group names that group and its scheduled command instead of an imagined per-Change check. If any restatement does not match the ticket, stop with `STATUS: BLOCKED` instead of guessing. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority.
+Before touching any file, write the execution restatement at the top of the Implementation note: for every unchecked Change, one line restating the action plus the acceptance command that will verify it, taken from the effective verification entry: this round's `Fix verification`, the ticket's `Verification schedule`, or, when neither exists, Done and verify and Expected tests. A Change covered by an entry's group names that group and its published command instead of an imagined per-Change check. If any restatement does not match the ticket, stop with `STATUS: BLOCKED` instead of guessing. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority.
 
 #### Phase 0b: Preflight traversal
 
-List every Constraint and every Execution scenario (both Success and Failure) from the ticket as a checklist, and mark each with its implementation landing point (file and symbol) or a blocker note. Mark each Change with the schedule group that verifies it, or with the per-Change check when the ticket has no schedule. A Change that cannot honor a Constraint it must satisfy, or whose scheduled group cannot run, is a `STATUS: BLOCKED` return, not a silent deviation. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority. Do not modify files outside the ticket's `Write set:`.
+List every Constraint and every Execution scenario (both Success and Failure) from the ticket as a checklist, and mark each with its implementation landing point (file and symbol) or a blocker note. Mark each Change with the group of the effective verification entry that verifies it, or with the per-Change check when the round runs under the old rules. A Change that cannot honor a Constraint it must satisfy, or whose published group cannot run, is a `STATUS: BLOCKED` return, not a silent deviation. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority. Do not modify files outside the ticket's `Write set:`.
 
 Execute unchecked Changes mechanically, self-check, and stop. Do not review, close the ticket, or make design decisions.
 
@@ -55,8 +57,8 @@ Work through each `- [ ]` item in order. For each Change:
 
 1. Read the named file and symbol from the Change description and Touch points.
 2. Implement the described mechanical action at that location.
-3. Run `go build` (or the project's compile command) after each Change, except under a complete authorized schedule, where the build and its checks run when the group's last Change is implemented; that group's Changes stay unchecked until the group-end checks pass.
-4. Run focused tests relevant to the Change if test names are given in Expected tests or Done and verify, deduplicated the same way: one schedule run is the group's single real execution, and no check runs twice because two steps name it.
+3. Run `go build` (or the project's compile command) after each Change, except when the effective verification entry groups the build with its checks at a defined point (a complete schedule group or this round's Fix verification), where those run when the group's last Change is implemented; that group's Changes stay unchecked until its checks pass.
+4. Run focused tests relevant to the Change if the effective verification entry names them, deduplicated the same way: one published run is the group's single real execution, and no check runs twice because two steps name it.
 
 If a Change cannot be completed (file not found, symbol moved, build fails after the change), stop, leave the Change unchecked, and note the blocker in the Implementation note. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority.
 
@@ -68,7 +70,7 @@ Do not modify files outside the ticket's `Write set:`.
 
 #### 3b. Mechanical self-check
 
-Run all commands listed in Done and verify. Record pass/fail and observed output for each. Under a complete authorized schedule, the group runs are those commands: run each once, in the group and order the schedule states, and treat an already-executed check as satisfied rather than running it again under a second step. If any command fails, stop, and report the failure in the Implementation note—do not attempt to debug or fix.
+Run the checks the effective verification entry publishes for this round. Record pass/fail and observed output for each. Under a complete schedule or a Fix verification, those are the Done and verify items the entry covers: run each once, in the group and order it states, and treat an already-executed check as satisfied rather than running it again under a second step. A Done and verify item the entry covers with an earlier result it proposes for reuse is not re-run: record it as proposed reuse for review, never as this round's own run. If any command fails, stop, and report the failure in the Implementation note—do not attempt to debug or fix.
 
 When a command fails, paste the failing command, its exit code, and the relevant error output verbatim into the Implementation note. Never paraphrase or summarize errors — the verbatim output is the feedback signal for the next agent.
 
@@ -81,24 +83,24 @@ Change `- [ ]` to `- [x]` for each completed Change in the ticket, in the same e
 Write a `## Implementation note` section in the ticket (after the `---` separator, before Review rounds if present) recording:
 
 - which Changes were completed (numbers) and which were not (with reason);
-- commands run and their results (pass/fail, output summary), naming each schedule group that ran and every run several Changes share;
+- commands run and their results (pass/fail, output summary), naming each group of the effective verification entry that ran and every run several Changes share;
 - files modified;
 - write-set compliance: "All modifications within write set" or list violations.
 
 #### 3e. Stop
 
-Confirm that every Done and verify acceptance item now holds valid evidence: a check actually run this round, or — only where the ticket's own schedule or Done text permits it — an identified earlier result for review to validate. You do not judge reuse yourself. Do not invoke `flowforge-review`. Do not write Completion evidence. Do not change `**Status:**`. Commit the implementation work and return. The review agent will pick up from the Implementation note.
+Confirm that every Done and verify acceptance item now holds valid evidence: a check actually run this round, or an earlier result the effective verification entry identifies for reuse, cited precisely enough for review to confirm it. You do not judge reuse yourself. Do not invoke `flowforge-review`. Do not write Completion evidence. Do not change `**Status:**`. Commit the implementation work and return. The review agent will pick up from the Implementation note.
 
 ### 4. Full mode
 
-Use `flowforge-tdd` internally at the pre-agreed verification seam. Run focused checks through the loop and the full relevant verification at the end. Preserve unrelated worktree changes.
+Use `flowforge-tdd` internally at the pre-agreed verification seam. Run focused checks through the loop and the full relevant verification at the end. Preserve unrelated worktree changes. Full mode consumes the same effective verification entry as lightweight mode: a governing Fix verification or complete schedule supplies the round's checks, and only without one does the original full relevant set apply.
 
 Classify discoveries immediately:
 
 - a repository fact that corrects stale location, symbol, or command detail updates the ticket/evidence without changing authority meaning;
 - a local implementation detail inside the approved responsibility and seam is implementation work;
 - a responsibility, interface, seam, information-flow, ordering, migration, or verification-strategy change returns to `flowforge-solution-design` with affected areas and work preserved;
-- a needed change to a schedule group, its timing, its command, or the reuse of earlier evidence returns to the authority that published the schedule; splitting, merging, or skipping a group and editing a test are not implementer options;
+- a needed change to the effective verification entry — its group, timing, command, or the reuse of earlier evidence — returns to the owner that published it; splitting, merging, or skipping a group and editing a test are not implementer options;
 - an observable outcome/scope/constraint change returns to `flowforge-align`.
 
 #### 4a. Review one fixed change set
@@ -125,7 +127,7 @@ Summarize results; do not copy the ticket or dump terminal output. Write `**Stat
 
 ### 5. Publish the next frontier
 
-Make every acceptance item covered: with a complete authorized schedule, "full relevant tests" means its groups have run once at this fixed point; without one, it means the original full relevant set. Neither reading permits omitting a required check or repeating a check whose result already holds. Then run `flowforge check` and `flowforge frontier`. Commit the completed ticket and implementation. Return evidence location, implementation reference, diagnostic/override facts, review dispositions, and the new frontier.
+Make every acceptance item covered: with a complete schedule or a Fix verification, "full relevant tests" means its published checks have run once at this fixed point; without one, it means the original full relevant set. Neither reading permits omitting a required check or repeating a check whose result already holds. Then run `flowforge check` and `flowforge frontier`. Commit the completed ticket and implementation. Return evidence location, implementation reference, diagnostic/override facts, review dispositions, and the new frontier.
 
 ## Completion
 

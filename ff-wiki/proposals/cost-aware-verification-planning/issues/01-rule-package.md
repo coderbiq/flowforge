@@ -91,9 +91,21 @@ flowforge:
     - exit: 0
     - output: 5 个包 `ok`（command 8.982s / config / subagent / tracker 0.308s / update），240 个顶层用例 PASS、0 FAIL、3 项既有环境 SKIP
     - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/01-implementation.md`
-- [ ] 11. Fix: 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 `Verification ownership and reuse` / `Shared runs and reused evidence` 定义本轮有效验证入口顺序：适用当前 Fix 编号与固定点的完整 `Review rounds/Fix verification` 优先约束本轮 Fix 的实跑与拟复用；无该安排再用票的完整 `Verification schedule`；两者均无则保留旧逐 Change/全部 Done 规则。最新 Fix 安排只覆盖其列明的 Fix，保持原验收项、观察方法、写集与未覆盖项，不授权删除 Done。声明有但残缺、引用失效或与权威冲突先 Blocked 并交 Review 所有者修清；原 schedule 问题仍回原规划方。在 `assets/skills/flowforge-implement/SKILL.md` 的 `Verification schedule pre-flight`、Phase 0/0b、3a–3e、Full mode 与收口步骤消费同一有效安排，修掉 3b/3e 只认可票内 Done/schedule 的排他语句；`assets/skills/flowforge-review/SKILL.md`、`assets/skills/flowforge-refine-ticket/SKILL.md`、`assets/agents/issue-tracker.md` 的必要消费处同步引用共享权威。执行者不得自行判定复用充分或改变验收；更改验收行为、观察方法、写集或验证策略仍走原 repair/design-return 边界。
-- [ ] 12. Fix: 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 定义首次及后续一切需要阶段正向证明的消费/发布：派发负责人在 launch 前确认存在匹配待消费/发布版本与必要环境的实际正向验收记录及其独立审查；从未通过、`wontfix`/`resolved`/`closed` 无证明、过期不匹配均不派发。范围重定交原需求/设计权威，执行者不得自行豁免。`assets/skills/flowforge-plan/SKILL.md` 要求消费票写明 proof 引用与负责角色；`assets/skills/flowforge-implement/SKILL.md` 对收到缺失或不匹配强制证明的票先 Blocked 并回派发负责人；`assets/agents/issue-tracker.md` 引用同一规则。CLI `Ready`/终态只管图，不新增状态或 CLI 能力。
-- [ ] 13. Fix: 使 `assets/agents/issue-tracker.md` 对 shared authority 的指针在任意 docs_dir 深度均可消费：改用明确从消费项目根读取的 `.agents/skills/_shared/ARTIFACT-CONTRACT.md`（标明 `Verification schedule` / `Execution and review loop` 小节），删除指向源码 `assets/` 的相对链接与只在默认一层 docs 目录有效的 `../../` 路径；该文件两处对同一 shared authority 的源码链接一并改为该 project-root-relative 文件指针。不需要新模板替换器/部署 API/Go 改动；源与部署保持同字节。
+- [x] 11. Fix: 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 `Verification ownership and reuse` / `Shared runs and reused evidence` 定义本轮有效验证入口顺序：适用当前 Fix 编号与固定点的完整 `Review rounds/Fix verification` 优先约束本轮 Fix 的实跑与拟复用；无该安排再用票的完整 `Verification schedule`；两者均无则保留旧逐 Change/全部 Done 规则。最新 Fix 安排只覆盖其列明的 Fix，保持原验收项、观察方法、写集与未覆盖项，不授权删除 Done。声明有但残缺、引用失效或与权威冲突先 Blocked 并交 Review 所有者修清；原 schedule 问题仍回原规划方。在 `assets/skills/flowforge-implement/SKILL.md` 的 `Verification schedule pre-flight`、Phase 0/0b、3a–3e、Full mode 与收口步骤消费同一有效安排，修掉 3b/3e 只认可票内 Done/schedule 的排他语句；`assets/skills/flowforge-review/SKILL.md`、`assets/skills/flowforge-refine-ticket/SKILL.md`、`assets/agents/issue-tracker.md` 的必要消费处同步引用共享权威。执行者不得自行判定复用充分或改变验收；更改验收行为、观察方法、写集或验证策略仍走原 repair/design-return 边界。
+    - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`（Round 1 `Fix verification` 指定的一次全内包运行；覆盖 Done and verify 的定向规则包集合，不再另跑同固定点定向命令）
+    - exit: 0
+    - output: `ok	flowforge/internal/command	9.902s`；`--- PASS: TestImplementSkillCarriesWeakExecutorContract`、`TestReviewSkillCarriesRound0Audit`、`TestPackagedSkillPointersResolve`；240 PASS / 0 FAIL / 3 SKIP
+    - artifact: `assets/skills/_shared/ARTIFACT-CONTRACT.md`
+- [x] 12. Fix: 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 定义首次及后续一切需要阶段正向证明的消费/发布：派发负责人在 launch 前确认存在匹配待消费/发布版本与必要环境的实际正向验收记录及其独立审查；从未通过、`wontfix`/`resolved`/`closed` 无证明、过期不匹配均不派发。范围重定交原需求/设计权威，执行者不得自行豁免。`assets/skills/flowforge-plan/SKILL.md` 要求消费票写明 proof 引用与负责角色；`assets/skills/flowforge-implement/SKILL.md` 对收到缺失或不匹配强制证明的票先 Blocked 并回派发负责人；`assets/agents/issue-tracker.md` 引用同一规则。CLI `Ready`/终态只管图，不新增状态或 CLI 能力。
+    - cmd: 同一份全内包运行（`GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`）覆盖 `TestAgentRulesDescribeGenericCapabilityDispatch`、`TestPlanPublishesExecutionDetailSkeleton`、`TestIssueTrackerDescribesRepairWorkflow`
+    - exit: 0
+    - output: `ok	flowforge/internal/command	9.902s`；`--- PASS: TestAgentRulesDescribeGenericCapabilityDispatch`、`TestPlanPublishesExecutionDetailSkeleton`、`TestIssueTrackerDescribesRepairWorkflow`
+    - artifact: `assets/skills/_shared/ARTIFACT-CONTRACT.md`
+- [x] 13. Fix: 使 `assets/agents/issue-tracker.md` 对 shared authority 的指针在任意 docs_dir 深度均可消费：改用明确从消费项目根读取的 `.agents/skills/_shared/ARTIFACT-CONTRACT.md`（标明 `Verification schedule` / `Execution and review loop` 小节），删除指向源码 `assets/` 的相对链接与只在默认一层 docs 目录有效的 `../../` 路径；该文件两处对同一 shared authority 的源码链接一并改为该 project-root-relative 文件指针。不需要新模板替换器/部署 API/Go 改动；源与部署保持同字节。
+    - cmd: `bin/flowforge init`（`/tmp/ff-fixA2-RqyaJm` 默认 `ff-wiki`；`/tmp/ff-fixB2-7Mzauq` 预写 `docs_dir: nested/wiki`）+ `assets verify --json` + 七面 `cmp` + 项目根指针/标题解析
+    - exit: 0
+    - output: 两处 `entries: 52 {'current': 52}`；七面 `cmp` 无 `DIFF`；`project-root path exists: True`、4 个标题全 `True`、旧 `../../assets/...` 目标 `exists: False`
+    - artifact: `assets/agents/issue-tracker.md`
 
 ## Constraints
 
@@ -213,6 +225,35 @@ G0产生两个新Go测试及 [01-test-authoring.md](../evidence/01-test-authorin
 Write-set 合规：All modifications within write set。三个 Go 测试、`assets/pi/**`、`internal/**` 非生成代码、其他 proposal 均未改动；未委派、未 push、未关票、未改 `**Status:**`、未做本项目部署。
 
 收口覆盖确认：Done and verify 每条均有本次运行或（适用时）待 Review 核实的既有结果；结构/一致性结果不等同模型行为或阶段验收，也不替代 02 的真实情景与全规则部署。本仓自身 `.agents/**`（每机部署，早于 `ba037e7`）与 `ff-wiki/agents/issue-tracker.md`（等于 `HEAD` 源内容，仅缺本票新增）未刷新，详细边界见 [实施记录](../evidence/01-implementation.md#部署边界如实保留)。
+
+### Fix 轮次 Phase 0 restatement（执行前，Changes 11–13）
+
+- Change 11 → 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 新增 `#### Effective verification entry`（Fix verification → 完整 schedule → 旧规则；残缺/失配/引用失效先 Blocked 并回发布者，schedule 缺陷回规划方；执行者不选测、不判复用），并把 implement 的 `Verification schedule pre-flight`、Phase 0/0b、3a–3e、Full mode、§5 与 review/refine/tracker 的消费处改为消费同一入口；验收 = Round 1 `Fix verification` 指定的定向检查（由一次全内包运行覆盖）。
+- Change 12 → 在共享契约新增 `### Stage proof before dispatch`；plan 要求消费票写明 proof 引用/版本/确认角色；implement 新增 `Stage proof pre-flight`（缺失/失配先 Blocked 回派发负责人）；tracker Deterministic checks 引用同一规则；验收 = 同一份全内包运行中的结构检查 + 源规则观察位置（真实派发拒绝归 02）。
+- Change 13 → tracker 的 shared authority 指针改为从项目根读取的 `.agents/skills/_shared/ARTIFACT-CONTRACT.md` 并删除两处 `../../assets/...`；验收 = 新二进制在两个全新临时目录（默认 `ff-wiki`、预写 `nested/wiki`）的 `init` + `assets verify` + 七面 `cmp` + 项目根指针/标题解析。
+
+### Fix 轮次 Phase 0b preflight（执行前）
+
+- Constraints 落点：直接文件工具维护 proposal Markdown → 全部 edit/write，无 CLI 生成；不改 Issue Schema 头/CLI 签名 → 未动 frontmatter、`internal/**` 非生成 Go、命令与 linter 参数；测试作者/实现者分离、测试只读 → 三个 Go 测试零修改，本 session `flowforge_test_authority` 无可用授权；旧结果不充新执行 → lint 在新固定点实跑，定向套件只在全内包日志中出现一次；反猜测 → 不新增验收项；assets 可部署一致性 → 6 面源 + `make dev` 同步；不改 DAG/Catalog/四元组/默认 Mode/旧票 → 仅新增正文小节与指针。
+- Write set 合规：只改 6 个源规则 + 本票 + `evidence/01-implementation.md`；`internal/command/assets/**` 与 `bin/flowforge` 仅由 `make dev` 生成且被忽略。
+- 执行情景：Success（11–13 全部源修完后一次 `make dev`、一次全内包、两处隔离部署指针解析）→ 已发生；Failure（Fix 安排残缺/失配 → Blocked evidence 回 Review；schedule 缺陷回规划方）→ 本票安排完整，未触发；Failure（源/嵌入/部署真实差异 → 新保护测试失败即停）→ 未触发；Failure（新 checked Fix 缺四元组 → tracker 门禁报错）→ 未触发。
+
+### Fix 轮次执行结果（3d）
+
+- 完成：Changes 11、12、13；未执行项：无本票剩余工作（02 的真实情景与本项目部署仍不在本票范围）。
+- 本轮生效安排：`Review rounds / Round 1 / Fix verification`；同固定点定向套件未重复执行，由一次全内包运行覆盖。
+
+| 命令 | 结果 |
+| --- | --- |
+| `GOPROXY=https://goproxy.cn,direct make dev` | exit 0；源=嵌入（`git diff --no-index --stat` exit 0 无输出） |
+| `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` | exit 0；240 PASS / 0 FAIL / 3 项既有环境 SKIP |
+| `golangci-lint 2.15.0 run --timeout 2m --new-from-rev 16cce8e --whole-files --max-issues-per-linter 0 --max-same-issues 0 ./cmd/... ./internal/...` | exit 0，`0 issues.` |
+| 两处全新临时目录 `init` + `assets verify --json` + 七面 `cmp` + 指针/标题解析 | exit 0；52/52 `current`；七面无差异；4 个标题命中，旧相对形式目标不存在 |
+| `git diff --check`；`flowforge check --dir ff-wiki/proposals` | exit 0；诊断计数与实施前一致，唯一 gap 仍为范围外 02 |
+
+- 修改文件：`assets/skills/_shared/ARTIFACT-CONTRACT.md`、`assets/skills/flowforge-plan/SKILL.md`、`assets/skills/flowforge-refine-ticket/SKILL.md`、`assets/skills/flowforge-implement/SKILL.md`、`assets/skills/flowforge-review/SKILL.md`、`assets/agents/issue-tracker.md`、本票、`evidence/01-implementation.md`。
+- Write-set 合规：All modifications within write set。三个 Go 测试、`assets/pi/**`、`internal/**` 非生成代码、其他 proposal 均未改动；未委派、未 push、未关票、未改 `**Status:**`。
+- 收口覆盖确认：三项 Go 测试按 Round 1 明示复用（内容 hash 与 G0 一致、本轮未触碰），lint、全内包、两处隔离部署与 `flowforge check` 均为本轮实跑；结构/一致性结果不等同模型行为或阶段验收，也不替代 02。详见 [实施记录](../evidence/01-implementation.md#fix-轮次changes-1113消费-round-1-fix-verification)。
 
 ## Review rounds
 

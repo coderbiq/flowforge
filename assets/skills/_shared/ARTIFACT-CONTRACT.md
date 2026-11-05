@@ -108,6 +108,12 @@ Owners: Solution Design selects the verification strategy, seams, and where a re
 
 A local ticket closes only its own contract. Cross-ticket proof belongs to a normal `role: ticket` stage ticket that depends on the delivered tickets; a release or use ticket needing combined proof depends on that stage ticket. A pure-verification ticket delivers a non-empty record naming the implementation fixed point, reproducible commands, actual results, and boundaries, and review receives the linked implementation scope with it. When a later Fix invalidates combined proof, the affected acceptance item returns through the existing repair path and the consumer waits for new valid proof; the old report stays history.
 
+### Stage proof before dispatch
+
+A ticket that consumes another ticket's delivery, or a release or real use that needs the whole, requires positive stage proof. Before dispatching it, the dispatching owner confirms that an actual positive acceptance record exists, matches the version being consumed or published and the environment its observation needs, and carries its own independent review. Proof that was never executed, a `wontfix`/`resolved`/`closed` stage ticket with no such record, and a record that is stale or for another version all fail that confirmation: do not dispatch. `frontier` Ready and terminal ticket state describe the graph only.
+
+An executor that receives a ticket whose required stage proof is missing or mismatched blocks it with `## Blocked evidence` and returns it to the dispatching owner. Redefining that scope, waiving the proof, or substituting a cheaper check belongs to the requirement or design authority owning the acceptance item — never the executor, never the dispatcher.
+
 ### Verification schedule
 
 A ticket adopts a schedule by writing `### Verification schedule` inside `Done and verify`. It is ticket prose, not a schema field or CLI capability: acceptance behavior and its exact commands stay in Done and verify, and the five Execution detail sections stay Refine's.
@@ -120,7 +126,7 @@ Three execution paths:
 - **No schedule** — the previous rules apply unchanged: build after each Change and run every Done and verify command. Old tickets are never migrated by inference.
 - **Declared but incomplete, contradictory, or pointing at a missing command** — stop before touching files, record the failure as `## Blocked evidence`, and return to the planning owner. No role completes the schedule by guessing.
 
-A check the schedule already ran is not repeated because the same command also appears in another step; closeout confirms instead that every acceptance item holds valid evidence.
+A check the schedule already ran is not repeated because the same command also appears in another step; closeout confirms instead that every acceptance item holds valid evidence. When the ticket is executing a review round's Fix Changes, that round's `Fix verification` is resolved before this schedule, under [Effective verification entry](#effective-verification-entry).
 
 ### Shared runs and reused evidence
 
@@ -131,6 +137,18 @@ Reuse is a judgement about whether an earlier result still proves the current ve
 Reuse is refused when the source or version is unknown, related code, assertions, configuration, dependencies, or environment changed with impact not excluded, the old evidence never covered the behavior, a real observation was replaced by a mock, or the acceptance tool changed and a false pass cannot be excluded. The owner then supplements the check or blocks the ticket; choosing the cheaper path is not an implementer decision.
 
 Before dispatching a Fix, Review publishes the re-verification plan: what must actually run this round, what is proposed for reuse with its version and coverage, and what expands the check. After the Fix returns, an independent Round 0 tests the plan against the actual diff — new Fix Changes carry this round's evidence, older items carry traceable and still-valid proof — and reaches zero gaps before the dual axes start. A copied old quadruple, or an acceptance claim with no valid proof, fails that check even when the CLI format check passes.
+
+#### Effective verification entry
+
+One execution round consumes exactly one effective verification arrangement, resolved in this order:
+
+1. **This round's `Fix verification`** in the ticket's `Review rounds`, when it names the Fix Changes being executed and its fixed point. It governs what runs this round and which earlier results are proposed for reuse. The latest entry covers only the Fixes it enumerates; the original acceptance items, observation methods, write set, and uncovered items stay in force, and no entry deletes a Done and verify item.
+2. **The ticket's complete `Verification schedule`**, when no Fix verification governs the round.
+3. **The per-Change build and full Done and verify rules**, when neither exists.
+
+A Fix verification that is declared but incomplete, names an undefined command, addresses a different fixed point, or contradicts the ticket or its authorities is not completed by guessing: record it as `## Blocked evidence` and return it to the Review owner who published it. A defective schedule still returns to the planning owner who adopted it.
+
+The executor consumes the resolution mechanically: it runs the published checks once, never selects, narrows, extends, or regroups them, and never judges whether an earlier result is reusable. Changing acceptance behavior, an observation method, the write set, or the verification strategy stays on the existing design-return or repair path.
 
 ## Diagnostics
 
