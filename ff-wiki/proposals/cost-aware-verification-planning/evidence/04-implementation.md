@@ -12,7 +12,7 @@ flowforge:
 
 ## 固定点与实际差分
 
-- 起点 `b118c98`（04 合同发布提交）；本轮收口提交紧随其后（用 `git log -1 --format=%H -- ff-wiki/proposals/cost-aware-verification-planning/evidence/04-implementation.md` 定位），内容快照如下表。
+- 起点 `b118c98`（04 合同发布提交）；本轮实施固定点 `32722d7327bda96975c9a06a4ee202d7a6fe09af`，内容快照如下表。后续A06仅更正记录，不改变该产品快照。
 - 实际差分：2 个源规则句、`evidence/01-implementation.md` 的 Fix 轮次记录、01 票 Fix 11–13 记录段、04 票、本证据；`internal/command/assets/**` 与 `bin/flowforge` 仅由 `make dev` 生成（被 `.gitignore` 忽略）。
 
 | 文件 | SHA-256 |
@@ -62,13 +62,19 @@ flowforge:
 
 3 项 SKIP 为既有环境性跳过，不称其行为已测：`TestRepositoryAndTangramProposalLayouts`（`catalog_test.go:531 Tangram compatibility checkout is not available`）、`TestE2E_SelfupdateApply_ReplacesBinaryCorrectly` 与 `TestFullUpgradePipeline`（`upgrade_test.go:219/347` Darwin 无 `/proc/self/exe`）。
 
-- 收尾前另做一次完整内部 Go 确认运行（同一最终工作树，`go test ./internal/...`）：`ok flowforge/internal/command 9.281s`、`ok flowforge/internal/tracker 0.483s`、其余 `(cached)`，exit 0。它不替代上面的逐用例日志，只确认文档收尾未影响 Go 层；两次运行分开计数，均 exit 0。
+- 收尾前另做一次完整内部 Go 运行（同一最终工作树，`go test ./internal/...`）：`ok flowforge/internal/command 9.281s`、`ok flowforge/internal/tracker 0.483s`、其余 `(cached)`，exit 0。这是超出预定一次安排的重复运行，未发现新的源变更或失败需要它，不能事后赋予其必要性；不替代上面的逐用例日志，两次均保留。
 
 ## 复用与不重复
 
 - lint 复用 `c990efb` 的整文件结果 `0 issues.`：`git diff --stat c990efb..HEAD -- '*.go' 'go.mod' 'go.sum' '.golangci*'` 无输出，工具仍为 `golangci-lint 2.15.0`（Go 源码/测试/依赖/lint 配置/工具版本均未变），条件成立，本轮**未重跑**，也不把旧结果写成新执行；全仓既有失败按 [lint 基线](01-lint-baseline.md) 保留。
 - 三个 Go 测试（`assets_deploy_test.go`、`cost_aware_assets_test.go`、`cost_aware_evidence_test.go`）本轮只读，未改任何断言；`assets/pi/**` guard、保护与模型配置未动。
-- 本轮执行计数：`make dev` 1 次、全内包 Go 1 次（逐用例日志）+ 1 次收尾确认运行、lint 0 次（复用）、隔离部署 2 个目录、`diff --check`/`check` 各 1 次；定向规则包与 tracker 定向指令由同一次全内包日志覆盖，未记成多次。
+- 04实施会话实际计数（截至 `32722d7`）：`make dev` 1次、全内包Go 2次（逐用例1次、额外非verbose1次）、lint运行0次（复用）、隔离部署2个目录各一次init/verify、`git diff --check` 2次与 `git diff --cached --check` 1次、`flowforge check` 7次。定向集合由逐用例全内包日志覆盖，没有独立启动定向套件。后续独立审查和主会话记录检查另计，不混入实施次数。
+
+### A06 记录更正与流程偏离
+
+主会话依据独立 `rule-package-repair.audit-04.md` 及原始 `8ebbd7dd-0949-43f4-939d-a4b08d73f9ea_flowforge-implementer_transcript.jsonl` 正常文件编辑更正：Go调用在140/196行；check调用在152/156/220/224（两次）/232/259行；diff空白检查在152/156/259行。原“check一次”及票内“Go一次”不成立，现按真实次数统一。部分check命令经过head/tail/grep管道，末尾shell退出码不能当作每个上游check的独立退出码；保留实际调用与输出，最终图健康另由独立Round0验证。220行frontier输出解析脚本失败、后续成功的轨迹也保留，不将其改成首次即成功。
+
+额外Go运行和多次check属于实际开销，未获验证安排授权的重复运行如实记录为流程偏离；本次只修复记录，不补跑冒充历史合规。比较基线应为 `c990efb` 至当前：Go/依赖/lint配置无变化；`16cce8e` 至当前仍包含G0的三个测试文件，不能称该范围Go差分为空。原审查报告和原始轨迹保留，不改写其历史结果。
 
 ## 边界（如实保留）
 

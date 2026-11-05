@@ -56,6 +56,12 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
   - output: `MAKE_EXIT=0`、`DIFF_EXIT=0`（无输出）；`bin/flowforge` `4d916a94439e09…e677cc`；两处隔离目录 `entries: 52 {'current': 52}` 且七面无 `DIFF`
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/04-implementation.md`
 
+- [x] 4. Fix: A06（partial/Medium）— 主会话仅修正本票及04实施证据的真实运行次数、比较基线和重复运行偏离，保留32722d7技术PASS与原审查记录，不修改产品或测试，不重跑套件。
+  - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/04-implementation.md`
+  - cmd: `python3` 逐行解析 `8ebbd7dd-0949-43f4-939d-a4b08d73f9ea_flowforge-implementer_transcript.jsonl` 的实际toolCall并提取go test/flowforge check/diff --check命令
+  - exit: 0
+  - signal: Go两次，check七次，diff空白检查三次；与独立Round0原轨迹引用一致，记录原位更正，未执行新产品验证。
+
 ## Constraints
 
 - must 直接用文件工具维护 proposal Markdown，CLI 仅承担现有图与诊断计算 — [项目核心原则](../../../../AGENTS.md#核心设计原则)
@@ -127,12 +133,20 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 - Constraints → 文件工具维护 proposal Markdown：四处写入全部用 `edit`/`write`，无 bash/Python/heredoc；不改 Issue Schema 头/CLI 签名：未动 frontmatter、`internal/**` 非生成 Go、`cmd/**`、命令与 linter 参数；测试作者/实现者分离与测试只读：三个 Go 测试零修改；旧结果不充新执行：lint 复用 `c990efb` 的条件逐项核对，条件未变即不重跑；反猜测：只修有失败依据的 A04/A05；assets 可部署一致性：两处源规则 + `make dev` 生成嵌入；不改 DAG/Catalog/四元组/默认 Mode/旧票：只改两处源句 + 指定历史证据 + 本票 + 本证据。
 - Write set 合规：动手前列出将改文件 = 两处源规则、`evidence/01-implementation.md`、01 票 Fix 11–13 记录段、本票、`evidence/04-implementation.md`，另由 `make dev` 生成 `internal/command/assets/**` 与 `bin/flowforge`。
 - Execution scenarios → Success（门禁收窄后 G/P/普通局部三例可核对、记录可溯源、当轮全内包与两处隔离部署 exit 0）：落点 Change 1/2/3；Failure（删掉真实发布拒绝或豁免真实入场条件）：Change 1 保留 dispatcher 拒绝段与独立入场条件句；Failure（记录把首批当当前验收/倒填顺序/抹掉最终 PASS）：Change 2 只改失实句并保留两批与 S2 的 PASS；Failure（源/嵌入/部署真实差异）：Change 3 的 `TestCostAwareRulePackageSourceEmbeddedDeployed` 失败即停，不改断言。
-- 复用条件核对（lint）：`git diff 16cce8e..HEAD -- '*.go' 'go.mod' 'go.sum' '.golangci*'` 无输出且工具版本仍 `golangci-lint 2.15.0` → 满足未变条件，复用 `c990efb` 的整文件 `0 issues.`，不重跑。
+- 复用条件核对（lint，经A06更正）：实际未变范围是 `git diff c990efb..HEAD -- '*.go' 'go.mod' 'go.sum' '.golangci*'`，工具仍 `golangci-lint 2.15.0`，独立Round0确认可复用c990efb整文件结果。本段原写16cce8e是错误比较基线；该基线以来有三个G0测试变更，不能称Go差分为空。
 
 ### Phase 0 之后的执行结果（3d）
 
 - 完成：Changes 1、2、3；未执行项：无。
-- 当轮执行计数：`make dev` 1 次、全内包 Go 1 次、lint 0 次（按条件复用 `c990efb`）、两处隔离部署、`diff --check`/`check` 各 1 次。
+- 04实施会话实际计数（截至32722d7，经A06更正）：make dev 1次、全内包Go 2次、lint运行0次（复用c990efb）、两处隔离部署各一次init/verify、git diff --check 2次与git diff --cached --check 1次、flowforge check 7次。超出安排的重复Go/check作为流程偏离保留，不再称各一次；管道shell退出码不冒充上游命令独立退出码。后续主会话/审查检查另计。
 - 修改文件：`assets/skills/_shared/ARTIFACT-CONTRACT.md`、`assets/skills/flowforge-plan/SKILL.md`、`ff-wiki/proposals/cost-aware-verification-planning/{evidence/01-implementation.md, issues/01-rule-package.md, issues/04-stage-proof-scope-and-execution-record.md, evidence/04-implementation.md}`；`internal/command/assets/**`、`bin/flowforge` 仅 `make dev` 生成。
 - Write-set 合规：All modifications within write set。三个 Go 测试只读，`assets/pi/**` guard、保护与模型配置未动；未改 01 状态、未关票、未 push、未委派、未自审。
-- 独立 Round 0 与双轴审查未在本轮执行（归主会话）：结构测试通过不替代三组语义反例的源核对与 02 的模型实测。
+- 独立 Round 0 与双轴审查未在本实施会话执行（归主会话）：结构测试通过不替代三组语义反例的源核对与02的模型实测。
+
+## Review rounds
+
+### Round 0 — 32722d7；A06记录修正
+
+独立报告：`/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/outputs/268987cd-c392-4c15-9ddf-032d124a7a67/rule-package-repair.audit-04.md`。完整范围16cce8e...32722d7，missing0/partial1/contradicts0/unrequested0；A04/A05已证伪，技术证明与lint复用有效；A06发现Go/check次数及比较基线失实，两轴尚未运行。
+
+主会话接受A06为Medium机械记录缺口，直接执行Fix4；不改任何验收/产品/测试，不新建repair。Fix verification：本轮必须独立核对原始toolCall、原位更正两个文档、diff-check及图检查；复用32722d7的产品/测试/构建/部署和c990efb的lint，条件为实际差分仅该两份记录。若出现产品/配置/测试变更，返回权威扩大复验。新独立Round0须确认实际差分及A06更正后才能进入双轴。原报告、旧错误及重复运行偏离均保留，不以新的套件运行改写过去。
