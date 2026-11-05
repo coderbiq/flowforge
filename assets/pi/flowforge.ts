@@ -31,7 +31,7 @@
 
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
 import * as path from "node:path";
 import { Type } from "typebox";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -189,25 +189,82 @@ function pathCandidates(target: string, projectRoot: string): string[] {
 	return candidates;
 }
 
+/** A symlink chain longer than this cannot be trusted to resolve. */
+const MAX_LINK_HOPS = 40;
+
+interface PathAudit {
+	/** Absolute path after replacing every walked symlink component by its destination. */
+	resolved: string;
+	/** Absolute paths of the symlink components walked through, dangling ones included. */
+	linkComponents: string[];
+	/** Set when a component could not be inspected; every caller must deny then. */
+	error?: string;
+}
+
 /**
- * Canonicalize an absolute path through the deepest existing ancestor, so a
- * target that does not exist yet still resolves the symlinks that do exist.
+ * Walk an absolute path component by component with `lstat`, so symbolic links
+ * are seen even when they dangle. `realpathSync` only succeeds while the whole
+ * chain exists and silently drops a dangling link's destination, which let a
+ * link stand in for an uncreated ordinary file. A link is followed with
+ * `readlink` (relative destinations resolve against the link's directory), so
+ * `resolved` is the place a write would land whether or not it exists yet. A
+ * plain missing component (ENOENT) ends the walk and the remaining suffix is
+ * appended verbatim: nothing below it exists, so nothing below it can be a
+ * symlink. Any other `lstat`/`readlink` failure is reported as `error` so the
+ * caller refuses the write instead of guessing a safe target.
+ */
+export function auditPath(target: string): PathAudit {
+	const requested = path.resolve(target);
+	const root = path.parse(requested).root;
+	const segments = (absolute: string): string[] => {
+		const base = path.parse(absolute).root;
+		return absolute.slice(base.length).split(path.sep).filter((segment) => segment.length > 0);
+	};
+	let current = root;
+	let pending = segments(requested);
+	const linkComponents: string[] = [];
+	while (pending.length > 0) {
+		const segment = pending.shift() as string;
+		const next = path.join(current, segment);
+		let entry: ReturnType<typeof lstatSync>;
+		try {
+			entry = lstatSync(next);
+		} catch (error) {
+			const code = (error as NodeJS.ErrnoException).code ?? "";
+			const resolved = path.join(next, ...pending);
+			if (code === "ENOENT") return { resolved, linkComponents };
+			return { resolved, linkComponents, error: `cannot inspect path component ${next}${code ? ` (${code})` : ""}` };
+		}
+		if (!entry.isSymbolicLink()) {
+			current = next;
+			continue;
+		}
+		linkComponents.push(next);
+		if (linkComponents.length > MAX_LINK_HOPS) {
+			return { resolved: requested, linkComponents, error: `symbolic link chain under ${requested} is too long` };
+		}
+		let destination: string;
+		try {
+			destination = readlinkSync(next);
+		} catch (error) {
+			const code = (error as NodeJS.ErrnoException).code ?? "";
+			return { resolved: requested, linkComponents, error: `cannot read symbolic link ${next}${code ? ` (${code})` : ""}` };
+		}
+		const absoluteDestination = path.resolve(current, destination);
+		current = path.parse(absoluteDestination).root;
+		pending = segments(absoluteDestination).concat(pending);
+	}
+	return { resolved: current, linkComponents };
+}
+
+/**
+ * Canonicalize an absolute path through the walked components, so a target that
+ * does not exist yet still resolves every symlink that does exist — including a
+ * dangling one, whose destination is kept instead of being collapsed back onto
+ * the link path.
  */
 export function resolveThroughLinks(target: string): string {
-	const requested = path.resolve(target);
-	let prefix = requested;
-	const rest: string[] = [];
-	for (;;) {
-		try {
-			const real = realpathSync(prefix);
-			return rest.length > 0 ? path.join(real, ...rest) : real;
-		} catch {
-			const parent = path.dirname(prefix);
-			if (parent === prefix) return requested;
-			rest.unshift(path.basename(prefix));
-			prefix = parent;
-		}
-	}
+	return auditPath(target).resolved;
 }
 
 /** True when `candidate` is `root` or lives inside it. */
@@ -235,6 +292,45 @@ function isPlainGrantPath(value: unknown): value is string {
 	if (/[*?[\]{}]/.test(value)) return false;
 	if (path.isAbsolute(value)) return false;
 	return value.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
+
+/**
+ * Strict expiry contract: full calendar date, seconds, optional milliseconds,
+ * and an explicit `Z`. `Date.parse` alone accepts year-only/date-only input,
+ * missing seconds and non-`Z` offsets, and normalizes impossible values
+ * (Feb 30, hour 24, minute 60), so a malformed expiry could still read as a
+ * future time. The pattern rejects the loose shapes; the `Date.UTC` round-trip
+ * below rejects values the calendar silently normalizes, and returns the exact
+ * instant only for a timestamp that means what it says.
+ */
+const GRANT_EXPIRY = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?Z$/;
+
+export function parseGrantExpiry(value: string): number | undefined {
+	const match = GRANT_EXPIRY.exec(value);
+	if (!match) return undefined;
+	const [, yearText, monthText, dayText, hourText, minuteText, secondText, millisecondText] = match;
+	const year = Number(yearText);
+	const month = Number(monthText);
+	const day = Number(dayText);
+	const hour = Number(hourText);
+	const minute = Number(minuteText);
+	const second = Number(secondText);
+	const millisecond = millisecondText === undefined ? 0 : Number(millisecondText.padEnd(3, "0"));
+	if (month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59) return undefined;
+	const epoch = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+	const roundTrip = new Date(epoch);
+	if (
+		roundTrip.getUTCFullYear() !== year ||
+		roundTrip.getUTCMonth() !== month - 1 ||
+		roundTrip.getUTCDate() !== day ||
+		roundTrip.getUTCHours() !== hour ||
+		roundTrip.getUTCMinutes() !== minute ||
+		roundTrip.getUTCSeconds() !== second ||
+		roundTrip.getUTCMilliseconds() !== millisecond
+	) {
+		return undefined;
+	}
+	return epoch;
 }
 
 interface TestAuthorGrant {
@@ -307,11 +403,14 @@ export function evaluateTestAuthorGrant(raw: string, expected: GrantExpectation)
 		paths.push(entry);
 	}
 	if (typeof record.expiresAt !== "string") {
-		return { status: "invalid", reason: "grant expiresAt must be an ISO timestamp string" };
+		return { status: "invalid", reason: "grant expiresAt must be a UTC timestamp string" };
 	}
-	const expiry = Date.parse(record.expiresAt);
-	if (Number.isNaN(expiry) || expiry <= Date.now()) {
-		return { status: "invalid", reason: "grant has expired or its expiry cannot be parsed" };
+	const expiry = parseGrantExpiry(record.expiresAt);
+	if (expiry === undefined) {
+		return { status: "invalid", reason: "grant expiresAt must be a full UTC timestamp (YYYY-MM-DDTHH:mm:ss[.sss]Z)" };
+	}
+	if (expiry <= Date.now()) {
+		return { status: "invalid", reason: "grant has expired" };
 	}
 	return { status: "valid", grant: { role: record.role as TestAuthorGrant["role"], paths, expiresAt: record.expiresAt } };
 }
@@ -333,10 +432,27 @@ interface TestWriteContext {
 export function testWriteDenial(target: string, context: TestWriteContext): string | undefined {
 	const { projectRoot, grantDir, globs, globSource, eligible } = context;
 	const requested = path.resolve(projectRoot, target);
-	const resolved = resolveThroughLinks(requested);
+	const audit = auditPath(requested);
+	const resolved = audit.resolved;
+	if (audit.error) {
+		return `cannot safely resolve the write target (${audit.error}): refusing the write`;
+	}
 
-	if (eligible && (touchesGrantRecords(requested, grantDir) || touchesGrantRecords(resolved, grantDir))) {
-		return `protected test-authority record (${GRANT_DIR_REL}): grant records are issued by the main session and a background session cannot write them, their directory, or its parents`;
+	if (eligible) {
+		// Both the lexical `.flowforge/test-author-grants` location and the place
+		// that path actually lands (through an existing or dangling `.flowforge`
+		// link) are protected, so an alias, an ancestor, or a record that does not
+		// exist yet cannot be used to reach the zone. This denial is independent of
+		// whether a grant is currently valid.
+		const zoneAudit = auditPath(grantDir);
+		if (zoneAudit.error) {
+			return `cannot safely resolve the test-authority record zone (${zoneAudit.error}): refusing the write`;
+		}
+		for (const zone of new Set([path.resolve(grantDir), zoneAudit.resolved])) {
+			if (touchesGrantRecords(requested, zone) || touchesGrantRecords(resolved, zone)) {
+				return `protected test-authority record (${GRANT_DIR_REL}): grant records are issued by the main session and a background session cannot write them, their directory, or its parents`;
+			}
+		}
 	}
 
 	const matched =
@@ -375,7 +491,7 @@ export function testWriteDenial(target: string, context: TestWriteContext): stri
 	} catch {
 		// Not created yet: the exact-file match above already decides.
 	}
-	if (resolved !== requested) {
+	if (audit.linkComponents.length > 0 || resolved !== requested) {
 		return blocked("test-author grants do not extend through symbolic links or aliases");
 	}
 	return undefined;

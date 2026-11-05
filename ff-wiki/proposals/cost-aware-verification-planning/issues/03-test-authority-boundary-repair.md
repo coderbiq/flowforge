@@ -37,10 +37,26 @@ flowforge:
 
 ## Changes
 
-- [ ] 1. 在 `assets/pi/flowforge.ts` 的 `resolveThroughLinks` 与 `testWriteDenial` 完成既有路径组件检查，使用 lstat 识别包括 dangling 在内的符号链接，作者豁免一律拒绝；解析错误默认拒绝，真正未创建的普通文件仍可获得精确授权。
-- [ ] 2. 在 `assets/pi/flowforge.ts` 的 `evaluateTestAuthorGrant` 仅接受明确UTC完整timestamp（秒、可选毫秒、Z），做合法日期 round-trip 后再比较未来时间；拒绝 year/date-only、缺Z、非UTC及不可表示日期。
-- [ ] 3. 在 `assets/pi/flowforge.ts` 同时保护授权目录的 lexical 与实际 canonical 位置，对任何别名、祖先覆盖和 missing record 拒绝子运行 write/edit；覆盖 `.flowforge` 指向既有外部目录及 dangling `.flowforge` 指向尚未创建外部目录两种情形，不能在 realpath 失败时丢弃 link 目的地。
-- [ ] 4. 按 `make dev` 同步嵌入并构建，仅用新二进制 `agents deploy flowforge-planner` 部署规划角色及共享扩展；记录source/embedded/deployed一致性、实际复验和本票 Implementation note，证据写入 `evidence/03-implementation.md`。交主会话安排新的 native 作者验收和独立审查，不自行关票。
+- [x] 1. 在 `assets/pi/flowforge.ts` 的 `resolveThroughLinks` 与 `testWriteDenial` 完成既有路径组件检查，使用 lstat 识别包括 dangling 在内的符号链接，作者豁免一律拒绝；解析错误默认拒绝，真正未创建的普通文件仍可获得精确授权。
+  - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`
+  - exit: 0
+  - output: 'GROUP dangling: {"total":32,"passed":32,"failed":0}; SUMMARY: original=38/38; repair=228; failures=0; passed=266; no built-in write/edit executed'
+  - artifact: assets/pi/flowforge.ts
+- [x] 2. 在 `assets/pi/flowforge.ts` 的 `evaluateTestAuthorGrant` 仅接受明确UTC完整timestamp（秒、可选毫秒、Z），做合法日期 round-trip 后再比较未来时间；拒绝 year/date-only、缺Z、非UTC及不可表示日期。
+  - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`
+  - exit: 0
+  - output: 'GROUP UTC: {"total":36,"passed":36,"failed":0}; SUMMARY: original=38/38; repair=228; failures=0; passed=266; no built-in write/edit executed'
+  - artifact: assets/pi/flowforge.ts
+- [x] 3. 在 `assets/pi/flowforge.ts` 同时保护授权目录的 lexical 与实际 canonical 位置，对任何别名、祖先覆盖和 missing record 拒绝子运行 write/edit；覆盖 `.flowforge` 指向既有外部目录及 dangling `.flowforge` 指向尚未创建外部目录两种情形，不能在 realpath 失败时丢弃 link 目的地。
+  - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`
+  - exit: 0
+  - output: 'GROUP grant-zone: {"total":160,"passed":160,"failed":0}; SUMMARY: original=38/38; repair=228; failures=0; passed=266; no built-in write/edit executed'
+  - artifact: assets/pi/flowforge.ts
+- [x] 4. 按 `make dev` 同步嵌入并构建，仅用新二进制 `agents deploy flowforge-planner` 部署规划角色及共享扩展；记录source/embedded/deployed一致性、实际复验和本票 Implementation note，证据写入 `evidence/03-implementation.md`。交主会话安排新的 native 作者验收和独立审查，不自行关票。
+  - cmd: `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent .pi/extensions/flowforge.ts`
+  - exit: 0
+  - output: 'GROUP grant-zone: {"total":160,"passed":160,"failed":0}; SUMMARY: original=38/38; repair=228; failures=0; passed=266; no built-in write/edit executed (deployed .pi/extensions/flowforge.ts)'
+  - artifact: .pi/extensions/flowforge.ts
 
 ### 规划作者前置测试 Change
 
@@ -112,5 +128,69 @@ flowforge:
 - 本票尚未扩充probe、未记录新回归red、未完成Refine、未实施。当前五节刻意留空，不能把 CLI frontier 投影作为实施授权。
 
 ## Implementation note
+
+### Execution restatement (Phase 0)
+
+Base `f1a51117b0baf5af6801238b2a12206ad6697b29`, implementation HEAD at start
+`f9537a3` (`6c7c266` + probe/native evidence commits). Mode: lightweight (ticket
+declares `**Mode:** lightweight`). Probe is author-owned and read-only for this
+run; no grant is issued, no ticket is closed.
+
+- Change 1 → `assets/pi/flowforge.ts:auditPath` (new component-walk) +
+  `testWriteDenial` + `resolveThroughLinks`. Verify: source probe matrix
+  `dangling` group 32/32 (was 16/32) and original 38/38 unchanged,
+  `failures=0`, exit 0.
+- Change 2 → `assets/pi/flowforge.ts:parseGrantExpiry` +
+  `evaluateTestAuthorGrant` expiry seam. Verify: source probe `UTC` group 36/36
+  (was 14/36).
+- Change 3 → `assets/pi/flowforge.ts:testWriteDenial` grant-zone check over
+  lexical + canonical zone. Verify: source probe `grant-zone` group 160/160
+  (was 56/160).
+- Change 4 → `make dev`; `./bin/flowforge agents deploy flowforge-planner`;
+  deployed probe (same command + `.pi/extensions/flowforge.ts`) 266/266 exit 0;
+  `shasum -a 256`/`cmp` source=embedded=deployed; Go
+  `TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)` pass;
+  `go test ./internal/...` recorded verbatim (pre-existing
+  `TestIssueTrackerDescribesRepairWorkflow` docs failure only).
+
+### Preflight traversal (Phase 0b)
+
+- Constraint must 分离/独立审查 → unchanged: only `assets/pi/flowforge.ts`
+  production logic + generated copies touched; probe untouched.
+- Constraint must 只给明确实例/文件授权、默认与异常拒绝 → `auditPath.error`
+  and unknown zone resolution deny; zone denial is independent of grant state.
+- Constraint must not 改 Issue Schema/CLI 签名/模型配置 → no signature or config
+  edit; guard stays enabled by default.
+- Constraint must 真实入口正负例 → verification is the real Pi loader/runner
+  probe matrix, not string equality of sources.
+- Constraint must 不在 assets 放不部署测试材料 → no new files under
+  `assets/`; evidence goes to `evidence/03-implementation.md`.
+- Scenario 成功: valid future UTC + exact uncreated ordinary file/parent → allow
+  (source `grant-zone/*/exact-missing-file` grant cases + `UTC` positives).
+- Scenario 拒绝 dangling: `dangling` group, no grant exemption.
+- Scenario 拒绝 grant zone: `grant-zone` group, 18 targets × write/edit × 4
+  fixtures + 4 paired ordinary observations.
+- Scenario 拒绝 UTC: 15 malformed/expired shapes, write/edit.
+
+### Completed work (Changes 1–4)
+
+- 完成 Change 1–4（全部勾选）；无未完成 Change，无 design return。
+- 命令与结果：
+  - source 矩阵 exit 0，266/266 逐项 PASS（原38/38 + dangling 32/32 + grant-zone 160/160 + UTC 36/36，`failures=0`）。
+  - `make dev` exit 0（删除并复制整个 assets 树、`go build` → `bin/flowforge v5.13.1-35-gf9537a3-dirty`）。
+  - `./bin/flowforge agents deploy flowforge-planner` exit 0（仅 planner + 共享扩展）。
+  - deployed 矩阵 exit 0，266/266；`shasum -a 256` 三份同为 `ac8bf118bb2e1a86befb6fd13627e9bdfa671cb1e56f24892d2057302a66d89c`，两条 `cmp` 均 exit 0。
+  - `go test -count=1 ./internal/command -run '^TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)$' -v` exit 0，两例 PASS。
+  - `go test ./internal/...` exit 1，唯一失败为既有 `TestIssueTrackerDescribesRepairWorkflow`
+    （`assets_deploy_test.go:610: open ../../docs/agents/issue-tracker.md: no such file or directory`，归 01 Change 8），其余包 ok；其他失败无豁免，也未出现。
+  - `check --full` exit 0（03 无 gap；02 既有 gap、01 既有 blocked-evidence 保留）；`frontier --json` exit 0（ready 仅 03，01/02 blocked 链保留）。
+- 修改文件：`assets/pi/flowforge.ts`、本票、`evidence/03-implementation.md`；生成/部署产物
+  `internal/command/assets/**`、`bin/flowforge`、`.pi/agents/flowforge-planner.md`、
+  `.pi/extensions/flowforge.ts` 均为 gitignore 的本机构建/部署结果。
+- Write-set 合规：All modifications within write set（未改预设 probe、其他测试、Go 测试、
+  模型/guard 配置；未签发授权、未关票、未 push）。
+- 交主会话：修后 `f1a5111…修后HEAD` 完整授权实现范围的 independent Round 0 与
+  Standards/Spec 双轴、修后新 native 作者签发/撤销实跑、03/00 收敛与最终推送。
+
 
 ## Review rounds
