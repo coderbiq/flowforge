@@ -41,7 +41,7 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 ## Changes
 
 - [x] 1. 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 `### Stage proof before dispatch` 及 `assets/skills/flowforge-plan/SKILL.md` 的相应句（`A ticket that consumes another delivery ...`）写明本票 Design context 的设计所有者裁决：门禁只适用于需求/设计/票面明确要求既有阶段正向证明作为入场条件的消费/发布任务，单纯有上游交付不增加 stage-proof 要求；给出 G/P/普通局部依赖三种正负例（G 不以其将产生的同一证明为入场条件、P 缺 G 证明不派发、普通 A→B 局部依赖不加门禁），保持缺证/失配时的真实发布拒绝。必要处只核实同义指针，不扩大约束。
-  - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`（当轮一次全内包运行，覆盖该两句的源/嵌入/部署三层检查）
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`（引用首个逐用例全内包日志，覆盖该两句的源/嵌入/部署检查；实际总运行两次，见Implementation note）
   - exit: 0
   - output: `PASS=240 FAIL=0 SKIP=3`；`--- PASS: TestArtifactContractDocumentsExecutionContractSections`、`--- PASS: TestPlanPublishesExecutionDetailSkeleton`、`--- PASS: TestCostAwareRulePackageSourceEmbeddedDeployed/skills/_shared/ARTIFACT-CONTRACT.md`、`.../skills/flowforge-plan/SKILL.md`
   - artifact: `assets/skills/_shared/ARTIFACT-CONTRACT.md`
@@ -60,7 +60,7 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/04-implementation.md`
   - cmd: `python3` 逐行解析 `8ebbd7dd-0949-43f4-939d-a4b08d73f9ea_flowforge-implementer_transcript.jsonl` 的实际toolCall并提取go test/flowforge check/diff --check命令
   - exit: 0
-  - signal: Go两次，check七次，diff空白检查三次；与独立Round0原轨迹引用一致，记录原位更正，未执行新产品验证。
+  - output: Go两次，check七次，diff空白检查三次；与独立Round0原轨迹引用一致，记录原位更正，未执行新产品验证。
 
 ## Constraints
 
