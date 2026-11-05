@@ -14,7 +14,7 @@ flowforge:
 # 00: 为指定 Plan/Refine 实例提供受限测试写入
 
 **Blocked by:** None
-**Status:** needs-repair
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery
@@ -102,6 +102,8 @@ source TS由make dev进入embedded再由新bin agents deploy进入本机extensio
 
 ## Implementation note
 
+以下为原实现交接快照；当时的待native/待审查/open声明保留历史，最终修后验收和closed状态见末尾Completion evidence。
+
 **执行模式**：lightweight（dispatch 声明）。Changes 1–4 全部完成，未做设计裁决。
 
 **完成情况**
@@ -175,3 +177,25 @@ source TS由make dev进入embedded再由新bin agents deploy进入本机extensio
 - Known baseline failure: 全内包唯一失败 `TestIssueTrackerDescribesRepairWorkflow` 的旧 `../../docs/agents/issue-tracker.md` 路径，保留01 Change 8归属；不得宣称全仓绿。
 - 原始实现/native/Round0报告分别位于 `/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/outputs/0f72baff-9045-4f91-a56c-615ecbf8e1ad/` 的 `test-authority-delivery.implement-00-0.md`、`test-authority-delivery.native-00-0.md`、`test-authority-delivery.audit-00-0.md`。审计完整diff `/tmp/flowforge-r0-cQCagotI/full.diff` sha256 `11bb5aa0ec6af075b75da1af5cb1c962d19bbac586a00c995058085c45f57beb`；独立边界输出为同目录 `boundary-probe-source.log:1-4` 和 `boundary-probe-deployed.log:1-4`。这些为已收到报告的引用，机械记录者未重新执行行为验收。
 - Next: 主会话派发03合法Plan作者扩展预设probe、实际red及Refine，再派发新鲜实施上下文。00/03均未关闭，不写Completion evidence。
+
+### Round 1（关联03完整范围修后审查与关闭）
+
+- Fixed point: `f1a51117b0baf5af6801238b2a12206ad6697b29...2a924c170aab024b2db86138618b329c459e5e1c`，覆盖本票全部Changes及03 Changes 1–5。完整证据与两轴原文路径见 [03 Review rounds](03-test-authority-boundary-repair.md#review-rounds)。
+- Repair: `cost-aware-verification-planning-03` 已完成且closed。GAP-01 [High]、GAP-02 [Medium]、GAP-03 [High] 已分别通过组件symlink检查、严格UTC及日历校验、lexical/canonical授权区保护修复。原Round0三partial、曾经失败和High repair路由均保留，不追改成原始通过。
+- Round 0: Fix5修后独立完整范围审计0 gaps（missing/partial/contradicts/unrequested均0），逐项确认00 Changes 1–4及03 Changes 1–5完整交付；零gap后启动独立双轴。
+- Standards: 本轮硬违规0，STD-F5-01 [Low, information value] 1项，最高Low；主会话接受README阶段过时发现并授权本次收敛。03 Round1 F1 [Medium] 原文及“不扩既有控制文件保护策略”裁决保留，F2 [Low] 已导航收敛。
+- Spec: 新增0，03 Round1 SPEC-01 [Medium] 已由Fix5修复并复审通过。
+- Fix changes: 本票无新增；03 Change5已完成。
+- Design returns: none。
+- 主会话明确裁决 `NEXT: CLOSE`：确认03完整范围审查已证明00全部交付，关闭03并关联关闭00。独立Round0与Spec确认 `NATIVE_REUSE_VALID: YES`，仅按Fix5合同复用03普通路径历史native主链，不冒充本轮实跑。
+- 01旧docs路径Go失败和blocked evidence、02合同gap保留原归属，原03→01→02边不改。00关闭不自动完成01合法作者/Refine，也不代表proposal整体完成。
+
+## Completion evidence
+
+- 已交付指定真实Plan/Refine实例的短期精确文件授权、只读身份状态、默认/异常拒绝、真实session＋新nonce、每次读取支持撤销、shutdown及重启失效；默认glob、配置开关、CLI和raw-script边界保持原合同。原三partial通过03修复，Fix5补齐路径段语义；不宣称OS沙箱或控制文件通用防篡改。
+- 实现链：`7cb27d8` 原实现；`93f07a4` 修复三partial；`2a924c1` 修复SPEC-01。证据为 [00原实施](../evidence/00-implementation.md)、[03实施](../evidence/03-implementation.md)、[Fix5实施](../evidence/03-fix5-implementation.md) 与 [03 Completion evidence](03-test-authority-boundary-repair.md#completion-evidence)。
+- Fix5实施及独立Round0真实source/deployed各276/276、exit0（原38＋dangling32＋grant-zone160＋UTC36＋Fix5新增10）；实现者未改作者probe，原266及原38保留均由Round0字节核对。实施本轮 `make dev`、`./bin/flowforge agents deploy flowforge-planner` exit0；source/embedded/deployed同为sha256 `ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b`，两条cmp exit0。
+- `GOPROXY=https://goproxy.cn,direct go test -count=1 ./internal/command -run '^TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)$' -v` 两例PASS、exit0；完整 `go test ./internal/...` exit1，唯一 `TestIssueTrackerDescribesRepairWorkflow` 旧 `../../docs/agents/issue-tracker.md` 路径失败继续归01 Change8，不豁免也不宣称全仓绿。这些是实施及Round0实跑，机械记录者未重复运行。
+- Native采用 [03修后真实记录](../evidence/03-native-authority.md)，产品 `93f07a4dd60c85fb6721afa595699d0a17e4e4d5` / 证据提交 `7314735fb739b09507632341c747e35fa0ae4104`：missing拒绝、主会话精确grant、正常write/edit和读回、未列文件/授权记录拒绝、主会话撤销后拒绝。Fix5产品差分仅helper及注释，历史三目标九项判断一致，授权控制流未变，新prefix由本轮矩阵覆盖；独立Round0/Spec核实后主会话批准复用。**这是03历史native复用，不是Fix5本轮或本记录上下文的native实跑**；00原native只保留历史。
+- 审查全部发现已修复或由主会话明确处置，详见03 Round2；本票closed由主会话明确批准。新增证据落点及文档展示规范化均有派发/主会话授权，不修改设计、产品、测试、全局保护或模型配置。
+- 下一步：主会话继续01合法Go作者、实际red与Refine，再推进02；保留正文阻塞和失败证据，不据CLI终态提前派实施，不关闭proposal。关闭后实际check/frontier结果见 [journal](../journal.md)。

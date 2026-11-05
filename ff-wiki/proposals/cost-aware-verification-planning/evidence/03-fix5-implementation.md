@@ -28,6 +28,10 @@ flowforge:
 
 ## 产品差分（仅路径段判定）
 
+以下展示块经2026-11-05关闭记录时的主会话明确授权规范化：diff上下文标记后仅为空格，
+替换原tab缩进，消除Markdown展示的 `space before tab in indent`；产品/测试内容、原始diff
+与审计日志及历史命令exit均不变。独立Round0当时如实记录完整范围diff-check exit2。
+
 ```diff
 -/** True when `candidate` is `root` or lives inside it. */
 +/**
@@ -36,7 +40,7 @@ flowforge:
 + * ordinary child whose name merely starts with two dots still counts as inside.
 + */
  function isWithinPath(root: string, candidate: string): boolean {
- 	const relative = path.relative(root, candidate);
+ const relative = path.relative(root, candidate);
 -	return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 +	if (relative === "") return true;
 +	if (path.isAbsolute(relative)) return false;

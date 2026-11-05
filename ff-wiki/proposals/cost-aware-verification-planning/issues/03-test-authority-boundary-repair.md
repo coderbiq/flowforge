@@ -14,7 +14,7 @@ flowforge:
 # 03: 修复测试作者授权的符号链接与时间边界
 
 **Blocked by:** None
-**Status:** open
+**Status:** closed
 **Mode:** lightweight
 **Repair of:** 00
 
@@ -26,7 +26,7 @@ flowforge:
 
 消费 [需求 revision 2](../requirements.md#cost-aware-verification-planning-requirements) 和 [作者入口设计 revision 1](../design/test-authority.md#cost-aware-test-authority-design)。主会话依据00独立Round 0裁决 substantive repair：GAP-01 dangling symlink 豁免、GAP-03授权目录物理路径自写为 High，GAP-02非UTC完整时间被接受为 Medium；均为既定设计 partial，无 design return。00保持 needs-repair，01真实依赖转至本票，02仍依赖01。
 
-Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首轮独立 Round 0 零 gap 后双轴发现路径段边界问题。主会话裁决追加 Fix 5；本票保持 open，00保持 needs-repair。Fix 5须先由合法 Plan 作者追加预设观察、在当前 source/deployed 实际记录 red，再交新鲜实现上下文；不重做原 Plan 或已完成 Changes。
+Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首轮独立 Round 0 零 gap 后双轴发现路径段边界问题，主会话裁决追加 Fix 5。合法作者已在 `36c9c8f` 保留原266项并追加10观察、实跑red；新鲜实现上下文以 `2a924c1` 完成Fix。完整范围复审零gap，双轴发现全部处置，主会话明确裁决CLOSE：本票与00均closed。Fix5仅按已核实合同复用03历史native，不将其记成本轮实跑；01合法Go作者与Refine、02后续验收仍未完成。下文作者、Refine和实现记录中的“当前/open/待实施”均保留为相应阶段快照，最终状态见本票Completion evidence。
 
 ## Touch points
 
@@ -331,3 +331,40 @@ STATUS: COMPLETED
 ```
 
 双轴原始发现数：Standards 2（最高Medium，另1项Low文档信息价值）；Spec 1（Medium）。主会话处置后仅SPEC-01仍待Fix 5实施与复审，未记双轴通过。
+
+### Round 0（Fix 5修后完整范围复审）
+
+- Fixed point: `f1a51117b0baf5af6801238b2a12206ad6697b29...2a924c170aab024b2db86138618b329c459e5e1c`；覆盖00全部Changes和03 Changes 1–5，唯一产品文件为 `assets/pi/flowforge.ts`。
+- Gaps: 0 — missing 0 / partial 0 / contradicts 0 / unrequested 0。
+- Disposition: none；原00三项partial已由03修复，无新增Fix或design return。
+- Escalated to dual axes: yes — 独立Standards与Spec已完成，裁决见Round 2。
+- 独立实跑：source/deployed各276/276、Fix5组各10/10、原266完整保留；旧source以同一probe重现270通过/6失败、exit1；目标Go部署两例PASS。全内包exit1，唯一失败仍为01 Change8的 `TestIssueTrackerDescribesRepairWorkflow` 旧docs路径，不豁免或宣称全仓绿。
+- Native复用：`NATIVE_REUSE_VALID: YES`。实查 `93f07a4...2a924c1` 仅helper及注释8+/2-，helper外产品逐字节相同；03历史allowed、denied、UUID grant三条实际路径的九项新旧包含判断一致；新prefix分支由本轮source/deployed覆盖。nonce、factory环境捕获、lifecycle、grant读取/撤销、UTC及工具接缝不变。复用限03普通路径主链；这不是本轮native握手或底层工具写入。
+- 原始diff 271596 bytes，sha256 `5163fb028ac2b98e7326cfc2595977cad1152a62fe3c530fb70ccac3904e3d22`；完整diff及source/deployed、old-source-red、native-reuse、Go、check/frontier日志位于 `/var/folders/t6/sdvn71r53252ctpksm953h7w0000gn/T/flowforge-fix5-round0-nzczlccf/`。历史 `git diff --check f1a51117...HEAD` exit2，仅证据展示块空格在tab前；历史工作树diff-check exit0，两者不可混记。
+- 四份原文根目录：`/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/outputs/6cdd0c9c-5306-43c1-b7f6-8167cb04e6a0/`；依次为 `test-authority-fix5.implement-fix5.md`、`test-authority-fix5.audit-fix5.md`、`test-authority-fix5.standards-fix5.md`、`test-authority-fix5.spec-fix5.md`。主会话经 `contact_supervisor need_decision` 明确回复已读取四份完整原文；本记录者亦已完整读取，仅机械回填。
+
+### Round 2（Fix 5双轴及主会话CLOSE裁决）
+
+- Fixed point: 同上完整范围 `f1a51117...2a924c1`；消费03/00 rev1、requirements rev2、test-authority设计rev1及Fix5复验合同。
+- Standards: 硬违规0；STD-F5-01 [Low, information value] 1项，最高Low。原文：
+
+  > **STD-F5-01 [Low, information value] — proposal README's Fix 5 status is stale inside the same reviewed range.** `ff-wiki/proposals/cost-aware-verification-planning/README.md:5` still says “合法Plan作者须先保留原266项并补10个观察、记录真实red，再交新鲜实现上下文”, and `:15` says “待Fix 5路径段修复及复审”; yet that range contains `36c9c8f` (10 observations + real red) and `2a924c1` (Fix 5 implemented, 276/276). I tried to falsify this: the “待……复审” clause is still true, but I found no surviving reading of the authoring clause as pending. README is outside 03's Write set, so this is doc convergence, not a `Fix:` (same disposition class as Round 1 F2).
+
+- Spec: 新增发现0；原文结论“Spec轴通过，新增发现0；原 **SPEC-01 [Medium] 已修复**”。独立核对精确授权、真实父目录拒绝与grant zone双向包含，确认未扩大到未列文件、目录或symlink；确认03历史native复用有效。两轴无执行命令工具，行为结果引用独立Round0实跑，不冒称自身重跑。
+- Fix changes: 无新增；Change5完成并通过复审，SPEC-01关闭。
+- Design returns: none。
+- Repair: 本票修复00；无新增repair，主会话批准00关联本票关闭，原三partial/High修复路由完整保留。
+- 主会话裁决 `NEXT: CLOSE`：接受STD-F5-01并授权本次README收敛；Round1 F1原文及范围裁决保持，未扩全局保护策略。全部发现已修复或有主会话权威处置，无未处置发现。两轴不合并或重排：Standards 1项Low已文档收敛，Spec新增0、原Medium已修。
+- 主会话接受独立Round0与Spec的 `NATIVE_REUSE_VALID: YES`，仅批准复用产品 `93f07a4dd60c85fb6721afa595699d0a17e4e4d5` / 证据 `7314735fb739b09507632341c747e35fa0ae4104` 的03普通路径native主链。若helper外产品、旧路径结果、宿主/生命周期/配置变化或新增行为超出现矩阵，则此复用结论失效，须重新native验收。
+- 主会话附加授权 `evidence/03-fix5-implementation.md` 的fenced diff展示tab转空格并标注规范化；只处理显示格式，不改实际产品、测试、原始diff/日志或历史exit，不新增产品Fix、不重跑行为检查。该证据新落点仍保留实施派发授权记录。
+- 状态：03 closed、00 closed；01的正文阻塞与旧Go路径失败保持归属，02仍等待01。本次journal只记录阶段，不追加proposal round-close；不push、不再委派。
+
+## Completion evidence
+
+- 交付：原00严格实例/文件授权、默认拒绝、只读身份工具、生命周期与撤销机制完整；03补齐dangling及解析错误拒绝、UTC日历校验、lexical/canonical grant zone保护；Fix5按完整路径段判断父目录，使合法 `..` 名称文件可精确授权、grant区 `..unused.json` 拒绝且真正越界仍拒绝。
+- 实现引用：原实现 `7cb27d8` → repair实现 `93f07a4` → 作者预设 `36c9c8f` → Fix5实现 `2a924c170aab024b2db86138618b329c459e5e1c`。预设probe与作者版本逐字节相同，sha256 `8e28ffd552864a696e705860241cdaeb7aa60e8eba77eb1ad2cc9a258873c0f9`；无实现者测试修改。
+- Fix5实施本轮真实命令见 [实现证据](../evidence/03-fix5-implementation.md)：source命令及追加 `.pi/extensions/flowforge.ts` 的deployed命令各exit0、276/276；`make dev` 与 `agents deploy flowforge-planner` 各exit0，版本 `v5.13.1-39-g36c9c8f-dirty`；三份扩展hash均 `ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b`，两条cmp exit0；目标Go两例exit0。独立Round0再次实跑两矩阵及Go验证，上文引用其原始日志；本机械记录上下文未重跑行为验证。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...` 在实施及独立Round0均exit1，唯一失败 `TestIssueTrackerDescribesRepairWorkflow`（`internal/command/assets_deploy_test.go:610` 读取不存在的 `../../docs/agents/issue-tracker.md`），继续归01 Change8；不是豁免或全仓通过。
+- Native证据为 [03-native-authority.md](../evidence/03-native-authority.md) 的历史真实运行：session `01a1ab74-027f-74bd-b8e4-953428b2aad3` / instance `41bb5247-0360-4684-9877-39e9b72e1670`；missing拒绝→主会话精确grant→正常write/edit成功及读回phase two→未列文件/授权记录拒绝→主会话撤销后拒绝。依据本轮独立复用判定和主会话批准承接Fix5，**本轮没有重新执行native握手或正常工具写入**，不以00旧native替代03修后证据。
+- 审查处置：00原三partial由03全部修复；03 Round1 SPEC-01由Fix5修复；Standards F1维持主会话既有范围裁决，F2及本轮STD-F5-01已导航收敛；Round0零gap，双轴零未处置发现。新增作者/实施证据文件为派发明示授权，未静默扩大写集；显示格式整理另获主会话明确授权。
+- 主会话明确批准关闭本票与00，记录者依裁决更改状态；01仍待合法Go作者、真实red及Refine，02仍待01及受控验收。本proposal未关闭，后续实际check/frontier及文档diff-check结果见 [journal](../journal.md)。

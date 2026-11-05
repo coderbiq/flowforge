@@ -13,6 +13,7 @@ flowforge:
     - {round: 2, stage: plan, action: done, ts: "2026-11-05T10:18:25.210Z", by: flowforge-plan, artifacts: [issues/00-test-authority.md, issues/01-rule-package.md, issues/02-controlled-acceptance-and-deploy.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T10:55:00Z", by: flowforge-review, reason: "00 Round0三partial；主会话裁决substantive repair，双轴未启动，03待Plan及Refine", artifacts: [issues/00-test-authority.md, issues/03-test-authority-boundary-repair.md, issues/01-rule-package.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T11:47:38Z", by: flowforge-review, reason: "03修后native及Round0完成；双轴主会话裁决FIX，接受SPEC-01为Fix5，F1保留既有范围边界，F2更新导航；未关票", artifacts: [issues/03-test-authority-boundary-repair.md, README.md]}
+    - {round: 2, stage: review, action: done, ts: "2026-11-05T12:13:52Z", by: flowforge-review, reason: "Fix5完整范围Round0零gap；Standards硬违规0且STD-F5-01已文档收敛，Spec新增0且SPEC-01已修；主会话CLOSE关闭03和00，native仅复用03历史主链；01/02继续", artifacts: [issues/03-test-authority-boundary-repair.md, issues/00-test-authority.md, README.md, evidence/03-fix5-implementation.md]}
 ---
 
 # 阶段记录
@@ -89,3 +90,21 @@ Standards F1原意见保留。主会话报告真实loader/runner只emit对照基
 03保持open，00保持needs-repair；01仍待合法Go作者及Refine，02等待01，proposal未关闭且不追加round-close。只修改03合同/审查记录、README与本journal，不修改产品/测试/模型/guard配置，不push、不派发实现。bd prime退出0无输出，bd where仍报告No active beads workspace found；未初始化数据库。再次搜索未找到旧flowforge-docs/flowforge-progress技能，沿用此前记录的缺失事实，以README/journal及check/frontier维护现行投影，不编造INDEX同步。
 
 本次记录后实跑 `./bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --full` 与 `./bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning --json` 均exit 0：DAG健康，ready=[03]，01等待03，02等待01；仅保留01 blocked-evidence及02 execution-contract既有诊断。ready投影不替代Fix 5的作者前置red。两轴原文完整保留（仅去除Spec空行尾随空格）；初次 `git diff --check` 发现该空白及文件末尾多余空行，已清理。此次仅文档回填，未重跑Go、矩阵或native，不将历史通过冒充本轮执行。
+
+## Round 2：03 Fix 5复审及00/03关闭
+
+Fix5作者提交 `36c9c8f`，完整保留原266并新增10个write/edit观察，source/deployed各270通过/6失败、exit1。新鲜实现上下文只修改 `assets/pi/flowforge.ts:isWithinPath`，产品提交 `2a924c1`：仅独立 `..` 段或 `'..' + path.sep` 前缀越界，absolute继续拒绝；合法 `..` 名称前缀文件可精确授权，grant区 `..unused.json` 被拒绝，真正 `../outside_test.go` 仍拒绝。实施本轮source/deployed真实loader/runner各276/276，构建与planner部署exit0，三份扩展sha256 `ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b` 且cmp通过，目标Go部署两例PASS；预设probe保持作者字节版本。
+
+独立Round0固定完整 `f1a51117b0baf5af6801238b2a12206ad6697b29...2a924c170aab024b2db86138618b329c459e5e1c`，0 missing / 0 partial / 0 contradicts / 0 unrequested；旧source以未改probe真实复现6 red，当前两矩阵各276/276，目标Go再次通过。完整diff sha256 `5163fb028ac2b98e7326cfc2595977cad1152a62fe3c530fb70ccac3904e3d22`，原始日志位于审计报告指定临时目录。完整diff-check当时exit2，仅为Fix5证据fenced diff上下文的space-before-tab；工作树diff-check当时exit0。本记录不把旧范围检查写成通过。
+
+Standards轴硬违规0，STD-F5-01 [Low, information value] 指出README仍待作者/Fix5；Spec轴新增0、SPEC-01已修。两轴行为证据来自Round0实跑，不冒称各轴执行。主会话经 `contact_supervisor need_decision` 确认读取完整实现/Round0/双轴原文，明确裁决CLOSE：接受STD-F5-01并授权本次README收敛，关闭03及其repair的00。原三partial及High repair历史、Round1 Standards F1 [Medium] 原文和不扩全局保护的范围裁决、F2、SPEC-01与Fix5历史全部保留；无新Fix或design return。
+
+独立Round0实查Fix5产品差分仅helper及注释，其他授权控制流逐字节不变；03历史native实际allowed/denied/UUID grant三目标的九项新旧路径判断一致，新prefix由本轮矩阵覆盖。主会话接受独立Round0/Spec的 `NATIVE_REUSE_VALID: YES`，限复用产品 `93f07a4dd60c85fb6721afa595699d0a17e4e4d5` / 证据 `7314735fb739b09507632341c747e35fa0ae4104` 的03普通路径真实主链。**没有Fix5本轮native握手或正常工具写入实跑**，未将00旧native冒充修后证据。
+
+`go test ./internal/...` 在实施与独立Round0均exit1，唯一 `TestIssueTrackerDescribesRepairWorkflow` 读取不存在的旧 `../../docs/agents/issue-tracker.md`，继续归01 Change8，不豁免或声称全仓绿。01仍须主会话为新真实Go作者签发、记录实际red并完成Refine，blocked evidence保留；02仍依赖01且execution-contract gap保留。03→01→02真实边未改，proposal未关闭，本阶段不追加round-close。
+
+主会话另授权仅规范化 `evidence/03-fix5-implementation.md` 展示块的tab为空格；已替换一条diff上下文缩进并明确标注，原始diff/日志及历史exit不变，不重跑行为检查。新增Fix5实施证据落点仍明确来自实施派发授权。本记录未改设计、产品、测试、全局保护或模型配置，未再委派、未签发/撤销grant、不push。延续已记录无Beads数据库及旧同步技能缺失事实，不探测或初始化。
+
+本次机械记录实跑 `./bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --full` 与 `./bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning --json` 均exit0：00/03 closed且无03 gap；仅01 `blocked-evidence-present` warning和02 `execution-contract-incomplete` gap。frontier `ready=null`、01 `ready_with_warnings`（blocked_by=[03]）、02 blocked等待01；真实前置阻塞仍优先于投影。
+
+`git diff --check` exit0。固定HEAD `2a924c1` 的 `git diff --check f1a51117b0baf5af6801238b2a12206ad6697b29...HEAD` 仍exit2，仅证据行39展示诊断；授权整理已消除当前工作树问题，未改动该历史提交的diff。文档修订后只对最终记录HEAD重新验证，不把两种基准混记。提交前仅暂存本派发的五个文档，不推送。
