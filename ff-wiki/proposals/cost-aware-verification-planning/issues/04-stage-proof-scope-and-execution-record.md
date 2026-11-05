@@ -40,11 +40,20 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 
 ## Changes
 
-- [ ] 1. 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 `### Stage proof before dispatch` 及 `assets/skills/flowforge-plan/SKILL.md` 的相应句（`A ticket that consumes another delivery ...`）写明本票 Design context 的设计所有者裁决：门禁只适用于需求/设计/票面明确要求既有阶段正向证明作为入场条件的消费/发布任务，单纯有上游交付不增加 stage-proof 要求；给出 G/P/普通局部依赖三种正负例（G 不以其将产生的同一证明为入场条件、P 缺 G 证明不派发、普通 A→B 局部依赖不加门禁），保持缺证/失配时的真实发布拒绝。必要处只核实同义指针，不扩大约束。
-  - artifact: `assets/skills/_shared/ARTIFACT-CONTRACT.md`、`assets/skills/flowforge-plan/SKILL.md`
-- [ ] 2. 依据本轮独立 audit 的 `history-evidence.log` 及原始 `61b27f54-eaed-4a1d-b658-3e23df77b157_flowforge-implementer_transcript.jsonl`，修正 `evidence/01-implementation.md` 与 01 票 Fix 11–13 的 Implementation note：保留两批 `make`/全内包/lint 及四个隔离 `init`/`verify` 的真实记录，说明中间源修改使第二批必要；用 S1/S2 区分快照，第一批未存完整 hash 时如实写缺失且不用它作当前验收，最终 S2 对应 `c990efb`。纠正“本轮各一次/唯一一次”“执行前”“全部 edit/write”等失实表述：restatement/preflight 是事后回填、证据与票曾用 bash/Python 写入，属已确认流程偏离；不倒填执行顺序、不补跑冒充历史、不抹掉最终真实 PASS。主会话处置为恢复准确记录 + 独立审查受影响文档/实际差分 + 后续严格文件工具，不要求无意义重新执行旧轮次。不改 01 的状态/验收，不把旧证据写成假通过。
-  - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/01-implementation.md`、`ff-wiki/proposals/cost-aware-verification-planning/issues/01-rule-package.md`
-- [ ] 3. 全部源改完后执行一次 `make dev`；跑一次完整内部 Go、默认与 `nested/wiki` 两种隔离 `init`/`verify` + 七面 byte/pointer 检查、`git diff --check`、`flowforge check`、`flowforge frontier`；把当轮四元组与记录写入 `evidence/04-implementation.md`，不提前关票。
+- [x] 1. 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 `### Stage proof before dispatch` 及 `assets/skills/flowforge-plan/SKILL.md` 的相应句（`A ticket that consumes another delivery ...`）写明本票 Design context 的设计所有者裁决：门禁只适用于需求/设计/票面明确要求既有阶段正向证明作为入场条件的消费/发布任务，单纯有上游交付不增加 stage-proof 要求；给出 G/P/普通局部依赖三种正负例（G 不以其将产生的同一证明为入场条件、P 缺 G 证明不派发、普通 A→B 局部依赖不加门禁），保持缺证/失配时的真实发布拒绝。必要处只核实同义指针，不扩大约束。
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`（当轮一次全内包运行，覆盖该两句的源/嵌入/部署三层检查）
+  - exit: 0
+  - output: `PASS=240 FAIL=0 SKIP=3`；`--- PASS: TestArtifactContractDocumentsExecutionContractSections`、`--- PASS: TestPlanPublishesExecutionDetailSkeleton`、`--- PASS: TestCostAwareRulePackageSourceEmbeddedDeployed/skills/_shared/ARTIFACT-CONTRACT.md`、`.../skills/flowforge-plan/SKILL.md`
+  - artifact: `assets/skills/_shared/ARTIFACT-CONTRACT.md`
+- [x] 2. 依据本轮独立 audit 的 `history-evidence.log` 及原始 `61b27f54-eaed-4a1d-b658-3e23df77b157_flowforge-implementer_transcript.jsonl`，修正 `evidence/01-implementation.md` 与 01 票 Fix 11–13 的 Implementation note：保留两批 `make`/全内包/lint 及四个隔离 `init`/`verify` 的真实记录，说明中间源修改使第二批必要；用 S1/S2 区分快照，第一批未存完整 hash 时如实写缺失且不用它作当前验收，最终 S2 对应 `c990efb`。纠正“本轮各一次/唯一一次”“执行前”“全部 edit/write”等失实表述：restatement/preflight 是事后回填、证据与票曾用 bash/Python 写入，属已确认流程偏离；不倒填执行顺序、不补跑冒充历史、不抹掉最终真实 PASS。主会话处置为恢复准确记录 + 独立审查受影响文档/实际差分 + 后续严格文件工具，不要求无意义重新执行旧轮次。不改 01 的状态/验收，不把旧证据写成假通过。
+  - cmd: `./bin/flowforge check --dir ff-wiki/proposals`（记录逐条核对 `history-evidence.log:188–313` 后的结构门禁）
+  - exit: 0
+  - output: `Checked 107 issues`；`gap:execution-contract-incomplete: 1`（范围外 02，非本轮新增）；`warning:evidence-artifact-missing: 19`（与基线同）
+  - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/01-implementation.md`
+- [x] 3. 全部源改完后执行一次 `make dev`；跑一次完整内部 Go、默认与 `nested/wiki` 两种隔离 `init`/`verify` + 七面 byte/pointer 检查、`git diff --check`、`flowforge check`、`flowforge frontier`；把当轮四元组与记录写入 `evidence/04-implementation.md`，不提前关票。
+  - cmd: `GOPROXY=https://goproxy.cn,direct make dev`；`git diff --no-index --stat assets internal/command/assets`
+  - exit: 0
+  - output: `MAKE_EXIT=0`、`DIFF_EXIT=0`（无输出）；`bin/flowforge` `4d916a94439e09…e677cc`；两处隔离目录 `entries: 52 {'current': 52}` 且七面无 `DIFF`
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/04-implementation.md`
 
 ## Constraints
@@ -102,3 +111,28 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 
 - must 只写有独立信息的成本理由与复用说明，复用共同权威链接而非复制长模板 — [信息价值规则](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
 - 记录求实：早批次、事后回填与工具偏离如实保留；不以补跑或不倒填的方式伪装顺序执行；A04 恢复范围以设计所有者裁决为界，不扩大豁免。[Conventions]
+
+---
+
+## Implementation note
+
+### Phase 0 restatement（执行前）
+
+- Change 1 → 收窄 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 的 `### Stage proof before dispatch` 与 `assets/skills/flowforge-plan/SKILL.md` 的 `A ticket that consumes another delivery ...` 句：门禁只在需求/设计/票面点名某既有阶段正向证明为入场条件时适用，写出 G/P/普通 A→B 三种正负例并保留缺证/失配的真实发布拒绝；验收 = `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` 内的 `TestCostAwareRulePackageSourceEmbeddedDeployed`、`TestArtifactContractDocumentsExecutionContractSections`、`TestPlanPublishesExecutionDetailSkeleton`，源语义另由独立 Round 0 逐句核对。
+- Change 2 → 按 `history-evidence.log` 与原始 transcript 逐条核对两批/S1S2/事后回填/bash 写入，改写 `evidence/01-implementation.md` 与 01 票 Fix 11–13 段的失实句（`本轮各一次`/`唯一一次`/`执行前`/`全部 edit/write`）并保留更正出处；验收 = 逐条对照日志行号可核对 + `git diff --check` + `flowforge check --dir ff-wiki/proposals` 计数不回退。
+- Change 3 → 全部源改完后一次 `make dev`，跑一次全内包 Go、默认 `ff-wiki` 与预写 `nested/wiki` 两处隔离 `init`/`assets verify --json`/七面 `cmp`/pointer 与标题解析、`git diff --check`、`flowforge check`、`flowforge frontier`，四元组写入 `evidence/04-implementation.md`；验收 = 上述命令 exit 0 且 `git diff --no-index --stat assets internal/command/assets` 无输出。
+
+### Phase 0b preflight（执行前）
+
+- Constraints → 文件工具维护 proposal Markdown：四处写入全部用 `edit`/`write`，无 bash/Python/heredoc；不改 Issue Schema 头/CLI 签名：未动 frontmatter、`internal/**` 非生成 Go、`cmd/**`、命令与 linter 参数；测试作者/实现者分离与测试只读：三个 Go 测试零修改；旧结果不充新执行：lint 复用 `c990efb` 的条件逐项核对，条件未变即不重跑；反猜测：只修有失败依据的 A04/A05；assets 可部署一致性：两处源规则 + `make dev` 生成嵌入；不改 DAG/Catalog/四元组/默认 Mode/旧票：只改两处源句 + 指定历史证据 + 本票 + 本证据。
+- Write set 合规：动手前列出将改文件 = 两处源规则、`evidence/01-implementation.md`、01 票 Fix 11–13 记录段、本票、`evidence/04-implementation.md`，另由 `make dev` 生成 `internal/command/assets/**` 与 `bin/flowforge`。
+- Execution scenarios → Success（门禁收窄后 G/P/普通局部三例可核对、记录可溯源、当轮全内包与两处隔离部署 exit 0）：落点 Change 1/2/3；Failure（删掉真实发布拒绝或豁免真实入场条件）：Change 1 保留 dispatcher 拒绝段与独立入场条件句；Failure（记录把首批当当前验收/倒填顺序/抹掉最终 PASS）：Change 2 只改失实句并保留两批与 S2 的 PASS；Failure（源/嵌入/部署真实差异）：Change 3 的 `TestCostAwareRulePackageSourceEmbeddedDeployed` 失败即停，不改断言。
+- 复用条件核对（lint）：`git diff 16cce8e..HEAD -- '*.go' 'go.mod' 'go.sum' '.golangci*'` 无输出且工具版本仍 `golangci-lint 2.15.0` → 满足未变条件，复用 `c990efb` 的整文件 `0 issues.`，不重跑。
+
+### Phase 0 之后的执行结果（3d）
+
+- 完成：Changes 1、2、3；未执行项：无。
+- 当轮执行计数：`make dev` 1 次、全内包 Go 1 次、lint 0 次（按条件复用 `c990efb`）、两处隔离部署、`diff --check`/`check` 各 1 次。
+- 修改文件：`assets/skills/_shared/ARTIFACT-CONTRACT.md`、`assets/skills/flowforge-plan/SKILL.md`、`ff-wiki/proposals/cost-aware-verification-planning/{evidence/01-implementation.md, issues/01-rule-package.md, issues/04-stage-proof-scope-and-execution-record.md, evidence/04-implementation.md}`；`internal/command/assets/**`、`bin/flowforge` 仅 `make dev` 生成。
+- Write-set 合规：All modifications within write set。三个 Go 测试只读，`assets/pi/**` guard、保护与模型配置未动；未改 01 状态、未关票、未 push、未委派、未自审。
+- 独立 Round 0 与双轴审查未在本轮执行（归主会话）：结构测试通过不替代三组语义反例的源核对与 02 的模型实测。

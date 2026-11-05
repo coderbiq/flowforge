@@ -110,7 +110,13 @@ A local ticket closes only its own contract. Cross-ticket proof belongs to a nor
 
 ### Stage proof before dispatch
 
-A ticket that consumes another ticket's delivery, or a release or real use that needs the whole, requires positive stage proof. Before dispatching it, the dispatching owner confirms that an actual positive acceptance record exists, matches the version being consumed or published and the environment its observation needs, and carries its own independent review. Proof that was never executed, a `wontfix`/`resolved`/`closed` stage ticket with no such record, and a record that is stale or for another version all fail that confirmation: do not dispatch. `frontier` Ready and terminal ticket state describe the graph only.
+A ticket is under this gate only when the requirement, design, or ticket text names an existing stage's positive proof as its entry condition. An upstream local delivery alone adds no stage-proof requirement. Three cases settle the scope:
+
+- **Stage ticket G** consumes local deliveries A and B and delivers their combined proof; it never names the proof it will produce as an entry condition of itself. A different, earlier proof that an authority names for G stays its own entry condition and is checked.
+- **Release or real-use ticket P** that needs the whole depends on G, so it is dispatched only after G's positive record exists.
+- **Plain local A→B** (B builds on A's interface) runs on B's own local proof; no stage proof is invented for it.
+
+Before dispatching a ticket under the gate, the dispatching owner confirms that an actual positive acceptance record exists, matches the version being consumed or published and the environment its observation needs, and carries its own independent review. Proof that was never executed, a `wontfix`/`resolved`/`closed` stage ticket with no such record, and a record that is stale or for another version all fail that confirmation: do not dispatch. `frontier` Ready and terminal ticket state describe the graph only.
 
 An executor that receives a ticket whose required stage proof is missing or mismatched blocks it with `## Blocked evidence` and returns it to the dispatching owner. Redefining that scope, waiving the proof, or substituting a cheaper check belongs to the requirement or design authority owning the acceptance item — never the executor, never the dispatcher.
 

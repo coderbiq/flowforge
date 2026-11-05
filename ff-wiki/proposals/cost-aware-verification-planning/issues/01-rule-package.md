@@ -227,34 +227,43 @@ Write-set 合规：All modifications within write set。三个 Go 测试、`asse
 
 收口覆盖确认：Done and verify 每条均有本次运行或（适用时）待 Review 核实的既有结果；结构/一致性结果不等同模型行为或阶段验收，也不替代 02 的真实情景与全规则部署。本仓自身 `.agents/**`（每机部署，早于 `ba037e7`）与 `ff-wiki/agents/issue-tracker.md`（等于 `HEAD` 源内容，仅缺本票新增）未刷新，详细边界见 [实施记录](../evidence/01-implementation.md#部署边界如实保留)。
 
-### Fix 轮次 Phase 0 restatement（执行前，Changes 11–13）
+### Fix 轮次 Phase 0 restatement（事后回填，Changes 11–13）
 
-- Change 11 → 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 新增 `#### Effective verification entry`（Fix verification → 完整 schedule → 旧规则；残缺/失配/引用失效先 Blocked 并回发布者，schedule 缺陷回规划方；执行者不选测、不判复用），并把 implement 的 `Verification schedule pre-flight`、Phase 0/0b、3a–3e、Full mode、§5 与 review/refine/tracker 的消费处改为消费同一入口；验收 = Round 1 `Fix verification` 指定的定向检查（由一次全内包运行覆盖）。
+原记录把本节标为“（执行前）”，与轨迹相反：它实际于执行完成后（原始 transcript `:311–313`）才插入 `## Review rounds` 之前。内容与实际交付一致，但不证明这些判断在动手前写下。
+
+- Change 11 → 在 `assets/skills/_shared/ARTIFACT-CONTRACT.md` 新增 `#### Effective verification entry`（Fix verification → 完整 schedule → 旧规则；残缺/失配/引用失效先 Blocked 并回发布者，schedule 缺陷回规划方；执行者不选测、不判复用），并把 implement 的 `Verification schedule pre-flight`、Phase 0/0b、3a–3e、Full mode、§5 与 review/refine/tracker 的消费处改为消费同一入口；验收 = Round 1 `Fix verification` 指定的定向检查（由该批全内包运行覆盖）。
 - Change 12 → 在共享契约新增 `### Stage proof before dispatch`；plan 要求消费票写明 proof 引用/版本/确认角色；implement 新增 `Stage proof pre-flight`（缺失/失配先 Blocked 回派发负责人）；tracker Deterministic checks 引用同一规则；验收 = 同一份全内包运行中的结构检查 + 源规则观察位置（真实派发拒绝归 02）。
 - Change 13 → tracker 的 shared authority 指针改为从项目根读取的 `.agents/skills/_shared/ARTIFACT-CONTRACT.md` 并删除两处 `../../assets/...`；验收 = 新二进制在两个全新临时目录（默认 `ff-wiki`、预写 `nested/wiki`）的 `init` + `assets verify` + 七面 `cmp` + 项目根指针/标题解析。
 
-### Fix 轮次 Phase 0b preflight（执行前）
+### Fix 轮次 Phase 0b preflight（事后回填）
 
-- Constraints 落点：直接文件工具维护 proposal Markdown → 全部 edit/write，无 CLI 生成；不改 Issue Schema 头/CLI 签名 → 未动 frontmatter、`internal/**` 非生成 Go、命令与 linter 参数；测试作者/实现者分离、测试只读 → 三个 Go 测试零修改，本 session `flowforge_test_authority` 无可用授权；旧结果不充新执行 → lint 在新固定点实跑，定向套件只在全内包日志中出现一次；反猜测 → 不新增验收项；assets 可部署一致性 → 6 面源 + `make dev` 同步；不改 DAG/Catalog/四元组/默认 Mode/旧票 → 仅新增正文小节与指针。
+同一回填：本节与上节同时在执行后写入，不是执行前检查。
+
+- Constraints 落点：proposal Markdown 应只用文件工具维护，但本文件与 `evidence/01-implementation.md` 实际由 `python3` 与 `cat >>` heredoc 写入（transcript `:299–313`），属已确认的流程偏离，04 起改用 `edit`/`write`；不改 Issue Schema 头/CLI 签名 → 未动 frontmatter、`internal/**` 非生成 Go、命令与 linter 参数；测试作者/实现者分离、测试只读 → 三个 Go 测试零修改，本 session `flowforge_test_authority` 无可用授权；旧结果不充新执行 → 每批在各自快照重跑 lint，定向套件只在全内包日志中出现；反猜测 → 不新增验收项；assets 可部署一致性 → 6 面源 + `make dev` 同步；不改 DAG/Catalog/四元组/默认 Mode/旧票 → 仅新增正文小节与指针。
 - Write set 合规：只改 6 个源规则 + 本票 + `evidence/01-implementation.md`；`internal/command/assets/**` 与 `bin/flowforge` 仅由 `make dev` 生成且被忽略。
-- 执行情景：Success（11–13 全部源修完后一次 `make dev`、一次全内包、两处隔离部署指针解析）→ 已发生；Failure（Fix 安排残缺/失配 → Blocked evidence 回 Review；schedule 缺陷回规划方）→ 本票安排完整，未触发；Failure（源/嵌入/部署真实差异 → 新保护测试失败即停）→ 未触发；Failure（新 checked Fix 缺四元组 → tracker 门禁报错）→ 未触发。
+- 执行情景：Success（11–13 全部源修完后两批执行各自 `make dev`、全内包、隔离部署指针解析）→ 已发生；Failure（Fix 安排残缺/失配 → Blocked evidence 回 Review；schedule 缺陷回规划方）→ 未触发；Failure（源/嵌入/部署真实差异 → 新保护测试失败即停）→ 未触发；Failure（新 checked Fix 缺四元组 → tracker 门禁报错）→ 未触发。
 
 ### Fix 轮次执行结果（3d）
 
 - 完成：Changes 11、12、13；未执行项：无本票剩余工作（02 的真实情景与本项目部署仍不在本票范围）。
-- 本轮生效安排：`Review rounds / Round 1 / Fix verification`；同固定点定向套件未重复执行，由一次全内包运行覆盖。
+- 本轮生效安排：`Review rounds / Round 1 / Fix verification`；同固定点定向套件未重复执行，由每批的全内包运行覆盖。
+- 执行分为两批：**S1**（首批，未存文件/二进制 hash）与 **S2**（最终快照，对应提交 `c990efb`）。S1 之后仍实际修改了 `assets/skills/flowforge-implement/SKILL.md` 的 `Verification schedule pre-flight` 标题与 Phase 0 句（transcript `:255–265`），第二批因此必要；当前验收只取 S2，S1 保留为已发生的历史。
 
-| 命令 | 结果 |
-| --- | --- |
-| `GOPROXY=https://goproxy.cn,direct make dev` | exit 0；源=嵌入（`git diff --no-index --stat` exit 0 无输出） |
-| `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` | exit 0；240 PASS / 0 FAIL / 3 项既有环境 SKIP |
-| `golangci-lint 2.15.0 run --timeout 2m --new-from-rev 16cce8e --whole-files --max-issues-per-linter 0 --max-same-issues 0 ./cmd/... ./internal/...` | exit 0，`0 issues.` |
-| 两处全新临时目录 `init` + `assets verify --json` + 七面 `cmp` + 指针/标题解析 | exit 0；52/52 `current`；七面无差异；4 个标题命中，旧相对形式目标不存在 |
-| `git diff --check`；`flowforge check --dir ff-wiki/proposals` | exit 0；诊断计数与实施前一致，唯一 gap 仍为范围外 02 |
+| 批次 | 命令 | 结果 |
+| --- | --- | --- |
+| S1 | `GOPROXY=https://goproxy.cn,direct make dev` | exit 0；源=嵌入（`git diff --no-index --stat` 无输出） |
+| S1 | `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` | exit 0；240 PASS / 0 FAIL / 3 项既有环境 SKIP（command 9.850s、tracker 1.108s） |
+| S1 | `golangci-lint 2.15.0 ...`（参数同下） | exit 0，`0 issues.` |
+| S1 | 两处隔离目录 `init` + `assets verify --json` + 七面 `cmp`（`/tmp/ff-fixA-7XHacA`、`/tmp/ff-fixB-ZwyS8a`） | exit 0；两处 52/52 `current`；七面 `same:` 全中 |
+| S2 | `GOPROXY=https://goproxy.cn,direct make dev` | exit 0；源=嵌入；`bin/flowforge` `95f789832d0d…5710` |
+| S2 | `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` | exit 0；240 PASS / 0 FAIL / 3 项既有环境 SKIP（command 9.902s、tracker 0.765s；定向集合 14 项命中） |
+| S2 | `golangci-lint 2.15.0 run --timeout 2m --new-from-rev 16cce8e --whole-files --max-issues-per-linter 0 --max-same-issues 0 ./cmd/... ./internal/...` | exit 0，`0 issues.` |
+| S2 | 两处隔离目录 `init` + `assets verify --json` + 七面 `cmp` + 指针/标题解析（`/tmp/ff-fixA2-RqyaJm`、`/tmp/ff-fixB2-7Mzauq`） | exit 0；52/52 `current`；七面无差异；4 个标题命中，旧相对形式目标不存在 |
+| S2 | `git diff --check`；`flowforge check --dir ff-wiki/proposals` | exit 0；`Checked 106 issues`；唯一 gap 仍为范围外 02 |
 
 - 修改文件：`assets/skills/_shared/ARTIFACT-CONTRACT.md`、`assets/skills/flowforge-plan/SKILL.md`、`assets/skills/flowforge-refine-ticket/SKILL.md`、`assets/skills/flowforge-implement/SKILL.md`、`assets/skills/flowforge-review/SKILL.md`、`assets/agents/issue-tracker.md`、本票、`evidence/01-implementation.md`。
 - Write-set 合规：All modifications within write set。三个 Go 测试、`assets/pi/**`、`internal/**` 非生成代码、其他 proposal 均未改动；未委派、未 push、未关票、未改 `**Status:**`。
-- 收口覆盖确认：三项 Go 测试按 Round 1 明示复用（内容 hash 与 G0 一致、本轮未触碰），lint、全内包、两处隔离部署与 `flowforge check` 均为本轮实跑；结构/一致性结果不等同模型行为或阶段验收，也不替代 02。详见 [实施记录](../evidence/01-implementation.md#fix-轮次changes-1113消费-round-1-fix-verification)。
+- 收口覆盖确认：三项 Go 测试按 Round 1 明示复用（内容 hash 与 G0 一致、本轮未触碰），lint、全内包、两处隔离部署与 `flowforge check` 在 S1、S2 各实跑一次；当前验收只取 S2，S1 未存 hash 故不作验收依据；结构/一致性结果不等同模型行为或阶段验收，也不替代 02。详见 [实施记录](../evidence/01-implementation.md#记录更正与溯源04-a05-恢复)。
 
 ## Review rounds
 
