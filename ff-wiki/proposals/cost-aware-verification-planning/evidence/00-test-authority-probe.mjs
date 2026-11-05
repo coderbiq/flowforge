@@ -1,6 +1,6 @@
 // Preset by the planning owner. Exercises the real PI loader/runner; no tool writes execute.
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync, realpathSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, symlinkSync, realpathSync, existsSync, lstatSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -70,6 +70,148 @@ async function expect(runtime, target, blocked, label, toolName = 'write') {
   checks++;
   console.log(`PASS ${checks}: ${label}`);
 }
+// Repair cases aggregate assertion failures only; loader/setup errors still abort.
+// The original expect helper and all 38 original observations below stay unchanged.
+async function runRepairMatrix() {
+  assert.equal(checks, 38, 'all 38 original observations must pass before repair cases');
+  console.log(`HOST: Node ${process.version}; Pi ${JSON.parse(readFileSync(join(piRoot, 'package.json'), 'utf8')).version}; source ${source}`);
+  const failures = [];
+  const groups = {};
+  async function observe(group, runtime, target, blocked, label, toolName) {
+    const count = groups[group] ??= { total: 0, passed: 0, failed: 0 };
+    count.total++;
+    try {
+      await expect(runtime, target, blocked, `03/${group}/${label}/${toolName}`, toolName);
+      count.passed++;
+    } catch (error) {
+      if (!(error instanceof assert.AssertionError)) throw error;
+      count.failed++;
+      const failure = { group, label, toolName, target, expected: error.expected, actual: error.actual, message: error.message };
+      failures.push(failure);
+      console.error(`FAIL: ${JSON.stringify(failure)}`);
+    }
+  }
+  const tools = ['write', 'edit'];
+  for (const component of ['final', 'parent']) {
+    for (const location of ['inside', 'outside']) {
+      const name = `dangling-${component}-${location}`;
+      const runtime = await start(join(scratch, name));
+      const destinationRoot = location === 'inside' ? runtime.project : join(scratch, `${name}-outside`);
+      const destination = join(destinationRoot, 'uncreated', component === 'final' ? 'target_test.go' : 'parent');
+      const link = join(runtime.project, component === 'final' ? 'dangling_test.go' : 'dangling-parent');
+      symlinkSync(destination, link);
+      assert.ok(lstatSync(link).isSymbolicLink(), 'fixture must contain a real dangling symlink');
+      assert.equal(existsSync(destination), false, 'symlink destination must not exist');
+      const relativeTarget = component === 'final' ? 'dangling_test.go' : 'dangling-parent/leaf_test.go';
+      for (const hasGrant of [false, true]) {
+        if (hasGrant) grant(runtime, { paths: [relativeTarget] });
+        for (const form of ['relative', 'absolute']) {
+          const target = form === 'relative' ? relativeTarget : join(runtime.project, relativeTarget);
+          for (const tool of tools) {
+            await observe('dangling', runtime, target, true, `${component}/${location}/${hasGrant ? 'grant' : 'no-grant'}/${form}`, tool);
+          }
+        }
+      }
+      assert.equal(existsSync(destination), false, 'emitting events must not create symlink destinations');
+    }
+  }
+
+  for (const initiallyExists of [true, false]) {
+    for (const hasGrant of [false, true]) {
+      const name = `zone-${initiallyExists ? 'existing' : 'missing'}-${hasGrant ? 'grant' : 'no-grant'}`;
+      const project = join(scratch, name);
+      const physicalParent = join(scratch, `${name}-outside`, 'parent');
+      const physicalRoot = join(physicalParent, 'config');
+      const physicalZone = join(physicalRoot, 'test-author-grants');
+      mkdirSync(project);
+      if (initiallyExists) mkdirSync(physicalRoot, { recursive: true });
+      symlinkSync(physicalRoot, join(project, '.flowforge'));
+      // These aliases can themselves be dangling. No tool implementation is invoked.
+      symlinkSync(physicalZone, join(project, 'zone-alias'));
+      symlinkSync(physicalRoot, join(project, 'root-alias'));
+      symlinkSync(physicalParent, join(project, 'parent-alias'));
+      const runtime = await start(project);
+      assert.equal(existsSync(physicalRoot), initiallyExists, 'verify pre-grant physical fixture state');
+      if (hasGrant) {
+        // mkdir through a dangling link cannot create its destination; fixture setup does so explicitly.
+        mkdirSync(physicalRoot, { recursive: true });
+        grant(runtime);
+      }
+      assert.equal(existsSync(runtime.status.grantPath), hasGrant, 'verify actual grant presence');
+      assert.equal(existsSync(physicalRoot), initiallyExists || hasGrant, 'verify live physical fixture state');
+      const record = runtime.status.sessionId + '.json';
+      const targets = [
+        ['lexical-record', runtime.status.grantPath],
+        ['lexical-missing-record', '.flowforge/test-author-grants/new.json'],
+        ['lexical-zone', '.flowforge/test-author-grants'],
+        ['lexical-parent', '.flowforge'],
+        ['lexical-project-ancestor', project],
+        ['physical-record', join(physicalZone, record)],
+        ['physical-missing-record', join(physicalZone, 'new.json')],
+        ['physical-zone', physicalZone],
+        ['physical-parent', physicalRoot],
+        ['physical-grandparent', physicalParent],
+        ['alias-record', 'zone-alias/' + record],
+        ['alias-missing-record', 'zone-alias/new.json'],
+        ['alias-zone', 'zone-alias'],
+        ['root-alias-record', 'root-alias/test-author-grants/' + record],
+        ['root-alias-zone', 'root-alias/test-author-grants'],
+        ['root-alias-parent', 'root-alias'],
+        ['parent-alias-record', 'parent-alias/config/test-author-grants/' + record],
+        ['parent-alias-ancestor', 'parent-alias'],
+      ];
+      const originalRecord = hasGrant ? readFileSync(runtime.status.grantPath, 'utf8') : undefined;
+      for (const [label, target] of targets) {
+        for (const tool of tools) await observe('grant-zone', runtime, target, true, `${name}/${label}`, tool);
+      }
+      for (const tool of tools) {
+        await observe('grant-zone', runtime, 'source.go', false, `${name}/ordinary-source`, tool);
+        await observe('grant-zone', runtime, 'allowed_test.go', !hasGrant, `${name}/exact-missing-file`, tool);
+      }
+      assert.equal(existsSync(join(physicalZone, 'new.json')), false, 'no synthetic tool call may issue a record');
+      assert.equal(existsSync(join(project, 'allowed_test.go')), false, 'no protected test write may execute');
+      assert.equal(existsSync(physicalRoot), initiallyExists || hasGrant, 'events must not materialize missing parents');
+      if (hasGrant) assert.equal(readFileSync(runtime.status.grantPath, 'utf8'), originalRecord, 'grant fixture must remain unchanged');
+    }
+  }
+
+  const clock = await start(join(scratch, 'utc-expiry'));
+  const futureYear = new Date().getUTCFullYear() + 4;
+  let nonLeapYear = futureYear;
+  while (nonLeapYear % 4 === 0) nonLeapYear++;
+  let leapYear = futureYear;
+  while (leapYear % 4 !== 0 || (leapYear % 100 === 0 && leapYear % 400 !== 0)) leapYear++;
+  const timestamps = [
+    ['utc-seconds', `${futureYear}-06-15T12:34:56Z`, false],
+    ['utc-milliseconds', `${futureYear}-06-15T12:34:56.123Z`, false],
+    ['utc-leap-date', `${leapYear}-02-29T12:34:56Z`, false],
+    ['expired-utc', '2000-01-01T00:00:00Z', true],
+    ['year-only', `${futureYear}`, true],
+    ['date-only', `${futureYear}-06-15`, true],
+    ['missing-Z', `${futureYear}-06-15T12:34:56`, true],
+    ['missing-Z-milliseconds', `${futureYear}-06-15T12:34:56.123`, true],
+    ['non-UTC-offset', `${futureYear}-06-15T12:34:56+08:00`, true],
+    ['zero-offset-without-Z', `${futureYear}-06-15T12:34:56+00:00`, true],
+    ['missing-seconds', `${futureYear}-06-15T12:34Z`, true],
+    ['impossible-Feb-30', `${futureYear}-02-30T12:34:56Z`, true],
+    ['non-leap-Feb-29', `${nonLeapYear}-02-29T12:34:56Z`, true],
+    ['impossible-Apr-31', `${futureYear}-04-31T12:34:56.123Z`, true],
+    ['impossible-month-13', `${futureYear}-13-15T12:34:56Z`, true],
+    ['impossible-day-zero', `${futureYear}-06-00T12:34:56Z`, true],
+    ['normalized-hour-24', `${futureYear}-06-15T24:00:00Z`, true],
+    ['impossible-minute-60', `${futureYear}-06-15T12:60:00Z`, true],
+  ];
+  for (const [label, expiresAt, blocked] of timestamps) {
+    grant(clock, { expiresAt, paths: ['ordinary/new/allowed_test.go'] });
+    for (const tool of tools) {
+      await observe('UTC', clock, 'ordinary/new/allowed_test.go', blocked, label, tool);
+    }
+  }
+  assert.equal(existsSync(join(clock.project, 'ordinary')), false, 'exact missing ordinary parents are never actually written');
+  for (const [group, counts] of Object.entries(groups)) console.log(`GROUP ${group}: ${JSON.stringify(counts)}`);
+  console.log(`SUMMARY: original=38/38; repair=${Object.values(groups).reduce((sum, g) => sum + g.total, 0)}; failures=${failures.length}; passed=${checks}; no built-in write/edit executed`);
+  assert.equal(failures.length, 0, 'repair boundary observations must all pass (aggregated failures above)');
+}
 try {
   const a = await start(join(scratch, 'a'));
   await expect(a, 'allowed_test.go', true, 'default write denied');
@@ -138,6 +280,7 @@ try {
   grant(controller);
   await expect(controller, 'allowed_test.go', true, 'controller does not gain child-author exemption');
   console.log(`PASS: ${checks} guard observations; no built-in write/edit executed`);
+  await runRepairMatrix();
 } finally {
   process.chdir(originalCwd);
   for (const key of envKeys) {
