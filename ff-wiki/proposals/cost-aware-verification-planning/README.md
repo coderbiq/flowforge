@@ -2,7 +2,7 @@
 
 在保留轻量机械执行、预设测试保护、Plan/refine 和独立审查的前提下，减少实施期间重复的重验证、环境准备、修复派发和取证。
 
-本轮已形成需求 revision 1 和设计 revision 1。**尚未切实施票、修改技能/CLI 或迁移 GIIS 执行合同。**
+消费需求 revision 1 与设计 revision 1，已发布 **01 → 02** 两票。01 的已核实执行事实已填入，但合法测试作者被宿主保护阻塞，新测试及实际 red 尚未产生；02 保留五节骨架，等待01正向交付后 Refine。当前没有实施、部署或迁移 GIIS 合同。
 
 ## 阅读入口
 
@@ -11,7 +11,11 @@
 | [需求](requirements.md) | 已接受目标、可靠性约束、九项需求、验收场景与范围 |
 | [设计](design.md) | 验证分配、机械检查时机、Fix 复验、证据生命周期、兼容部署与验证办法 |
 | [来源归类](source-notes.md) | 调查事实、用户确认边界、拒绝采用的建议、历史依据与未知 |
-| [阶段记录](journal.md) | 本轮 Align/Design 发布事件及校验记录 |
+| [01 规则实现及必要保护性测试](issues/01-rule-package.md) | 全部源规则修改、保护接缝、已知外部阻塞与恢复条件 |
+| [02 受控验收与部署](issues/02-controlled-acceptance-and-deploy.md) | 依赖01；九类情景及全部变体、正向门禁、源/嵌入/部署一致性及项目部署 |
+| [规划基线](evidence/planning-baseline.md) | 四文件既有漂移、实际测试结果与已知流程债 |
+| [测试作者交接](evidence/test-author-handoff.md) / [未应用补丁](evidence/test-authoring.patch) | 被保护阻塞的测试提案；不是已执行的测试或 red |
+| [阶段记录](journal.md) | Align/Design/Plan 发布事件及实际校验记录 |
 
 ## 方案要点
 
@@ -23,6 +27,8 @@
 
 ## 规划边界
 
-下一阶段可据 [设计覆盖表](design.md#coverage) 切分实现增量。Plan 仍按原流程呈现 Delivery 与真实依赖后发布 tickets；本目录当前没有 `issues/`，不会产生可执行 frontier。
+标题、Delivery 与真实依赖由主会话预先确认，用户 continue 授权推进。两票规范条款按设计原文及原 tier 转抄，仅重定位相对链接；02 的 Conventions 只承载必须转抄的规范句，其余执行细节仍待 Refine。
+
+01 的 Blocked evidence 保留真实工具拒绝。主会话须先解决合法测试作者入口并落地预设测试、记录实际 red，才可完成01 Refine和派发；不关闭保护、不换写入通道。02 还需01的正向验收证明，CLI终态不能代替它。
 
 性能收益需后续受控情景和实际阶段验证。修复率历史增幅、模型降智及固定提速比例均未作为本 proposal 的事实前提。

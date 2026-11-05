@@ -1,0 +1,126 @@
+diff --git a/internal/command/cost_aware_assets_test.go b/internal/command/cost_aware_assets_test.go
+new file mode 100644
+--- /dev/null
++++ b/internal/command/cost_aware_assets_test.go
+@@ -0,0 +1,51 @@
++package command
++
++import (
++	"bytes"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++// Guards delivery integrity; model behavior needs actual controlled execution.
++func TestCostAwareRulePackageSourceEmbeddedDeployed(t *testing.T) {
++	target := t.TempDir()
++	docsRoot := filepath.Join(target, "wiki")
++	if err := deployManagedAssets(target, docsRoot); err != nil {
++		t.Fatal(err)
++	}
++	for _, rel := range []string{
++		"skills/_shared/ARTIFACT-CONTRACT.md",
++		"skills/flowforge-solution-design/SKILL.md",
++		"skills/flowforge-plan/SKILL.md",
++		"skills/flowforge-refine-ticket/SKILL.md",
++		"skills/flowforge-implement/SKILL.md",
++		"skills/flowforge-review/SKILL.md",
++		"agents/issue-tracker.md",
++	} {
++		t.Run(rel, func(t *testing.T) {
++			source, err := os.ReadFile(filepath.Join("..", "..", "assets", filepath.FromSlash(rel)))
++			if err != nil {
++				t.Fatal(err)
++			}
++			embedded, err := embeddedAssets.ReadFile("assets/" + rel)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if !bytes.Equal(source, embedded) {
++				t.Error("source and embedded rule differ; regenerate embedded assets from source")
++			}
++			deployedPath := filepath.Join(target, ".agents", filepath.FromSlash(rel))
++			if rel == "agents/issue-tracker.md" {
++				deployedPath = filepath.Join(docsRoot, filepath.FromSlash(rel))
++			}
++			deployed, err := os.ReadFile(deployedPath)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if !bytes.Equal(embedded, deployed) {
++				t.Error("embedded and freshly deployed rule differ")
++			}
++		})
++	}
++}
+diff --git a/internal/tracker/cost_aware_evidence_test.go b/internal/tracker/cost_aware_evidence_test.go
+new file mode 100644
+--- /dev/null
++++ b/internal/tracker/cost_aware_evidence_test.go
+@@ -0,0 +1,45 @@
++package tracker
++
++import (
++	"fmt"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++// A shared real run may cover two Changes. A new checked Fix still needs
++// its own quadruple; an optional prose schedule cannot waive the old gate.
++func TestCostAwareSharedRunPreservesEvidenceGate(t *testing.T) {
++	for _, schedule := range []bool{false, true} {
++		for _, fixMissing := range []bool{false, true} {
++			t.Run(fmt.Sprintf("schedule=%t/fixMissing=%t", schedule, fixMissing), func(t *testing.T) {
++				root := t.TempDir()
++				if err := os.WriteFile(filepath.Join(root, "run.log"), []byte("group check passed\n"), 0644); err != nil {
++					t.Fatal(err)
++				}
++				quadruple := "    - cmd: go test ./...\n    - exit: 0\n    - output: \"group check passed; shared current run\"\n    - artifact: run.log\n"
++				changes := "- [x] 1. Update interface\n" + quadruple + "- [x] 2. Update caller\n" + quadruple
++				if fixMissing {
++					changes += "- [x] 3. Fix: preserve order\n"
++				}
++				body := ticketBody(changes)
++				if schedule {
++					body += "\n## Done and verify\n\n### Verification schedule\n\nG1: Changes 1–2, after both edits, go test ./..., expect exit 0, run.log.\n"
++				}
++				path := writeEvidenceTicket(t, root, "group", "01-group.md", body)
++				catalog, err := DiscoverArtifacts(root)
++				if err != nil {
++					t.Fatal(err)
++				}
++				codes := evidenceCodes(t, catalog, path)
++				if fixMissing {
++					if len(codes) != 1 || codes[0] != DiagnosticEvidenceMissing {
++						t.Fatalf("new checked Fix without evidence: got %v", codes)
++					}
++				} else if len(codes) != 0 {
++					t.Fatalf("shared run must remain format-compatible: got %v", codes)
++				}
++			})
++		}
++	}
++}
+diff --git a/internal/command/assets_deploy_test.go b/internal/command/assets_deploy_test.go
+--- a/internal/command/assets_deploy_test.go
++++ b/internal/command/assets_deploy_test.go
+@@ -607,9 +607,9 @@
+ func TestIssueTrackerDescribesRepairWorkflow(t *testing.T) {
+-	data, err := os.ReadFile(filepath.Join("..", "..", "docs", "agents", "issue-tracker.md"))
+-	if err != nil {
+-		t.Fatal(err)
+-	}
+-	if !strings.Contains(string(data), "repair") {
+-		t.Fatal("issue-tracker.md must describe the repair workflow")
+-	}
++	data, err := os.ReadFile(filepath.Join("..", "..", "ff-wiki", "agents", "issue-tracker.md"))
++	if err != nil {
++		t.Fatal(err)
++	}
++	if !strings.Contains(string(data), "repair") {
++		t.Fatal("issue-tracker.md must describe the repair workflow")
++	}
+ }

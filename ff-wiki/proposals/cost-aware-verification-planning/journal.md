@@ -6,6 +6,7 @@ flowforge:
   events:
     - {round: 1, stage: align, action: done, ts: "2026-11-05T08:56:20.150Z", by: flowforge-align, artifacts: [requirements.md, source-notes.md]}
     - {round: 1, stage: design, action: done, ts: "2026-11-05T08:56:20.150Z", by: flowforge-solution-design, artifacts: [design.md, README.md]}
+    - {round: 1, stage: plan, action: done, ts: "2026-11-05T09:32:43.110Z", by: flowforge-plan, artifacts: [issues/01-rule-package.md, issues/02-controlled-acceptance-and-deploy.md, evidence/planning-baseline.md, evidence/test-authoring.patch]}
 ---
 
 # 阶段记录
@@ -33,3 +34,20 @@ Beads 前置命令 bd prime 正常退出但无输出，bd where 返回 No active
 - `GOPROXY=https://goproxy.cn,direct go test ./internal/...`：退出 1；`internal/command` 的 `TestIssueTrackerDescribesRepairWorkflow` 在 `assets_deploy_test.go:608` 硬编码读取 `../../docs/agents/issue-tracker.md`，目录已在既有提交 `22c2295` 移至 ff-wiki；其余内部包通过或无测试。当前差分仅本 proposal 新文档，未修改该测试或相关资产。此为实际全量检查失败，未通过跳过或改断言处理。
 
 校验中修正了设计 consumes 所需的需求显式语义锚点链接，随后严格检查通过。未把本轮文档校验当作未来成本策略已运行成功的证据。
+
+## Round 1：Plan 发布与实际阻塞
+
+按主会话已确认的标题/Delivery/依赖与用户 continue 授权发布 01 → 02，消费 requirement/design revision 1；不另造审批、状态或非真实边。01覆盖全部七个源规则落点、嵌入同步与必要保护性测试；02承接完整受控情景、独立正向证明、源/嵌入/新二进制部署及本项目部署。02仍是五节骨架，仅按规范转抄Conventions，不提前refine。
+
+Plan 已加载 flowforge-refine-ticket，核实01仓库事实；但写入预设测试被本机全局测试保护拒绝。主会话核实保护无作者例外，明确禁止关闭配置或换通道绕过；因此01只填已核实事实，保留 Blocked evidence，不能宣称Refine完成或PLAN_READY。拟测试及精确旧路径修正保存为未应用的 evidence/test-authoring.patch；补丁可应用性检查通过，不等于实际测试。
+
+实施前固定 HEAD `10c1f667492a81976037b3ff82a7e9ce10a64ad0`、四文件既有源/嵌入漂移及哈希。现有 tracker 定向检查通过；command 定向检查和完整内包回归实际失败于旧 docs 路径，原断言保留，路径修正列入01 Change 8。新测试没有落地，没有真实新测试 red；工具失败及结果见 evidence/planning-baseline.md。
+
+沿用已知 Beads 数据库、flowforge-progress/INDEX 缺失的记录，不初始化、不编造旧同步。使用本 proposal README、journal、check/frontier维护现行导航。产品源技能、测试、嵌入、保护配置与部署均未修改；本轮只提交规划、事实与未应用补丁，主会话决定暂停点。
+
+### Plan 图与工件自检
+
+- `flowforge check --dir ff-wiki/proposals` exit=0，104 issues，无循环/悬空边。全局既有 evidence/metadata/upstream warnings 保留，未豁免。
+- `flowforge frontier --dir ff-wiki/proposals --json` 及 feature 投影 exit=0：01 在 `ready_with_warnings`，诊断 `blocked-evidence-present`；02 `blocked` 等待01，且有 `execution-contract-incomplete`。CLI只理解现有结构，01的合法作者权限是真实外部阻塞，不能据此投影派发。
+- 本次导航/票据46个相对链接及锚点无错误；两票各五节标题唯一，全部must/must not按设计原文和tier转抄，只重定位相对路径。
+- `git diff --check` 与未应用补丁 `git apply --check` 均 exit=0。没有新测试实际red、没有实施完成或PLAN_READY声明。
