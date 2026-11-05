@@ -26,7 +26,7 @@ flowforge:
 
 消费 [需求 revision 2](../requirements.md#cost-aware-verification-planning-requirements) 和 [作者入口设计 revision 1](../design/test-authority.md#cost-aware-test-authority-design)。主会话依据00独立Round 0裁决 substantive repair：GAP-01 dangling symlink 豁免、GAP-03授权目录物理路径自写为 High，GAP-02非UTC完整时间被接受为 Medium；均为既定设计 partial，无 design return。00保持 needs-repair，01真实依赖转至本票，02仍依赖01。
 
-当前仅发布修复骨架与已知事实；必须先由合法 Plan/refine 作者补充预设回归、在当前实现上实际观察 red，再完成本票五节 Refine。未满足此前不得派发轻量实施。
+Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首轮独立 Round 0 零 gap 后双轴发现路径段边界问题。主会话裁决追加 Fix 5；本票保持 open，00保持 needs-repair。Fix 5须先由合法 Plan 作者追加预设观察、在当前 source/deployed 实际记录 red，再交新鲜实现上下文；不重做原 Plan 或已完成 Changes。
 
 ## Touch points
 
@@ -57,6 +57,16 @@ flowforge:
   - exit: 0
   - output: 'GROUP grant-zone: {"total":160,"passed":160,"failed":0}; SUMMARY: original=38/38; repair=228; failures=0; passed=266; no built-in write/edit executed (deployed .pi/extensions/flowforge.ts)'
   - artifact: .pi/extensions/flowforge.ts
+
+- [ ] 5. Fix: 在 `assets/pi/flowforge.ts:isWithinPath` 按完整路径段判断父目录：仅 `relative === '..'` 或以 `'..' + path.sep` 开头视为父目录越界，仍拒绝 absolute；空 relative 与含 `..` 名称的普通子路径属于根内。恢复有效精确授权的 `..allowed_test.go`、`..fixtures/allowed_test.go` 正常 write/edit；拒绝授权目录内 `..unused.json` 的 write/edit；普通 `fixtures/allowed_test.go` 仍允许，真正 `../outside_test.go` 仍拒绝。完成后按下述 Fix 5 单独复验组构建、部署、实跑并追加本 Change 的 cmd/exit/output/artifact 四元组，不改写 Changes 1–4 的历史证据。
+
+### Fix 5 作者授权与复验合同（主会话裁决）
+
+- 合法 Plan 作者获准先在 `evidence/00-test-authority-probe.mjs` 追加10个 write/edit 观察：两个 `..` 名称前缀正例、一个普通文件正例、一个 grant 目录内前缀文件负例、一个真正越界负例。原266项逐项保留；预期总数276，最终以作者实际观察数为准。作者记录当前 source/deployed 的真实 red、probe及扩展hash，并补充本 Fix 对应执行事实；此前不得启动 Fix 实施。作者事实追加到 `evidence/03-refinement.md` 与本票，不覆盖旧 red/green。此处仅授权预设测试 Change，不代表已经落地或实跑；实现者仍不得修改 probe 或其他测试。
+- Fix 5是单独验证组。实际修复后运行 source 命令 `node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`；执行 `make dev` 与 `./bin/flowforge agents deploy flowforge-planner`；再运行同命令追加 `.pi/extensions/flowforge.ts`。两矩阵预期各276项通过（按作者实数）、0失败、exit 0；明确保留原266项，不以旧通过替代本轮实跑。
+- 实际运行 `shasum -a 256 assets/pi/flowforge.ts internal/command/assets/pi/flowforge.ts .pi/extensions/flowforge.ts`、`cmp assets/pi/flowforge.ts internal/command/assets/pi/flowforge.ts`、`cmp assets/pi/flowforge.ts .pi/extensions/flowforge.ts`，记录三份一致；运行 `GOPROXY=https://goproxy.cn,direct go test -count=1 ./internal/command -run '^TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)$' -v`，两例须通过；运行 `GOPROXY=https://goproxy.cn,direct go test ./internal/...`，如实记录全部结果。仅既有 `TestIssueTrackerDescribesRepairWorkflow` 旧docs路径失败保留01 Change 8归属，其他失败不得豁免，也不宣称全仓绿。实际结果追加到 Fix 5四元组和 `evidence/03-implementation.md`。
+- 拟复用 [03 native真实常规grant主链](../evidence/03-native-authority.md)（产品实现 `93f07a4dd60c85fb6721afa595699d0a17e4e4d5`，证据提交 `7314735fb739b09507632341c747e35fa0ae4104`），不默认重复全套native握手。适用条件：Fix产品差分仅为 `isWithinPath` 的路径段判断，nonce、环境捕获、grant读取/撤销、UTC与工具接缝均不变；历史native使用的普通路径在新旧判定结果相同；新增prefix行为有本轮真实loader/runner source及deployed观察。新的独立Round 0必须按实际diff确认这些条件；若出现其他产品差分或旧路径判定变化，扩大到新的native验收。该复用裁决限定于Fix 5，不能把旧native说成本轮实跑，不能省略本轮矩阵或独立审查。
+- 修后仍以 `f1a51117b0baf5af6801238b2a12206ad6697b29...修后HEAD` 完整范围做独立Round 0，零gap后再独立Standards/Spec双轴；主会话持有最终收敛与签发/撤销责任。新鲜实现上下文只执行Fix 5，不重做原Plan或Changes 1–4；不改模型/guard配置，不自行派实现或关闭03/00。
 
 ### 规划作者前置测试 Change
 
@@ -194,3 +204,81 @@ run; no grant is issued, no ticket is closed.
 
 
 ## Review rounds
+
+### Round 0（03修后完整范围）
+
+- Fixed point: base `f1a51117b0baf5af6801238b2a12206ad6697b29` → HEAD `7314735fb739b09507632341c747e35fa0ae4104`；产品实现 `93f07a4dd60c85fb6721afa595699d0a17e4e4d5`，后续仅native证据提交。
+- Gaps: 0 — missing 0 / partial 0 / contradicts 0 / unrequested 0。
+- Disposition: none；本轮Round 0无Fix或design return。
+- Escalated to dual axes: yes — 零gap后已完成独立Standards/Spec轴，结果见Round 1；零gap不代替两轴收敛。
+- 独立实跑：source/deployed各266/266，补充边界10/10，Go部署两例通过；全内包唯一失败为01 Change 8已归属的旧docs路径，未称全仓绿。完整diff sha256 `824923d08b1d1a64adf7c506e468179a433a9f61d6bd7766dc36df102c91da97`；路径 `/tmp/test-authority-audit-03-f1a51117b0baf5af6801238b2a12206ad6697b29..7314735fb739b09507632341c747e35fa0ae4104.diff`。
+- Native: [03-native-authority.md](../evidence/03-native-authority.md) 为本次已完成的真实native验收：session `01a1ab74-027f-74bd-b8e4-953428b2aad3`、instance `41bb5247-0360-4684-9877-39e9b72e1670`，missing→主会话精确grant→正常write/edit成功→未列文件及grant记录拒绝→主会话撤销→再次拒绝。三份扩展sha256 `ac8bf118bb2e1a86befb6fd13627e9bdfa671cb1e56f24892d2057302a66d89c`；不是旧00证据复用。
+- 原始报告根目录：`/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/outputs/a8ce68ec-a659-4624-9421-b27b7e82b73a/`。Native原文为 `test-authority-acceptance.native-03.md`，Round0原文为 `test-authority-acceptance.audit-03.md`；本记录者已逐字读取并通过 `contact_supervisor need_decision` 交主会话，未重跑上述行为验收。
+
+### Round 1（双轴及主会话裁决）
+
+- Fixed point: 同Round 0完整范围 `f1a51117b0baf5af6801238b2a12206ad6697b29...7314735fb739b09507632341c747e35fa0ae4104`；权威为03/00 rev1、requirements rev2、test-authority设计rev1。
+- Standards: F1 [Medium] 与 F2 [Low, information value]；原文如下，不与Spec合并或重排。
+- Spec: SPEC-01 [Medium]；原文如下。
+- Fix changes: 5（仅SPEC-01）。
+- Design returns: none。
+- Repair: none（不另建repair）；原00的repair仍为本票。
+- 主会话裁决 `NEXT: FIX`：接受SPEC-01，按完整路径段判越界；不证明 `..unused.json` 可被消费为grant或构成权限提升。新增10观察由合法Plan作者先写和实跑red；实现者不改测试。完整复验与native拟复用条件见Fix 5合同。
+- Standards F1处置（主会话权威裁决，不删除reviewer意见）：不接受为本次验收缺陷。主会话报告已用真实loader/runner对基线 `f1a5111` 与当前版本做只emit验证，`.flowforge/config.yaml` 与 `.pi/extensions/flowforge.ts` 的write在两版均 `actualBlocked=false`，未执行底层写入，临时fixture已清除。R10“不关闭保护”约束本次交付方式；设计保留配置开关，范围为既有write/edit测试保护及新增grant zone，不提供对可改宿主代码/配置模型的通用防篡改沙箱。实际配置未关闭，真实实例grant仍由主会话签发；额外保护两路径将扩展策略，不是此次回归，因此不新增Fix或design return，也不宣称已提供该防护。这是主会话经 `contact_supervisor` 返回的复现实验事实，本记录者未独立执行。
+- Standards F2处置：接受；主会话授权机械更新proposal README为03实现、原native及首轮审查完成，待Fix 5与复审。属于当前阶段文档收敛，不新增产品Fix。
+- Completion: 未关闭，不写Completion evidence；03保持open，00保持needs-repair，01仍待合法Go作者与Refine，02等待01。既有旧docs路径失败归01，脚本标记漏接不新增产品Fix。journal仅记录实际review事件，不追加round-close。
+- 下一步：主会话安排合法作者补10观察和真实red，再安排新鲜Fix实施、独立Round 0及双轴。本记录者只回填合同与记录、check/frontier并提交，不push、不派发。
+
+#### Standards 原文
+
+原始路径：上述报告根目录的 `test-authority-acceptance.standards-03.md`。
+
+```text
+STATUS: COMPLETED
+
+## Summary
+Standards axis only (read-only). Fixed range `f1a51117…7314735` (full 00+03 authorization implementation, not just `93f07a4`). Standards sources used: the five `[Constraints]` clauses transcribed from `design/test-authority.md#standards-clauses` rev1, `AGENTS.md` (Commands, boundaries, execution-unit policy, per-machine deploy artifacts), and the Fowler baseline. No TS lint/format tooling exists in the repo (`Makefile:28-29` lints Go only) and the diff touches no Go source, so tooling-covered checks are skipped. Round 0 delivery per Change was not re-audited.
+
+## Changed Artifacts
+None — findings report only.
+
+## Verification
+No shell tool in this dispatch, so no command was executed; build/test evidence is Round 0's independent rerun (266/266 source+deployed, targeted Go pass, `go test ./internal/...` exit 1 = known 01-attributed docs failure). Static checks I could do: `DEFAULT_TEST_FILE_GLOBS` (`assets/pi/flowforge.ts:40-48`) is 7/7 item-identical to `internal/command/agents.go:226-233` (repo-documented "drift is a defect", no drift); no Go file in the diff (lint surface unchanged); `assets/` still contains only `pi/flowforge.ts` (no non-deployed test material); probe left byte-comparable to its author version (Round 0 hash).
+
+## Findings
+
+**F1 [Medium] — Guard's own control plane is writable by a background child (constraint "不能关闭全局保护", `design/test-authority.md#standards-clauses` clause 2 / R10).**
+Trigger: an eligible child (or any background session) `write`s `.flowforge/config.yaml` with `agents.disable_test_guard: true`, or overwrites the deployed guard `.pi/extensions/flowforge.ts`. Neither path matches the default globs (`assets/pi/flowforge.ts:40-48`), and the grant-zone deny covers only `.flowforge/test-author-grants` (`:441-456`). Config is read once at factory time (`:541`, gate at `:623`), so the **next** dispatched session — e.g. the implementer — runs with no write guard, which is exactly the "solve author blocking by turning protection off" that R10 forbids.
+Falsification attempted: no glob, zone, ancestor or `auditPath` path (`:432-503`) denies these two paths; no reload mitigation exists. Failed → reported. The escape valve predates this diff, but the "cannot self-authorize / no global disable" claim is introduced here. A fix changes protected-path policy, so it is not obviously a mechanical Fix — flagship's call.
+
+**F2 [Low, information value] — `README.md:5` says 03 "当前仅发布修复骨架…完成Refine", while the same diff ships `evidence/03-refinement.md` (709 lines) and `evidence/03-implementation.md:1-219` with Changes 1–4 checked in the ticket. Falsified? No alternative reading survives; `README.md` is outside 03's Write set, so this is doc convergence for the flagship, not a Fix Change.
+
+Not reported (candidate, dismissed): `PathAudit.error` doc says "every caller must deny then" while `resolveThroughLinks` (`:266-268`) ignores it — no reachable trigger found and the failure direction stays deny.
+
+## Next Action
+Flagship decides F1 routing (mechanical Fix vs repair/design return) and F2 documentation convergence. I wrote no Fix Changes, no Review round, no repo change.
+```
+
+#### Spec 原文
+
+原始路径：上述报告根目录的 `test-authority-acceptance.spec-03.md`。
+
+```text
+STATUS: COMPLETED
+
+**Summary:** Spec 轴发现 **1 项 [Medium]**，尚不能判定通过。范围为 `f1a51117b0baf5af6801238b2a12206ad6697b29...7314735fb739b09507632341c747e35fa0ae4104`；消费03/00 rev1、requirements rev2、test-authority设计rev1。Standards由另一轴独立报告。
+
+**Changed Artifacts:** None。
+
+**Verification:** 已加载 flowforge-review，阅读完整固定diff、当前源码及修后native证据。实例/项目绑定、UTC校验、每次读取实现撤销、启动更新nonce、shutdown清除及factory隔离并发环境均有对应控制路径。核对既存source/deployed日志各266/266；未冒称本轴重跑。CLI既有01/02诊断及01旧docs路径失败保留原归属。
+
+**Findings:**
+
+- **[Medium] SPEC-01：目录包含判定把名称前缀 `..` 当成父目录段。** [flowforge.ts:273](/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/pi/flowforge.ts:273) 使用 `!relative.startsWith("..")`，同时影响授权目标检查（481）和授权目录保护（282、454）。具体触发：有效精确grant列出项目内普通 `..allowed_test.go` 或 `..fixtures/allowed_test.go` 时，write/edit被误拒；背景会话写 `.flowforge/test-author-grants/..unused.json` 却被放行。违反[设计:31](/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/design/test-authority.md:31)“对授权目录的 write/edit 一律拒绝，包含……目录内文件”及35行的项目内精确文件契约。
+
+  证伪检查：这些名称没有独立 `..` 段；路径解析、精确授权和symlink检查不消除此错误，两种zone表示也共用该helper。主会话应本轴请求以当前source真实Pi loader/runner复现上述write/edit结果；普通 `fixtures/allowed_test.go`允许、真正 `../outside_test.go`拒绝，未执行底层写入。`..unused.json`不匹配安全session ID，**未证明可消费grant自授权或权限提升**。
+
+**Next Action:** 主会话处置该机械修复：按完整路径段识别父目录，补上述正负例及真正越界对照，再验证source/deployed。无需改变设计；本轴未追加Fix、关票或豁免发现。
+```
+
+双轴原始发现数：Standards 2（最高Medium，另1项Low文档信息价值）；Spec 1（Medium）。主会话处置后仅SPEC-01仍待Fix 5实施与复审，未记双轴通过。

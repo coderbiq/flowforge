@@ -12,6 +12,7 @@ flowforge:
     - {round: 2, stage: design, action: done, ts: "2026-11-05T10:18:25.210Z", by: flowforge-solution-design, artifacts: [design.md, design/test-authority.md]}
     - {round: 2, stage: plan, action: done, ts: "2026-11-05T10:18:25.210Z", by: flowforge-plan, artifacts: [issues/00-test-authority.md, issues/01-rule-package.md, issues/02-controlled-acceptance-and-deploy.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T10:55:00Z", by: flowforge-review, reason: "00 Round0三partial；主会话裁决substantive repair，双轴未启动，03待Plan及Refine", artifacts: [issues/00-test-authority.md, issues/03-test-authority-boundary-repair.md, issues/01-rule-package.md]}
+    - {round: 2, stage: review, action: done, ts: "2026-11-05T11:47:38Z", by: flowforge-review, reason: "03修后native及Round0完成；双轴主会话裁决FIX，接受SPEC-01为Fix5，F1保留既有范围边界，F2更新导航；未关票", artifacts: [issues/03-test-authority-boundary-repair.md, README.md]}
 ---
 
 # 阶段记录
@@ -74,3 +75,17 @@ Plan 已加载 flowforge-refine-ticket，核实01仓库事实；但写入预设�
 本次仅记录00审计处置，未关闭00或03，未追加proposal round-close。下一步由主会话继续03合法测试作者与Refine，再派发新鲜实施上下文，随后回到01/02。沿用本journal已记录的Beads数据库及旧flowforge-progress/flowforge-docs技能缺失事实；此次bd prime退出0无输出，bd list报告no beads database found，技能搜索未发现对应SKILL.md。未初始化数据库、未伪造索引同步或任务登记。
 
 本次机械记录校验：`./bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning` exit=0，4 issues，无循环/悬空引用；仅保留01 `blocked-evidence-present`、02 `execution-contract-incomplete`及03待Refine的同名gap。`./bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning --json` exit=0，ready为空、gaps=[03]、01等待03、02等待01，00不进入可执行队列。`git diff --check` exit=0。本轮只改文档，未重跑Go或行为矩阵；上述历史行为结果不冒充本轮执行。
+
+## Round 2：03首轮双轴与Fix 5合同
+
+03实现 `93f07a4dd60c85fb6721afa595699d0a17e4e4d5` 已完成Changes 1–4，source/deployed各266项通过；`7314735fb739b09507632341c747e35fa0ae4104` 保存修后真实native主链，grant已由主会话撤销。独立Round 0审查完整 `f1a51117…7314735`，0 missing / 0 partial / 0 contradicts / 0 unrequested，独立重跑source/deployed各266/266与补充10/10、目标Go两例通过，全内包唯一旧docs路径失败仍归01 Change 8。这些为已收到证据，不是本次机械记录者重跑。
+
+独立Standards报告F1 [Medium]（配置/扩展控制文件仍可写）与F2 [Low, information value]（README阶段过时）；Spec报告SPEC-01 [Medium]：`isWithinPath` 将 `..` 名称前缀误作父目录，误拒精确授权普通文件并漏拒grant目录内 `..unused.json`。两轴原文、路径及severity保存在03 Review rounds，未合并结论。机械记录者加载flowforge-review并以 `contact_supervisor need_decision` 提交native、Round0和双轴原文，收到主会话明确 `NEXT: FIX` 后才回填。
+
+主会话接受SPEC-01为同票Fix 5，不另建repair或design return：只按完整父目录段判越界，保留absolute拒绝。合法Plan作者先补10个write/edit观察、逐项保留原266并记录当前source/deployed真实red与hash；此处未改probe、未声称新增观察已完成。新鲜实现者不得改测试，实际执行扩展矩阵、构建和原planner部署、hash/cmp、目标Go及全内包检查，并在Fix 5追加当轮四元组。拟复用93f07a4的原native常规路径主链，仅限产品差分只有路径段判定且旧路径结果、nonce/环境/读取/撤销/UTC/工具接缝不变；新Round 0须独立核实，条件不满足则扩大native验收。新增prefix行为必须由当轮真实loader/runner source及deployed覆盖。
+
+Standards F1原意见保留。主会话报告真实loader/runner只emit对照基线f1a5111和当前版，两路径write均actualBlocked=false，未执行写入、fixture已清理；裁决该既有可写控制文件边界不属于本次验收缺陷，R10禁止以关闭保护完成交付，不增加通用宿主防篡改沙箱。实际未关闭配置、grant仍由主会话签发，不扩保护策略，也不宣称已提供该防护。接受F2，README更新为实际阶段，不新增产品Fix。
+
+03保持open，00保持needs-repair；01仍待合法Go作者及Refine，02等待01，proposal未关闭且不追加round-close。只修改03合同/审查记录、README与本journal，不修改产品/测试/模型/guard配置，不push、不派发实现。bd prime退出0无输出，bd where仍报告No active beads workspace found；未初始化数据库。再次搜索未找到旧flowforge-docs/flowforge-progress技能，沿用此前记录的缺失事实，以README/journal及check/frontier维护现行投影，不编造INDEX同步。
+
+本次记录后实跑 `./bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --full` 与 `./bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning --json` 均exit 0：DAG健康，ready=[03]，01等待03，02等待01；仅保留01 blocked-evidence及02 execution-contract既有诊断。ready投影不替代Fix 5的作者前置red。两轴原文完整保留（仅去除Spec空行尾随空格）；初次 `git diff --check` 发现该空白及文件末尾多余空行，已清理。此次仅文档回填，未重跑Go、矩阵或native，不将历史通过冒充本轮执行。
