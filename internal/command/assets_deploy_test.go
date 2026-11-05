@@ -605,7 +605,7 @@ func TestArtifactContractDescribesRepairLoop(t *testing.T) {
 }
 
 func TestIssueTrackerDescribesRepairWorkflow(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "..", "docs", "agents", "issue-tracker.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "ff-wiki", "agents", "issue-tracker.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
