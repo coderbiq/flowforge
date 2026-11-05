@@ -68,6 +68,10 @@ Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首�
 - 拟复用 [03 native真实常规grant主链](../evidence/03-native-authority.md)（产品实现 `93f07a4dd60c85fb6721afa595699d0a17e4e4d5`，证据提交 `7314735fb739b09507632341c747e35fa0ae4104`），不默认重复全套native握手。适用条件：Fix产品差分仅为 `isWithinPath` 的路径段判断，nonce、环境捕获、grant读取/撤销、UTC与工具接缝均不变；历史native使用的普通路径在新旧判定结果相同；新增prefix行为有本轮真实loader/runner source及deployed观察。新的独立Round 0必须按实际diff确认这些条件；若出现其他产品差分或旧路径判定变化，扩大到新的native验收。该复用裁决限定于Fix 5，不能把旧native说成本轮实跑，不能省略本轮矩阵或独立审查。
 - 修后仍以 `f1a51117b0baf5af6801238b2a12206ad6697b29...修后HEAD` 完整范围做独立Round 0，零gap后再独立Standards/Spec双轴；主会话持有最终收敛与签发/撤销责任。新鲜实现上下文只执行Fix 5，不重做原Plan或Changes 1–4；不改模型/guard配置，不自行派实现或关闭03/00。
 
+### Fix 5 作者实跑（2026-11-05）
+
+本次明确派发将作者证据写入 [03-fix5-authoring.md](../evidence/03-fix5-authoring.md)，保留旧 `03-refinement.md` 历史。基线 `b3836b7e61db837da82d8b04f089a2e8281193e7` 上已追加且仅追加10项观察；删除唯一新增块可逐字节还原旧probe，原266项断言与执行顺序完整保留。source/deployed实际各276项，270通过、6失败、exit 1；旧266全通过，新增组4通过/6失败。两种 `..` 前缀授权正例write/edit被误拒4项、grant目录 `..unused.json` write/edit被误放行2项；普通路径及真正越界对照4项通过。Fix 5仍未实施、未勾选，本记录不是修后green或新的native验收。
+
 ### 规划作者前置测试 Change
 
 本段由主会话明确授权合法 Plan/refine 作者执行，不属于轻量实现者的 Changes 或写集：扩展 `evidence/00-test-authority-probe.mjs`，完整保留原38项断言，新增 dangling目标在项目内/外、grant zone外部physical/alias/未建parent、有/无grant、UTC格式的 source/deployed write/edit 负例，保留有效未来UTC、过期UTC和普通未创建精确授权文件正例。先在当前实现 `7cb27d8`（记录HEAD `6061b6c` 仅另加native证据）实际运行新回归并保存 red，再由 Refine 核实五节。不得削弱原断言、以原38项通过代替新增反例、或由实现者改probe。
@@ -98,6 +102,7 @@ Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首�
 
 ### Verified contracts
 
+- Fix 5（当前事实）：`assets/pi/flowforge.ts:isWithinPath` 行271–274使用 `relative.startsWith("..")`，被 `touchesGrantRecords` 行282及 `testWriteDenial` 行481共同消费；`isPlainGrantPath` 按路径段校验，合法 `..` 名称前缀可列入精确grant。追加的 `fix5-path-segments` 组使用同一真实loader/runner与既有 `observe`/`expect`，没有改写原266项或失败聚合。source/deployed当前6项red及版本hash见 [Fix 5作者证据](../evidence/03-fix5-authoring.md)。
 - 本节消费 requirements rev2 / R1、R8、R10 与 `design/test-authority.md` rev1 的接口、路径、验证顺序；本票无 `Blocked evidence`、无 DAG blocker，Mode 已为 lightweight。原 Planning evidence 的“尚未扩充/Refine”是发布时快照；当前作者事实见 [03 refinement 实跑证据](../evidence/03-refinement.md)。Changes 1–4、状态、依赖和两级写集保持原样。
 - `assets/pi/flowforge.ts:resolveThroughLinks`（修前行196）从 `realpathSync` 失败位置向父目录回退，最终把缺失后缀拼回；这会遗漏 dangling symlink。`testWriteDenial`（行333）只以 requested/resolved 字符串不等识别别名，并吞掉 `statSync` 错误，因此 dangling final/parent 在项目内外均能获得精确授权。Change 1 的 lstat 组件检查必须区分普通 ENOENT 与实际符号链接/其他解析错误；普通未建文件/父目录继续允许精确授权，任何既有 symlink 组件不获得豁免。
 - `evaluateTestAuthorGrant`（行264）先验证严格字段、session/instance/project/role/paths，再仅以 `Date.parse` 与 `Date.now` 验 expiresAt（行312）。Change 2 在此接缝验证完整 UTC 秒时间及可选毫秒、终止 Z、有效日历/时间 round-trip，再比较未来；保留原 JSON、字段、身份及授权范围拒绝行为。
@@ -106,6 +111,7 @@ Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首�
 
 ### Execution scenarios
 
+- Fix 5：有效未来UTC、同实例精确grant列出 `..allowed_test.go`、`..fixtures/allowed_test.go`、`fixtures/allowed_test.go`，三者write/edit均应允许；同一有效grant下 `.flowforge/test-author-grants/..unused.json` 与 `../outside_test.go` write/edit均应拒绝。共10观察；所有目标与两个普通父目录保持未创建，fixture grant内容未变，底层工具未执行。
 - 成功：有效未来 `YYYY-MM-DDTHH:mm:ssZ` / `.sssZ`（含合法闰日），精确授权项目内普通未建测试文件及普通未建父目录，write/edit 均允许；撤销、shutdown/resume、并发隔离仍按旧38项判定，普通 source 写入保持允许。这里“允许”是 guard 返回值，真实工具写入另由主会话组织 native 验收。
 - 拒绝：dangling final 或 parent 指向项目内/外，分别以 relative/absolute target、有/无grant、write/edit 覆盖32项，均 block=true；fixture 断言链接实际存在而目的地未创建，事件后目的地仍未创建。
 - 拒绝：`.flowforge` 指向既有或尚未创建的外部目录，在有/无grant的四个fixture中，lexical、physical、zone/root/parent aliases及其祖先覆盖18个目标，每目标write/edit均拒绝；另外每fixture配对普通source允许、精确测试依据grant状态允许/拒绝，共160项。missing/no-grant 整轮保持外部parent未创建；missing/grant 必须由fixture先创建物理目录再写grant，明确这是启动后从dangling变为存在的情形，不能把它冒充“缺失目录中有记录”。
@@ -114,6 +120,7 @@ Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首�
 
 ### Expected tests
 
+- Fix 5消费已追加的276项矩阵，以下旧266项结果仍仅属Changes 1–4历史。当前source与deployed命令及实际exit 1见 [作者证据](../evidence/03-fix5-authoring.md)；修后必须按上方“Fix 5 作者授权与复验合同”重跑两矩阵，预期 `GROUP fix5-path-segments: {"total":10,"passed":10,"failed":0}`、`SUMMARY: original=38/38; repair=238; failures=0; passed=276`，两次exit 0。旧266项全部须继续通过；构建、部署、Go验证和native复用条件仍按该合同执行。
 - 按 Changes 1–3 顺序完成生产判定修复后一次运行 source 矩阵：`node ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs /Users/qiangbi/.nvm/versions/node/v22.16.0/lib/node_modules/@earendil-works/pi-coding-agent`。预期原38/38、repair228、failures0、passed266、exit0；group预期32/32、160/160、36/36。当前完整red为原38/38、repair228、failures142、passed124、exit1。实现者不得编辑probe或降低预期。
 - Change 4 执行 `make dev`，随后 `./bin/flowforge agents deploy flowforge-planner`；再运行同一Node命令并追加 `.pi/extensions/flowforge.ts`，预期同source全部266通过、exit0。运行 `shasum -a 256 assets/pi/flowforge.ts internal/command/assets/pi/flowforge.ts .pi/extensions/flowforge.ts` 记录三份一致版本；执行 `cmp assets/pi/flowforge.ts internal/command/assets/pi/flowforge.ts` 与 `cmp assets/pi/flowforge.ts .pi/extensions/flowforge.ts` 均exit0。构建/部署出现失败即停止并记录，不能改模型/guard配置来通过。
 - 部署后 `GOPROXY=https://goproxy.cn,direct go test -count=1 ./internal/command -run '^TestAgentsDeploy(PiExtension|CleansDeselectedPiExtension)$' -v` 两例通过；再 `GOPROXY=https://goproxy.cn,direct go test ./internal/...` 记录实际结果。本次作者实跑仅 `TestIssueTrackerDescribesRepairWorkflow` 因 `../../docs/agents/issue-tracker.md` 不存在失败，仍归01 Change 8；其他失败不能沿用该处置。生产实施后仍须实跑，不沿用本次作者检查冒充修后结果。
@@ -122,11 +129,13 @@ Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首�
 
 ### Generated artifacts
 
+- Fix 5作者新增probe块 → source/deployed真实red日志 → `evidence/03-fix5-authoring.md`；本轮未生成或部署产品资产。旧266保留的字节比较、probe及source/embedded/deployed哈希均已实查，供新鲜Fix实现上下文消费。
 - `assets/pi/flowforge.ts` → `Makefile:dev` 删除并复制整个assets树到 `internal/command/assets/` → Go嵌入构建 `bin/flowforge` → `internal/command/agents.go:deployPiExtension`（行358）由现有 `agents deploy flowforge-planner` 写 `.pi/extensions/flowforge.ts`，供下一次启动的背景运行消费；已启动闭包不能用部署文件hash证明已更新。只部署指定角色及共享扩展，生成的其他既有技能漂移须在实施证据逐项说明。
 - 作者维护的 `evidence/00-test-authority-probe.mjs` → source/deployed真实事件矩阵及hash/保留证明 → `evidence/03-refinement.md`；无底层工具测试文件生成。实现者消费该固定probe，在 `evidence/03-implementation.md` 产出修后命令、版本、输出及生成/部署一致性；主会话另组织native证据和独立审查。
 
 ### Conventions
 
+- Fix 5作者仅追加批准的10观察和相关执行事实；未改设计、产品代码、全局保护、模型配置或项目Go测试文件。`.mjs`在既有授权预设Change范围内；临时grant是fixture，write/edit只emit事件。实施者只读该probe；本轮red不能替代修后验证、独立审查或01/02后续交付。
 - `design/test-authority.md#standards-clauses` 的五条均为 `[Constraints]`，本票已原文转录；没有另需转录的 `[Conventions]` 条款。维持现有 TypeScript 导出签名、grant JSON形状、安全session ID、默认glob及Go侧镜像，不引入新的接口或配置。
 - `.mjs` 不匹配默认测试glob；本次是主会话明确授权的03预设测试扩充，不是把先前被拒绝的01 Go测试换格式绕过保护。真实授权记录只由主会话签发/撤销；probe的grant仅是临时fixture，不写本项目授权目录、不应用01补丁、不改Go测试。
 - 按每ticket新上下文、机械执行、测试作者与实现者分离交接。源码符号与行号以本次固定HEAD为准；实现者的边界是既定Changes及Write set，不能自行删验证、扩范围或关闭保护。03仍为open，REFINE_READY仅为本次交接结论，不写成持久状态。

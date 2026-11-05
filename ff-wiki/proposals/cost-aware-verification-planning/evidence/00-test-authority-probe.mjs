@@ -208,6 +208,28 @@ async function runRepairMatrix() {
     }
   }
   assert.equal(existsSync(join(clock.project, 'ordinary')), false, 'exact missing ordinary parents are never actually written');
+  // Fix 5 additions begin: preserve every preceding observation and assertion.
+  const segments = await start(join(scratch, 'fix5-path-segments'));
+  const exactPaths = ['..allowed_test.go', '..fixtures/allowed_test.go', 'fixtures/allowed_test.go'];
+  grant(segments, { paths: exactPaths });
+  const segmentRecord = readFileSync(segments.status.grantPath, 'utf8');
+  const segmentTargets = [
+    ['prefix-file', exactPaths[0], false],
+    ['prefix-directory', exactPaths[1], false],
+    ['ordinary-file', exactPaths[2], false],
+    ['grant-zone-prefix-file', '.flowforge/test-author-grants/..unused.json', true],
+    ['parent-traversal', '../outside_test.go', true],
+  ];
+  for (const [label, target, blocked] of segmentTargets) {
+    assert.equal(existsSync(resolve(segments.project, target)), false, 'Fix 5 fixture targets start absent');
+    for (const tool of tools) await observe('fix5-path-segments', segments, target, blocked, label, tool);
+    assert.equal(existsSync(resolve(segments.project, target)), false, 'Fix 5 events must never write targets');
+  }
+  assert.equal(readFileSync(segments.status.grantPath, 'utf8'), segmentRecord, 'Fix 5 events must not change the fixture grant');
+  assert.equal(existsSync(join(segments.project, '..fixtures')), false, 'Fix 5 prefix parent must remain absent');
+  assert.equal(existsSync(join(segments.project, 'fixtures')), false, 'Fix 5 ordinary parent must remain absent');
+  assert.deepEqual(groups['fix5-path-segments'].total, 10, 'Fix 5 adds exactly ten write/edit observations');
+  // Fix 5 additions end.
   for (const [group, counts] of Object.entries(groups)) console.log(`GROUP ${group}: ${JSON.stringify(counts)}`);
   console.log(`SUMMARY: original=38/38; repair=${Object.values(groups).reduce((sum, g) => sum + g.total, 0)}; failures=${failures.length}; passed=${checks}; no built-in write/edit executed`);
   assert.equal(failures.length, 0, 'repair boundary observations must all pass (aggregated failures above)');
