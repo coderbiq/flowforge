@@ -60,7 +60,7 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/04-implementation.md`
   - cmd: `python3` 逐行解析 `8ebbd7dd-0949-43f4-939d-a4b08d73f9ea_flowforge-implementer_transcript.jsonl` 的实际toolCall并提取go test/flowforge check/diff --check命令
   - exit: 0
-  - output: Go两次，check七次，diff空白检查三次；与独立Round0原轨迹引用一致，记录原位更正，未执行新产品验证。
+  - output: Go两次，check七次，diff空白检查五次（普通2、cached3）；按完整参数分别匹配，真实断言通过。首轮主会话提取漏了两次cached，已按独立复核更正；未执行新产品验证。
 
 ## Constraints
 
@@ -138,7 +138,7 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 ### Phase 0 之后的执行结果（3d）
 
 - 完成：Changes 1、2、3；未执行项：无。
-- 04实施会话实际计数（截至32722d7，经A06更正）：make dev 1次、全内包Go 2次、lint运行0次（复用c990efb）、两处隔离部署各一次init/verify、git diff --check 2次与git diff --cached --check 1次、flowforge check 7次。超出安排的重复Go/check作为流程偏离保留，不再称各一次；管道shell退出码不冒充上游命令独立退出码。后续主会话/审查检查另计。
+- 04实施会话实际计数（截至32722d7，经A06更正）：make dev 1次、全内包Go 2次、lint运行0次（复用c990efb）、两处隔离部署各一次init/verify、git diff --check 2次与git diff --cached --check 3次、flowforge check 7次。超出安排的重复Go/check作为流程偏离保留，不再称各一次；管道shell退出码不冒充上游命令独立退出码。后续主会话/审查检查另计。
 - 修改文件：`assets/skills/_shared/ARTIFACT-CONTRACT.md`、`assets/skills/flowforge-plan/SKILL.md`、`ff-wiki/proposals/cost-aware-verification-planning/{evidence/01-implementation.md, issues/01-rule-package.md, issues/04-stage-proof-scope-and-execution-record.md, evidence/04-implementation.md}`；`internal/command/assets/**`、`bin/flowforge` 仅 `make dev` 生成。
 - Write-set 合规：All modifications within write set。三个 Go 测试只读，`assets/pi/**` guard、保护与模型配置未动；未改 01 状态、未关票、未 push、未委派、未自审。
 - 独立 Round 0 与双轴审查未在本实施会话执行（归主会话）：结构测试通过不替代三组语义反例的源核对与02的模型实测。
