@@ -3,16 +3,18 @@ flowforge:
   schema: 1
   role: design
   id: cost-aware-verification-planning-design
-  revision: 1
+  revision: 2
   consumes:
     requirements:
-      cost-aware-verification-planning-requirements: 1
+      cost-aware-verification-planning-requirements: 2
+    design:
+      cost-aware-test-authority-design: 1
 ---
 
 <a id="cost-aware-verification-planning-design"></a>
 # 成本感知的验证规划与修复复验：设计
 
-消费 [需求 revision 1](requirements.md#cost-aware-verification-planning-requirements)。本设计选择在现有 Markdown 契约与角色分工中明确验证安排，不新增 Issue Schema、CLI 签名、状态机或自动缓存平台。实施对象是技能及共享部署说明；CLI 保持结构校验职责。
+消费 [需求 revision 2](requirements.md#cost-aware-verification-planning-requirements) 与 [测试作者入口设计 revision 1](design/test-authority.md#cost-aware-test-authority-design)。验证安排仍采用现有 Markdown 契约与角色分工，不新增 Issue Schema、CLI 签名、任务状态机或自动缓存平台。revision 2 按用户明确授权增加 PI 合法作者入口前置修复；原有验证规划方案不变。
 
 <a id="decision"></a>
 ## 方案选择
@@ -150,6 +152,7 @@ Review 在既有 `Review rounds` 中记录本轮 `Fix verification`，与新增 
 | `assets/agents/issue-tracker.md` | 对齐上述解释与旧票兼容，不改变状态/Schema |
 | `internal/command/assets/**` | 从源资产同步的嵌入副本；不独立手写规则 |
 | 现有 `internal/command` / `internal/tracker` 测试接缝及必要情景材料 | 验证源/部署指针、既有门禁兼容和代表性语义情景；情景材料放非部署测试区域 |
+| `assets/pi/flowforge.ts` 及其嵌入/部署副本 | 按独立测试作者入口设计修复合法作者误阻塞；不关闭保护、不授予实现者测试写权 |
 
 不修改 DAG、Catalog 的语义算法或 evidence 四字段。新增正文不成为旧票的全局必填门槛；现有标准/证据诊断仍适用，旧格式兼容不等于免检。
 
@@ -209,5 +212,6 @@ Review 在既有 `Review rounds` 中记录本轮 `Fix verification`，与新增 
 | R5–R7 | Fix verification、证据生命周期、完整反例与审查批次 | resolved |
 | R8 | 正文选择采用、原诊断/状态不变、一致部署 | resolved |
 | R9 | 受控情景与真实阶段指标，区分次数口径 | resolved |
+| R10 | [受限测试作者入口](design/test-authority.md#cost-aware-test-authority-design)，先于原规则实现恢复 | resolved |
 
-当前没有阻止切票的未决需求/设计事实；场景夹具、精确 Write set 和实现增量由后续 Plan/refine 在上述策略下落实。性能收益尚未验证，属于实施后的观察结果，不伪装成已交付证据。本轮只完成需求与设计，不发布 issues 或推进实施。
+当前需求/设计事实已明确，实施已获授权。增加 00 前置修复后，顺序为 00 合法作者入口 → 01 规则包 → 02 集成验收与部署；各票仍需按实际 frontier、独立审查与证据关闭。性能收益尚未验证，不伪装成已交付证据。

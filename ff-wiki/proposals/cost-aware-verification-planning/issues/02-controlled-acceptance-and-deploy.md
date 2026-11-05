@@ -6,9 +6,9 @@ flowforge:
   revision: 1
   consumes:
     requirements:
-      cost-aware-verification-planning-requirements: 1
+      cost-aware-verification-planning-requirements: 2
     design:
-      cost-aware-verification-planning-design: 1
+      cost-aware-verification-planning-design: 2
 ---
 
 # 02: 受控情景验收、源/嵌入/部署一致性及本项目部署
@@ -25,7 +25,7 @@ flowforge:
 
 本增量消费前票已完成并独立审查的规则包及保护测试；缺规则包不能开始受控验收，因此仅依赖 01。CLI 图健康、终态或文件关键词不足以证明模型遵从。受控角色输入、真实调用轨迹及独立裁决构成行为证据，主会话保留组织和决策；轻量执行者不扮演自己的审查者、不再委派。
 
-消费 [需求 revision 1](../requirements.md#cost-aware-verification-planning-requirements) 与 [设计 revision 1](../design.md#cost-aware-verification-planning-design)，具体依据为 [受控情景](../design.md#verification)、[阶段正向门禁及失效](../design.md#allocation)、[部署兼容](../design.md#surfaces)。只有适用当前包的正向验收和独立审查齐备，才执行项目部署；01 终态为 wontfix/resolved 但无正向证明时不能开工。
+消费 [需求 revision 2](../requirements.md#cost-aware-verification-planning-requirements) 与 [设计 revision 2](../design.md#cost-aware-verification-planning-design)，具体依据为 [受控情景](../design.md#verification)、[阶段正向门禁及失效](../design.md#allocation)、[部署兼容](../design.md#surfaces)。只有适用当前包的正向验收和独立审查齐备，才执行项目部署；01 终态为 wontfix/resolved 但无正向证明时不能开工。
 
 ## Touch points
 

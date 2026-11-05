@@ -6,14 +6,14 @@ flowforge:
   revision: 1
   consumes:
     requirements:
-      cost-aware-verification-planning-requirements: 1
+      cost-aware-verification-planning-requirements: 2
     design:
-      cost-aware-verification-planning-design: 1
+      cost-aware-verification-planning-design: 2
 ---
 
 # 01: 规则实现及必要保护性测试
 
-**Blocked by:** None
+**Blocked by:** 00
 **Status:** open
 **Mode:** lightweight
 
@@ -25,7 +25,7 @@ flowforge:
 
 采用现有正文表达检查分组与 Fix verification，共享契约统一语义，五个技能分别落实职责。新安排必须完整明确；缺失走旧规则，残缺先阻塞。一次真实执行可明确覆盖多个 Change，新 Fix 必须有本轮实跑证据，旧结论由实际差分上的独立审查确认。阶段发布要求适用版本的正向证明，CLI 终态不替代它。
 
-消费 [需求 revision 1](../requirements.md#cost-aware-verification-planning-requirements) 与 [设计 revision 1](../design.md#cost-aware-verification-planning-design)，执行依据为 [检查安排](../design.md#schedule)、[Fix 合同](../design.md#fix-contract)、[证据生命周期](../design.md#evidence)、[落点](../design.md#surfaces)。
+消费 [需求 revision 2](../requirements.md#cost-aware-verification-planning-requirements) 与 [设计 revision 2](../design.md#cost-aware-verification-planning-design)，执行依据为 [检查安排](../design.md#schedule)、[Fix 合同](../design.md#fix-contract)、[证据生命周期](../design.md#evidence)、[落点](../design.md#surfaces)。
 
 ## Touch points
 

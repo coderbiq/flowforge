@@ -3,12 +3,12 @@ flowforge:
   schema: 1
   role: research
   id: cost-aware-verification-planning-sources
-  revision: 1
+  revision: 2
 ---
 
 # 来源归类与事实边界
 
-本文件由 flowforge-import 整理来源，不代替 [需求](requirements.md) 或 [设计](design.md)。目标语言为中文。2026-11-05 的当前会话授权将此前调查与讨论整理为正式 proposal；本轮不执行产品/技能实现。
+本文件由 flowforge-import 整理来源，不代替 [需求](requirements.md) 或 [设计](design.md)。目标语言为中文。2026-11-05 初次授权为将调查与讨论整理成正式 proposal；后续用户要求“继续”推进实施，并明确回复“允许，继续”，批准受限 Plan/Refine 测试作者入口作为前置修复。
 
 <a id="accepted-boundaries"></a>
 ## 已确认边界及采用方式
@@ -19,7 +19,9 @@ flowforge:
 | 用户说明机械执行、测试保护源自篡改测试和需求偏离的实际教训，拒绝通过放权赌能力改善 | 已接受约束 | requirements R1、R6；design 权限表 |
 | 用户提出每票基本结果验证、阶段集成验收，以及小修复避免重验 | 已接受目标 | requirements R2–R5；design 验证分配与 Fix 合同 |
 | 用户要求用成本原则改善 Plan 质量，关注 review fix 往返 | 已接受目标 | requirements R3、R7、R9 |
-| 本轮要求创建正式 proposal 梳理需求和方案 | 授权范围 | 本目录需求/设计与导航；不创建执行票、不启动实施 |
+| 最初要求创建正式 proposal 梳理需求和方案 | 首次授权范围 | 需求/设计与导航，已完成 |
+| 用户在确认尚未实施后要求“继续” | 实施授权 | 发布并执行实施票，独立审查、验证与部署 |
+| 用户对“为 Plan/Refine 增加受限测试写入入口”明确回复“允许，继续” | 前置修复授权 | requirements R10；仅指定作者运行和测试文件，不关闭全局保护、不放宽实现者权限 |
 
 <a id="research-sources"></a>
 ## 调查与讨论材料
