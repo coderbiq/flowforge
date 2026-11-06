@@ -8,10 +8,10 @@
 | --- | --- | --- |
 | [00作者入口](issues/00-test-authority.md)、[03安全修复](issues/03-test-authority-boundary-repair.md) | 已closed；有效产品和原证据保留 | 不回滚，不重复授权机制开发 |
 | [01原规则包](issues/01-rule-package.md)、[04门禁与记录修复](issues/04-stage-proof-scope-and-execution-record.md) | 已closed；只证明旧需求下的交付 | 保留历史；不冒称满足新目标 |
-| [05连续交付规则包](issues/05-continuous-delivery-rule-package.md) | open；G0/Refine及G1已提交，首轮Round0两项发现 | 同票Fix6–7合批修复后复核，零gap再首次双轴 |
+| [05连续交付规则包](issues/05-continuous-delivery-rule-package.md) | closed；G0/G1、Fix6–7及完整审查完成 | [正向审查证据](evidence/05-final-review.md)供02消费 |
 | [02集中行为验收与发布](issues/02-controlled-acceptance-and-deploy.md) | rev2，open；依赖05 | 05正向交付后Refine，两条真实链及适用兼容证明通过再发布 |
 
-剩余DAG为 **05 → 02**。05五节已经核实、测试已冻结并撤权，目前按已发布Fix verification执行6–7；02仍待05正向交付和Refine。状态open不等于通过。
+剩余任务是 **02**。05已正向交付；02仍待Refine、两条真实链及发布验收。05关闭不表示整个proposal完成。
 
 ## 本轮设计变化
 
@@ -22,7 +22,7 @@
 
 ## 回滚与历史
 
-[设计裁决](design.md#migration)为不做整包Git回滚：00/03安全边界、01/04正确门禁、Fix入口和共享运行语义均需保留。05原位替换不合目标的默认和重复文案，避免回到已知缺陷。若验收失败，保持未部署并修复。
+[设计裁决](design.md#migration)为不做整包Git回滚：00/03安全边界、01/04正确门禁、Fix入口和共享运行语义均需保留。05已原位替换不合目标的默认和重复文案，避免回到已知缺陷。若验收失败，保持未部署并修复。
 
 旧权威及02全文保留在`933797d`及以前历史；00/01/03/04保留旧consumes，精确历史waiver仅说明旧范围不重验新需求，不授权新任务跳过验证。[作者入口设计](design/test-authority.md)只消费未变的R10。
 
@@ -32,4 +32,4 @@
 
 历史证据：[01最终审查](evidence/01-final-review.md)、[04实施记录](evidence/04-implementation.md)、[01测试作者记录](evidence/01-test-authoring.md)、[lint基线](evidence/01-lint-baseline.md)、[阶段日志](journal.md)。
 
-用户随后“继续推进”已恢复实施。05作者提交e188b38、源规则提交eda39d4、超时恢复记录fd76532；完整Go/lint及隔离部署已有证据，实际项目部署仍未进行，模型/权限配置未改。沿用已记录的旧progress技能/INDEX缺失事实，以本README、journal和check/frontier同步导航；Beads仍无活动数据库，不伪造登记或初始化新库。
+用户随后“继续推进”已恢复实施。05作者提交e188b38、源规则提交eda39d4、超时恢复记录fd76532、Fix6–7 be83217；完整Go/lint及隔离部署和独立审查已有证据，实际项目部署仍未进行，模型/权限配置未改。沿用已记录的旧progress技能/INDEX缺失事实，以本README、journal和check/frontier同步导航；Beads仍无活动数据库，不伪造登记或初始化新库。

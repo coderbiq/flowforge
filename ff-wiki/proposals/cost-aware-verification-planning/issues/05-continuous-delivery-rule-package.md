@@ -14,7 +14,7 @@ flowforge:
 # 05: 连续实现、集中验证及角色职责一致的规则包
 
 **Blocked by:** 04
-**Status:** open
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery
@@ -184,3 +184,17 @@ Fix 6–7（基于`cbc667f`）。执行确认：本轮只消费本票`### Fix ve
 - 写完本轮记录再执行`git diff --check 08e87cb`（含当前工作树完整差分）与`bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning`；提交后`git diff --check 08e87cb...HEAD`必须exit0，避免提交后又追加EOF空行。同一运行可供6–7共享，但各Change四元组仍明确归属。
 - 拟复用G1整文件lint（2.15.0，原exit0/0 issues）：Go文件、go.mod/go.sum及lint配置不变；原全套Go作为历史记录保留，本轮另有源规则变化后的实际Go，不冒充复跑旧运行。00/03native授权与02行为链本轮不运行。
 - 扩大条件：改到声明外源面/Go/测试/依赖/配置，或发现新的真实检查失败、构建/部署语义变化，先返回主会话，不自行选测/扩写。修后Round0先核实实际差分及复用条件，确认零gap后两轴首次启动。
+
+### Round 2：Fix6–7复核与首次双轴收口
+
+- 固定范围08e87cb...be83217；fresh Round0 ffd17d10确认两项gap均修复，四分类均0；随后Standards a35645bd与Spec 7c5797a6独立并行。Standards硬违规0、Low judgement 2；Spec发现0。
+- 主会话逐项反证后不接受两项judgement作为验收缺陷：tracker权限摘要在局部入口有消歧价值且shared仍为唯一权威；第78行spawning未覆盖第27–35行显式leaf分支，无新的嵌套派发路径。完整原意见、依据和裁决见[05最终审查](../evidence/05-final-review.md)，不改写为原轴零发现。
+- NEXT: CLOSE；未决验收发现0、无新Fix/repair。仅关闭05；02真实链和本项目部署未验收。
+
+## Completion evidence
+
+- 已交付：新Plan默认完整逻辑连续实现/集中验证，必要前置及旧票兼容；一次执行确认、Refine精确引用；主会话owner/只读leaf职责、Fix证据与真实缺陷重开边界；十二个源面及生成传播一致。
+- 实现：作者e188b38、G1 eda39d4、记录恢复fd76532、Fix6–7 be83217。两份测试与作者冻结哈希相同，grant已撤销。
+- 实际验证：Fix阶段make、源/嵌入diff、完整internal Go、完整08e87cb...be83217 diff-check均exit0；Go/lint原始结果及环境SKIP归属、修复前失败保存在[05实施证据](../evidence/05-implementation.md)。2.15.0整文件lint复用条件经独立审计确认；未冒称本轮重跑。
+- 审查与处置：初次Round0两gap由Fix6–7消除，修后零gap，双轴与主会话逐项裁决如上；未决验收缺陷0。无权限/模型/Schema/算法变化。
+- 边界：没有完成02行为验收或本项目部署，不声称生产净提速。收口仅记录变化，原验证继续适用。
