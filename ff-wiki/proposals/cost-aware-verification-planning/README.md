@@ -8,10 +8,10 @@
 | --- | --- | --- |
 | [00作者入口](issues/00-test-authority.md)、[03安全修复](issues/03-test-authority-boundary-repair.md) | 已closed；有效产品和原证据保留 | 不回滚，不重复授权机制开发 |
 | [01原规则包](issues/01-rule-package.md)、[04门禁与记录修复](issues/04-stage-proof-scope-and-execution-record.md) | 已closed；只证明旧需求下的交付 | 保留历史；不冒称满足新目标 |
-| [05连续交付规则包](issues/05-continuous-delivery-rule-package.md) | 新open；依赖已完成04 | 合法作者与Refine准备后，一组修改全部Skill/角色入口，再集中检查和独立审查 |
+| [05连续交付规则包](issues/05-continuous-delivery-rule-package.md) | open；G0/Refine及G1已提交，首轮Round0两项发现 | 同票Fix6–7合批修复后复核，零gap再首次双轴 |
 | [02集中行为验收与发布](issues/02-controlled-acceptance-and-deploy.md) | rev2，open；依赖05 | 05正向交付后Refine，两条真实链及适用兼容证明通过再发布 |
 
-剩余DAG为 **05 → 02**。不按每个Skill拆票、不新增修复状态；两票五节骨架尚待Refine。当前没有可立即交给轻量实施者的票，不把规划发布当合同已核实。
+剩余DAG为 **05 → 02**。05五节已经核实、测试已冻结并撤权，目前按已发布Fix verification执行6–7；02仍待05正向交付和Refine。状态open不等于通过。
 
 ## 本轮设计变化
 
@@ -32,4 +32,4 @@
 
 历史证据：[01最终审查](evidence/01-final-review.md)、[04实施记录](evidence/04-implementation.md)、[01测试作者记录](evidence/01-test-authoring.md)、[lint基线](evidence/01-lint-baseline.md)、[阶段日志](journal.md)。
 
-本轮只调整proposal。没有修改assets、测试、模型配置、权限或部署副本。沿用已记录的旧progress技能/INDEX缺失事实，以本README、journal和check/frontier同步导航；Beads仍无活动数据库，不伪造登记或初始化新库。
+用户随后“继续推进”已恢复实施。05作者提交e188b38、源规则提交eda39d4、超时恢复记录fd76532；完整Go/lint及隔离部署已有证据，实际项目部署仍未进行，模型/权限配置未改。沿用已记录的旧progress技能/INDEX缺失事实，以本README、journal和check/frontier同步导航；Beads仍无活动数据库，不伪造登记或初始化新库。

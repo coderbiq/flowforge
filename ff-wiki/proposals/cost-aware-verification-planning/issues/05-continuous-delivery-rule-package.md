@@ -69,6 +69,9 @@ flowforge:
   - artifact: `internal/command/assets/AGENTS.md`
   - 共享运行：G1组#1（同一次完整内部Go、同固定点2.15.0整文件lint `0 issues.`、`git diff --check` exit 0、`bin/flowforge check --full`/`frontier` exit 0；全部原始输出见[05证据](../evidence/05-implementation.md#g1-implementation)）。
 
+- [ ] 6. Fix: 修正 `assets/skills/flowforge-review/SKILL.md:Fix planning` 的重开条件：只有没有新的相关差分、失败或证据时才保持已裁决事项关闭；新的真实缺陷仍须按原Fix/repair规则处理。删除当前绝对禁止重开的相反句，保留同固定点发现合批和原安全边界。
+- [ ] 7. Fix: 清除 `evidence/05-implementation.md` 末尾多余空行，保留一枚终止换行及全部历史结果；在本轮记录中引用当前Fix实跑和历史复用，按下方Fix verification检查完整交付范围，不能用空工作树检查替代。
+
 ## Constraints
 
 - must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../../AGENTS.md#核心设计原则)
@@ -153,3 +156,19 @@ G1（Changes2–5）完成。执行确认：本轮只消费作者冻结测试与
 实测：三份预期red的新语义测试族现在实际pass（未被放宽或改测）；允许新增的“验证时机”段落在 `assets/AGENTS.md`（Plan/Refine/Implement/Review/tracker已各有同类语句，未在别处重复）。本轮无失败重试、无Blocked evidence、无偏离写集。独立Round 0与双轴、Completion evidence、关闭票与02真实行为链仍未执行。
 
 ## Review rounds
+
+### Round 0 / Round 1 Fix：2026-11-06
+
+- 固定范围：`08e87cb...fd76532`，fresh auditor `0358bf53-0bc8-4cd7-8a7f-eadca24cb28f`；missing 0 / partial 1 / contradicts 1 / unrequested 0。双轴未启动，不记作通过。
+- [Medium] contradicts：review源第125行 `No new diff, failure, or evidence reopens a decided item.` 错把R5的“无新证据不重开”写成“新证据不准重开”。新失败反例出现后仍维持旧裁决是具体反例；后文扩大检查/repair不能抵消该绝对句。
+- [Low] partial：完整提交范围 `git diff --check 08e87cb...fd76532` exit2，原文 `ff-wiki/proposals/cost-aware-verification-planning/evidence/05-implementation.md:600: new blank line at EOF.` 旧工作树diff-check exit0是历史真实结果，不等于完整范围通过。
+- 主会话接受两项，NEXT: FIX，合批追加6–7。第一项是既定R5/design#fix-contract的机械翻译修正，权威含义明确，不改变责任、接口、验收或写集，因此不转设计、不新建repair；第二项为同写集格式修复。原Round0其余交付及证据适用性核查保留。报告原文在子代理产物 `continuous-delivery-05-recovery.audit-05.md`，固定diff在 `/tmp/flowforge-05-review/fixed-full.diff`。
+
+### Fix verification：Changes6–7，基于fd76532
+
+- 范围只有review源的一处含义修正、05证据末尾格式及本轮票/证据记录；嵌入/二进制仍仅由make生成。两测试保持G0哈希，模型/权限/算法/其他规则不变。此安排优先于G1的旧检查批次，不改变原验收目标。
+- 反例与预期：无新的相关差分/失败/证据→不因换审查者重开；出现新的相关真实缺陷→处理，不得被该句禁止。独立Round0核对两支及原repair边界，不靠词条测试通过代替含义判断。
+- 连续完成6–7后，直接执行一次`make dev`（不用管道，保留工具真实exit），`diff -qr assets internal/command/assets`，`GOPROXY=https://goproxy.cn,direct go test ./internal/...`，均须exit0。全内部Go遵守项目既有必跑约束，已覆盖相关条款/部署子集，不再另跑同固定点定向子集。记录实际命令/输出，零失败，旧环境SKIP事实保留。
+- 写完本轮记录再执行`git diff --check 08e87cb`（含当前工作树完整差分）与`bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning`；提交后`git diff --check 08e87cb...HEAD`必须exit0，避免提交后又追加EOF空行。同一运行可供6–7共享，但各Change四元组仍明确归属。
+- 拟复用G1整文件lint（2.15.0，原exit0/0 issues）：Go文件、go.mod/go.sum及lint配置不变；原全套Go作为历史记录保留，本轮另有源规则变化后的实际Go，不冒充复跑旧运行。00/03native授权与02行为链本轮不运行。
+- 扩大条件：改到声明外源面/Go/测试/依赖/配置，或发现新的真实检查失败、构建/部署语义变化，先返回主会话，不自行选测/扩写。修后Round0先核实实际差分及复用条件，确认零gap后两轴首次启动。
