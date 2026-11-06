@@ -69,8 +69,18 @@ flowforge:
   - artifact: `internal/command/assets/AGENTS.md`
   - 共享运行：G1组#1（同一次完整内部Go、同固定点2.15.0整文件lint `0 issues.`、`git diff --check` exit 0、`bin/flowforge check --full`/`frontier` exit 0；全部原始输出见[05证据](../evidence/05-implementation.md#g1-implementation)）。
 
-- [ ] 6. Fix: 修正 `assets/skills/flowforge-review/SKILL.md:Fix planning` 的重开条件：只有没有新的相关差分、失败或证据时才保持已裁决事项关闭；新的真实缺陷仍须按原Fix/repair规则处理。删除当前绝对禁止重开的相反句，保留同固定点发现合批和原安全边界。
-- [ ] 7. Fix: 清除 `evidence/05-implementation.md` 末尾多余空行，保留一枚终止换行及全部历史结果；在本轮记录中引用当前Fix实跑和历史复用，按下方Fix verification检查完整交付范围，不能用空工作树检查替代。
+- [x] 6. Fix: 修正 `assets/skills/flowforge-review/SKILL.md:Fix planning` 的重开条件：只有没有新的相关差分、失败或证据时才保持已裁决事项关闭；新的真实缺陷仍须按原Fix/repair规则处理。删除当前绝对禁止重开的相反句，保留同固定点发现合批和原安全边界。
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test ./internal/...`
+  - exit: 0
+  - output: `ok  \tflowforge/internal/command\t8.975s` / `ok  \tflowforge/internal/subagent\t0.945s`
+  - artifact: `assets/skills/flowforge-review/SKILL.md`
+  - 共享运行：Fix组#1（同一次`make dev`+`diff -qr assets internal/command/assets`及完整内部Go同时覆盖Change7）。原句`No new diff, failure, or evidence reopens a decided item.`替换为`A decided item stays closed only while no new relevant diff, failure, or evidence bears on it; a new real defect still takes the same Fix or repair route.`；同固定点合批与design-return/repair边界未动。
+- [x] 7. Fix: 清除 `evidence/05-implementation.md` 末尾多余空行，保留一枚终止换行及全部历史结果；在本轮记录中引用当前Fix实跑和历史复用，按下方Fix verification检查完整交付范围，不能用空工作树检查替代。
+  - cmd: `git diff --check 08e87cb`
+  - exit: 0
+  - output: 无输出（唯一`new blank line at EOF`已不再出现在完整范围差分中）
+  - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/05-implementation.md`
+  - 共享运行：Fix组#1；EOF由`\n\n`收敛为单枚`\n`，600行历史结果未改。lint按无Go/依赖/配置变化复用G1整文件运行。
 
 ## Constraints
 
@@ -154,6 +164,8 @@ G1（Changes2–5）完成。执行确认：本轮只消费作者冻结测试与
 - Change5：一次 `make dev` 后 `diff -qr assets internal/command/assets` 无差异；同固定点完整内部Go exit0、0失败、3项环境SKIP原样披露；整文件lint `0 issues.`；`git diff --check` exit0；`check --full` 保留02缺节与六项历史waiver，05无新增诊断且仍在frontier READY。
 
 实测：三份预期red的新语义测试族现在实际pass（未被放宽或改测）；允许新增的“验证时机”段落在 `assets/AGENTS.md`（Plan/Refine/Implement/Review/tracker已各有同类语句，未在别处重复）。本轮无失败重试、无Blocked evidence、无偏离写集。独立Round 0与双轴、Completion evidence、关闭票与02真实行为链仍未执行。
+
+Fix 6–7（基于`cbc667f`）。执行确认：本轮只消费本票`### Fix verification：Changes6–7`，写集限于review源一句话、05证据EOF及本票/证据记录；关键失败条件为改动声明外源面/Go/测试/依赖/配置或出现新真实检查失败；两份G0冻结测试本次全程未登录写权，SHA256保持`17eca4b4…90033`/`e60de2b8…7c687c`。组内连续完成6–7后一次`make dev`（exit0，不经管道）→`diff -qr assets internal/command/assets`（exit0，无差异）→完整内部Go `ok command 8.975s`/`ok subagent 0.945s`/`ok tracker 1.086s`，0失败，无本轮新增环境SKIP。含义核对：原句把R5“没有新证据不重开”写成绝对禁止重开，新句以“无新的相关差分/失败/证据才保持关闭、真实缺陷仍按原Fix或repair路线处理”正向表达，未放宽任何既有边界。`git diff --check 08e87cb`（含本轮记录）与`bin/flowforge check --dir …`均exit0，05无新增诊断。G0/G1未重做，lint按无Go/依赖/配置变化复用G1整文件运行。
 
 ## Review rounds
 

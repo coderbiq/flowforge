@@ -598,3 +598,14 @@ G0冻结的两份测试在本轮开始前、修改后、提交前三次读取均
 - 源码、测试、依赖自`eda39d4`起没有变化；两份冻结测试SHA256仍与G0完全一致（`17eca4b4…90033`、`e60de2b8…7c687c`）。完整内部Go、整文件lint、`git diff --check`、`check`/`frontier`均引用首跑结果，恢复阶段没有重跑。
 - 恢复阶段的记录提交另起一个只含`evidence/05-implementation.md`的文档提交（不改源码），其SHA由主会话随返回记录；审查固定点取实现提交与恢复记录提交之间的完整差分（源码差分即`e188b38..eda39d4`）。
 
+## Fix 6–7 实施（基于 `cbc667f`）
+
+- 范围：仅 `assets/skills/flowforge-review/SKILL.md:Fix planning` 一句含义修正、本文件末尾空行及05票/Fix记录；`internal/command/assets/**` 与 `bin/flowforge` 仍只由 `make dev` 生成（被 `.gitignore` 忽略，不进入提交）。两份 G0 冻结测试本轮未写入，SHA256 仍为 `17eca4b4…90033`、`e60de2b8…7c687c`。
+- 原句→新句：`No new diff, failure, or evidence reopens a decided item.` → `A decided item stays closed only while no new relevant diff, failure, or evidence bears on it; a new real defect still takes the same Fix or repair route.`。新句是 R5「没有新的相关差分/失败/证据才保持已裁决事项关闭，新真实缺陷仍处理」的正向表述；同固定点发现合批与 design-return/repair 路径原样保留。
+- 语义反例：出现新的相关失败或差分时，旧句禁止重开→与 R5 及 design#fix-contract 相反；新句要求仍走原 Fix 或 repair 路线。仅是换了审查会话、无新证据→已裁决事项保持关闭。
+- `make dev`（不经管道，保留工具真实 exit）：exit 0，输出 `cp -R assets internal/command/assets` 与 `bin/flowforge` 构建完成。
+- `diff -qr assets internal/command/assets`：exit 0，无输出。
+- `GOPROXY=https://goproxy.cn,direct go test ./internal/...`：exit 0。`ok  flowforge/internal/command 8.975s`、`ok  flowforge/internal/config (cached)`、`ok  flowforge/internal/subagent 0.945s`、`ok  flowforge/internal/tracker 1.086s`、`ok  flowforge/internal/update (cached)`、`?   flowforge/internal/version [no test files]`；零失败，本轮无新增环境 SKIP（G1 记录的三项环境 SKIP 作为历史事实保留）。
+- 本轮记录落盘后：`git diff --check 08e87cb` exit 0（完整的 `08e87cb…工作树` 范围不再出现 `05-implementation.md:600: new blank line at EOF.`）；`bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning` exit 0，仅保留 02 的 `execution-contract-incomplete`，05 无新增诊断。
+- 复用：Go 文件、`go.mod`/`go.sum` 及 lint 配置未变，整文件 lint（2.15.0，`--new-from-rev 16cce8e`）复用 G1 的 exit 0 / `0 issues.`；G0/G1 其余运行不重做，历史结果不冒充本轮实跑。
+- 未执行：部署本项目 `.agents`、独立 Round 0/双轴、Completion evidence、关票、push，以及 02 的真实行为链。
