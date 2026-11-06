@@ -342,16 +342,22 @@ func TestPlanPublishesExecutionDetailSkeleton(t *testing.T) {
 
 func TestImplementSkillCarriesWeakExecutorContract(t *testing.T) {
 	body := readSkillBody(t, filepath.Join("flowforge-implement", "SKILL.md"))
+	// Design rev4 replaces the two exhaustive restatements with one execution
+	// confirmation. The safety pins below still apply to that confirmation.
+	assertCostAwareClauses(t, body, "execution confirmation", []string{
+		`(one|single|once).{0,100}(execution confirmation|execution check-in)`,
+		`(constraint|failure condition)`,
+		`Write set`,
+		`(preset|protected).{0,80}test`,
+	})
 	for _, needle := range []string{
 		"**Mode:** lightweight",
 		"STATUS: BLOCKED",
-		"Restate before executing",
 		"at most 2 times",
 		"5 failed repair rounds",
 		"exit: 0",
 		"same edit",
 		"verbatim",
-		"Execution scenario (both Success and Failure)",
 	} {
 		if !strings.Contains(body, needle) {
 			t.Errorf("flowforge-implement weak-executor contract missing %q", needle)
