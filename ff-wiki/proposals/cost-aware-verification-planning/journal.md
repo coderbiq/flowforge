@@ -27,6 +27,8 @@ flowforge:
     - {round: 3, stage: plan, action: done, ts: 2026-11-06T04:27:45.821Z, by: flowforge-plan, reason: "02 G0 Refine提交4146cd4、精确三测试冻结撤权；实际B1/B2及小Fix已执行并由主会话固定原始证据，待G1独立审查，不宣称发布", artifacts: [issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/acceptance.md, README.md]}
     - {round: 3, stage: review, action: done, ts: 2026-11-06T04:42:40.686Z, by: flowforge-review, reason: "02初次Round0两记录gap：主会话补一项只读观察命令证据、反证P后无ls判断并纠正子报告提交前措辞；待原审计复核，双轴和部署未开始", artifacts: [issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/acceptance.md]}
     - {round: 3, stage: review, action: done, ts: 2026-11-06T04:50:49.851Z, by: flowforge-review, reason: "02 G1复核零gap、Standards硬违规0/judgement0、Spec0，主会话接受；同候选准入G2，尚不关闭02或proposal", artifacts: [issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/review-g1-final.md, README.md]}
+    - {round: 3, stage: review, action: done, ts: 2026-11-06T05:03:28.230Z, by: flowforge-review, reason: "02 G2部署完成；主会话确认同源、冻结测试及模型绑定不变，G1结论继续适用，关闭02；原始失败及记录偏离保留", artifacts: [issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/deployment.md, README.md]}
+    - {round: 3, action: round-close, ts: 2026-11-06T05:03:28.230Z, by: flowforge-review, source: review, reason: "六票全部closed，本地实施/行为验收/部署完成，不宣称净提速"}
 ---
 
 # 阶段记录

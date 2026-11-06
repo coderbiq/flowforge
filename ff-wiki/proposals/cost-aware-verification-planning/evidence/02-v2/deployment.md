@@ -79,3 +79,16 @@ exit 0。stdout（原文）：`✓ FlowForge local tracker initialized successfu
 - 未重跑 05 Go/lint、A/F/P、B1/B2 行为链或 native 安全矩阵（源、测试、binary、配置均未变，05/G1 结果按原归属继续适用）。
 - 没有可比活跃时间或跨会话计量，成本变化写未知；本记录不宣称净提速，也不宣称远程发布。
 - 只读角色的工具白名单来自编译产物与宿主配置，不是 OS 级沙箱；`project-owned` 与 `customisable` 状态说明 CLI 不接管项目自有文件。
+
+## 8. 主会话最终适用性确认
+
+主会话核对6b8996d差分及实施原始trace：只有管理块、tracker与本票记录，源/冻结测试/binary未变。重新作文件级比对确认源=嵌入=全部受管部署Skill、PI扩展与tracker相等，AGENTS块外逐字未变；config.yaml/model-set.active/agent-model-state三份实际当前哈希与部署前后记录相同。因此05及G1独立结论继续适用，无须再跑Go/lint、A/F/P或重开审查。原始CLI调用/结果摘录与固定点见[deployment-parent-confirmation.json](deployment-parent-confirmation.json)。
+
+记录精度补充（保留原子报告，不改历史）：
+
+- `init`实际一次；`assets verify`和`agents status`各四次：部署前、init后tracker仍保留时、tracker对齐后、最终记录收口。后两次均current；最后一次重复status未增加行为覆盖，不能说这些命令均只运行一次。
+- 两次辅助采集失败：trace第79–85行在读取带CLI错误尾文的部署前JSON时遇到JSONDecodeError/Extra data；第220–223行因未复制的临时manifest.yaml遇到FileNotFoundError。随后修正采集脚本完成记录，没有因此重新init或修改产品源码。manifest的部署前实际哈希已在第77行输出，未把当前哈希冒充未知历史。
+- “严格旧子集”是子报告措辞不精确：真实tracker diff含预定规则的替换与追加，并非字节级只有新增。主会话检查完整diff，全部落在授权语义内，未发现独有定制丢失；最终tracker逐字等于已验收源。
+- 上述是记录/查询成本和原文呈现问题，不改变本地部署成功与模型配置保持；不作净提速结论。
+
+主会话确认Change4完成，当前未决验收缺陷0，可按已记录双轴结果关闭02。部署后新启动会话才自动消费新角色/规则；本会话不宣称已热更新。

@@ -14,7 +14,7 @@ flowforge:
 # 02: 集中验证连续交付行为并发布一致规则包
 
 **Blocked by:** 05
-**Status:** open
+**Status:** closed
 **Mode:** lightweight
 
 ## Delivery
@@ -146,3 +146,16 @@ G0完成于4146cd4，授权已撤销。G1真实链与固定工件见[acceptance]
 ### G1 Round0：固定5a84039，记录补证/反证
 
 独立审计14762bf3接受B1原A复用及S4–S9分层覆盖，报partial1/contradicts1。主会话接受第一项记录不足，在Change3记录职责内补发布的只读marker观察及seed/worktree命令记录（同fixture b458d23，全部exit0，不重跑A/F/P）；第二项“P后无ls”被trace79–81反证，另如实纠正原子报告的“提交前”为提交后。原始report/meta/trace不改写。原审计原文及所有反证/新观察见[验收记录独立结论段](../evidence/02-v2/acceptance.md#独立结论与发布)。未重开已确认行为；待原审计者复核，双轴未启动，G2不得开始。
+
+### G2最终适用性确认与关闭
+
+主会话核对6b8996d完整部署差分、原始CLI返回与实际文件：受管副本匹配已验收源，模型配置/状态哈希与AGENTS管理块外内容保持，源/测试/binary无变。G1 Round0零gap、Standards0/Spec0及原A复用结论继续适用；没有新的语义差分需要重跑行为链或再次派审查。部署原文、重复查询及辅助脚本失败的准确归属保留于[deployment第8节](../evidence/02-v2/deployment.md#8-主会话最终适用性确认)。未决验收发现0，NEXT: CLOSE。
+
+## Completion evidence
+
+- G0：4146cd4完成Refine与三个受保护测试，实际session/instance授权经主会话签发、哈希确认、撤销；旧02-scenarios未使用。
+- G1：真实Plan分别选择B1单票连续组与B2必要前置；独立flash实施者连续完成B1后A一次4pass，普通小Fix后F一次1pass并由独立审计接受原A复用；B2 P一次预设失败即停止，无使用/改schema/删除marker。全部原始调用及固定fixture历史见[acceptance](../evidence/02-v2/acceptance.md)。
+- 独立审查：首次Round0记录缺口已补证、错误发现已撤回；复核0gap，Standards0/Spec0。原错误、反证和每项裁决保留于[最终审查](../evidence/02-v2/review-g1-final.md)，未伪称逐变体模型测试或净提速。
+- G2：6b8996d用同一binary完成本地部署，assets verify为52current/1project-owned，agents status为48current/2project-owned；模型配置/绑定保持，定制tracker及AGENTS管理块与源对齐。主会话核对最终差分与记录后关闭。
+- 验证归属：05 Go/lint与既有native证明在输入不变时复用，未重跑A/F/P；B2预设失败、隔离原始TAP空白诊断、记录采集错误/多次状态查询均如实保留，不冒称所有命令首跑绿。主项目strict检查及完整范围diff检查用于最终文档收口。
+- 当前交付范围为本机本项目部署。新启动会话消费新规则；不声称当前会话热更新、跨机已部署或受控生产净收益。
