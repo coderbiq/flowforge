@@ -120,3 +120,7 @@ G0由Refine/合法作者完成Change1，主会话固定候选入口和观察方�
 G0完成于4146cd4，授权已撤销。G1真实链与固定工件见[acceptance](../evidence/02-v2/acceptance.md)：候选隔离历史fb1fefd...b458d23、5次角色调用及完整原始trace，主会话直接写Fix/记录。源规则与冻结测试未改，05 Go/lint未重复；B1 A、窄F各一次，B2 P失败后停止。保留B2 verbatim记录导致隔离完整diff-check exit2、全局strict因预期blocked记录exit1等偏离，不称全绿。Change3待同一G1固定结果独立审查；G2仍禁止开始。
 
 ## Review rounds
+
+### G1 Round0：固定5a84039，记录补证/反证
+
+独立审计14762bf3接受B1原A复用及S4–S9分层覆盖，报partial1/contradicts1。主会话接受第一项记录不足，在Change3记录职责内补发布的只读marker观察及seed/worktree命令记录（同fixture b458d23，全部exit0，不重跑A/F/P）；第二项“P后无ls”被trace79–81反证，另如实纠正原子报告的“提交前”为提交后。原始report/meta/trace不改写。原审计原文及所有反证/新观察见[验收记录独立结论段](../evidence/02-v2/acceptance.md#独立结论与发布)。未重开已确认行为；待原审计者复核，双轴未启动，G2不得开始。

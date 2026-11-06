@@ -23,7 +23,7 @@
 
 精确命令/全部stdout、stderr、exit在各`runtime/*.trace.jsonl`及对应快照，索引与报告均在runtime。`.calls.json`只是方便导航的toolCall抽取，不取代原始trace及toolResult。父会话没有再次运行A/F/P。
 
-可核对的原始位置：B1 implement trace第32行写一次执行确认，第36行修改contract/quote，第43行修改cli，第47行才调用A；期间没有提前编译/测试/独立验收或角色交接。Fix trace第59行确认、第63行修改help、第71行才调用F。B2 use trace第43行确认、第47行调用P，之后只有记录/图/Git/只读目录观察，无consume调用、schema修改、marker删除。父会话的另一次只读文件观察确认marker不存在、B2 seed两文件逐字等于基线，见[owner-observations](runtime/owner-observations.json)。
+可核对的原始位置：B1 implement trace第32行写一次执行确认，第36行修改contract/quote，第43行修改cli，第47行才调用A；期间没有提前编译/测试/独立验收或角色交接。Fix trace第59行确认、第63行修改help、第71行才调用F。B2 use trace第43行确认、第47行调用P，之后只有记录/图/Git/只读目录观察，无consume调用、schema修改、marker删除。父会话的只读文件观察确认marker不存在、B2 seed两文件逐字等于基线，初始布尔记录见[owner-observations](runtime/owner-observations.json)；Round0后在同一fixture HEAD补做已发布Node断言、seed差分和工作树检查，完整argv/cwd/exit/stdout/stderr见[补充观察](runtime/owner-observation-supplement.json)，输出`B2 marker absent`、全部exit0。它是新的只读观察，不冒称原先A/F/P的一部分。
 
 共5个实际角色调用（2 Plan兼Refine、3实施），一次主会话预设Fix批次；独立审计/两轴还未计入。三个行为检查各一次，共A/F/P三次；共享运行只计一次，作者G0及05历史运行另计。这里不是全部工具调用数量：五会话tool-call数量为26/31/25/22/27，还发生读取、图检查、记录和Git动作，不能用3次检查代表总成本。没有旧模型同输入实跑或可比活跃计时，净节省未知。
 
@@ -44,4 +44,12 @@
 
 ## 独立结论与发布
 
-待Round0、Standards、Spec针对本固定G1范围报告。当前无关闭声明，02 Change3的独立判断尚未完成，Change4本项目发布尚未开始。只有正向结论及候选版本仍适用才执行G2。
+初次Round0原文见[review-round0-initial](review-round0-initial.md)：接受A复用与S4–S9分层语义适用，但报两处记录gap。主会话在Change3的记录职责内补证并提交原审计者复核：
+
+- G1接受其证据呈现不足：初始owner-observations为实际Python断言生成的布尔结果，但没有该断言的独立命令/输出记录。现补充同一HEAD的已发布Node标记断言及seed/worktree检查，见上方新记录；不修改原记录或重跑A/F/P。
+- G2所述“P之后无ls”被原始轨迹反证。trace第79行message_end含`ls cases/b2/`，第80行tool_execution_start时间04:16:50.100Z、第81行tool_execution_end有目录输出；P在第47–50行04:15:52。原报告的“提交前”仍不准确：该ls在第75–78行commit之后。保留原report/meta/trace，只在此更正用途/时间描述，不能按审计建议删除真实事件或改写原始材料。[原事件摘录](runtime/audit-counterevidence.json)保留JSON记录与源trace哈希。
+- 审计D7的“0基行号”判断不成立：本记录引用message_end内toolCall的1基行号，审计引用紧邻tool_execution_start（+1），均为1基。快照是30项（含.gitignore），不是29项。
+- D6及入口开关现有主会话原始事件已补存[runtime/owner-prior-host-events.json](runtime/owner-prior-host-events.json)：4次候选角色get实际路径/开关以及G1派发前72项哈希核验命令和输出。它们是原运行记录的摘录，不是新的发现/检查，不把原G1前核验改说成G0自检。
+- D4的journal事件记录owner已完成发布Fix，reason已明确独立审查尚未执行；保留历史，不改成从未发生的skipped或伪造round-close。
+
+等待原审计者对上述反证/补证复核，零gap后首次Standards/Spec。当前无关闭声明，02 Change3的独立判断尚未完成，Change4本项目发布尚未开始。只有正向结论及候选版本仍适用才执行G2。

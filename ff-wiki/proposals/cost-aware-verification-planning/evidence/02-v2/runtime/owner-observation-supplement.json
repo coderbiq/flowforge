@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-11-06T04:41:04.561553+00:00",
+  "reason": "Round0 G1 requested explicit command/exit/output for parent read-only observation. This is a new observation at the same fixture HEAD, not a replay of A/F/P.",
+  "checks": [
+    {
+      "argv": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {existsSync} from \"node:fs\"; import assert from \"node:assert/strict\"; assert.equal(existsSync(\"cases/b2/used.marker\"),false); console.log(\"B2 marker absent\")"
+      ],
+      "cwd": "/tmp/flowforge-02-v2.kktVNK",
+      "exit": 0,
+      "stdout": "B2 marker absent\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--exit-code",
+        "fb1fefd",
+        "--",
+        "cases/b2/capability.json",
+        "cases/b2/consume.mjs"
+      ],
+      "cwd": "/tmp/flowforge-02-v2.kktVNK",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "status",
+        "--porcelain",
+        "--",
+        "cases"
+      ],
+      "cwd": "/tmp/flowforge-02-v2.kktVNK",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/tmp/flowforge-02-v2.kktVNK",
+      "exit": 0,
+      "stdout": "b458d23b1750f43d95a454e668296090cffee4aa\n",
+      "stderr": ""
+    }
+  ]
+}
