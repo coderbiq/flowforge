@@ -133,6 +133,13 @@ return to this session and re-delegate based on each subagent's `Next Action`.
 | Any code review, implementation audit, or completed-work review | `flowforge-reviewer` | `flowforge-review` |
 | A bounded research/diagnosis question blocks a decision | `flowforge-investigator` | `flowforge-diagnose` / `flowforge-research` |
 
+The main session is the workflow owner: it selects and dispatches these roles,
+aggregates their findings, adjudicates, and writes the resulting ticket
+artifacts back. A dispatched read-only role — Round 0 audit, Standards axis,
+Spec axis — returns cited findings only: it does not spawn another role, write
+files, or close a ticket. Short mechanical records — a Review round line, a
+journal event, a disposition — are written back directly by the main session,
+not delegated for the backfill.
 
 ## Execution unit policy
 
@@ -156,6 +163,12 @@ unless a Change explicitly targets them. Host-level enforcement examples:
   `permission: {edit: {"**/*_test.go": "deny", "**/src/test/**": "deny"}}`
 - Claude Code: `disallowedTools` restrictions or a PostToolUse/Stop hook that
   runs the preset tests.
+
+**Verification timing.** A new ticket normally publishes one continuous group in
+its `Verification schedule`: its related Changes are implemented first and
+checked once at the group's end, so an intermediate Change is not an acceptance
+event. A ticket without a schedule keeps the per-Change build and full verify
+rules — old tickets are never migrated by inference.
 
 ## Per-machine deploy artifacts
 

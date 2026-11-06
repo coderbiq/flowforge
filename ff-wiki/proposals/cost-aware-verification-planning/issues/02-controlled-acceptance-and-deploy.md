@@ -52,7 +52,11 @@ flowforge:
   - exit: 0
   - output: Round0 gaps0；Standards硬违规0/judgement0；Spec0；主会话接受A复用和分层覆盖，保留预设P失败/隔离空白诊断边界。
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/review-g1-final.md`
-- [ ] 4. 只有Changes1–3正向证据与独立审查齐备且适用候选版本，才部署本项目的规则/角色，核对源→嵌入→部署、管理块与定制tracker差异、模型配置保持和新会话入口。记录实际发布结果，主会话补充最终差分的适用性确认后关闭，不重跑未失效的行为链。
+- [x] 4. 只有Changes1–3正向证据与独立审查齐备且适用候选版本，才部署本项目的规则/角色，核对源→嵌入→部署、管理块与定制tracker差异、模型配置保持和新会话入口。记录实际发布结果，主会话补充最终差分的适用性确认后关闭，不重跑未失效的行为链。
+  - cmd: `bin/flowforge init /Users/qiangbi/develop/projects/Syl/tangram/flowforge`
+  - exit: 0
+  - output: `✓ Managed assets verified current.` / `✓ Deployed flowforge subagents to .claude/agents/, .opencode/agent/, .codex/agents/, .pi/agents/`（随后 `assets verify … --json` exit0 current:true 52/1、`agents status --json` exit0 current:true 48/2、tracker 对齐到源 39d2322c…，见[部署记录](../evidence/02-v2/deployment.md)）
+  - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/deployment.md`
 
 ## Constraints
 
@@ -120,6 +124,16 @@ G0由Refine/合法作者完成Change1，主会话固定候选入口和观察方�
 - must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
 
 ## Implementation note
+
+### G2 部署执行确认（本轮）
+
+- 分组与验收：执行本票 `### Verification schedule` 的 G2 入口（无 `Fix verification` 治理本轮），命令菜单是本票 Done and verify 与[inputs](../evidence/02-v2/inputs.md)已定义的三条既有接缝：`init [root]`、`assets verify [root] --json`、cwd=目标根的 `agents status --json`；另加本票要求的逐面比对与 `check --strict`/`git diff --check`。
+- 回退失败条件（任一即停并返回 owner）：binary 哈希不等于 `af73ea27…`、`diff -qr assets internal/command/assets` 非空、已验收固定点后源/冻结测试变化、候选返回非 0 或非 current、AGENTS 管理块外变化、模型配置哈希变化、出现范围外或不可解释变化。
+- 写集：本票、`evidence/02-v2/**`、`ff-wiki/agents/issue-tracker.md`（仅本proposal语义对齐）、`AGENTS.md`（仅管理块）、`.gitignore`（仅生成管理项）、四宿主角色/PI扩展/`.agents/**`（仅既有部署）、`.flowforge/agent-model-state.json`（仅部署生成）。冻结测试与源规则只读，无测试授权。
+
+### G2 结果
+
+Change4完成：`init` exit0；部署后 `assets verify --json` exit0 `current:true`（52 current/1 project-owned）、`agents status --json` exit0 `current:true`（48 current/2 project-owned）；4 宿主角色齐备（12/12/14/12），PI 审查角色仍为 `read,grep,find,ls`+`inheritSkills:false`，Codex 审查角色 `sandbox_mode=read-only`；PI 扩展与源逐字节相等；AGENTS 块外 1444 字节前缀与结尾零变化、块内容等于 `assets/AGENTS.md`；`.gitignore`/`.flowforge/config.yaml`/`model-set.active`/`agent-model-state.json` 哈希前后相同（保留本机模型绑定，未改未复制）；定制 tracker 用 5 处精确 edit 对齐到源语义（对齐后与 `assets/agents/issue-tracker.md` 逐字节相等，未整文件覆盖）。部署前旧部署 verify/status 为 exit1 并保留原文，未重试掩盖。`check --strict`、`git diff --check` exit0。规则对**部署后新启动的会话**生效；本轮未重跑 05 Go/lint、A/F/P 或 native 矩阵。All modifications within write set。
 
 G0完成于4146cd4，授权已撤销。G1真实链与固定工件见[acceptance](../evidence/02-v2/acceptance.md)：候选隔离历史fb1fefd...b458d23、5次角色调用及完整原始trace，主会话直接写Fix/记录。源规则与冻结测试未改，05 Go/lint未重复；B1 A、窄F各一次，B2 P失败后停止。保留B2 verbatim记录导致隔离完整diff-check exit2、全局strict因预期blocked记录exit1等偏离，不称全绿。Change3待同一G1固定结果独立审查；G2仍禁止开始。
 

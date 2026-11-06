@@ -53,3 +53,15 @@
 - D4的journal事件记录owner已完成发布Fix，reason已明确独立审查尚未执行；保留历史，不改成从未发生的skipped或伪造round-close。
 
 原审计者已确认G1补证、撤回G2误读，复核零gap；首次Standards硬违规0/judgement0、Spec0发现。原文及主会话接受裁决见[review-g1-final](review-g1-final.md)。G1实际审查调用为初次Round0、同审计者复核、两个独立轴，共4次，另于上述5次行为角色调用计算；其中一轮误读复核不是产品重新实施。02 Change3已完成，Change4可在同版本核实后开始，当前尚未部署，不关闭02。
+
+## G2 本项目部署结果（追加）
+
+以下只是 Change4 实际执行结果，不改写上方任何历史独立结论与行为生态归因。完整命令/哈希/原始 JSON 见[部署记录](deployment.md)与[deployment-g2.json](deployment-g2.json)。
+
+- 前置：同一已验收 binary `af73ea27…`（与 manifest 一致）、`diff -qr assets internal/command/assets` exit0、`git diff 8792cbb..HEAD -- assets internal/command/assets bin` 空、manifest 主项目 35/35 匹配（含三个冻结测试）。基线 `30901a1`。
+- 部署前快照与旧部署差异已记录；旧部署 `assets verify`/`agents status` 均 exit1（7 skill + 1 定制 tracker 漂移；16 角色文件漂移），CLI 既有错误行原文保留，未重试掩盖。
+- `bin/flowforge init <project-root>` exit0；随后 `assets verify <root> --json` exit0 `current:true`（52 current/1 project-owned）、cwd=根 `agents status --json` exit0 `current:true`（48 current/2 project-owned）。
+- 逐面：Skill 源＝嵌入＝部署（部署侧仅多项目自有 `references/`）；4 宿主 12 角色齐备（12/12/14/12），PI 审查角色工具仍 `read,grep,find,ls` 且 `inheritSkills:false`、Codex 审查角色 `read-only`；PI 扩展与源逐字节相等；AGENTS 仅管理块刷新且块内容等于 `assets/AGENTS.md`；`ff-wiki/agents/issue-tracker.md` 以 5 处精确 edit 对齐到源（对齐后逐字节相等，未整文件覆盖，未丢项目定制）。
+- 模型配置保持：`.flowforge/config.yaml`、`model-set.active`、`agent-model-state.json` 哈希前后相同，48 条状态路径与已部署角色字段 0 不匹配、24 条 retained-local 绑定保留；未修改或复制任何模型配置。配置内容未写入证据。
+- `check --strict` 与 `git diff --check` exit0。未重跑 05 Go/lint、A/F/P 或 native 矩阵；没有可比计时，收益未知。
+- **生效范围**：新规则/角色只对部署后新启动的会话生效；本次执行会话本身仍加载部署前角色，规则不反向改变已发生的 G0/G1 观察。02 保持 open，最终适用性确认与关闭由主会话完成。

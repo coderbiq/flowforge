@@ -1,0 +1,669 @@
+{
+  "g2StartCommit": "30901a127532ba1aea6cc8af53cfb2430cf41be9",
+  "binary": {
+    "path": "bin/flowforge",
+    "sha256": "af73ea27fe720706f593f54c4c849047ce8dcd292d756461a616cf3e0bdb1997",
+    "manifestExpected": "af73ea27fe720706f593f54c4c849047ce8dcd292d756461a616cf3e0bdb1997"
+  },
+  "sourceEmbedded": {
+    "cmd": "diff -qr assets internal/command/assets",
+    "exit": 0,
+    "output": ""
+  },
+  "sourceSinceAcceptedFixedPoint": {
+    "cmd": "git diff --stat 8792cbb..HEAD -- assets internal/command/assets bin",
+    "exit": 0,
+    "output": ""
+  },
+  "manifestMainRepo": {
+    "checked": 35,
+    "mismatched": 0,
+    "missing": 0,
+    "includes": [
+      "3 frozen __tests__ files",
+      "5 changed skills + _shared",
+      "4 subagent sources",
+      "assets/pi/flowforge.ts",
+      "assets/AGENTS.md",
+      "assets/agents/issue-tracker.md"
+    ]
+  },
+  "preSnapshot": {
+    ".gitignore": "6584f106b46d9bcf1fffd5f36afa205e53144ceeef899a5aecdb9fa9d620cbdc",
+    "AGENTS.md": "dc8df253d5782e93fb17d85f424aef2494ccef30016018602ac75fa6c3f6c18c",
+    "AGENTS.md.prefix_before_managed_block": "db783aed2b487d41c625d992ac84f9f9188080a00799cb68793c6f1a26c4cf0d",
+    "ff-wiki/agents/issue-tracker.md": "13a29756c0e9ac2dacd084c20ec083e8588ba805e03427fba90b2dc0d5d0a53f",
+    ".flowforge/config.yaml": "8d90a574f53d3426238b5c470dd6a6cf2f03371d7c1a3e59a01a7fdd52829c59",
+    ".flowforge/agent-model-state.json": "984ccb500c7796beb2a86381915c22765085d0392d475b073194977e45f6b584",
+    ".flowforge/model-set.active": "5adc910fb81d0996ac7783ca4e868351a0855fd0fc76f392869959880f2196f6",
+    ".flowforge/manifest.yaml": "873b7e1c0c3e335014bfc0ca6eea0cc734cb2e3c54714600db301e78a794288a"
+  },
+  "preDeployment": {
+    "assets_verify": {
+      "exit": 1,
+      "current": false,
+      "counts": {
+        "drifted": 7,
+        "current": 45,
+        "project-owned": 1
+      },
+      "non_current": [
+        ".agents/skills/_shared/ARTIFACT-CONTRACT.md",
+        ".agents/skills/flowforge-implement/SKILL.md",
+        ".agents/skills/flowforge-implement/references/workflow-rules.md",
+        ".agents/skills/flowforge-plan/SKILL.md",
+        ".agents/skills/flowforge-refine-ticket/SKILL.md",
+        ".agents/skills/flowforge-review/SKILL.md",
+        ".agents/skills/flowforge-solution-design/SKILL.md",
+        "ff-wiki/agents/issue-tracker.md"
+      ],
+      "error_tail": "Error: proposal diagnostics violate selected policy\nproposal diagnostics violate selected policy"
+    },
+    "agents_status": {
+      "exit": 1,
+      "current": false,
+      "counts": {
+        "current": 32,
+        "drifted": 16,
+        "project-owned": 2
+      },
+      "non_current": [
+        ".claude/agents/flowforge-implementer.md",
+        ".claude/agents/flowforge-planner.md",
+        ".claude/agents/flowforge-reviewer-lite.md",
+        ".claude/agents/flowforge-reviewer.md",
+        ".opencode/agent/flowforge-implementer.md",
+        ".opencode/agent/flowforge-planner.md",
+        ".opencode/agent/flowforge-reviewer-lite.md",
+        ".opencode/agent/flowforge-reviewer.md",
+        ".codex/agents/flowforge-implementer.toml",
+        ".codex/agents/flowforge-planner.toml",
+        ".codex/agents/flowforge-reviewer-lite.toml",
+        ".codex/agents/flowforge-reviewer.toml",
+        ".codex/agents/flowforge-coordinator.toml",
+        ".codex/agents/flowforge-design-analyst.toml",
+        ".pi/agents/flowforge-implementer.md",
+        ".pi/agents/flowforge-planner.md",
+        ".pi/agents/flowforge-reviewer-lite.md",
+        ".pi/agents/flowforge-reviewer.md"
+      ],
+      "error_tail": "Error: proposal diagnostics violate selected policy\nproposal diagnostics violate selected policy"
+    }
+  },
+  "init": {
+    "cmd": "bin/flowforge init /Users/qiangbi/develop/projects/Syl/tangram/flowforge",
+    "exit": 0,
+    "stdout": [
+      "✓ FlowForge local tracker initialized successfully.",
+      "✓ Created .flowforge/ and /Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals hierarchy",
+      "✓ Deployed flowforge skills to .agents/skills/",
+      "✓ Configured /Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/agents/ rules",
+      "✓ Managed assets verified current.",
+      "✓ Deployed flowforge subagents to .claude/agents/, .opencode/agent/, .codex/agents/, .pi/agents/",
+      "",
+      "Ready to run /flowforge-align or /flowforge-to-spec in your agent."
+    ],
+    "stderr": [
+      "  info: project-customised /Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/agents/issue-tracker.md (preserved)"
+    ]
+  },
+  "postDeployment": {
+    "assets_verify": {
+      "cmd": "bin/flowforge assets verify /Users/qiangbi/develop/projects/Syl/tangram/flowforge --json",
+      "exit": 0,
+      "json": {
+        "current": true,
+        "entries": [
+          {
+            "state": "current",
+            "target": ".agents/skills/_shared/ARTIFACT-CONTRACT.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/_shared/SCHEMA-V1.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-align/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-codebase-design/DEEPENING.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-codebase-design/DESIGN-IT-TWICE.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-codebase-design/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-diagnose/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-domain-modeling/ADR-FORMAT.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-domain-modeling/CONTEXT-FORMAT.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-domain-modeling/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-frontend-implement/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-grill-me/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-grilling/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-handoff/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-implement/SKILL.md"
+          },
+          {
+            "state": "project-owned",
+            "target": ".agents/skills/flowforge-implement/references/workflow-rules.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-import/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-improve-architecture/HTML-REPORT.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-improve-architecture/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-plan/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-prototype/LOGIC.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-prototype/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-prototype/UI.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-refine-ticket/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-research/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-resolving-conflicts/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-review/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-review/references/review-protocol.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-setup/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-solution-design/DESIGN-PACKAGING.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-solution-design/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-tdd/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-tdd/mocking.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-tdd/tests.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-teach/LEARNING-RECORD-FORMAT.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-teach/MISSION-FORMAT.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-teach/RESOURCES-FORMAT.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-teach/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-to-questionnaire/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-to-spec/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-triage/AGENT-BRIEF.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-triage/OUT-OF-SCOPE.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-triage/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-wait-what/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-wayfinder/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-wizard/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-wizard/template.sh"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-writing-for-agents/SKILL-MECHANICS.md"
+          },
+          {
+            "state": "current",
+            "target": ".agents/skills/flowforge-writing-for-agents/SKILL.md"
+          },
+          {
+            "state": "current",
+            "target": "ff-wiki/agents/domain.md"
+          },
+          {
+            "state": "current",
+            "target": "ff-wiki/agents/issue-tracker.md"
+          },
+          {
+            "state": "current",
+            "target": "ff-wiki/agents/standards.md"
+          },
+          {
+            "state": "current",
+            "target": "ff-wiki/agents/triage-labels.md"
+          }
+        ]
+      }
+    },
+    "agents_status": {
+      "cmd": "bin/flowforge agents status --json  (cwd=project root)",
+      "exit": 0,
+      "json": {
+        "current": true,
+        "entries": [
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-analyst.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-architect.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-batch-analyst.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-executor.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-frontend-implementer.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-frontend-reviewer.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-implementer.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-investigator.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-planner.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-reviewer-lite.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-reviewer.md"
+          },
+          {
+            "state": "current",
+            "target": ".claude/agents/flowforge-scribe.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-analyst.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-architect.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-batch-analyst.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-executor.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-frontend-implementer.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-frontend-reviewer.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-implementer.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-investigator.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-planner.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-reviewer-lite.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-reviewer.md"
+          },
+          {
+            "state": "current",
+            "target": ".opencode/agent/flowforge-scribe.md"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-analyst.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-architect.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-batch-analyst.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-executor.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-frontend-implementer.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-frontend-reviewer.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-implementer.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-investigator.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-planner.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-reviewer-lite.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-reviewer.toml"
+          },
+          {
+            "state": "current",
+            "target": ".codex/agents/flowforge-scribe.toml"
+          },
+          {
+            "state": "project-owned",
+            "target": ".codex/agents/flowforge-coordinator.toml"
+          },
+          {
+            "state": "project-owned",
+            "target": ".codex/agents/flowforge-design-analyst.toml"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-analyst.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-architect.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-batch-analyst.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-executor.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-frontend-implementer.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-frontend-reviewer.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-implementer.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-investigator.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-planner.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-reviewer-lite.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-reviewer.md"
+          },
+          {
+            "state": "current",
+            "target": ".pi/agents/flowforge-scribe.md"
+          }
+        ]
+      }
+    },
+    "hostRoleFileCounts": {
+      ".claude/agents": 12,
+      ".opencode/agent": 12,
+      ".codex/agents": 14,
+      ".pi/agents": 12
+    },
+    "projectOwnedPreserved": [
+      ".agents/skills/flowforge-implement/references/workflow-rules.md",
+      ".codex/agents/flowforge-coordinator.toml",
+      ".codex/agents/flowforge-design-analyst.toml"
+    ]
+  },
+  "postSnapshot": {
+    ".gitignore": "6584f106b46d9bcf1fffd5f36afa205e53144ceeef899a5aecdb9fa9d620cbdc",
+    "AGENTS.md": "6576661609294f51f182b19b7e3857ae3a711764cd303ba8f1a007c0df56c9a9",
+    "ff-wiki/agents/issue-tracker.md": "39d2322c97ae28248b4a32e534d961cf12123c32f0fbb8983dc64974431d11e6",
+    ".flowforge/config.yaml": "8d90a574f53d3426238b5c470dd6a6cf2f03371d7c1a3e59a01a7fdd52829c59",
+    ".flowforge/agent-model-state.json": "984ccb500c7796beb2a86381915c22765085d0392d475b073194977e45f6b584",
+    ".flowforge/model-set.active": "5adc910fb81d0996ac7783ca4e868351a0855fd0fc76f392869959880f2196f6",
+    ".flowforge/manifest.yaml": "873b7e1c0c3e335014bfc0ca6eea0cc734cb2e3c54714600db301e78a794288a"
+  },
+  "trackerAlignment": {
+    "pre": "13a29756c0e9ac2dacd084c20ec083e8588ba805e03427fba90b2dc0d5d0a53f",
+    "post": "39d2322c97ae28248b4a32e534d961cf12123c32f0fbb8983dc64974431d11e6",
+    "source": "39d2322c97ae28248b4a32e534d961cf12123c32f0fbb8983dc64974431d11e6",
+    "equalsSource": true,
+    "method": "5 precise edits: shared-contract pointer; Verification schedule bullet + five Execution detail subsections; implement/review loop steps 2/3/5; Ownership paragraph, repair close by main session, section-name pointer; deterministic-checks stage-proof bullet"
+  },
+  "focusRoles": {
+    "flowforge-planner": {
+      ".claude/agents/flowforge-planner.md": "c134ac8256953fb58b0dc1f20bad989784214b84ff4cfef6742ae5ea0f3bde51",
+      ".opencode/agent/flowforge-planner.md": "e86e2cbfa0361747460d98c46ba799fc0789a37f4104853118ec6167b40172ab",
+      ".codex/agents/flowforge-planner.toml": "06cc485877a8f0f3ee593a7627d48d0825ed56ca2cbcc339e010b8609fd94a55",
+      ".pi/agents/flowforge-planner.md": "bbe1f521c98f0afa9f43d68896d0e2483a18d27d678b8be294ba3f7dd72b3aaf"
+    },
+    "flowforge-implementer": {
+      ".claude/agents/flowforge-implementer.md": "b44b4f2150aadf52e52e0c2f8b45a10f10ff0d3f0b1b540fe063ae85dba3dceb",
+      ".opencode/agent/flowforge-implementer.md": "f2214ae60b6941b0c228c1f355e66367a47497662ce0767d28babce397448de3",
+      ".codex/agents/flowforge-implementer.toml": "a6955c4e6890596b2e85ceda237de09924aad08c0fa18fa7cd5376b2231b41a8",
+      ".pi/agents/flowforge-implementer.md": "6c5d26eb961e88836fb45d040cfd3e8fae9b12b878859f1a5d3fd50a09ff482c"
+    },
+    "flowforge-reviewer": {
+      ".claude/agents/flowforge-reviewer.md": "480c7e36d56ac945631e6e38b3efba96164171deea70b34aa8adc969e717fac8",
+      ".opencode/agent/flowforge-reviewer.md": "7334e5601dc6a4a09816cb710638a1a6f11e17285cd3696847b0330f1e0c0cfb",
+      ".codex/agents/flowforge-reviewer.toml": "45baab7c775f859369914f0adbd03f7a12476d9a8af34a1314be8c90a6abd047",
+      ".pi/agents/flowforge-reviewer.md": "70d3b3e0683c4a80c0f2bb80611664fc12381b87a1d70e65d54c2108d16f82cb"
+    },
+    "flowforge-reviewer-lite": {
+      ".claude/agents/flowforge-reviewer-lite.md": "53ab9562d923a2e706d1d8227c619c6a3f1e0ca00bb123d900cb070962ebc4c8",
+      ".opencode/agent/flowforge-reviewer-lite.md": "20af8c60664db15d5438a2dbe26400e1f70d374135a12ac5c6074fac08a1ad6c",
+      ".codex/agents/flowforge-reviewer-lite.toml": "bdba24e887c57dafe9a3811edf59177898d9917c9e73b1d35b6836f513bf728c",
+      ".pi/agents/flowforge-reviewer-lite.md": "4beaedbfd3e6bd91ee9fe92c047f3e48c7da83462375aa33b9a7cc28d01962d0"
+    }
+  },
+  "roleToolFacts": {
+    "pi.reviewer.tools": [
+      "read",
+      "grep",
+      "find",
+      "ls"
+    ],
+    "pi.reviewer.skills": [
+      "flowforge-review"
+    ],
+    "pi.reviewer.inheritSkills": false,
+    "pi.reviewer-lite.tools": [
+      "read",
+      "grep",
+      "find",
+      "ls"
+    ],
+    "pi.reviewer-lite.skills": [
+      "flowforge-review"
+    ],
+    "pi.reviewer-lite.inheritSkills": false,
+    "pi.planner.no_tools_whitelist": true,
+    "pi.implementer.no_tools_whitelist": true,
+    "codex.reviewer.sandbox_mode": "read-only",
+    "codex.reviewer-lite.sandbox_mode": "read-only",
+    "codex.planner.sandbox_mode": "workspace-write",
+    "codex.implementer.sandbox_mode": "workspace-write",
+    "no_OS_readonly_claim": true
+  },
+  "piExtension": {
+    "source": "ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b",
+    "deployed": "ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b",
+    "equal": true
+  },
+  "agentsManagedBlock": {
+    "prefix_bytes": 1444,
+    "prefix_equal": true,
+    "suffix_equal": true,
+    "block_equals_assets_AGENTS_md": true,
+    "block_bytes": 11209,
+    "added_lines": 13
+  },
+  "modelPreservation": {
+    "config_unchanged": true,
+    "model_set_active_unchanged": true,
+    "agent_model_state_unchanged": true,
+    "state_paths": 48,
+    "deployed_vs_state_field_mismatches": 0,
+    "records_with_retained_local_model": 24,
+    "records_with_retained_local_effort": 24,
+    "policy": "config-pinned model wins; otherwise the previously preserved local model/effort is retained; .flowforge/agent-model-state.json is per-machine and gitignored; no model config was edited or copied"
+  },
+  "finalChecks": {
+    "check": {
+      "cmd": "bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --strict",
+      "exit": 0,
+      "output": [
+        "Checked 6 issues in ff-wiki/proposals/cost-aware-verification-planning",
+        "✓ Dependency graph is healthy. No cycles or dangling references found."
+      ]
+    },
+    "frontier": {
+      "cmd": "bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning",
+      "exit": 0,
+      "output": [
+        "✓ [cost-aware-verification-planning] #02 集中验证连续交付行为并发布一致规则包"
+      ]
+    },
+    "diffCheck": {
+      "cmd": "git diff --check",
+      "exit": 0,
+      "output": ""
+    }
+  }
+}
