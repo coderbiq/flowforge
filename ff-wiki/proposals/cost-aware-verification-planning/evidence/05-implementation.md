@@ -469,7 +469,9 @@ gap: execution-contract-incomplete ff-wiki/proposals/cost-aware-verification-pla
 
 ### G1-C 源→嵌入→隔离部署（make dev + diff）
 
-原始命令与关键输出（`make dev`末5行，实际exit 0）：
+G1首跑的`make dev`原命令是`make dev 2>&1 | tail -5`：只保留了末尾5行输出，没有独立保存`make`自身的退出码，管道的退出码属于`tail`，不能冒充`make`通过。因此原G1首跑对`make dev`只能记“输出未被报错中断、构建命令实际产出 `bin/flowforge`”，`make`真实exit属未知；本节保留原样输出，不追溯改写。
+
+原首跑管道实际可见输出（末5行，首行`rm -rf internal/command/assets`被仅取末5行截掉）：
 
 ```text
 cp -R assets internal/command/assets
@@ -479,9 +481,25 @@ chmod +x bin/flowforge
 rm -rf .tmp
 ```
 
-原始命令：`diff -qr assets internal/command/assets`；实际exit: 0，无输出（源与嵌入逐字节一致）。
+原首跑原始命令：`diff -qr assets internal/command/assets`；实际exit: 0，无输出（源与嵌入逐字节一致）。
 
-源/嵌入/隔离部署三面对齐由同一次完整内部Go实际验证，无SKIP：
+**超时恢复补证（不是首跑重跑，也不把同一次检查记成两次）：**为了给`make dev`补齐独立退出码证据，恢复阶段用未管道的直接调用重跑一次。这次重跑发生在`eda39d4849e5977310f9aeff5154faf597e52a8b`之后、仅`05-implementation.md`有未提交改动时；源码/测试/依赖均无变化。源码仍与提交一致，因此重建的产物与首跑不一定同字节（构建时间与注入版本字符串会变；本次注入值`v5.13.1-58-geda39d4-dirty`），不声称两次二进制同hash。
+
+恢复补证的原始命令与输出（直接调用，未经管道）：
+
+```text
+rm -rf internal/command/assets
+cp -R assets internal/command/assets
+mkdir -p .tmp bin
+GOTMPDIR=$(pwd)/.tmp go build -ldflags="-s -w -X flowforge/internal/version.injected=v5.13.1-58-geda39d4-dirty" -trimpath -o bin/flowforge ./cmd/flowforge
+chmod +x bin/flowforge
+rm -rf .tmp
+make exit: 0
+```
+
+随后`diff -qr assets internal/command/assets`：实际exit: 0，无输出（本次重建后源与嵌入仍逐字节一致）。
+
+源/嵌入/隔离部署三面对齐由G1首跑的同一次完整内部Go实际验证（恢复阶段未重跑Go），无SKIP：
 
 ```text
 --- PASS: TestCostAwareRulePackageSourceEmbeddedDeployed (0.04s)
@@ -571,5 +589,12 @@ G0冻结的两份测试在本轮开始前、修改后、提交前三次读取均
 
 ## G1 固定点
 
-本条由G1实施者提交后补记，见紧邻提交`G1 固定点记录`行/主会话返回的commit。
+实现提交：`eda39d4849e5977310f9aeff5154faf597e52a8b`（`docs: implement continuous delivery rule package (05 G1)`），父提交`e188b388a13d9d0acfdc52cdb864c4cc1fd91cb2`（G0冻结测试与Refine）。本轮固定差分 = `e188b388a13d9d0acfdc52cdb864c4cc1fd91cb2..eda39d4849e5977310f9aeff5154faf597e52a8b`（相对基线`08e87cb19001aef9b70a0bb047dee7b08b76003e`）。提交内容仅为写集：12份assets源、05票及本证据文件；`internal/command/assets/**`、`bin/flowforge`被`.gitignore`忽略；旧未跟踪`evidence/02-scenarios/`原样保留。
+
+### 超时恢复与归属
+
+- 本节的规则实现、G1集中检查与`eda39d4849e5977310f9aeff5154faf597e52a8b`提交由原实施会话完成；该会话在收尾阶段超时，标为恢复阶段的部分仅做如下三项，不重做实现、不重跑Go/lint、不改测试、不部署、不push、不关票。
+- 恢复阶段实际动作：①更正上文`make dev`退出码记录（原首跑经`tail`管道，`make` exit未知）；②按未管道方式补跑一次`make dev`取得真实exit 0，并复核`diff -qr`无差异；③把这两项及commit归属写进本文件并提交。
+- 源码、测试、依赖自`eda39d4`起没有变化；两份冻结测试SHA256仍与G0完全一致（`17eca4b4…90033`、`e60de2b8…7c687c`）。完整内部Go、整文件lint、`git diff --check`、`check`/`frontier`均引用首跑结果，恢复阶段没有重跑。
+- 恢复阶段的记录提交另起一个只含`evidence/05-implementation.md`的文档提交（不改源码），其SHA由主会话随返回记录；审查固定点取实现提交与恢复记录提交之间的完整差分（源码差分即`e188b38..eda39d4`）。
 
