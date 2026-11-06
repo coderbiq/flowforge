@@ -47,7 +47,11 @@ flowforge:
   - exit: 0
   - output: native调用正常返回；A=4pass/exit0、F=1pass/exit0、P=1pass/1fail/exit1且执行者STATUS BLOCKED。P失败不因外层exit0变为通过；主会话确认marker不存在，独立审查待完成。
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/acceptance.md`
-- [ ] 3. 在`evidence/02-v2/acceptance.md`合并两链及兼容覆盖，记录实际关口、角色交接、Fix批次和范围偏离；对旧规则仅作同输入的静态义务对照，不能称旧模型实跑或净提速。主会话组织一次该固定验收工件及关联实现的Round0，再并行双轴并裁决；无新差分/发现不为每份日志另开一轮。
+- [x] 3. 在`evidence/02-v2/acceptance.md`合并两链及兼容覆盖，记录实际关口、角色交接、Fix批次和范围偏离；对旧规则仅作同输入的静态义务对照，不能称旧模型实跑或净提速。主会话组织一次该固定验收工件及关联实现的Round0，再并行双轴并裁决；无新差分/发现不为每份日志另开一轮。
+  - cmd: independent Round0 `14762bf3` / followup `5932866f`，Standards `96a52b9f`，Spec `a861edb9`；固定96b98f7与fixture b458d23。
+  - exit: 0
+  - output: Round0 gaps0；Standards硬违规0/judgement0；Spec0；主会话接受A复用和分层覆盖，保留预设P失败/隔离空白诊断边界。
+  - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/review-g1-final.md`
 - [ ] 4. 只有Changes1–3正向证据与独立审查齐备且适用候选版本，才部署本项目的规则/角色，核对源→嵌入→部署、管理块与定制tracker差异、模型配置保持和新会话入口。记录实际发布结果，主会话补充最终差分的适用性确认后关闭，不重跑未失效的行为链。
 
 ## Constraints
@@ -120,6 +124,10 @@ G0由Refine/合法作者完成Change1，主会话固定候选入口和观察方�
 G0完成于4146cd4，授权已撤销。G1真实链与固定工件见[acceptance](../evidence/02-v2/acceptance.md)：候选隔离历史fb1fefd...b458d23、5次角色调用及完整原始trace，主会话直接写Fix/记录。源规则与冻结测试未改，05 Go/lint未重复；B1 A、窄F各一次，B2 P失败后停止。保留B2 verbatim记录导致隔离完整diff-check exit2、全局strict因预期blocked记录exit1等偏离，不称全绿。Change3待同一G1固定结果独立审查；G2仍禁止开始。
 
 ## Review rounds
+
+### G1正向收口及G2入口
+
+固定96b98f7：复核零gap，首次两轴无新增发现，主会话接受，详见[完整原文与裁决](../evidence/02-v2/review-g1-final.md)。Change3完成，既有用户授权下进入Change4。本次仅记录写回，源/测试/binary不变；05与G1验证继续适用，不重跑。G2执行前后必须核实候选hash、模型配置和部署差分，最后由主会话确认适用性再关闭02。
 
 ### G1 Round0：固定5a84039，记录补证/反证
 
