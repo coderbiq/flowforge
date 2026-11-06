@@ -1,6 +1,0 @@
-{
-  "path": "cases/b2/capability.json",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "a561d168f2621bb07d5e91982ce488f5db6a908275ad7f904d2c86b39062b248",
-  "content": "{\"schema\":1,\"permit\":\"once-02\"}\n"
-}

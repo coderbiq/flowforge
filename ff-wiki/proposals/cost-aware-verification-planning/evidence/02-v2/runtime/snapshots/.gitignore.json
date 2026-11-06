@@ -1,6 +1,0 @@
-{
-  "path": ".gitignore",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "5d3d887c1eb31d8385b54bcd80e0d4e292bf1c9b81ae916f3ebe99055e842dfd",
-  "content": "# flowforge: managed deploy artifacts (per-machine)\n.flowforge/agent-model-state.json\n.claude/agents/\n.opencode/agent/\n.codex/agents/\n.pi/agents/\n.pi/extensions/\n.agents/\n.flowforge/config.yaml\n"
-}

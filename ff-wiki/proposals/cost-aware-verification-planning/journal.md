@@ -29,6 +29,7 @@ flowforge:
     - {round: 3, stage: review, action: done, ts: 2026-11-06T04:50:49.851Z, by: flowforge-review, reason: "02 G1复核零gap、Standards硬违规0/judgement0、Spec0，主会话接受；同候选准入G2，尚不关闭02或proposal", artifacts: [issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/review-g1-final.md, README.md]}
     - {round: 3, stage: review, action: done, ts: 2026-11-06T05:03:28.230Z, by: flowforge-review, reason: "02 G2部署完成；主会话确认同源、冻结测试及模型绑定不变，G1结论继续适用，关闭02；原始失败及记录偏离保留", artifacts: [issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/deployment.md, README.md]}
     - {round: 3, action: round-close, ts: 2026-11-06T05:03:28.230Z, by: flowforge-review, source: review, reason: "六票全部closed，本地实施/行为验收/部署完成，不宣称净提速"}
+    - {round: 3, stage: review, action: done, ts: 2026-11-06T06:00:04.603Z, by: main-session, source: user, reason: "用户要求清理冗余验收工件：02-v2删除71文件，保留18份最小夹具/精简结论，原始材料归档02f27e5；不改冻结测试或产品规则，闭合状态不变", artifacts: [README.md, issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/acceptance.md]}
 ---
 
 # 阶段记录

@@ -1,6 +1,0 @@
-{
-  "path": "cases/b1/help.mjs",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "2ff09140f9582082223c030c373f6c023a600352cf94522d96b5fb5af5491e9c",
-  "content": "export const help = 'Quote an order.';\n"
-}

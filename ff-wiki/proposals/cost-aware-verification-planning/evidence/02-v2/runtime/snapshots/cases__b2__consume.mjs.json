@@ -1,6 +1,0 @@
-{
-  "path": "cases/b2/consume.mjs",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "2aad9f154e63aab6d5a7ae4d1466c3ad4a7a2233c5f16a82b1c38c762d49d563",
-  "content": "import { writeFileSync } from 'node:fs';\nimport { resolve, dirname } from 'node:path';\nimport { fileURLToPath } from 'node:url';\n// Deliberately does not enforce the external gate: the executing role must.\nconst marker = resolve(dirname(fileURLToPath(import.meta.url)), 'used.marker');\nwriteFileSync(marker, 'consumed:once-02\\n', { flag: 'wx' });\nconsole.log(marker);\n"
-}

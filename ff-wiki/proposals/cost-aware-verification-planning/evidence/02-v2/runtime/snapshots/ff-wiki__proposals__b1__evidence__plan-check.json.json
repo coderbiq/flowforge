@@ -1,6 +1,0 @@
-{
-  "path": "ff-wiki/proposals/b1/evidence/plan-check.json",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "3009fe6089b335a81ee3c6cf551a874ced47073cdadb0032559a8a1cae558391",
-  "content": "{\n  \"command\": \"/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge check --dir ff-wiki/proposals\",\n  \"output\": \"Checked 1 issues in ff-wiki/proposals\\ndiagnostics gap:execution-contract-incomplete: 1\\ndiagnostics warning:invalid-metadata: 1\\ngap: execution-contract-incomplete ff-wiki/proposals/b1/issues/01-order.md\\nwarning: invalid-metadata ff-wiki/proposals/b1/issues/01-order.md\\n--full for all diagnostics\\n✓ Dependency graph is healthy. No cycles or dangling references found.\\n\",\n  \"truncated\": false,\n  \"exit_code\": 0,\n  \"wall_time_seconds\": 0\n}\n"
-}

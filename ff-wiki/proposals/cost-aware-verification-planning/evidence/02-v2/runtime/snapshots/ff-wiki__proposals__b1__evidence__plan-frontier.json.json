@@ -1,6 +1,0 @@
-{
-  "path": "ff-wiki/proposals/b1/evidence/plan-frontier.json",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "76a7ebd500dd666345743cfeb9c0f1c0a8ee4233258532196c04454c985c66e6",
-  "content": "{\n  \"command\": \"/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge frontier --dir ff-wiki/proposals\",\n  \"output\": \"All tasks in ff-wiki/proposals are resolved/closed.\\n\",\n  \"truncated\": false,\n  \"exit_code\": 0,\n  \"wall_time_seconds\": 0\n}\n"
-}

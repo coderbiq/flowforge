@@ -1,9 +1,0 @@
-{
-  "status": "fulfilled",
-  "value": {
-    "output": "",
-    "truncated": false,
-    "exit_code": 0,
-    "wall_time_seconds": 0
-  }
-}

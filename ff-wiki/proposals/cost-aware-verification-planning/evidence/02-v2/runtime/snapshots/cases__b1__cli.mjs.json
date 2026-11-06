@@ -1,6 +1,0 @@
-{
-  "path": "cases/b1/cli.mjs",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "590495cd61c89c4150e48ca4c086852d5c4af2344c2dff9e9a5cf954f3881f6b",
-  "content": "import { quote } from './quote.mjs';\nimport { help } from './help.mjs';\nif (process.argv[2] === '--help') {\n  console.log(help);\n} else {\n  try {\n    console.log(JSON.stringify(quote(JSON.parse(process.argv[2]))));\n  } catch (error) {\n    console.error(error.message);\n    process.exitCode = 2;\n  }\n}\n"
-}

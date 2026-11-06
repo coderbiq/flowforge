@@ -1,6 +1,0 @@
-{
-  "path": "ff-wiki/proposals/b1/journal.md",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "a99aef8f5503f5172bcab7341e713b8055e6c8b8dcec3f2594ff540eeeb1be0b",
-  "content": "---\nflowforge:\n  schema: 1\n  role: journal\n  id: b1-journal\n  events:\n    - {round: 1, stage: plan, action: done, ts: 2026-11-06T04:04:41Z, by: flowforge-plan, artifacts: [issues/01-order.md, evidence/plan-approval.md]}\n    - {round: 1, stage: review, action: done, ts: 2026-11-06T04:19:32.786Z, by: flowforge-review, reason: \"主会话发布02预设普通Fix4及窄检查/原A复用提案；不是独立审查通过，整体Round0及双轴待G1统一执行\", artifacts: [issues/01-order.md]}\n---\n"
-}

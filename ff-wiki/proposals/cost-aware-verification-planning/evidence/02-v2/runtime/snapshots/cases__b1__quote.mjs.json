@@ -1,6 +1,0 @@
-{
-  "path": "cases/b1/quote.mjs",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "6877e25dd3a024421dacb1e3a04787100497e19337827a14d92206c1dc450d4d",
-  "content": "import { validateOrder } from './contract.mjs';\nconst prices = { A: 125, B: 300 };\nexport function quote(order) {\n  validateOrder(order);\n  const items = [];\n  let totalCents = 0;\n  for (const line of order.lines) {\n    if (!Object.hasOwn(prices, line.sku)) throw new Error('UNKNOWN_SKU');\n    const lineCents = prices[line.sku] * line.quantity;\n    items.push({ sku: line.sku, quantity: line.quantity, lineCents });\n    totalCents += lineCents;\n  }\n  return { items, totalCents };\n}\n"
-}

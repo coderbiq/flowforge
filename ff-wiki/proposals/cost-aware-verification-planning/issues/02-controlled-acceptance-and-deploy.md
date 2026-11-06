@@ -25,7 +25,7 @@ flowforge:
 
 消费[需求rev3](../requirements.md#cost-aware-verification-planning-requirements)及[设计rev4](../design.md#cost-aware-verification-planning-design)，其中[两条链与其余覆盖](../design.md#verification)、[职责](../design.md#owners)、[迁移](../design.md#migration)已确定。05正向交付是必要前置；仅closed/wontfix/resolved或frontier Ready不足以开始。
 
-本票rev1的S1–S9全变体模型矩阵由rev2分层覆盖替代，不取消对应可靠性要求。旧全文在重规划前`933797d`，旧暂停运行`b9d33864-c09f-499b-84b2-af3a008f453b`不恢复；其未跟踪`evidence/02-scenarios/`为未完成候选，原样保留，不计入新验收。新材料放`evidence/02-v2/`；本轮G0已完成Refine与预设冻结/撤权，直接派发入口见[固定输入与运行步骤](../evidence/02-v2/inputs.md)，作者实跑和边界见[作者记录](../evidence/02-v2/author-notes.md)。B1/B2真实模型链与本项目部署尚未执行。
+本票rev1的S1–S9全变体模型矩阵由rev2分层覆盖替代，不取消对应可靠性要求。旧全文在重规划前`933797d`，旧暂停运行`b9d33864-c09f-499b-84b2-af3a008f453b`不恢复；旧02-scenarios未提交草稿未参与验收，本次清理已移出仓库并作本机临时备份。最小夹具与结论保留在`evidence/02-v2/`，见[固定输入与运行步骤](../evidence/02-v2/inputs.md)和[作者记录](../evidence/02-v2/author-notes.md)。B1/B2真实链、独立审查及本项目部署均已完成；用户要求清理后，完整轨迹/快照/清单从工作树移除，仍可从Git提交`02f27e5`恢复。
 
 ## Touch points
 
@@ -43,9 +43,9 @@ flowforge:
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/author-notes.md`
   - G0归属：作者B1/Fix预期red、B2故障/正向control及隔离部署输出均独立保存；三测试已冻结，主会话明确撤权后实际查询missing。工具能力与候选文件已核实，宿主实际注入留待G1启动取证；本勾选不证明模型B1/B2或本项目发布通过。
 - [x] 2. 复用G0已用05固定候选二进制一次部署并核实的隔离目录（版本变化才重新核验），保留本机模型设置；主会话在真实宿主确认候选角色/扩展加载后明确派发，执行B1完整逻辑和窄范围Fix、B2风险前置失败停止，保存原始调用轨迹和输出。轻量执行者不组织或评判自己的审查。
-  - cmd: native subagent workflow `5958377f-b90f-4fd0-9597-3ee50d9d06cc` 与 Fix run `82a73e6c-b766-43a5-80e6-1163b50ec166`；精确A/F/P命令及toolResult见runtime原始轨迹。
+  - cmd: native subagent workflow `5958377f-b90f-4fd0-9597-3ee50d9d06cc` 与 Fix run `82a73e6c-b766-43a5-80e6-1163b50ec166`；精确A/F/P命令见保留的inputs；原始toolResult在归档提交02f27e5的runtime历史中。
   - exit: 0
-  - output: native调用正常返回；A=4pass/exit0、F=1pass/exit0、P=1pass/1fail/exit1且执行者STATUS BLOCKED。P失败不因外层exit0变为通过；主会话确认marker不存在，独立审查待完成。
+  - output: native调用正常返回；A=4pass/exit0、F=1pass/exit0、P=1pass/1fail/exit1且执行者STATUS BLOCKED。P失败不因外层exit0变为通过；主会话确认marker不存在；随后独立审查结果见Change3。
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/acceptance.md`
 - [x] 3. 在`evidence/02-v2/acceptance.md`合并两链及兼容覆盖，记录实际关口、角色交接、Fix批次和范围偏离；对旧规则仅作同输入的静态义务对照，不能称旧模型实跑或净提速。主会话组织一次该固定验收工件及关联实现的Round0，再并行双轴并裁决；无新差分/发现不为每份日志另开一轮。
   - cmd: independent Round0 `14762bf3` / followup `5932866f`，Standards `96a52b9f`，Spec `a861edb9`；固定96b98f7与fixture b458d23。
@@ -91,7 +91,7 @@ G0由Refine/合法作者完成Change1，主会话固定候选入口和观察方�
 ### Verified contracts
 
 - requirements rev3/design rev4已定；05正向证明见`evidence/05-final-review.md:主会话逐项裁决/下一步`。`be83217..8792cbb`相关assets/Go/测试/依赖无变化，原完整Go/lint按05独立裁决保留适用性，G0未重跑。首次strict诊断仅本票五节gap；没有待消费的Blocked evidence。
-- 候选固定入口、实际命令参数与72项文件SHA256/权限见[manifest](../evidence/02-v2/manifest.json)及[inputs：固定入口与权限](../evidence/02-v2/inputs.md#固定入口与权限)。现有binary hash `af73ea27fe720706f593f54c4c849047ce8dcd292d756461a616cf3e0bdb1997`；源/embedded一致，隔离`/tmp/flowforge-02-v2.kktVNK`的assets/agents均current。`init [path]`与`assets verify [project] --json`接收路径；`agents status --json`必须在目标cwd，不接收路径。
+- 候选固定入口、实际命令参数与72项文件SHA256/权限见归档提交02f27e5中的manifest及保留的[inputs：固定入口与权限](../evidence/02-v2/inputs.md#固定入口与权限)。现有binary hash `af73ea27fe720706f593f54c4c849047ce8dcd292d756461a616cf3e0bdb1997`；源/embedded一致，隔离`/tmp/flowforge-02-v2.kktVNK`的assets/agents均current。`init [path]`与`assets verify [project] --json`接收路径；`agents status --json`必须在目标cwd，不接收路径。
 - G0=Change1：正常write/edit写三份`__tests__`后运行作者检查，B1/Fix预期red、B2预期schema失败与独立control支路均有真实输出；测试已冻结，实际grant已撤销。作者身份/精确路径/确认与命令见`author-notes.md`。没有模型行为结论。
 - G1=Changes2–3：复用同一隔离部署；主会话按inputs派发B1 Plan→Refine→实施→Fix和B2 Plan→Refine→失败停止。A/F/P均为inputs定义的完整Node命令；A在完整接口/实现/调用方组末，F只在普通Fix后，P在marker使用前。主会话保存轨迹并集中写`evidence/02-v2/acceptance.md`，同一固定结果一次Round0→并行双轴→裁决。风险前置有实际一次性使用代价；运行成本未知。
 - G2=Change4：仍须G1适用正向证明。使用相同binary在本项目执行已定义的init/assets verify及目标cwd的agents status，逐面比对后记录发布结果；本G0只核实参数，没有授权或执行本项目部署。宿主真实角色注入/扩展加载留给G1启动核实，不能从文件存在或任务提示词推断。
@@ -105,14 +105,14 @@ G0由Refine/合法作者完成Change1，主会话固定候选入口和观察方�
 
 ### Expected tests
 
-- A覆盖B1完整功能和失败路径；F覆盖普通小Fix本轮真实检查；P与主会话marker断言覆盖B2前置失败停止的文件观察。精确环境/绝对测试路径/命令/预期在inputs可复制命令段，原始作者结果为`author-b1.json`、`author-fix.json`、`author-b2.json`、`author-b2-control.json`。主会话仍须用真实模型轨迹证明时机和角色边界，Node结果不能替代它。
+- A覆盖B1完整功能和失败路径；F覆盖普通小Fix本轮真实检查；P与主会话marker断言覆盖B2前置失败停止的文件观察。精确环境/绝对测试路径/命令/预期在inputs可复制命令段，作者结果摘要见author-notes.md；原始author-b1/author-fix/author-b2/author-b2-control JSON保存在归档提交02f27e5的同目录历史。主会话仍须用真实模型轨迹证明时机和角色边界，Node结果不能替代它。
 - 三预设测试路径在`evidence/02-v2/b1/__tests__/{acceptance,fix}.test.mjs`及`b2/__tests__/probe.test.mjs`；默认PI `**/__tests__/**`保护，实施者无grant。hash分别为`3898b41a8e50061d9fa9ba089a3f48cf7572b85f2160745d3e6623ba6d70c417`、`c5ac3c521263fc9a496fdb2f4b1477807cdf31966b337e8ef3f29b592752bac1`、`130157b04e6cb288f8a52ee3a22343735da13f18ce8de8550b111819f611fdf0`。
 - 其余可靠性逐项依据与不足见[旧S1–S9映射](../evidence/02-v2/inputs.md#旧s1s9保证映射与证据边界)：05自动条款/部署结果加独立语义；S4各具体影响变体、S6复制旧四元组不具逐例模型实跑，G1独立审计必须确认语义适用和A/F归属，不得全部简写passed。未改相关产品/测试/配置不重跑05 Go/lint/native矩阵。
 - G0结构收口：项目根`bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --strict`应exit0且本票execution-contract-incomplete消失；`bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning`按事实输出；`git diff --check`无新增错误。历史精确waiver保留，不把结构绿当行为绿。
 
 ### Generated artifacts
 
-- 既有05构建→`bin/flowforge`/embedded→一次隔离init→`.agents/skills`、四宿主角色、PI扩展、AGENTS管理块、tracker；G0未重建。`deployment-{0,1,2}.json`保存真实verify/status/逐字节比较，manifest记录源/嵌入/目标路径及hash。实际角色工具表已核实，宿主加载事实须由主会话启动时取证。
+- 既有05构建→`bin/flowforge`/embedded→一次隔离init→`.agents/skills`、四宿主角色、PI扩展、AGENTS管理块、tracker；G0未重建。归档提交02f27e5中的deployment-{0,1,2}.json及manifest保存原始verify/status/逐字节比较、路径与hash；当前deployment.md保留精简结果。实际角色工具表已核实，宿主加载事实须由主会话启动时取证。
 - 冻结`b1/seed`/`b2/seed`与四份小权威→隔离`cases/b1`/`cases/b2`及`ff-wiki/proposals/b1`/`b2`；隔离seed commit `fb1fefd4d6738f347f5a609bb875a5b063cf128d`。模型Plan产出的票/安排、实施差分和tool轨迹→主会话G1验收记录；G0没有伪造这些产物。
 - B2 `consume.mjs`→`used.marker`→主会话失败后只读观察。真实B2必须不产生marker；control目录的marker是作者oracle自检，归属分开保留。B1无生成代码或外部产物。
 
@@ -135,7 +135,7 @@ G0由Refine/合法作者完成Change1，主会话固定候选入口和观察方�
 
 Change4完成：`init` exit0；部署后 `assets verify --json` exit0 `current:true`（52 current/1 project-owned）、`agents status --json` exit0 `current:true`（48 current/2 project-owned）；4 宿主角色齐备（12/12/14/12），PI 审查角色仍为 `read,grep,find,ls`+`inheritSkills:false`，Codex 审查角色 `sandbox_mode=read-only`；PI 扩展与源逐字节相等；AGENTS 块外 1444 字节前缀与结尾零变化、块内容等于 `assets/AGENTS.md`；`.gitignore`/`.flowforge/config.yaml`/`model-set.active`/`agent-model-state.json` 哈希前后相同（保留本机模型绑定，未改未复制）；定制 tracker 用 5 处精确 edit 对齐到源语义（对齐后与 `assets/agents/issue-tracker.md` 逐字节相等，未整文件覆盖）。部署前旧部署 verify/status 为 exit1 并保留原文，未重试掩盖。`check --strict`、`git diff --check` exit0。规则对**部署后新启动的会话**生效；本轮未重跑 05 Go/lint、A/F/P 或 native 矩阵。All modifications within write set。
 
-G0完成于4146cd4，授权已撤销。G1真实链与固定工件见[acceptance](../evidence/02-v2/acceptance.md)：候选隔离历史fb1fefd...b458d23、5次角色调用及完整原始trace，主会话直接写Fix/记录。源规则与冻结测试未改，05 Go/lint未重复；B1 A、窄F各一次，B2 P失败后停止。保留B2 verbatim记录导致隔离完整diff-check exit2、全局strict因预期blocked记录exit1等偏离，不称全绿。Change3待同一G1固定结果独立审查；G2仍禁止开始。
+G0完成于4146cd4，授权已撤销。G1真实链与固定工件见[acceptance](../evidence/02-v2/acceptance.md)：候选隔离历史fb1fefd...b458d23、5次角色调用；完整原始trace已归档到02f27e5历史，主会话直接写Fix/记录。源规则与冻结测试未改，05 Go/lint未重复；B1 A、窄F各一次，B2 P失败后停止。保留B2 verbatim记录导致隔离完整diff-check exit2、全局strict因预期blocked记录exit1等偏离，不称全绿。Change3待同一G1固定结果独立审查；G2仍禁止开始。
 
 ## Review rounds
 
@@ -154,7 +154,7 @@ G0完成于4146cd4，授权已撤销。G1真实链与固定工件见[acceptance]
 ## Completion evidence
 
 - G0：4146cd4完成Refine与三个受保护测试，实际session/instance授权经主会话签发、哈希确认、撤销；旧02-scenarios未使用。
-- G1：真实Plan分别选择B1单票连续组与B2必要前置；独立flash实施者连续完成B1后A一次4pass，普通小Fix后F一次1pass并由独立审计接受原A复用；B2 P一次预设失败即停止，无使用/改schema/删除marker。全部原始调用及固定fixture历史见[acceptance](../evidence/02-v2/acceptance.md)。
+- G1：真实Plan分别选择B1单票连续组与B2必要前置；独立flash实施者连续完成B1后A一次4pass，普通小Fix后F一次1pass并由独立审计接受原A复用；B2 P一次预设失败即停止，无使用/改schema/删除marker。原始调用及固定fixture历史的归档坐标见[acceptance](../evidence/02-v2/acceptance.md)。
 - 独立审查：首次Round0记录缺口已补证、错误发现已撤回；复核0gap，Standards0/Spec0。原错误、反证和每项裁决保留于[最终审查](../evidence/02-v2/review-g1-final.md)，未伪称逐变体模型测试或净提速。
 - G2：6b8996d用同一binary完成本地部署，assets verify为52current/1project-owned，agents status为48current/2project-owned；模型配置/绑定保持，定制tracker及AGENTS管理块与源对齐。主会话核对最终差分与记录后关闭。
 - 验证归属：05 Go/lint与既有native证明在输入不变时复用，未重跑A/F/P；B2预设失败、隔离原始TAP空白诊断、记录采集错误/多次状态查询均如实保留，不冒称所有命令首跑绿。主项目strict检查及完整范围diff检查用于最终文档收口。

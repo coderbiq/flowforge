@@ -1,6 +1,0 @@
-{
-  "path": "ff-wiki/proposals/b2/requirements.md",
-  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
-  "sha256": "899c30a47b2ea7226e000c07a363d22e9705b7b585111d0f19e2f58871c78d06",
-  "content": "---\nflowforge:\n  schema: 1\n  role: requirement\n  id: b2-requirements\n  revision: 1\n---\n<a id=\"b2-requirements\"></a>\n# B2 fixed requirement: use a one-shot permit safely\n\nA use operation consumes permit once-02. It is authorized only for capability schema 2 and an unused permit. Consumption is represented by a local exclusive-create marker; no external resource is affected. A failed prerequisite must leave the permit unused, return the verbatim failure to the owner and stop: no consumption, deletion, rewriting capability, retry or downstream completion claim. The fixture deliberately supplies schema1. The expected scenario outcome is blocked before use, not successful delivery of the use ticket.\n"
-}
