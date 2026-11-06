@@ -1,0 +1,441 @@
+{
+  "candidateCwd": "/tmp/flowforge-02-v2.kktVNK",
+  "canonicalCwd": "/private/tmp/flowforge-02-v2.kktVNK",
+  "baseline": "8792cbb37ce39be06a0924eaf5d61f0017a3da4a",
+  "ruleFixedPoint": "be832176e4c33703394c93d15aa8d3b4d0506fa1",
+  "node": "v22.16.0",
+  "entries": [
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge",
+      "sha256": "af73ea27fe720706f593f54c4c849047ce8dcd292d756461a616cf3e0bdb1997",
+      "mode": "0o755",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/_shared/ARTIFACT-CONTRACT.md",
+      "sha256": "aedfa7e9e6bdff593aa9f96c44c8b03341fce223f59308993f2a9a80cb863e2d",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/_shared/ARTIFACT-CONTRACT.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/_shared/ARTIFACT-CONTRACT.md",
+      "sha256": "aedfa7e9e6bdff593aa9f96c44c8b03341fce223f59308993f2a9a80cb863e2d",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/_shared/ARTIFACT-CONTRACT.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.agents/skills/_shared/ARTIFACT-CONTRACT.md",
+      "sha256": "aedfa7e9e6bdff593aa9f96c44c8b03341fce223f59308993f2a9a80cb863e2d",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.agents/skills/_shared/ARTIFACT-CONTRACT.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/_shared/SCHEMA-V1.md",
+      "sha256": "fc8b2674556a46a6ab22c4fbaf31ce867372b804ab241a70ec49454e97ff574c",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/_shared/SCHEMA-V1.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/_shared/SCHEMA-V1.md",
+      "sha256": "fc8b2674556a46a6ab22c4fbaf31ce867372b804ab241a70ec49454e97ff574c",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/_shared/SCHEMA-V1.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.agents/skills/_shared/SCHEMA-V1.md",
+      "sha256": "fc8b2674556a46a6ab22c4fbaf31ce867372b804ab241a70ec49454e97ff574c",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.agents/skills/_shared/SCHEMA-V1.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-plan/SKILL.md",
+      "sha256": "d2b5b4669a414ac9122ae194e05d2187c07cb7e6cb20bd91e47c7123b0ffe08b",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-plan/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-plan/SKILL.md",
+      "sha256": "d2b5b4669a414ac9122ae194e05d2187c07cb7e6cb20bd91e47c7123b0ffe08b",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-plan/SKILL.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-plan/SKILL.md",
+      "sha256": "d2b5b4669a414ac9122ae194e05d2187c07cb7e6cb20bd91e47c7123b0ffe08b",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-plan/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-refine-ticket/SKILL.md",
+      "sha256": "de2555b6beec76e45a6092700dfabb060613ddb755a2f220ea47b9d511b95072",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-refine-ticket/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-refine-ticket/SKILL.md",
+      "sha256": "de2555b6beec76e45a6092700dfabb060613ddb755a2f220ea47b9d511b95072",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-refine-ticket/SKILL.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-refine-ticket/SKILL.md",
+      "sha256": "de2555b6beec76e45a6092700dfabb060613ddb755a2f220ea47b9d511b95072",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-refine-ticket/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-implement/SKILL.md",
+      "sha256": "e66013fd0c0deeb0b5d4916430ca9a2a1de45b68e95bfdfbb134df2cb32e689f",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-implement/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-implement/SKILL.md",
+      "sha256": "e66013fd0c0deeb0b5d4916430ca9a2a1de45b68e95bfdfbb134df2cb32e689f",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-implement/SKILL.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-implement/SKILL.md",
+      "sha256": "e66013fd0c0deeb0b5d4916430ca9a2a1de45b68e95bfdfbb134df2cb32e689f",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-implement/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-review/SKILL.md",
+      "sha256": "64fbaccfa82f9ad1cf4e6e4641057f4a6a2c1812747ed0cf80033eab39941a44",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-review/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-review/SKILL.md",
+      "sha256": "64fbaccfa82f9ad1cf4e6e4641057f4a6a2c1812747ed0cf80033eab39941a44",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-review/SKILL.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-review/SKILL.md",
+      "sha256": "64fbaccfa82f9ad1cf4e6e4641057f4a6a2c1812747ed0cf80033eab39941a44",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-review/SKILL.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-review/references/review-protocol.md",
+      "sha256": "95d4bdadb9c14f5991c30098f2703e7376b08500b8bc7894094071d52403bb38",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/skills/flowforge-review/references/review-protocol.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-review/references/review-protocol.md",
+      "sha256": "95d4bdadb9c14f5991c30098f2703e7376b08500b8bc7894094071d52403bb38",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/internal/command/assets/skills/flowforge-review/references/review-protocol.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-review/references/review-protocol.md",
+      "sha256": "95d4bdadb9c14f5991c30098f2703e7376b08500b8bc7894094071d52403bb38",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.agents/skills/flowforge-review/references/review-protocol.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-planner.md",
+      "sha256": "36dadcd98b26c4754357d510a2e6102495cc8c4008190c7a3be8ad869ff9eebc",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-planner.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-planner.md",
+      "sha256": "eb7edebcc327dc052653b82462719d5d0bd1fb1204b05c27ed4b58fc63ef97ee",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-planner.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-planner.toml",
+      "sha256": "f6578e34b7086d7ed125cfaf10052556b65b69c292477b1ef6948b0e5abe2440",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-planner.toml"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-planner.md",
+      "sha256": "7579f85ed9f3023c12c9db0f8e289bd095282e81e6628c8000486930f7db9e9f",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-planner.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-planner.md",
+      "sha256": "b1fb993f2f2bcdace941c5bfe3122357f1bc7c2efe0037d2167700531c3cf660",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-planner.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-implementer.md",
+      "sha256": "8578ed4418c60017753423ff87fccb73f7d933085e62aef06ad80a882fb30400",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-implementer.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-implementer.md",
+      "sha256": "4a90c65c1930cceb5b69827c8d9c38d76884cb30adb7df72c19382d91df4e61c",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-implementer.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-implementer.toml",
+      "sha256": "b1dd3404698f76f58be6eab99f03437596d93da8894ea5f3e2a64e91335e3fb8",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-implementer.toml"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-implementer.md",
+      "sha256": "5ff1457224a1a988095af6626a4986ae21c8548001fa1a937dcc567d4434cccb",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-implementer.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-implementer.md",
+      "sha256": "53e81d10a456cf5cf1da220718635b105710fc39945dd9a6ee698db7df2ee0bd",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-implementer.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-reviewer.md",
+      "sha256": "50e348cc130589bd905bf999713b79813991d972aed9c1b297bd6e48325e8594",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-reviewer.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-reviewer.md",
+      "sha256": "70d3b3e0683c4a80c0f2bb80611664fc12381b87a1d70e65d54c2108d16f82cb",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-reviewer.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-reviewer.toml",
+      "sha256": "45baab7c775f859369914f0adbd03f7a12476d9a8af34a1314be8c90a6abd047",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-reviewer.toml"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-reviewer.md",
+      "sha256": "beee21d401e5a9dfa7b760608e21cef3de67d54bb9fca79a88ae65c4ff7c848b",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-reviewer.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-reviewer.md",
+      "sha256": "02def673e39a64dce1678ccfc271746f9b80ece12e00514de4a7d144b923d3bc",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-reviewer.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-reviewer-lite.md",
+      "sha256": "6e6ab87ed4fa82a9c9efebb45c261b7b9758b582ac4608fb0e1e09c34296ad4b",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/subagents/flowforge-reviewer-lite.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-reviewer-lite.md",
+      "sha256": "50c64da86fbc5af01ef824020f7b75a8dded392d8d5249182f9bb32d0c6d73be",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.pi/agents/flowforge-reviewer-lite.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-reviewer-lite.toml",
+      "sha256": "7d0c76c55bb5f2f77ca0b432b46441fcc2d24268ff80c5553a8d19ef467188be",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.codex/agents/flowforge-reviewer-lite.toml"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-reviewer-lite.md",
+      "sha256": "824e650c54c633384d721f3dc8d6e5164721a0a7ad31b12a545df1c2ac349eda",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.claude/agents/flowforge-reviewer-lite.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-reviewer-lite.md",
+      "sha256": "1ad2f299f2151ad3ff915c6b9219fa0185008ecef8a61e7ce9d01769f08bf810",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.opencode/agent/flowforge-reviewer-lite.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/pi/flowforge.ts",
+      "sha256": "ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/pi/flowforge.ts"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.pi/extensions/flowforge.ts",
+      "sha256": "ed399e80eb62153daf86a14eec20da18667a468b824307684b8a7a46a1d2618b",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.pi/extensions/flowforge.ts"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/AGENTS.md",
+      "sha256": "aed561a911dbe0cac0fa3485df15ef3b801cd6da6e57698a78b75dc0c85ae7d5",
+      "mode": "0o755",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/AGENTS.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/AGENTS.md",
+      "sha256": "81bb658e79ab2372b41411f618a1265602e020e4a04929b3363215cce05442c8",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/AGENTS.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/agents/issue-tracker.md",
+      "sha256": "39d2322c97ae28248b4a32e534d961cf12123c32f0fbb8983dc64974431d11e6",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/assets/agents/issue-tracker.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/ff-wiki/agents/issue-tracker.md",
+      "sha256": "39d2322c97ae28248b4a32e534d961cf12123c32f0fbb8983dc64974431d11e6",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/ff-wiki/agents/issue-tracker.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/.flowforge/config.yaml",
+      "sha256": "b5c1d966483b0e81e06e71f69c5d6de23838afa022304cfc116143f39d044636",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/.flowforge/config.yaml"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/__tests__/acceptance.test.mjs",
+      "sha256": "3898b41a8e50061d9fa9ba089a3f48cf7572b85f2160745d3e6623ba6d70c417",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/__tests__/acceptance.test.mjs"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/__tests__/fix.test.mjs",
+      "sha256": "c5ac3c521263fc9a496fdb2f4b1477807cdf31966b337e8ef3f29b592752bac1",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/__tests__/fix.test.mjs"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/design.md",
+      "sha256": "1cdf2cc815fa6c969c19042c6b7e8f7834f2f7ef477f97a70de92c20701a1b79",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/design.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/requirements.md",
+      "sha256": "1fae61ea2152615d182cb8e84c1498a1db1f0b5ac969606d4bcb9c560b6e7cef",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/requirements.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/cli.mjs",
+      "sha256": "41746217e4037f3d059980bdd8cf566cd942c214f8565acfad7fe098f27d563e",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/cli.mjs"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/contract.mjs",
+      "sha256": "eeff6944996cb179c54aec41a1c5b8a31323600d4072689744f3ee4fecb463e7",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/contract.mjs"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/help.mjs",
+      "sha256": "a3878ec4a0215f53a3d2f1f62742594fb86b251fb3d6d690e2579fcfc75a93eb",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/help.mjs"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/quote.mjs",
+      "sha256": "f93dc9eee9fab0f70c9ae0193d5228c20fabb6122aba0cb2bbd100d9df129bf6",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b1/seed/quote.mjs"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/__tests__/probe.test.mjs",
+      "sha256": "130157b04e6cb288f8a52ee3a22343735da13f18ce8de8550b111819f611fdf0",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/__tests__/probe.test.mjs"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/design.md",
+      "sha256": "1825552e713dc7fb53537100d26235f442052a0af3a1597d0f47037ecb0076a0",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/design.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/requirements.md",
+      "sha256": "899c30a47b2ea7226e000c07a363d22e9705b7b585111d0f19e2f58871c78d06",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/requirements.md"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/seed/capability.json",
+      "sha256": "a561d168f2621bb07d5e91982ce488f5db6a908275ad7f904d2c86b39062b248",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/seed/capability.json"
+    },
+    {
+      "path": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/seed/consume.mjs",
+      "sha256": "2aad9f154e63aab6d5a7ae4d1466c3ad4a7a2233c5f16a82b1c38c762d49d563",
+      "mode": "0o644",
+      "realpath": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/b2/seed/consume.mjs"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/cases/b1/cli.mjs",
+      "sha256": "41746217e4037f3d059980bdd8cf566cd942c214f8565acfad7fe098f27d563e",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/cases/b1/cli.mjs"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/cases/b1/contract.mjs",
+      "sha256": "eeff6944996cb179c54aec41a1c5b8a31323600d4072689744f3ee4fecb463e7",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/cases/b1/contract.mjs"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/cases/b1/help.mjs",
+      "sha256": "a3878ec4a0215f53a3d2f1f62742594fb86b251fb3d6d690e2579fcfc75a93eb",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/cases/b1/help.mjs"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/cases/b1/quote.mjs",
+      "sha256": "f93dc9eee9fab0f70c9ae0193d5228c20fabb6122aba0cb2bbd100d9df129bf6",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/cases/b1/quote.mjs"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/cases/b2/capability.json",
+      "sha256": "a561d168f2621bb07d5e91982ce488f5db6a908275ad7f904d2c86b39062b248",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/cases/b2/capability.json"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/cases/b2/consume.mjs",
+      "sha256": "2aad9f154e63aab6d5a7ae4d1466c3ad4a7a2233c5f16a82b1c38c762d49d563",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/cases/b2/consume.mjs"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b1/design.md",
+      "sha256": "1cdf2cc815fa6c969c19042c6b7e8f7834f2f7ef477f97a70de92c20701a1b79",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b1/design.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b1/requirements.md",
+      "sha256": "1fae61ea2152615d182cb8e84c1498a1db1f0b5ac969606d4bcb9c560b6e7cef",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b1/requirements.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b2/design.md",
+      "sha256": "1825552e713dc7fb53537100d26235f442052a0af3a1597d0f47037ecb0076a0",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b2/design.md"
+    },
+    {
+      "path": "/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b2/requirements.md",
+      "sha256": "899c30a47b2ea7226e000c07a363d22e9705b7b585111d0f19e2f58871c78d06",
+      "mode": "0o644",
+      "realpath": "/private/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b2/requirements.md"
+    }
+  ]
+}

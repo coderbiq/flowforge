@@ -1,0 +1,62 @@
+[
+  {
+    "status": "fulfilled",
+    "value": {
+      "command": "bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --strict",
+      "output": "Checked 6 issues in ff-wiki/proposals/cost-aware-verification-planning\n✓ Dependency graph is healthy. No cycles or dangling references found.\n",
+      "truncated": false,
+      "exit_code": 0,
+      "wall_time_seconds": 0
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "command": "bin/flowforge check --dir ff-wiki/proposals",
+      "output": "Checked 108 issues in ff-wiki/proposals\ndiagnostics warning:evidence-artifact-missing: 19\ndiagnostics warning:evidence-missing: 202\ndiagnostics warning:legacy-metadata: 10\ndiagnostics warning:missing-required-metadata: 5\ndiagnostics warning:untracked-upstream: 4\nwarning: legacy-metadata ff-wiki/proposals/documentation-contract-refinement/issues/01-artifact-catalog-discovery.md\nwarning: legacy-metadata ff-wiki/proposals/documentation-contract-refinement/issues/02-semantic-diagnostics-and-waivers.md\nwarning: legacy-metadata ff-wiki/proposals/documentation-contract-refinement/issues/03-check-frontier-projection.md\nwarning: legacy-metadata ff-wiki/proposals/documentation-contract-refinement/issues/04-deploy-artifact-contract.md\nwarning: legacy-metadata ff-wiki/proposals/documentation-contract-refinement/issues/05-solution-design-skill.md\n--full for all diagnostics\n✓ Dependency graph is healthy. No cycles or dangling references found.\n",
+      "truncated": false,
+      "exit_code": 0,
+      "wall_time_seconds": 0.1
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "command": "bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning",
+      "output": "=== READY (Unblocked & Executable) ===\n✓ [cost-aware-verification-planning] #02 集中验证连续交付行为并发布一致规则包 (ff-wiki/proposals/cost-aware-verification-planning/issues/02-controlled-acceptance-and-deploy.md)\n",
+      "truncated": false,
+      "exit_code": 0,
+      "wall_time_seconds": 0
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "command": "git diff --check",
+      "output": "",
+      "truncated": false,
+      "exit_code": 0,
+      "wall_time_seconds": 0
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "command": "python3 - <<'PY'\nimport json,pathlib,hashlib\np=pathlib.Path('ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/manifest.json')\nm=json.loads(p.read_text())\nfor e in m['entries']:\n q=pathlib.Path(e['path'])\n assert hashlib.sha256(q.read_bytes()).hexdigest()==e['sha256'],str(q)\nassert not pathlib.Path('/tmp/flowforge-02-v2.kktVNK/cases/b2/used.marker').exists()\nprint('72 frozen entries unchanged; B2 behavior marker absent')\nPY",
+      "output": "72 frozen entries unchanged; B2 behavior marker absent\n",
+      "truncated": false,
+      "exit_code": 0,
+      "wall_time_seconds": 0.2
+    }
+  },
+  {
+    "status": "fulfilled",
+    "value": {
+      "command": "diff -qr assets internal/command/assets && git diff --name-only be83217 HEAD -- assets internal go.mod go.sum",
+      "output": "",
+      "truncated": false,
+      "exit_code": 0,
+      "wall_time_seconds": 0.1
+    }
+  }
+]
