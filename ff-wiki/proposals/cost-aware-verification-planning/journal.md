@@ -18,9 +18,25 @@ flowforge:
     - {round: 2, stage: review, action: done, ts: "2026-11-05T13:11:58Z", by: flowforge-review, reason: "01独立只读Round0报3项partial（A01 Fix复验执行入口、A02初次发布派发阻断、A03 tracker指针隔离部署失效）；主会话裁决NEXT: FIX，追加Fix 11–13并发布Round 1 Fix verification，两轴本轮未运行；01仍open，02仍待Refine，未round-close", artifacts: [issues/01-rule-package.md, README.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T13:48:00Z", by: flowforge-review, reason: "01修后独立只读Round0报partial 1（A05执行记录）与contradicts 1（A04阶段证明门禁过宽）；主会话裁决NEXT: BLOCKED，新建04 repair/design-return，01改needs-repair，02 Blocked by改04；两轴未运行，未round-close", artifacts: [issues/01-rule-package.md, issues/04-stage-proof-scope-and-execution-record.md, issues/02-controlled-acceptance-and-deploy.md, README.md, journal.md]}
     - {round: 2, stage: review, action: done, ts: "2026-11-05T14:22:41.476Z", by: flowforge-review, reason: "01/04完整范围Round0零gap、两轴收敛；覆盖说明Low由主会话更正，关闭04及01；02继续，不round-close", artifacts: [issues/01-rule-package.md, issues/04-stage-proof-scope-and-execution-record.md, evidence/01-final-review.md, README.md]}
+    - {round: 3, action: round-open, ts: "2026-11-06T01:41:41.643Z", by: flowforge-align, source: user, reason: "用户按成因研究授权重规划，以连续实现集中验证减少角色往返，必要时评估回滚"}
+    - {round: 3, stage: align, action: done, ts: "2026-11-06T01:41:41.643Z", by: flowforge-align, artifacts: [requirements.md, source-notes.md]}
+    - {round: 3, stage: design, action: done, ts: "2026-11-06T01:41:41.643Z", by: flowforge-solution-design, artifacts: [design.md, design/test-authority.md, README.md]}
+    - {round: 3, stage: plan, action: done, ts: "2026-11-06T01:41:41.643Z", by: flowforge-plan, artifacts: [issues/05-continuous-delivery-rule-package.md, issues/02-controlled-acceptance-and-deploy.md, README.md]}
 ---
 
 # 阶段记录
+
+## Round 3：按连续实现与集中验证重新规划
+
+用户在澄清核心目标后授权依据成因研究调整proposal，必要时先回滚。主会话使用import/align/solution-design/plan，发布requirements rev3、design rev4、source-notes rev3；未把用户的重规划请求解释成原paused 02自动恢复。已有需求分歧已由用户澄清，不再增加一轮访谈。
+
+裁决不整包Git回滚：00/03安全入口、01/04正确阶段门禁和Fix消费入口保留。05统一替换新Plan默认、重复执行确认和角色职责；02升rev2并依赖05，以两条真实链加自动/独立语义证据替代旧全变体模型矩阵。旧权威与02全文可从933797d读取，未跟踪旧02候选目录原样保留且不纳入新验收。已closed票保留原consumes与审查结果，仅对历史revision漂移记录精确waiver；新05/02不享用这些waiver。作者入口设计复核R10未变，消费更新到req3而自身语义revision仍为1。
+
+只读调查4fb5ebce核实既有测试和部署接缝：无需Schema/Go算法变化；旧复述断言须合法作者对应更新，Round0/repair/失败保护不删。角色read-only工具集合有机械覆盖，但reviewer职责的新约束须补测试。该调查没有运行测试，主会话未签发作者grant、未修改受保护文件；05/02五节保留Plan骨架，等待各自Refine，不假报可执行。
+
+本轮沿用并再次确认旧progress/docs技能及INDEX缺失的现状，通过README与journal同步；bd prime退出0无输出，bd where仍报No active beads workspace found，不初始化数据库。文档采用writing-for-agents的信息价值原则：重写过期意义，不追加另一套成本模板。未改产品、模型、权限或部署，未推送。
+
+规划检查：scoped strict check报告且仅报告05/02的execution-contract-incomplete，故严格就绪校验未通过；这是计划骨架待Refine的真实缺口，不豁免。frontier给出05为无DAG阻塞的待Refine项，02等待05，ready为空。原closed票的历史revision处理不伪装成新交付。最终实跑`./bin/flowforge check --dir ff-wiki/proposals --feature cost-aware-verification-planning --full`退出0：全局108票图健康，本proposal仅上述两项待Refine gap及6项具名历史upstream-changed waiver；scoped `--strict`退出1，仅两项execution-contract-incomplete。7份当前权威/导航/新计划共85个相对链接及锚点全部可解析。未运行产品Go测试、行为链、构建或部署；本轮验证不冒充实施验收。
 
 ## Round 1：需求与设计
 

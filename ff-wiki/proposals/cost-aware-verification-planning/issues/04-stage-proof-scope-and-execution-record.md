@@ -9,6 +9,13 @@ flowforge:
       cost-aware-verification-planning-requirements: 2
     design:
       cost-aware-verification-planning-design: 3
+  waivers:
+    - diagnostic: upstream-changed
+      target: cost-aware-verification-planning-requirements
+      reason: "历史closed票仍证明需求rev2下的旧范围；rev3新增连续交付及角色义务由05与修订02交付，不追写旧通过。"
+    - diagnostic: upstream-changed
+      target: cost-aware-verification-planning-design
+      reason: "历史closed票保留消费设计rev3；rev4替换默认和角色职责由05承担，旧证据不作新规则正向证明。"
 ---
 
 # 04: 恢复阶段证明门禁适用范围与执行记录

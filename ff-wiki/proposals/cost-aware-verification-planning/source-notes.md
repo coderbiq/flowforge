@@ -3,58 +3,54 @@ flowforge:
   schema: 1
   role: research
   id: cost-aware-verification-planning-sources
-  revision: 2
+  revision: 3
 ---
 
 # 来源归类与事实边界
 
-本文件由 flowforge-import 整理来源，不代替 [需求](requirements.md) 或 [设计](design.md)。目标语言为中文。2026-11-05 初次授权为将调查与讨论整理成正式 proposal；后续用户要求“继续”推进实施，并明确回复“允许，继续”，批准受限 Plan/Refine 测试作者入口作为前置修复。
+本文件经flowforge-import归类，不代替[需求rev3](requirements.md)或[设计rev4](design.md)。本轮用户授权“按这个研究分析调整proposal重新规划修改，如果有必要可以先回滚之前的修改”。主会话据此更新需求、设计和任务；没有从重规划授权推断旧02或部署已经完成。
 
 <a id="accepted-boundaries"></a>
-## 已确认边界及采用方式
+## 接受的需求与约束
 
-| 来源 | 类型 | 接收位置 |
+| 来源 | 分类 | 落点 |
 | --- | --- | --- |
-| 用户明确耗时关注实施阶段，认可前期分析/设计/Plan/refine | 已接受需求 | requirements R1、范围 |
-| 用户说明机械执行、测试保护源自篡改测试和需求偏离的实际教训，拒绝通过放权赌能力改善 | 已接受约束 | requirements R1、R6；design 权限表 |
-| 用户提出每票基本结果验证、阶段集成验收，以及小修复避免重验 | 已接受目标 | requirements R2–R5；design 验证分配与 Fix 合同 |
-| 用户要求用成本原则改善 Plan 质量，关注 review fix 往返 | 已接受目标 | requirements R3、R7、R9 |
-| 最初要求创建正式 proposal 梳理需求和方案 | 首次授权范围 | 需求/设计与导航，已完成 |
-| 用户在确认尚未实施后要求“继续” | 实施授权 | 发布并执行实施票，独立审查、验证与部署 |
-| 用户对“为 Plan/Refine 增加受限测试写入入口”明确回复“允许，继续” | 前置修复授权 | requirements R10；仅指定作者运行和测试文件，不关闭全局保护、不放宽实现者权限 |
+| 用户澄清：把测试放后面，本意是简化流程，先实现完整逻辑再集中验证，减少实施者/验证者交互 | 已接受需求，替换“只优化重复测试”的窄解释 | R2–R4、R9 |
+| 用户要求先调查现有Skill/subagent触发点，不盲目造方案；本轮批准据调查重规划 | 授权与范围 | 原位修订现有proposal、保留必要历史、规划05→02 |
+| 既有明确要求：轻量机械执行、作者分离、测试保护、Plan/Refine、Round0及双轴 | 保留约束 | R1、R10；不以默认full mode或放权换速度 |
+| 用户补充复盘期间合盖休眠 | 已确认环境事实 | 研究超时排除效率归因，活跃时长未知 |
+| 用户询问模型过度推理的可能性 | 待证实假设，不是调参要求 | 不调thinking/模型，不据响应慢断言降智 |
+| 用户此前授权受限Plan/Refine测试写入入口 | 已交付前置范围 | 00/03产品与证据保留，R10语义不变 |
 
 <a id="research-sources"></a>
-## 调查与讨论材料
+## 研究输入及采用边界
 
-| 来源与定位 | 分类 | 使用边界 |
+| 来源 | 分类 | 本轮使用 |
 | --- | --- | --- |
-| [验证循环研究](../../research/2026-11-05-giis-verification-loop-cost.md) §二、三、五 | 来源事实/历史执行证据 | 小修重跑、验收工具增长及定向复验反例；不把全部测试视为浪费 |
-| [独立归因](../../research/2026-11-05-giis-execution-root-causes.md) §3、5、6 | 来源事实/未知 | 父子耗时、合同错误、权限/环境摩擦；不能据延迟认定模型降智 |
-| [成本原则草案](../../research/2026-11-05-cost-aware-plan-principles.md) 已确认边界、八条原则 | 需求候选与设计候选 | 由本次需求/设计重述；原草案不是新执行权威 |
-| [弱执行者可靠交付需求](../fast-executor-reliability/requirements.md#问题)、[设计](../fast-executor-reliability/design.md) | 既有设计与历史依据 | 假完成、空洞断言、自创机制和多轮证伪是现有控制的来源；不撤销控制 |
-| [原轻量执行合同](../lightweight-execution-contract/spec.md)、[修复生命周期设计](../ticket-refinement-contract/design.md) | 现有责任/接口依据 | 保留机械 Fix、独立关闭、design return 和 repair 分流 |
-
-先前讨论中“默认 full mode”“删除 Plan/refine 或独立审查环节”“允许实现者自行改测试/调试”的建议已被用户否定，不进入本 proposal。附件 API 原草案已有 DDL，不能再当作“模型漏表结构”的证据。
+| [流程成因核查](../../research/2026-11-05-plan-verification-handoff-causal-analysis.md) P1–P7 | 条款事实、因果假设、设计候选 | 需求和设计分别采纳；不照抄“一次交接”等未定建议 |
+| [本proposal自成本报告](../../research/2026-11-05-cost-aware-proposal-self-audit.md) | 历史证据与初步建议 | 299.33分钟是墙上跨度；34 child集合含发布前Plan；不将21分钟记录区间全当可净节省值 |
+| [GIIS验证循环](../../research/2026-11-05-giis-verification-loop-cost.md)、[独立归因](../../research/2026-11-05-giis-execution-root-causes.md) | 原始样本及反证 | 重验证存在，也有定向复验成功；不把全部测试视为浪费 |
+| [成本原则草案](../../research/2026-11-05-cost-aware-plan-principles.md) | 历史需求/设计候选 | 研究不是执行权威；以当前R2–R4重新表达 |
+| 01/04的审查、实施记录；00/03授权证据 | 已交付历史 | 真实缺陷与真实失败保留，不追写成新目标已验收 |
+| 旧02和候选fixture | 未完成计划/草稿 | 旧票全文可用`git show 933797d:ff-wiki/proposals/cost-aware-verification-planning/issues/02-controlled-acceptance-and-deploy.md`读取；未跟踪目录保留且不消费作通过证据 |
 
 <a id="mechanisms"></a>
-## 代码与部署事实
+## 已核实的实现与验证接缝
 
-- `assets/skills/flowforge-plan/SKILL.md:24,51,55`：票独立交付、精确验证命令、Plan 发骨架而 Refine 填执行事实。
-- `assets/skills/flowforge-implement/SKILL.md:56,69,75`：逐 Change 构建、全票命令自检、完成项四元组；减少重复必须同步解释这些规则。
-- `assets/skills/flowforge-review/SKILL.md:76,126,128,130`：Round 0 前置、Fix 规划、design return/repair 的责任；不能默认用复验安排更改验收目标。
-- `internal/tracker/catalog.go:319,349,365`：检查 Completion evidence 是否存在、五节执行合同是否完整，不能判断行为充分性。
-- `internal/tracker/catalog_evidence.go:32,99`：四元组格式/exit/artifact 检查，没有运行版本和复用有效性判断；历史引用与本轮实跑必须靠诚实记录和独立审查区分。
-- `internal/tracker/dag.go:165`、`internal/tracker/model.go:22`：依赖看终态；`wontfix`/`resolved` 不代表集成通过，因此发布前仍需正向验收证明。
-- `Makefile:15` 与 `internal/command/embed.go:5`：源资产先复制到 `internal/command/assets` 再嵌入构建；源码测试和直接 go build 不会自动同步。
+- Plan已有“compact work留一票”的反证，故不认定规则强制按文件拆票；其缺口是没有把验证关口/交接成本作为切分原则。
+- 无schedule时逐Change build、Phase0/0b重复表达、Round0先于双轴、reviewer只读却承诺完整流程等条款出处见成因报告。自检不是独立审查；没有失败或派发记录，不能把一次命令计为角色交接。
+- `internal/tracker/catalog.go:349–387`检查五节；`catalog_evidence.go:56–118`检查逐Change四元组。本轮保留机制，不需要算法或Schema变更。
+- `internal/command/assets_deploy_test.go:343–357`绑定旧复述用语；`:368–485`覆盖失败/Blocked合同；`:568–614`覆盖Round0/repair。更新前者必须由合法作者完成，不能顺带删除后者保护。
+- `internal/command/cost_aware_assets_test.go:11–51`覆盖七个原规则面的source/embedded/隔离部署，尚未覆盖本次四个角色的新职责；`internal/subagent/compile_test.go:365–417`覆盖read-only编译工具集合，但不单独保证reviewer始终只读。05在既有command接缝补对应契约，不新增角色或编译算法。
+- `Makefile:dev`先同步assets再构建；直接go test/go build不自动同步。本项目`.agents`与源不同，候选行为测试须固定隔离入口，不能把待发布源码当已生效规则。
 
-本轮只读核对发现源与嵌入的 `_shared/ARTIFACT-CONTRACT.md`、implement、review 已有差异；部署副本也可能滞后。未来实施必须固定基线，不能把现存漂移当成本 proposal 的修改。标准提取指南仍含旧 Plan 职责措辞，本方案按当前 Align→Design→Plan 的责任链解释；不顺手改写项目定制指南。
+上述测试接缝由只读调查run `4fb5ebce-7a2b-4f89-a329-1ea33576dd7a`核实，主会话抽读关键断言。该调查未执行测试；本轮规划不宣称测试已red/green或作者已获授权。
 
 <a id="uncertainty"></a>
-## 不能当成已证实结论的内容
+## 不作为方案前提的推断
 
-- 近期 fix 频率较过去增加多少：无同规模、同执行入口、同轮次口径的对照。
-- Round 编号、reviewer 数或测试失败数：不分别等于修复批次、独立缺陷数。
-- 删除重复动作可节省多少百分比：尚未实施和测量。
-- CLI check 通过：不能证明旧证据仍有效、阶段已验收或新规则行为可靠。
-
-本轮另有两份只读事实简报用于核对上述接缝，结论已落到本文件及设计，不要求后续执行者读取整个会话或临时子任务日志。
+- 模型本身过度推理、降智或较低thinking必定改善：未证实。
+- 本proposal慢只因票切太碎：01已集中修改七面，仍因真实缺陷和记录返工。
+- 部署新规则即可解决：候选规则尚无受控行为通过，版本差异只能作为解释冲突风险。
+- 两条受控链通过等于生产净提速：不成立；真实长期收益继续未知，不要求为凑百分比重演旧proposal。
+- 旧完成票或CLI终态代表新规则通过：不成立；05和修订02必须自行交付。

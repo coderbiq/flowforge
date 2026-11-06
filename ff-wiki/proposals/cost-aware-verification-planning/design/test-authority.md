@@ -6,13 +6,13 @@ flowforge:
   revision: 1
   consumes:
     requirements:
-      cost-aware-verification-planning-requirements: 2
+      cost-aware-verification-planning-requirements: 3
 ---
 
 <a id="cost-aware-test-authority-design"></a>
 # PI 合法测试作者入口
 
-消费 [需求 revision 2 / R10](../requirements.md#cost-aware-verification-planning-requirements)。用户明确授权修复 Plan/Refine 作者被全局保护误阻塞的问题。这个前置交付不授予实现者测试写权。
+消费 [需求 revision 3 / R10](../requirements.md#cost-aware-verification-planning-requirements)；本轮复核R10与revision 2语义一致，作者入口设计revision 1及00/03原验收保持不变。用户明确授权修复 Plan/Refine 作者被全局保护误阻塞的问题。这个前置交付不授予实现者测试写权。
 
 ## 事实与取舍
 

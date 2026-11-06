@@ -9,6 +9,10 @@ flowforge:
       cost-aware-verification-planning-requirements: 2
     design:
       cost-aware-test-authority-design: 1
+  waivers:
+    - diagnostic: upstream-changed
+      target: cost-aware-verification-planning-requirements
+      reason: "需求rev3保留R10语义；本closed票仅交付已验收的受限作者入口/边界，不承担新Plan规则。"
 ---
 
 # 03: 修复测试作者授权的符号链接与时间边界

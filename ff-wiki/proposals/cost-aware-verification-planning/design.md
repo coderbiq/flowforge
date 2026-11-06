@@ -3,217 +3,140 @@ flowforge:
   schema: 1
   role: design
   id: cost-aware-verification-planning-design
-  revision: 3
+  revision: 4
   consumes:
     requirements:
-      cost-aware-verification-planning-requirements: 2
+      cost-aware-verification-planning-requirements: 3
     design:
       cost-aware-test-authority-design: 1
 ---
 
 <a id="cost-aware-verification-planning-design"></a>
-# 成本感知的验证规划与修复复验：设计
+# 连续实现、集中验证与明确编排职责
 
-消费 [需求 revision 2](requirements.md#cost-aware-verification-planning-requirements) 与 [测试作者入口设计 revision 1](design/test-authority.md#cost-aware-test-authority-design)。验证安排仍采用现有 Markdown 契约与角色分工，不新增 Issue Schema、CLI 签名、任务状态机或自动缓存平台。revision 2 按用户明确授权增加 PI 合法作者入口前置修复；revision 3 在01开始前根据实测lint基线明确修改文件门禁及兼容回归基线，原有成本感知规则方案不变。
+消费[需求revision 3](requirements.md#cost-aware-verification-planning-requirements)及保持不变的[作者入口设计revision 1](design/test-authority.md#cost-aware-test-authority-design)。本轮重新设计的是规则与角色的调用关系，不增加Go算法、CLI/Schema或任务生命周期。
 
 <a id="decision"></a>
-## 方案选择
+## 选择与依据
 
-| 方案 | 能力与代价 | 裁决 |
-| --- | --- | --- |
-| 所有票/修复继续执行全部原验证 | 实现简单，但重复环境准备、完整回归和取证成本保留 | 不作为新票默认规划目标；旧票兼容保留 |
-| 权威制定局部/阶段验证及 Fix 复验，执行者机械执行 | 用现有正文、证据和依赖即可表达；需同步更新技能的执行解释 | **采用** |
-| 建立自动影响分析、证据缓存和新阶段状态 | 可进一步自动化，但需要新的失效模型和强制机制，当前事实不足 | 本轮不做 |
-| 放宽实现者权限、自选测试或取消独立审查 | 破坏既有可靠性约束 | 按 R1 排除 |
+采用**在既有ticket内形成完整连续实现范围、集中检查与审查；主会话显式承担工作流owner**。替换旧规则中不合适的默认与重复说明，不再叠加一套成本框架。
 
-采用方案的限制：成本和证据适用性仍由权威角色判断，CLI 不会自动证明它们；必须用受控执行验证规则遵从度，而非仅检查文件结构。
+未采用：只保留旧的可选schedule和证据复用，它仍未指导Plan为什么/何时拆票；也未采用多票先实现、最后统一改状态的批处理层，它会改变关闭/依赖语义并制造新的中间状态。先利用现有一票多Change表达完整逻辑，真正独立交付/风险/上下文容量才拆票。
+
+[成因研究P1–P7](../../research/2026-11-05-plan-verification-handoff-causal-analysis.md)是来源证据，不直接成为执行合同。产品化的边界和行为以本文件为准；模型过度推理尚未被独立证实，本轮不调thinking。
 
 <a id="owners"></a>
-## 责任与批准边界
+## 责任与调用接口
 
-| 责任方 | 负责 | 不获得的权限 |
+| 角色 | 本轮确定的责任 | 完成后交付 |
 | --- | --- | --- |
-| Solution Design | 确定局部/阶段验证接缝、何时需要真实环境和兼容策略 | 不代替需求方减少验收行为 |
-| Plan | 将交付和验证分配到票，给出真正开始依赖、检查分组及重型动作理由 | 不把未知接口当作已验证事实，不绕过 Refine |
-| Refine | 按现有五节核实命令、环境、成功/失败路径、反例及组覆盖 | 不另选设计或自行缩减交付 |
-| 轻量 Implement | 只执行已发布的 Change 和本轮检查安排，保存实际结果 | 不自行分组、选测、复用证据、改预设测试或设计修复 |
-| Review/裁决者 | 汇齐发现、给出机械 Fix 及复验安排，独立判定证据适用性 | 不通过复验安排改变验收标准、方法或架构；此类仍 design return/repair |
-| 合法测试作者 | 在明确授权的 Change 中修改测试/fixture 并更新受影响基线 | 不为产品失败削弱断言，不把写保护绕过视为授权 |
+| Design | 验证必要性、风险前置与局部/阶段责任 | 已定策略，不替Plan切票 |
+| Plan/Refine | 按完整逻辑切票，核实命令/预设反例，发布紧凑安排 | 轻量实施者无需重新设计的合同 |
+| 合法测试作者 | 指定实例内准备/更新与新语义对应的预设断言，核实后冻结 | 测试及真实作者结果；随后撤权 |
+| 轻量Implement | 连续完成指定组，执行指定检查并留下诚实结果 | 固定差分、结果、失败/偏离；不自审或关票 |
+| 只读Round 0/Spec/Standards子代理 | 只核查被派发范围，引用实际差分和证据 | 发现、依据及适用边界，不再派发/写票/关闭 |
+| 主会话工作流owner | 选择和派发独立角色，汇总轴结果，作权威裁决与写回 | Fix合同、关闭/下一步；短记录直接写，不另派scribe |
 
-Round 0、两个独立审查轴、原关闭责任和 substantive finding → repair 路由保留。角色职责澄清写入共享契约，相关技能只保留自身操作及引用，避免重复一整套规则。
+`flowforge-review`仍描述owner主持的Round 0→双轴→裁决链，但首先区分owner调用与只读子任务调用。后者仅执行指定审计/轴，缺输入返回缺口，不自行扩成完整工作流。`flowforge-reviewer`维持read-only；默认作为独立Spec检查者，只有明确指定才承担其他只读审计范围，永不成为有写权的owner。reviewer-lite的“flagship是唯一closeout authority”同步改为主会话owner。不新增角色、权限或嵌套委派。
 
 <a id="allocation"></a>
-## 局部交付与阶段集成
+## Plan决定连续实现范围与验证关口
 
-设计的验证策略包含一份紧凑的分配表：行为/关键风险、局部证明、阶段证明及触发条件。Plan 据此形成 Delivery、Done and verify 和真正的依赖边；Refine 在前置满足后核实精确运行事实，不提前填猜测。
+Plan先选出能交付完整行为的一组修改，考虑接口、实现、调用方、失败路径和生成关系。拆票理由须是独立可用交付、真实开始依赖、风险隔离或上下文容量；同时考虑重复Refine、启动、审查和收口。无需每票填写成本表；只有实际拆分或提前关口需要一句具体理由。
 
-- 局部票闭合自己承诺的契约；真实数据库、并发等如果是该承诺的必要观察条件，就不能被移到以后。
-- 跨票组合由一个普通 `role: ticket` 的阶段验收票承担；与完整回归共用环境时可在同一受控运行中取证。
-- 阶段验收票依赖需要组合的局部交付；需要完整证明的发布/实际使用票依赖该阶段验收。独立阶段可各自推进，不建立无关的批次汇合屏障。
-- 局部票不再声明它未证明的端到端行为；此前合同已有此声明时，先由原权威修订，不能只删除命令。
+新Plan默认把一票的关联Changes作为一个连续实现组，组完成后集中编译、测试及独立审查。若完整逻辑过大，仍按可验证交付拆分；不让“减少交接”消除真实依赖。
 
-```mermaid
-flowchart LR
-    A[局部交付 A 与必要验证] --> G[阶段集成验收 G]
-    B[局部交付 B 与必要验证] --> G
-    G --> P[需要组合证明的发布或使用]
-```
-
-此图是验证责任示意，不是本 proposal 已发布的实施票。若 B 真正依赖 A 的接口，再增加 A→B；不能为追求并行删掉真实依赖。
-
-**门禁事实：**现有 DAG 将 `closed/resolved/wontfix` 都视为终态，不理解测试是否通过。因此，派发需要阶段证明的消费/发布票前，负责人必须确认 G 的正向验收结果适用于待使用版本，并已按原关闭规范独立审查。仅 `frontier` 返回 Ready 或 G 被标成 `wontfix` 不构成通过；条件不满足时不派发。豁免必须先由原权威正式重定范围，不允许轻量执行者解释终态。
-
-**纯验证票的审查对象：**G 交付非空的实际验证记录/结果工件，列出所验实现固定点、可重现命令、结果及边界；审查同时取得关联实现的明确范围。不能向 Review 提交空 diff 或仅一句“已跑过”。证据文件是可审对象，关联代码证明其语义，不能只评证据格式。
-
-**后续失效：**G 已通过后，新的 Fix 若使组合证明失效，负责人将受影响验收沿现有 repair 路径重新交付，并使尚未执行的消费/发布依赖新的有效证明。旧报告保留为历史，不能给新版本自动放行；已发生的发布不由本规则追溯抹去，其恢复策略仍由既有设计/运维权威处理。
+阶段证明仍只约束需求/设计/票明确需要它的使用或发布；产生该证明的票不等待自身证明，普通局部依赖不自动增加阶段证明。维持04已修正的范围与失效处理，不新增批处理状态。
 
 <a id="schedule"></a>
-## 检查安排：在现有正文中明示采用
+## 沿用一种紧凑的验证安排
 
-在 `Done and verify` 内使用可选小节 `### Verification schedule` 表达本票的执行时机。它是**技能解释的正文约定**，不是新 Schema 字段或 CLI 可解析能力。验收行为和命令仍在原 Done and verify，五节 Execution detail 仍由 Refine 填写。
+新Plan在现有 `Done and verify` 中默认写 `### Verification schedule`，通常**一个段落、一组**：Changes范围、全部完成后执行哪些已定义命令/预期、结果位置。只有提前关口才分组并解释必要性；无需固定表格、另写预算或复制命令。
 
-安排至少回答：覆盖哪些 Change/验收项、何时执行、运行哪条明确命令及预期、结果保存在哪里。重型项附一句必要性及共享/阶段安排说明；没有测量值就写未知。命令可引用本票唯一的已定义命令，不能引用缺失占位命令。
+- **新票/已显式迁移票：**执行发布的连续范围，到组末再检查；Change是实现步骤，不因其完成就触发独立验收。
+- **旧票无安排：**保留旧逐Change和全票规则，不隐式迁移。Plan升级后创建的新票必须自检已写安排，不能默认漏写再退回旧路径。
+- **安排存在但缺项/矛盾/命令失效：**实施前交回安排owner，实施者不猜。实际执行中越界、合同冲突或指定检查失败仍按既有失败规则返回。
+- **本轮Fix有适用安排：**优先消费Review发布的 `Fix verification`；没有才回到票schedule/旧规则。保持01补齐的这一消费链，缩短说明但不删除语义。
 
-正文示例（仅示意关系，不是当前项目的执行合同）：
-
-| 组 | Change 与验收项 | 时机 | 检查/证据 |
-| --- | --- | --- | --- |
-| G1 | 接口定义及所有本票调用方的 Change | 该组全部修改后 | 本票定义的编译和定向用例；一次运行记录 |
-| G2 | 其余局部分支 | 对应修改完成后 | 原失败反例及直接相关用例 |
-| Ticket closeout | 本票全部 Done 项 | 独立审查前 | G1/G2 及其他有效结果组成覆盖；不为收口再重复相同运行 |
-
-执行语义：
-
-1. **完整、已授权的安排存在**：Implement 按组执行。组内操作仍逐条机械完成；组末验证通过前，该组相关 Change 不能勾选。一个真实运行可覆盖多个已明确关联的 Change。
-2. **安排缺失**：保持原逐 Change 构建及全票自检规则，不自动推断节省方案。
-3. **声明采用但安排缺项、矛盾或引用失效**：在实施前返回原规划责任方修正/明确撤销；不能一半沿用新规则、一半由执行者猜测。写入已有 Blocked evidence 的失败事实，不引入新持久状态。
-4. **实际失败**：仍按既有失败即停与重试限制处理，不授予自主调试权限。
-
-Implement 的“每 Change build”“运行全部 Done and verify”“Publish frontier 前 full relevant tests”必须协调为：有有效安排时执行该安排，并在收口确认全部本票验收已有有效证据；不因相同命令出现于不同步骤而再次执行。无安排时保留原规则。`full relevant` 不被解释为可以擅自省略，也不等于每次自动全仓回归。
-
-Full mode 不改默认选择、不扩大权限；它引用同一验收完整性和重复运行解释，避免升级后的两个模式互相冲突。
-
-<a id="fix-contract"></a>
-## Fix 的定向复验合同
-
-Review 在既有 `Review rounds` 中记录本轮 `Fix verification`，与新增 Fix Changes 一起发布，至少包含：
-
-- 对应发现、机械 Fix 编号与允许修改范围；关键反例和 expected result。
-- **本轮必须实跑**的定向命令，及所覆盖的原验收项。
-- **拟复用**的原证据位置、原执行版本/相关环境、覆盖行为、预计未失效理由。
-- 扩大复验/返回权威的条件，例如实际差分超过预期、共享接口或配置变化、工具可信性变化。
-
-这个安排只是保持原验收目标/方法情况下的运行实例选择和证据适用性裁决，不删除原 Done 条目。它适用于全部原条目由“本轮实跑＋经审查确认仍有效的证据”覆盖的情况。
-
-**与 repair 的分界：**上述记录本身不算重新定义执行合同；若修改验收行为、观察方法、写集、公共接口、原先未允许的执行约束或验证策略，仍触发既有 design return / substantive finding → repair。High/Critical 的现有路由不变，不能为了减少票数降级发现。
-
-普通非行为修正也须给出本轮可观察的检查方法；注释若为生成输入、工具指令或语义配置，不按无行为修正处理。测试修订继续由合法作者执行，不能让实现者依照本节绕过保护。
-
-没有 Fix verification 的旧修复轮次继续旧规则。新的安排不能靠复制标准表格自动生效，必须具体到当前发现和固定版本。
+这不改变“何时允许把Changes勾选”：组的必要检查通过后，组内Change才附有效证据并勾选。安全关键探针可以前置，理由必须针对具体失败代价；不强迫实施者持续运行未安排的中间检查。
 
 <a id="evidence"></a>
-## 证据生命周期与独立复核
+## 减少重复表达，保留证据约束
 
-**保持四元组格式。**新的 Fix Change 仍由本轮真实定向检查生成 `cmd / exit / output / artifact`；不能用旧 stdout 冒充本轮执行而勾选新 Fix。原已完成 Change 的四元组保留原始归属，不回写成新时间。
+Refine继续填五节真实合同；在所需事实已核实且固定点/范围未变时，引用原位置，不把全文复制进每个Fix。复核变化过的事实和未决问题，不能把占位或裸“同上”当完整合同。
 
-同一组一次实跑可以在多个 Change 下引用同一运行工件，并明确“共享本次运行”，不伪造运行次数。符合原字段要求；重复格式文本不等于重复执行。
+Implement的Phase 0与0b合并为一次紧凑执行确认：列本轮组/检查引用，明确关键失败条件、写集/测试权限及例外；不逐条重抄全部Changes、Constraints和Scenarios。对没有变化的事实保留精确引用，对冲突才展开Blocked evidence。机械行为和失败上限不变。
 
-复用判定放在 Review rounds，最终 Completion evidence 明确区分“本轮实际执行”和“复用的历史结论”。每条复用至少能回答：原记录在哪、证明什么、针对哪个实现/测试/配置/环境、当前差分影响是什么、谁确认仍有效。固定点可以是明确 commit，也可以是包含全部受审文件的工作树快照；共享工作区不能只记录会漂移的 HEAD。
+每个已勾选Change仍保留合法四元组；共享一次结果时准确引用相同运行和覆盖，不伪造次数。Implementation note只补实际结果、差分/偏离与未完成项，不复制完整票。Review记录本轮差分与裁决；详细成本画像从原始轨迹提取，不手工统计每次普通/cached diff命令来凑交付。
 
-流程分为两次判断：
+<a id="fix-contract"></a>
+## 修复与审查
 
-1. 派 Fix 前，Review 提出基于预期修改范围的复验安排。
-2. Fix 返回后，独立 Round 0 对照**实际差分**检查全部 Change 的覆盖：新 Fix 有新证据，旧条目有可追溯的仍有效证明；零 gap 后再进入双轴。旧结果不能仅因先前通过而自动继承。
+保留独立fresh Round 0、零gap后双轴、High/Critical和design-return的原repair路线。主会话提前明确同一固定点、未决发现、受影响范围及已确认结论；审查仍有权查出新真实缺陷。
 
-双轴仍独立检查对应规范和规格，重点核实修复及影响面，对已证实不受影响的条目复用取证；发现新真实缺陷仍处理。保留原零未处置发现的关闭标准，不设置“最多几轮就强制通过”。
+同一固定点可确认的发现合批。复验安排可以引用原组命令和仍有效的历史证据，只补Fix范围、实际反例及扩大条件；不重做已经确定的全票设计。新Fix有本轮真实检查，历史结果有原版本/环境/覆盖和当前差分适用性判断，独立审查确认后才能复用。没有新影响/证据，不因换了审查会话重新打开已裁决事项。
 
-下列情况不能复用：来源或版本不明、相关代码/断言/配置/依赖/环境改变且影响无法排除、旧证据本来未覆盖该行为、真实观察被 mock 替代、验收工具变更后尚不能排除假通过。此时补验，所需执行合同不明确则阻塞并返回责任方；不让轻量模型选择较便宜路径。
+<a id="migration"></a>
+## 保留、替换与回滚裁决
 
-<a id="rounds"></a>
-## 减少修复批次与承诺扩张
+| 已有成果 | 本轮处置 | 理由 |
+| --- | --- | --- |
+| 00/03受限作者入口及路径/日期/grant修复 | 保留产品、已关闭票与历史证据 | 解决真实阻塞/安全边界，与新目标兼容 |
+| 01/04共享运行、Fix入口优先级、阶段正向门禁、部署指针修复 | 保留必要语义，在05统一精简 | 避免退回已知缺陷；不能整包revert |
+| 新Plan仍把集中验证当可选优化；Phase0/0b全文重复；reviewer完整owner叙述 | 05原位替换 | 直接对应研究P1–P6 |
+| 旧02的S1–S9全变体逐角色矩阵 | 用本设计的分层覆盖替代 | 观察真正的流程变化，不把每项保证都变成新模型会话 |
+| 未跟踪的 `evidence/02-scenarios/` | 原样保留为未完成候选，不消费作验收依据 | 未冻结、未验收；原paused运行不恢复 |
+| 已关闭票的旧revision记录 | 保留原consumes及原结果，精确标注历史适用范围 | 不追写成已满足新需求；新05另行交付 |
 
-- 首轮在同一固定点上汇齐可确认发现；共同写集/验证面的 Fix 由裁决者合批。仍保留各轴原始结论，不能合并掩盖分歧。
-- Fix 用具体边界和反例表达，尤其是弱模型曾遗漏的组分、顺序、旧结构/部分升级状态等；不是追加一段泛泛“注意完整性”。
-- 复审不无依据重开已通过范围，也不因修工具顺手扩大其支持面或承诺；新要求先回原权威。
-- 报告分别记录审查调用、实际 Fix 批次、原问题 partial 复发。Round 标题和 reviewer 数不作为性能结论。
-- 时间或轮数过多可以触发负责人重新诊断，不自动关闭、不豁免缺陷。
+因此本轮**不执行Git整段回滚**。旧源码尚未按02完成本项目规则部署，立即revert只会抹去安全修复或退回语义缺陷。新规则在05同一组内原位替换；若未来验收失败，保持未部署并修复，不边验边切换当前会话。旧权威及02全文可从重规划前固定点`933797d`读取，历史记录不覆盖成新通过。
 
 <a id="surfaces"></a>
-## 修改落点与兼容部署
+## 修改面与权限
 
-| 位置 | 预期修改责任 |
-| --- | --- |
-| `assets/skills/flowforge-solution-design/SKILL.md` | 将局部/阶段证明及重型验证理由纳入既有验证策略检查；不新建前置阶段 |
-| `assets/skills/flowforge-plan/SKILL.md` | 验证责任分配、真正依赖、正文 schedule、成本理由；保持 Execution detail 骨架与 Mode 规则 |
-| `assets/skills/flowforge-refine-ticket/SKILL.md` | 核实组、命令、环境、关键反例和覆盖，保留五节及测试作者边界 |
-| `assets/skills/flowforge-implement/SKILL.md` | 明确新安排/旧票/不完整安排三条路径，去除已有效覆盖下的重复运行要求；保留阻塞和保护 |
-| `assets/skills/flowforge-review/SKILL.md` | 发布 Fix verification、实际差分后的复用确认、repair 分界；保留 Round 0/双轴和关闭责任 |
-| `assets/skills/_shared/ARTIFACT-CONTRACT.md` | 验证安排、复用语义和所有者的唯一共享说明，避免与技能正文矛盾 |
-| `assets/agents/issue-tracker.md` | 对齐上述解释与旧票兼容，不改变状态/Schema |
-| `internal/command/assets/**` | 从源资产同步的嵌入副本；不独立手写规则 |
-| 现有 `internal/command` / `internal/tracker` 测试接缝及必要情景材料 | 验证源/部署指针、既有门禁兼容和代表性语义情景；情景材料放非部署测试区域 |
-| `assets/pi/flowforge.ts` 及其嵌入/部署副本 | 按独立测试作者入口设计修复合法作者误阻塞；不关闭保护、不授予实现者测试写权 |
+- `assets/skills/_shared/ARTIFACT-CONTRACT.md`：单一共同语义；保留schedule/Fix/阶段边界，删重复表达。
+- `assets/skills/flowforge-{solution-design,plan,refine-ticket,implement,review}/SKILL.md`：分别消费风险、切分、核实、连续执行、owner/叶子审查分支。
+- `assets/subagents/flowforge-{planner,implementer,reviewer,reviewer-lite}.md`：身份、默认入口和返回责任对齐；permission/profile/角色集合不变。
+- `assets/AGENTS.md`、`assets/agents/issue-tracker.md`：派发/写回和新旧票解释一致；保留一票一fresh上下文，不将机械回填独立成阶段。
+- `internal/command/cost_aware_assets_test.go`、`internal/command/assets_deploy_test.go`：仅合法作者调整已批准语义的断言并补新默认/角色部署约束；Round0、失败停止、repair、五节、四元组等安全断言保持。
+- `internal/tracker/cost_aware_evidence_test.go`、tracker算法、`assets/pi/flowforge.ts`：只读复用；不为本轮改授权或证据粒度。
+- `internal/command/assets/**`、`bin/flowforge`：仅由`make dev`生成。实际部署属于02，源、嵌入和部署分开核对。
 
-不修改 DAG、Catalog 的语义算法或 evidence 四字段。新增正文不成为旧票的全局必填门槛；现有标准/证据诊断仍适用，旧格式兼容不等于免检。
-
-发布应作为一致的规则包同步上述消费者。源与嵌入当前已有差异，实施前固定基线并区分既有漂移；`make dev` 会复制整个 assets，必须检查最终差分。构建后以新二进制在隔离目录验证部署，不用旧二进制证明新规则。
-
-旧票仅在权威主动修订有效合同时采用新安排，执行中的 GIIS 票不会被本 proposal 自动迁移。项目定制 agent 文档部署时可能保留旧内容，必须检查并明确差异，不能将 `assets verify` 的整体成功当作定制文档语义已一致。
+修改测试中的旧文字锚点不是降低验收；作者必须给出旧断言→新行为的对应关系，不能仅删除使其变绿。编译器已有read-only工具集检查，但没有专门钉住reviewer角色及文案责任，需在现有command测试接缝补该契约。无需新的测试平台或Go算法。
 
 <a id="verification"></a>
-## 验证策略与成本观测
+## 集中验证与停止条件
 
-验证本变更分结构兼容、受控行为情景和真实阶段观察三层，结构测试不能替代模型执行的行为证据。
+05交付一整套协调后的规则/提示，02验证真实角色行为及发布。测试作者准备、源规则实现、独立审查是必要的责任分离；不按每个文件另建任务或审查。
 
-**现有命令接缝：**
+**05的集中检查：**作者先准备断言并记录基线（新行为可red，兼容检查可green）；实施者完成所有源面后`make dev`，一次完整 `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`覆盖command/tracker/subagent；无须同固定点再重复其定向子集。定向命令只用于作者验证/失败定位，实施失败按合同返回。合法作者修改Go后，沿用[lint门禁](evidence/01-lint-baseline.md)的2.15.0及`16cce8e`整文件范围一次检查，历史全仓债不纳入本次。
 
-- 源/部署技能链接与既有格式：`go test ./internal/command -run 'Test(PackagedSkillPointersResolve|PlanPublishesExecutionDetailSkeleton|PlanSkillDeclaresModeLine|ArtifactContractDocumentsExecutionContractSections|AgentRulesDescribeGenericCapabilityDispatch)$' -count=1`。
-- Catalog、证据、journal、依赖兼容：`go test ./internal/tracker ./internal/command`；关注旧票缺 schedule 不新增诊断、现有证据/阶段门禁不回退。
-- 资产同步构建：`make dev`；在隔离仓库执行新二进制的部署与 `assets verify --json`，分别检查 source→embedded 和 binary→deployed，不混为一个证明。
-- 按项目要求最终运行 `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`，要求全部通过；旧docs路径由合法作者执行01 Change8修正，保留原repair断言。
-- 01实施前实测全仓lint被旧throwaway原型typecheck阻断，产品包也有既有报告，详见 [lint基线与精确门禁](evidence/01-lint-baseline.md)。本次门禁为固定工具2.15.0对相对 `16cce8e` 所有新增/修改Go文件整文件lint，覆盖cmd/internal、包含测试、关闭输出数量截断但不关闭任何linter，必须exit 0。Plan固化精确命令，Review核对全部改动文件覆盖及基线来源；新增其他Go包时返回权威扩大范围。全仓失败如实保留，不声称全仓lint通过；不把本需求扩大为历史代码清理。
-- 两项新增Go回归保护既有交付接缝/门禁兼容，允许实际基线直接green；必须证明测试实际存在且被执行，不故意制造失败或把旧docs失败当作它们的red。新规则行为仍由01完整语义审查和02实际受控情景证明。
+**02只安排两类有不同目的的真实行为链，不按S1–S9扩展全矩阵：**
 
-**待 Plan 固化的受控情景：**
+| 链路 | 实际执行及预设反例 | 判断依据 |
+| --- | --- | --- |
+| B1 普通完整逻辑＋一次小Fix | 同一固定需求包含接口/实现/调用方；新Plan产出一个合理完整交付和组末安排，Refine/合法作者冻结，独立轻量实现到组末才检查。随后给预设普通小Fix，消费owner发布的窄范围检查/旧证据提案。 | 原始工具轨迹证明组内未插入未安排检查或验收；指定检查实跑；不擅改测试；Fix只处理受影响项。owner直接记录；Round0与双轴真实保留。 |
+| B2 必要前置风险 | 同一输入具有真实模拟的不可逆使用条件和必须先确认的契约；Plan必须保留对应前置探针；执行到预设失败时停止，后续不可逆动作不发生。 | 前置不是凭空风险，fixture中有可观察触发；不能只靠产出一句“先验证”。失败/拒绝是该反例的预期，不冒充产品通过。 |
 
-| 情景 | 必须观测到的结果 |
-| --- | --- |
-| 两个局部交付＋阶段集成 | 本票覆盖不缺失、重型组合验证有明确归属、发布必须消费正向证明 |
-| 接口与调用方同组修改 | 不在中间半完成状态构建；组末真实验证成功后才勾选 |
-| 已通过集成后仅改普通注释 | 执行预定定向检查；独立确认旧集成结论仍适用；不声称本轮新跑集成 |
-| 改生成源/事务/共享配置 | 扩大验证或阻塞；不能按“文档小改”复用 |
-| 旧证据版本不明或原断言不足 | 复用被拒绝；关键反例暴露 partial，禁止改断言凑绿 |
-| 新 Fix 尝试直接复制旧四元组 | 不能证明本轮修复；Round 0 拒绝即使 CLI 格式检查通过 |
-| 阶段票 wontfix、resolved 或旧通过已失效 | 不据终态/Ready 推断通过；派发负责人拒绝缺少所需正向证明的发布 |
-| 旧票无 schedule；新票 schedule 残缺 | 前者走旧规则；后者先阻塞修清，不隐式减测 |
-| Fix 实际差分超过预定复验范围 | 旧复用提案不能直接生效，扩大验证或返回权威 |
+旧票无安排、新安排残缺、失效/未知版本证据、缺正向证明发布、只读角色权限/指令一致性由现有Go部署/兼容测试与05独立语义审查共同覆盖；02只核对证据适用于当前版本，不再每个变体启动新链。若独立审查发现这一覆盖不足，应补对应反例并说明缺口，不让执行者自裁。
 
-这些情景需保留输入版本、执行轨迹、实际运行次数和独立裁决，不以技能关键词测试代替。新增夹具和预设测试由后续 Plan/合法作者确定，本轮不发布测试任务。
+B1的过程成本以重规划前规则快照对同一固定输入静态重建的基线义务对照：明确标为静态推导、不称旧模型实跑；先比对交付/关口/交接义务，旧运行已具可比原始记录才比较实际耗时；不为凑速度数字重演整段旧proposal。只声称实际观察到的关口/交接变化，不声称生产净收益。
 
-真实阶段观察复用已有会话/命令日志，统计实施期活跃覆盖、重验证/环境启动、Fix 派发、partial 复发及遗漏/重开；不将父子并行时间直接相加、不用隔夜跨度衡量效率。首先验证可避免重复动作减少且没有丢失必要证明，再报告观察到的时间变化，不承诺百分比。
+02在隔离目录以05新二进制部署并核验Skill、角色与工具权限后，用明确固定的候选入口执行行为链；不得默认加载本项目旧`.agents`。测试结果与候选版本经独立Round0/双轴正向确认后，才部署本项目，再验证生成物/管理块/定制文档与模型配置保持。部署不热更新已启动会话；需新会话消费新规则。
+
+**完成标准：**05自动/语义证明齐备；02两条真实链和剩余兼容覆盖可核对、无未处置缺陷，部署版本一致。无新差分/失败/证据时，不以收口名义重复已有效检查。不把未知收益或缺原始轨迹写成通过。
 
 <a id="standards"></a>
 ## Standards clauses
 
-- must 直接用文件工具维护 proposal Markdown，CLI 仅承担现有图与诊断计算 — [项目核心原则](../../../AGENTS.md#核心设计原则) [Constraints]
-- must not 改变 Issue Schema 头或 CLI 签名；本方案用现有正文及依赖表达 — [项目边界](../../../AGENTS.md#boundaries) [Constraints]
-- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../AGENTS.md#execution-unit-policy)、[R1](requirements.md#reliability) [Constraints]
-- must not 把旧结果当新执行、把结构诊断通过当行为证明，证据仍须独立核实 — [证据契约](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#hand-offs)、[审查交付核对](../../../assets/skills/flowforge-review/references/review-protocol.md#test-pass-does-not-equal-requirement-met) [Constraints]
-- must 只让有具体失败依据的发现形成修复义务，保留真实失败及已约定标准 — [审查反猜测规则](../../../assets/skills/flowforge-review/references/review-protocol.md#no-speculation) [Constraints]
-- must 不在 assets 放不部署的情景材料，按源→嵌入→部署接缝验证一致性 — [项目边界](../../../AGENTS.md#boundaries)、[构建入口](../../../Makefile) [Constraints]
-- must 只写有独立信息的成本理由与复用说明，复用共同权威链接而非复制长模板 — [信息价值规则](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value) [Conventions]
+- must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../AGENTS.md#核心设计原则) [Constraints]
+- must not 修改Issue Schema头规范、CLI签名或现有诊断算法 — [项目边界](../../../AGENTS.md#boundaries)、[R8](requirements.md#compatibility) [Constraints]
+- must 保留测试作者/实施者分离、独立Round0/双轴和真实缺陷阻塞 — [R1](requirements.md#reliability)、[执行单元政策](../../../AGENTS.md#execution-unit-policy) [Constraints]
+- must 保留失败原文与证据归属；历史通过不当新实跑，结构通过不当行为通过 — [R6](requirements.md#evidence) [Constraints]
+- must 让只读子代理仅返回发现，由主会话承担裁决及工件写回；短机械记录不另派角色 — [R7](requirements.md#review) [Constraints]
+- must 不在assets放不部署的fixture；经源、嵌入、隔离部署核对后再发布 — [项目边界](../../../AGENTS.md#boundaries)、[Makefile](../../../Makefile) [Constraints]
+- must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value) [Conventions]
 
 <a id="coverage"></a>
-## 需求覆盖与下一步
+## 规划交接
 
-| 需求 | 设计落点 | 规划覆盖 |
-| --- | --- | --- |
-| R1 | 责任表、Fix/证据与审查边界 | resolved |
-| R2 | 局部/阶段分配、正向门禁、纯验证票审查对象 | resolved |
-| R3–R4 | 检查安排、重型理由、三条兼容路径 | resolved |
-| R5–R7 | Fix verification、证据生命周期、完整反例与审查批次 | resolved |
-| R8 | 正文选择采用、原诊断/状态不变、一致部署 | resolved |
-| R9 | 受控情景与真实阶段指标，区分次数口径 | resolved |
-| R10 | [受限测试作者入口](design/test-authority.md#cost-aware-test-authority-design)，先于原规则实现恢复 | resolved |
-
-当前需求/设计事实已明确，实施已获授权。增加 00 前置修复后，顺序为 00 合法作者入口 → 01 规则包 → 02 集成验收与部署；各票仍需按实际 frontier、独立审查与证据关闭。性能收益尚未验证，不伪装成已交付证据。
+R1/R10复用既有保护边界；R2–R4落在Plan/执行默认；R5–R7落在修复、记录及角色职责；R8落在旧票显式迁移与版本固定；R9由自动/独立语义证明和两条真实链观察。以上策略已定，可发布05整包调整→02集中行为验收与发布；具体预设测试和候选宿主入口由各票Refine核实后才执行，不以本轮设计冒充Refine完成。
