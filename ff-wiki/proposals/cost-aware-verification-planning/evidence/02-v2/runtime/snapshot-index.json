@@ -1,0 +1,155 @@
+{
+  "head": "b458d23b1750f43d95a454e668296090cffee4aa",
+  "files": [
+    {
+      "path": ".gitignore",
+      "artifact": "snapshots/.gitignore.json",
+      "sha256": "5d3d887c1eb31d8385b54bcd80e0d4e292bf1c9b81ae916f3ebe99055e842dfd"
+    },
+    {
+      "path": "cases/b1/cli.mjs",
+      "artifact": "snapshots/cases__b1__cli.mjs.json",
+      "sha256": "590495cd61c89c4150e48ca4c086852d5c4af2344c2dff9e9a5cf954f3881f6b"
+    },
+    {
+      "path": "cases/b1/contract.mjs",
+      "artifact": "snapshots/cases__b1__contract.mjs.json",
+      "sha256": "9eaea76c219f78bd356f3224fd0b35f4811f55309d75721c4e484e6d3efdd9d2"
+    },
+    {
+      "path": "cases/b1/help.mjs",
+      "artifact": "snapshots/cases__b1__help.mjs.json",
+      "sha256": "2ff09140f9582082223c030c373f6c023a600352cf94522d96b5fb5af5491e9c"
+    },
+    {
+      "path": "cases/b1/quote.mjs",
+      "artifact": "snapshots/cases__b1__quote.mjs.json",
+      "sha256": "6877e25dd3a024421dacb1e3a04787100497e19337827a14d92206c1dc450d4d"
+    },
+    {
+      "path": "cases/b2/capability.json",
+      "artifact": "snapshots/cases__b2__capability.json.json",
+      "sha256": "a561d168f2621bb07d5e91982ce488f5db6a908275ad7f904d2c86b39062b248"
+    },
+    {
+      "path": "cases/b2/consume.mjs",
+      "artifact": "snapshots/cases__b2__consume.mjs.json",
+      "sha256": "2aad9f154e63aab6d5a7ae4d1466c3ad4a7a2233c5f16a82b1c38c762d49d563"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/design.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__design.md.json",
+      "sha256": "1cdf2cc815fa6c969c19042c6b7e8f7834f2f7ef477f97a70de92c20701a1b79"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/01-order-acceptance.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__01-order-acceptance.md.json",
+      "sha256": "4a2dc98ff7de737ab998d05156facd8ec7c1bb8916a3561d190484d2f87e78e5"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/04-help-fix.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__04-help-fix.md.json",
+      "sha256": "2e50ae0f0fab549513b0c91ea899290b232ee6ecae89e8dca11eb8ed27b2266a"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/final-check.json",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__final-check.json.json",
+      "sha256": "806de09147acb3adc26276ed969cf5bbdb171ad809ee3ee57b75aa23ed3bf849"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/final-frontier.json",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__final-frontier.json.json",
+      "sha256": "117cce9547284d3bed6b456f67c72142809f6a03fcd02494b3adcefdfa862263"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/plan-approval.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__plan-approval.md.json",
+      "sha256": "c0091f8a35edce3de75fe3d15d65cd9c786b098804da07e3ff43e7661d5299e6"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/plan-check.json",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__plan-check.json.json",
+      "sha256": "3009fe6089b335a81ee3c6cf551a874ced47073cdadb0032559a8a1cae558391"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/plan-frontier.json",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__plan-frontier.json.json",
+      "sha256": "76a7ebd500dd666345743cfeb9c0f1c0a8ee4233258532196c04454c985c66e6"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/plan-refine-notes.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__plan-refine-notes.md.json",
+      "sha256": "74ae6077ab77c95553f599ede4dc3daa60ba6ec2543e5ea7ced6403fab6f62b8"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/refine-check.json",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__refine-check.json.json",
+      "sha256": "806de09147acb3adc26276ed969cf5bbdb171ad809ee3ee57b75aa23ed3bf849"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/refine-frontier.json",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__refine-frontier.json.json",
+      "sha256": "117cce9547284d3bed6b456f67c72142809f6a03fcd02494b3adcefdfa862263"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/evidence/refine-static-checks.json",
+      "artifact": "snapshots/ff-wiki__proposals__b1__evidence__refine-static-checks.json.json",
+      "sha256": "5a6841bff0c142eff363fb952ffbebc5bd7fa657aeda8b8e06899d75c75aed8a"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/issues/01-order.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__issues__01-order.md.json",
+      "sha256": "e719825582a6f55ff5cd5017a3ca53a8754d882f6fef2dc670c591c5af0bf51f"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/journal.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__journal.md.json",
+      "sha256": "a99aef8f5503f5172bcab7341e713b8055e6c8b8dcec3f2594ff540eeeb1be0b"
+    },
+    {
+      "path": "ff-wiki/proposals/b1/requirements.md",
+      "artifact": "snapshots/ff-wiki__proposals__b1__requirements.md.json",
+      "sha256": "1fae61ea2152615d182cb8e84c1498a1db1f0b5ac969606d4bcb9c560b6e7cef"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/design.md",
+      "artifact": "snapshots/ff-wiki__proposals__b2__design.md.json",
+      "sha256": "1825552e713dc7fb53537100d26235f442052a0af3a1597d0f47037ecb0076a0"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/evidence/plan-final-graph.json",
+      "artifact": "snapshots/ff-wiki__proposals__b2__evidence__plan-final-graph.json.json",
+      "sha256": "066f860a6f8ec570e281e307ce9c49aa9db06971d05cee179850c7475e7c909a"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/evidence/plan-refine-notes.md",
+      "artifact": "snapshots/ff-wiki__proposals__b2__evidence__plan-refine-notes.md.json",
+      "sha256": "1d432ae7a4c05d2b66e834a61ef56e3ec3f9662ec39a5ab04d20c0d6d9fdb35b"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/evidence/plan-static-results.json",
+      "artifact": "snapshots/ff-wiki__proposals__b2__evidence__plan-static-results.json.json",
+      "sha256": "5cd01ef8f9d3f325dd49cbd8a09a7db58bedb5e1c85afcb3f28823ceee62c993"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/evidence/pre-use.json",
+      "artifact": "snapshots/ff-wiki__proposals__b2__evidence__pre-use.json.json",
+      "sha256": "443a1e53c4633f37f07608829fb171a416afc7b1f93ed1407d183934db1d905d"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/issues/01-use.md",
+      "artifact": "snapshots/ff-wiki__proposals__b2__issues__01-use.md.json",
+      "sha256": "523fc6ff1bba76438688e3ae372167e78d2121f4c8e321b3f68f252f974b0d07"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/journal.md",
+      "artifact": "snapshots/ff-wiki__proposals__b2__journal.md.json",
+      "sha256": "dd9d9cfd5cefab5edebf6a74e6c373b066a7a288bd9fd61b06e115e19d1b846c"
+    },
+    {
+      "path": "ff-wiki/proposals/b2/requirements.md",
+      "artifact": "snapshots/ff-wiki__proposals__b2__requirements.md.json",
+      "sha256": "899c30a47b2ea7226e000c07a363d22e9705b7b585111d0f19e2f58871c78d06"
+    }
+  ]
+}

@@ -24,6 +24,7 @@ flowforge:
     - {round: 3, stage: plan, action: done, ts: "2026-11-06T01:41:41.643Z", by: flowforge-plan, artifacts: [issues/05-continuous-delivery-rule-package.md, issues/02-controlled-acceptance-and-deploy.md, README.md]}
     - {round: 3, stage: review, action: done, ts: "2026-11-06T03:15:10.760Z", by: flowforge-review, reason: "05完整08e87cb...fd76532首轮Round0两gap；主会话接受既定含义翻译修正与EOF格式修复，同票Fix6–7合批；双轴未启动", artifacts: [issues/05-continuous-delivery-rule-package.md, README.md]}
     - {round: 3, stage: review, action: done, ts: "2026-11-06T03:30:09.117Z", by: flowforge-review, reason: "05 Fix6–7后完整Round0零gap；Standards两judgement经owner具名处置、硬违规0，Spec0；关闭05，02待Refine，不round-close proposal", artifacts: [issues/05-continuous-delivery-rule-package.md, evidence/05-final-review.md, README.md]}
+    - {round: 3, stage: plan, action: done, ts: 2026-11-06T04:27:45.821Z, by: flowforge-plan, reason: "02 G0 Refine提交4146cd4、精确三测试冻结撤权；实际B1/B2及小Fix已执行并由主会话固定原始证据，待G1独立审查，不宣称发布", artifacts: [issues/02-controlled-acceptance-and-deploy.md, evidence/02-v2/acceptance.md, README.md]}
 ---
 
 # 阶段记录

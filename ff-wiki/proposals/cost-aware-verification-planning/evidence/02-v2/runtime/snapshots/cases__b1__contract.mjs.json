@@ -1,0 +1,6 @@
+{
+  "path": "cases/b1/contract.mjs",
+  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
+  "sha256": "9eaea76c219f78bd356f3224fd0b35f4811f55309d75721c4e484e6d3efdd9d2",
+  "content": "export function validateOrder(order) {\n  if (!order || typeof order !== 'object' || !Array.isArray(order.lines) || order.lines.length === 0) {\n    throw new Error('INVALID_ORDER');\n  }\n  for (const line of order.lines) {\n    if (!line || typeof line !== 'object') throw new Error('INVALID_ORDER');\n    if (typeof line.sku !== 'string') throw new Error('INVALID_ORDER');\n    if (!Number.isInteger(line.quantity) || line.quantity <= 0) throw new Error('INVALID_ORDER');\n  }\n  return order;\n}\n"
+}

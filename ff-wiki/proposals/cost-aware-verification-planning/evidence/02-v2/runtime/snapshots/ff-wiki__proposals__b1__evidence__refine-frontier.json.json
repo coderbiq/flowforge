@@ -1,0 +1,6 @@
+{
+  "path": "ff-wiki/proposals/b1/evidence/refine-frontier.json",
+  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
+  "sha256": "117cce9547284d3bed6b456f67c72142809f6a03fcd02494b3adcefdfa862263",
+  "content": "{\n  \"command\": \"/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge frontier --dir ff-wiki/proposals\",\n  \"output\": \"=== READY (Unblocked & Executable) ===\\n✓ [b1] #01 Deliver ordered multi-line order quotes through the CLI (ff-wiki/proposals/b1/issues/01-order.md)\\n\",\n  \"truncated\": false,\n  \"exit_code\": 0,\n  \"wall_time_seconds\": 0\n}\n"
+}

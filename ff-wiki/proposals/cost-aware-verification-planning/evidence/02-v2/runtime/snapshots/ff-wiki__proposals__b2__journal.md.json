@@ -1,0 +1,6 @@
+{
+  "path": "ff-wiki/proposals/b2/journal.md",
+  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
+  "sha256": "dd9d9cfd5cefab5edebf6a74e6c373b066a7a288bd9fd61b06e115e19d1b846c",
+  "content": "---\nflowforge:\n  schema: 1\n  role: journal\n  id: b2-journal\n  events:\n    - {round: 1, stage: plan, action: done, ts: 2026-11-06T04:12:35Z, by: flowforge-plan, artifacts: [issues/01-use.md, evidence/plan-refine-notes.md, evidence/plan-static-results.json]}\n---\n"
+}

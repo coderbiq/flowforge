@@ -1,0 +1,139 @@
+{
+  "runId": "b8a217ea-2ca6-4fae-aac3-1951155253ed",
+  "parentSessionId": "01a1aa61-995e-75a5-81ad-a2813886c996",
+  "agent": "flowforge-planner",
+  "task": "[prompt redacted]",
+  "exitCode": 0,
+  "model": "magpie/group/max:medium",
+  "usage": {
+    "input": 47500,
+    "output": 11926,
+    "cacheRead": 807552,
+    "cacheWrite": 0,
+    "cost": 1.878852,
+    "turns": 27
+  },
+  "acceptance": {
+    "status": "attested",
+    "evidenceStatus": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "default lightweight attestation"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return a concise result and residual risks when applicable",
+          "evidence": [
+            "manual-notes",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "manual-notes",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "default lightweight attestation"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return a concise result and residual risks when applicable",
+        "evidence": [
+          "manual-notes",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "Approved single-ticket plan and complete five-section execution contract committed at 1224845fe4e7f761b9995198fd86a571d28c9b4a; final strict check is clean and frontier lists b1 #01."
+        }
+      ],
+      "changedFiles": [
+        "ff-wiki/proposals/b1/issues/01-order.md",
+        "ff-wiki/proposals/b1/journal.md",
+        "ff-wiki/proposals/b1/evidence/plan-approval.md",
+        "ff-wiki/proposals/b1/evidence/plan-check.json",
+        "ff-wiki/proposals/b1/evidence/plan-frontier.json",
+        "ff-wiki/proposals/b1/evidence/refine-check.json",
+        "ff-wiki/proposals/b1/evidence/refine-frontier.json",
+        "ff-wiki/proposals/b1/evidence/refine-static-checks.json",
+        "ff-wiki/proposals/b1/evidence/plan-refine-notes.md",
+        "ff-wiki/proposals/b1/evidence/final-check.json",
+        "ff-wiki/proposals/b1/evidence/final-frontier.json"
+      ],
+      "testsAddedOrUpdated": [],
+      "commandsRun": [
+        {
+          "command": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge check --dir ff-wiki/proposals --strict --full",
+          "result": "passed",
+          "summary": "1 issue; healthy graph; no diagnostics."
+        },
+        {
+          "command": "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge frontier --dir ff-wiki/proposals",
+          "result": "passed",
+          "summary": "Only b1 #01 listed READY."
+        },
+        {
+          "command": "git diff --cached --check",
+          "result": "passed",
+          "summary": "No whitespace errors."
+        }
+      ],
+      "validationOutput": [
+        "11 relevant manifest hashes match; Node v22.16.0.",
+        "Test authority: eligible=true, grant missing, projectRoot=/private/tmp/flowforge-02-v2.kktVNK.",
+        "Frozen acceptance tests were not run."
+      ],
+      "residualRisks": [
+        "Implementation remains the author-confirmed red seed; implementation acceptance is pending.",
+        "Verification cost is unknown; later help Fix requires owner-published verification."
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "11 allowed B1 files added, 295 insertions; original untracked baseline preserved.",
+      "reviewFindings": [],
+      "manualNotes": "Supervisor approval preserved verbatim. No review performed. Full findings written to the exact requested output path. No source, tests, authorities, candidate rules/configuration, or other cases changed."
+    }
+  },
+  "launchContractDigest": "3e7b536236b0d20a0e1acda58166dd9085c44d8dd5c31b2bf8f720e1c3bea665",
+  "launchResolvedExtensions": {
+    "version": 1,
+    "source": "launch-resolved",
+    "disableAmbientExtensions": false,
+    "runtime": [
+      "sha256:02a532a2b50b2b21"
+    ],
+    "configured": [],
+    "required": [],
+    "effective": [
+      "sha256:02a532a2b50b2b21"
+    ],
+    "omitted": {
+      "runtime": 0,
+      "configured": 0,
+      "required": 0,
+      "effective": 0
+    }
+  },
+  "transcriptPath": "/Users/qiangbi/.pi/agent/sessions/--Users-qiangbi-develop-projects-Syl-tangram-flowforge--/subagent-artifacts/b8a217ea-2ca6-4fae-aac3-1951155253ed_flowforge-planner_transcript.jsonl",
+  "skills": [
+    "flowforge-plan"
+  ],
+  "timestamp": 1793938016990
+}

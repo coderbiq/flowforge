@@ -9,9 +9,9 @@
 | [00作者入口](issues/00-test-authority.md)、[03安全修复](issues/03-test-authority-boundary-repair.md) | 已closed；有效产品和原证据保留 | 不回滚，不重复授权机制开发 |
 | [01原规则包](issues/01-rule-package.md)、[04门禁与记录修复](issues/04-stage-proof-scope-and-execution-record.md) | 已closed；只证明旧需求下的交付 | 保留历史；不冒称满足新目标 |
 | [05连续交付规则包](issues/05-continuous-delivery-rule-package.md) | closed；G0/G1、Fix6–7及完整审查完成 | [正向审查证据](evidence/05-final-review.md)供02消费 |
-| [02集中行为验收与发布](issues/02-controlled-acceptance-and-deploy.md) | rev2，open；依赖05 | 05正向交付后Refine，两条真实链及适用兼容证明通过再发布 |
+| [02集中行为验收与发布](issues/02-controlled-acceptance-and-deploy.md) | rev2，open；G0完成，B1/A/F与B2/P真实链已执行 | 对[固定G1证据](evidence/02-v2/acceptance.md)集中独立审查，正向后发布 |
 
-剩余任务是 **02**。05已正向交付；02仍待Refine、两条真实链及发布验收。05关闭不表示整个proposal完成。
+剩余任务是 **02**。05已正向交付；02待G1独立结论与G2发布验收。05关闭不表示整个proposal完成。
 
 ## 本轮设计变化
 
@@ -26,7 +26,7 @@
 
 旧权威及02全文保留在`933797d`及以前历史；00/01/03/04保留旧consumes，精确历史waiver仅说明旧范围不重验新需求，不授权新任务跳过验证。[作者入口设计](design/test-authority.md)只消费未变的R10。
 
-旧paused 02会话不恢复。未跟踪的`evidence/02-scenarios/`保留为未冻结候选；新02材料计划落到`evidence/02-v2/`，此时尚不存在、不算验收通过。候选规则未完成本项目部署，新规则需新会话按固定入口消费。
+旧paused 02会话不恢复。未跟踪的`evidence/02-scenarios/`保留为未冻结候选；新02材料已落到`evidence/02-v2/`，含冻结测试、作者记录与真实链原始轨迹；独立审查未完成，不算验收通过。候选规则未完成本项目部署，新规则需新会话按固定入口消费。
 
 ## 导航与执行边界
 

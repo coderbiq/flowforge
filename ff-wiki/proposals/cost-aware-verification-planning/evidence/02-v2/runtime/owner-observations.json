@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-11-06T04:24:02.068737+00:00",
+  "head": "b458d23b1750f43d95a454e668296090cffee4aa",
+  "markerAbsent": true,
+  "b2SeedUnchanged": true,
+  "caseWorktreeClean": true,
+  "checks": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/tmp/flowforge-02-v2.kktVNK",
+        "diff",
+        "--check",
+        "fb1fefd...b458d23b1750f43d95a454e668296090cffee4aa"
+      ],
+      "exit": 2,
+      "stdout": "ff-wiki/proposals/b2/issues/01-use.md:140: trailing whitespace.\n+      \nff-wiki/proposals/b2/issues/01-use.md:142: trailing whitespace.\n+      \n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/tmp/flowforge-02-v2.kktVNK",
+        "diff",
+        "--check",
+        "875d5d5...b458d23b1750f43d95a454e668296090cffee4aa"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge",
+        "check",
+        "--dir",
+        "/tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals",
+        "--full"
+      ],
+      "exit": 0,
+      "stdout": "",
+      "stderr": "Checked 2 issues in /tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals\nwarning: blocked-evidence-present /tmp/flowforge-02-v2.kktVNK/ff-wiki/proposals/b2/issues/01-use.md — Open ticket carries blocked evidence; run flowforge-refine-ticket to consume it before redispatch\n✓ Dependency graph is healthy. No cycles or dangling references found.\n"
+    }
+  ],
+  "testRunsRepeatedByOwner": false
+}

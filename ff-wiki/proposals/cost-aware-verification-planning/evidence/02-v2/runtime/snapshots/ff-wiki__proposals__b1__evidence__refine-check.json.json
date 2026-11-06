@@ -1,0 +1,6 @@
+{
+  "path": "ff-wiki/proposals/b1/evidence/refine-check.json",
+  "commit": "b458d23b1750f43d95a454e668296090cffee4aa",
+  "sha256": "806de09147acb3adc26276ed969cf5bbdb171ad809ee3ee57b75aa23ed3bf849",
+  "content": "{\n  \"command\": \"/Users/qiangbi/develop/projects/Syl/tangram/flowforge/bin/flowforge check --dir ff-wiki/proposals --strict --full\",\n  \"output\": \"Checked 1 issues in ff-wiki/proposals\\n✓ Dependency graph is healthy. No cycles or dangling references found.\\n\",\n  \"truncated\": false,\n  \"exit_code\": 0,\n  \"wall_time_seconds\": 0\n}\n"
+}
