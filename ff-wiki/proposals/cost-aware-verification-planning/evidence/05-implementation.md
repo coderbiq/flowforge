@@ -455,3 +455,121 @@ gap: execution-contract-incomplete ff-wiki/proposals/cost-aware-verification-pla
 
 最终git diff --check实际exit0、无输出；撤权后SHA256与A2-F一致。05的execution-contract-incomplete及临时evidence-artifact-missing均已消失，frontier由当前文件推导05可执行；没有持久化ready状态。02缺五节和六项历史waiver原样保留。
 
+<a id="g1-implementation"></a>
+## G1 / Changes2–5：集中实现与检查
+
+本节只追加G1的真实结果，不覆盖也不改写上文G0任何记录。G0的A2 exit1仍是G0的真实结果；G1列出的exit0只适用于G1落地后的固定点。基线08e87cb19001aef9b70a0bb047dee7b08b76003e，消费requirements rev3与design rev4；固定差分见本节末`G1 固定点`。未运行02真实行为链、未在本项目部署新规则、未宣称净提速。
+
+### 执行方式与共享归属
+
+- G1按本票`### Verification schedule`一组执行：先连续改完所有互相关联的源面（`_shared/ARTIFACT-CONTRACT.md`、`flowforge-{solution-design,plan,refine-ticket,implement,review}/SKILL.md`、四个subagent源、`assets/AGENTS.md`、`assets/agents/issue-tracker.md`），随后一次`make dev`、完整内部Go、整文件lint、`git diff --check`及`check`/`frontier`。同一固定点没有再跑定向子集。
+- 本会话按主会话固定的G1覆盖执行：旧部署Skill的逐Change build与Phase0/0b两次全文复述被本票/design rev4取代；未修改的`.agents/skills`候选文本未成为本会话执行入口。
+- Changes2–5的四元组（见票）全部引用同一次完整内部Go运行（G1组#1）；Change5另引用同固定点的`make dev`/`diff -qr`、lint、`git diff --check`、`check`/`frontier`。一次运行不记成多次。
+- 两份冻结测试全程只读；本轮未新增、未修改、未删除任何Go测试文件，`git diff --stat`只有6份skill/shared、4个subagent源、AGENTS.md、issue-tracker.md及本票。
+
+### G1-C 源→嵌入→隔离部署（make dev + diff）
+
+原始命令与关键输出（`make dev`末5行，实际exit 0）：
+
+```text
+cp -R assets internal/command/assets
+mkdir -p .tmp bin
+GOTMPDIR=$(pwd)/.tmp go build -ldflags="-s -w -X flowforge/internal/version.injected=v5.13.1-57-ge188b38-dirty" -trimpath -o bin/flowforge ./cmd/flowforge
+chmod +x bin/flowforge
+rm -rf .tmp
+```
+
+原始命令：`diff -qr assets internal/command/assets`；实际exit: 0，无输出（源与嵌入逐字节一致）。
+
+源/嵌入/隔离部署三面对齐由同一次完整内部Go实际验证，无SKIP：
+
+```text
+--- PASS: TestCostAwareRulePackageSourceEmbeddedDeployed (0.04s)
+--- PASS: TestCostAwareRolesSourceEmbeddedDeployed (0.05s)
+```
+
+前者覆盖6份skill/shared、`agents/issue-tracker.md`及`AGENTS.md`管理块；后者覆盖4角色×Claude/OpenCode/Codex/PI，PI工具白名单仍为read/grep/find/ls，Codex仍为`sandbox_mode = "read-only"`。部署只在`t.TempDir()`临时项目内发生，未触碰本项目`.agents`/宿主文件，未读取本项目模型配置。
+
+### G1-G 完整内部Go（唯一一次，覆盖作者子集）
+
+原始命令：`GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`；实际exit: 0。完整未截断输出保存在`/tmp/g1-full-go.log`（1124行）。
+
+```text
+--- PASS: TestImplementSkillCarriesWeakExecutorContract (0.00s)
+--- PASS: TestCostAwareContinuousDeliveryContracts (0.01s)
+--- PASS: TestCostAwareRoleContracts (0.00s)
+--- PASS: TestCostAwareRulePackageSourceEmbeddedDeployed (0.04s)
+--- PASS: TestCostAwareRolesSourceEmbeddedDeployed (0.05s)
+--- PASS: TestPackagedSkillPointersResolve (0.06s)
+PASS
+ok  	flowforge/internal/command	11.271s
+ok  	flowforge/internal/config	(cached)
+ok  	flowforge/internal/subagent	1.028s
+ok  	flowforge/internal/tracker	1.197s
+ok  	flowforge/internal/update	(cached)
+```
+
+统计：243个`--- PASS`，0个`--- FAIL`，3个`--- SKIP`。A2中预期red的三项新语义测试族（`TestImplementSkillCarriesWeakExecutorContract`、`TestCostAwareContinuousDeliveryContracts`、`TestCostAwareRoleContracts`）现在真实pass，未改断言、未放宽匹配。
+
+环境SKIP原文（与本次新增断言无关，未用于通过）：
+
+```text
+    catalog_test.go:531: Tangram compatibility checkout is not available
+--- SKIP: TestRepositoryAndTangramProposalLayouts (0.12s)
+    upgrade_test.go:219: cannot read /proc/self/exe: open /proc/self/exe: no such file or directory
+--- SKIP: TestE2E_SelfupdateApply_ReplacesBinaryCorrectly (0.00s)
+    upgrade_test.go:347: cannot read /proc/self/exe: open /proc/self/exe: no such file or directory
+--- SKIP: TestFullUpgradePipeline (0.00s)
+```
+
+### G1-L 整文件lint（2.15.0，同固定点一次）
+
+原始命令：`/tmp/flowforge-verification-tools/golangci-lint-2.15.0/golangci-lint run --timeout 2m --new-from-rev 16cce8e --whole-files --max-issues-per-linter 0 --max-same-issues 0 ./cmd/... ./internal/...`；实际exit: 0。
+
+```text
+0 issues.
+```
+
+未降级工具、未改lint选项。历史全仓lint债仍在[01原记录](01-lint-baseline.md)，本次通过只针对该整文件范围。
+
+### G1-F/G1-S 差分与图检查
+
+- `git diff --check`：实际exit 0，无输出。
+- `bin/flowforge check --dir ff-wiki/proposals/cost-aware-verification-planning --full`：实际exit 0。`05`无任何诊断（无`evidence-missing`/`evidence-incomplete`/`evidence-artifact-missing`）；`02`缺五节`execution-contract-incomplete`原样保留；六项历史`upstream-changed`精确waiver原样保留；末尾`✓ Dependency graph is healthy. No cycles or dangling references found.`。
+- `bin/flowforge frontier --dir ff-wiki/proposals/cost-aware-verification-planning`：实际exit 0。`05`在`=== READY (Unblocked & Executable) ===`，`02`仍`⛔ #02 ... (Waiting on: [05])`。frontier由当前文件推导，没有持久化ready状态。
+
+### 设计分支→落地位置
+
+| design分支 | 落地位置 |
+| --- | --- |
+| #allocation 完整逻辑与拆分理由 | `flowforge-plan/SKILL.md:2. Draft tracer increments`、`3. Publish execution contracts`的新票schedule条；`flowforge-solution-design/SKILL.md:Verification strategy check`（必要性归design、分组归Plan） |
+| #schedule 紧凑一组、提前关口、旧票/残缺路径、Fix优先级 | `_shared/ARTIFACT-CONTRACT.md:Verification schedule`、`Execution and review loop`；`flowforge-implement/SKILL.md`验时入口预检；`agents/issue-tracker.md:Publishing`/`Execution and review loop`；`AGENTS.md`（Execution unit policy新增`Verification timing`一段） |
+| #evidence 一次执行确认、五节精确引用、四元组与共享运行 | `flowforge-implement/SKILL.md:Phase 0`（0b并入）、`3a`/`3c`/`3d`；`flowforge-refine-ticket/SKILL.md:4. Fill the five execution-contract sections`；`_shared/ARTIFACT-CONTRACT.md`循环第2步与`Shared runs and reused evidence` |
+| #owners / #fix-contract 主会话owner与只读leaf | `flowforge-review/SKILL.md:1. Pin the fixed point and scope`、`4. Dispatch both axes in parallel`、`6. Fix planning`、`If zero findings`；四个subagent源正文；`AGENTS.md:Workflow-state delegation`；`agents/issue-tracker.md:Execution and review loop`；`_shared/ARTIFACT-CONTRACT.md:Ownership` |
+| 04已修正门禁/repair/Fix入口保留 | 未删除：`Stage proof before dispatch`、`Effective verification entry`、`needs-repair`/`Repair of:`、Round 0先于双轴、2次/5轮上限、失败原文 |
+
+### 测试冻结状态
+
+G0冻结的两份测试在本轮开始前、修改后、提交前三次读取均为同一SHA256；实施期间未写入：
+
+- internal/command/cost_aware_assets_test.go：17eca4b481e495fdb57cf5ad6206da39753582b9f7cf2e17825fba03b1b90033
+- internal/command/assets_deploy_test.go：e60de2b8f618405479c03e88fab29efb33c5120918ce96e6aec17b4d735c687c
+
+### 例外与偏离（实际发生过的事项）
+
+- `Phase 0b`按Change3并入`Phase 0`，票`Touch points`仍写作`Phase 0/0b/3a–3e`；这是Change3明确要求的结果，不是语义偏离，票未改写原文。
+- `assets/AGENTS.md`新增`Verification timing`一段：AGENTS原本没有新旧票验证时机口径，而design#allocation/#schedule要求入口一致；其余入口各自已有同类语句，此段未在其他文件重复。
+- `internal/command/assets/**`与`bin/flowforge`由`make dev`生成且被`.gitignore`忽略（`.gitignore:30`、`.gitignore:17`），因此已重新生成但不在提交内；它们的正确性由同固定点的`diff -qr`与`TestCostAwareRulePackageSourceEmbeddedDeployed`/`TestCostAwareRolesSourceEmbeddedDeployed`实测证明。
+- 本轮无失败重试、无`## Blocked evidence`、无写集外修改；未运行本项目的`flowforge init`/`agents deploy`，未改权限profile、模型配置、PI保护或tracker算法。
+- 完整内部Go在本票勾选与本节落盘前运行；其后只改了本票与本节文档。唯一读取真实`ff-wiki/proposals`的Go断言是`TestRepositoryAndTangramProposalLayouts`的FlowForge阶段（只断言没有`spec.md`进入执行投影，且本次未增删文件），因此未重跑全套；该判断请独立Round 0核对。
+
+### 剩余风险与未执行项
+
+- 条款测试只证明条款存在，不证明语义一致；owner/leaf分支、提前关口理由、旧票路径和入口一致性必须由独立Round 0/双轴对照design rev4判定。
+- 02的两条真实行为链（B1、B2）与发布门禁未执行；本轮不声称净提速或产品完成。
+- 新规则需新会话消费；本次只改源，未部署本项目`.agents`。
+
+## G1 固定点
+
+本条由G1实施者提交后补记，见紧邻提交`G1 固定点记录`行/主会话返回的commit。
+

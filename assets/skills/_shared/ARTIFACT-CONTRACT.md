@@ -89,16 +89,18 @@ The source link is a relative path with an anchor (e.g. `../docs/dependency-rule
 When the implementer is a lightweight model and review runs as a separate session, the ticket drives the loop:
 
 1. **Plan** creates the ticket with all Changes unchecked.
-2. **Implement** (lightweight mode) executes unchecked Changes in order, runs mechanical self-checks (build, focused tests, full verify), checks off completed Changes, writes an Implementation note, and stops. It does not review, close the ticket, or make design decisions.
+2. **Implement** (lightweight mode) works continuously through the assigned group in Change order, runs the checks that group's verification entry publishes once its last Change is in place, checks off the group's Changes in the same edit as their recorded results, writes an Implementation note, and stops. It does not review, close the ticket, or make design decisions.
 3. **Review** runs the dual-axis review on the fixed change set. If findings exist, it translates each fixable finding into a new unchecked `Fix:` Change appended to the ticket. If a finding requires an architecture/seam/interface change, it marks the finding as a design return instead. It records the round in Review rounds.
 4. **Implement** re-executes the new fix Changes. Steps 3-4 repeat.
-5. When a review round produces zero findings, the closeout owner writes Completion evidence and closes the ticket: Review in the separate lightweight loop, or Implement in full mode after Review returns its findings.
+5. When a review round produces zero findings, the main session that owns the round writes Completion evidence and closes the ticket.
 
-**Substantive finding → repair ticket:** If a finding is High/Critical, changes an execution contract or acceptance criterion, crosses the write set, or alters a boundary downstream work depends on, Review does not append it to the original ticket. Instead, it creates a new repair ticket (`**Repair of:** <original-id>`, `**Status:** open`), sets the original to `needs-repair`, rewires downstream `Blocked by` to the repair, and records the repair reference in the original's Review rounds. The repair ticket enters the frontier independently; the original stays non-executable until the repair passes its own clean review, after which the closeout owner links the repair's evidence back to the original and closes both once their delivery conditions are satisfied. `Repair of:` is provenance, not a DAG edge.
+**Substantive finding → repair ticket:** If a finding is High/Critical, changes an execution contract or acceptance criterion, crosses the write set, or alters a boundary downstream work depends on, Review does not append it to the original ticket. Instead, it creates a new repair ticket (`**Repair of:** <original-id>`, `**Status:** open`), sets the original to `needs-repair`, rewires downstream `Blocked by` to the repair, and records the repair reference in the original's Review rounds. The repair ticket enters the frontier independently; the original stays non-executable until the repair passes its own clean review, after which the main session links the repair's evidence back to the original and closes both once their delivery conditions are satisfied. `Repair of:` is provenance, not a DAG edge.
 
-Closeout ownership follows the declared execution mode: in the separate lightweight loop, Review writes Completion evidence and closes the ticket after a clean round; in full mode, Review returns findings and dispositions, and Implement writes Completion evidence and closes after verification and disposition checks. An explicitly read-only review never mutates artifacts or closes a ticket. When mode or ownership is unknown, return findings without closing.
+**Ownership.** The main workflow session owns orchestration, adjudication, and write-back: it chooses and dispatches the independent roles, aggregates their findings, publishes the round's `Fix verification` and `Fix:` Changes, records the round, and owns closeout in both modes. Round 0 and the two axes are read-only leaf invocations: each runs only the audit or axis it was dispatched with, returns cited findings, and never writes an artifact, closes a ticket, or dispatches further roles. A leaf missing its fixed point, scope, or effective specification returns that gap instead of widening the job; an owner that cannot be established returns findings without closing.
 
-Review records its review event and round completion in the proposal journal for mutating reviews. A completed review round is distinct from a closed ticket: full-mode Implement retains closeout ownership. The loop above applies when implement and review are separate sessions with asymmetric capability.
+Short mechanical records — a Review round line, a journal event, a disposition copied into the ticket — are written directly by the owning session, not dispatched to another role.
+
+Review records its review event and round completion in the proposal journal for mutating reviews. A completed review round is distinct from a closed ticket: it carries findings and dispositions, and the owning session still decides closeout. The loop above applies when implement and review are separate sessions with asymmetric capability.
 
 ## Verification ownership and reuse
 
@@ -122,15 +124,15 @@ An executor that receives a ticket whose required stage proof is missing or mism
 
 ### Verification schedule
 
-A ticket adopts a schedule by writing `### Verification schedule` inside `Done and verify`. It is ticket prose, not a schema field or CLI capability: acceptance behavior and its exact commands stay in Done and verify, and the five Execution detail sections stay Refine's.
+A new ticket normally adopts a schedule by writing `### Verification schedule` inside `Done and verify`: by default one ticket's related Changes form one continuous group whose checks run once at the group's end, written as one compact paragraph that cites the commands the ticket already defines. The schedule is ticket prose, not a schema field or CLI capability: acceptance behavior and its exact commands stay in Done and verify, and the five Execution detail sections stay Refine's.
 
-An adopted schedule answers, per group: which Changes and acceptance items it covers, when it runs, the exact command and expected result, and where the result is saved. A heavy item carries one line on why it must run there and whether it shares a stage run; an unmeasured cost is stated as unknown. It names only commands the ticket already defines.
+An adopted schedule answers, per group: which Changes and acceptance items it covers, when it runs, the exact command and expected result, and where the result is saved. A second group runs only as an early gate protecting a nameable risk — an unverified assumption the whole group depends on, an irreversible use step, or rework its failure would force — and states that risk in one line. A heavy check also states whether it shares a stage run; an unmeasured cost is written as unknown.
 
 Three execution paths:
 
-- **Complete authorized schedule** — Implement executes by group. A group's Changes stay unchecked until its checks pass at the group's end; one real run may cover several enumerated Changes.
-- **No schedule** — the previous rules apply unchanged: build after each Change and run every Done and verify command. Old tickets are never migrated by inference.
-- **Declared but incomplete, contradictory, or pointing at a missing command** — stop before touching files, record the failure as `## Blocked evidence`, and return to the planning owner. No role completes the schedule by guessing.
+- **Complete authorized schedule** — Implement executes by group. A group's Changes stay unchecked until its checks pass at the group's end; one real run may cover several enumerated Changes. Work that finishes inside a group triggers no acceptance run of its own.
+- **No schedule** — the previous per-Change rules apply unchanged: build after each Change and run every Done and verify command. Old tickets are never migrated by inference, and a ticket created after this rule still carries its own schedule rather than falling back silently.
+- **Declared but incomplete, contradictory, or pointing at a missing command** — stop before touching files, record the failure as `## Blocked evidence`, and return it to the planning owner. No role completes the schedule by guessing.
 
 A check the schedule already ran is not repeated because the same command also appears in another step; closeout confirms instead that every acceptance item holds valid evidence. When the ticket is executing a review round's Fix Changes, that round's `Fix verification` is resolved before this schedule, under [Effective verification entry](#effective-verification-entry).
 

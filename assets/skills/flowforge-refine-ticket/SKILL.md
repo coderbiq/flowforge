@@ -32,7 +32,7 @@ If a fact cannot be verified — conflicting API shape, missing schema, unclear 
 
 ### 4. Fill the five execution-contract sections
 
-Write or complete all five sections under the ticket's existing `## Execution detail` heading. Each section must carry verified content, not template text:
+Write or complete all five sections under the ticket's existing `## Execution detail` heading. Each section must carry verified content, not template text. Where a fact is already confirmed and its fixed point, scope, and version are unchanged, cite the original location precisely instead of copying its full text; re-verify the facts that changed and every open question. A placeholder, a partial retelling, or a bare "same as above" is not a complete contract.
 
 - **Verified contracts** — precise contract facts with file/symbol/anchor evidence (e.g. `internal/tracker/catalog.go:discoverArtifact` owns ticket diagnostics); for an adopting ticket, also its schedule groups, each group's Change scope, when it runs, and the commands those groups name.
 - **Execution scenarios** — at least one success path and one failure path with observable results (e.g. "Success: a complete ticket is eligible" / "Failure: a missing section is diagnosed"), each with the real command and environment it needs, including the counterexample that must fail.

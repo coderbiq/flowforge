@@ -44,10 +44,30 @@ flowforge:
   - output: `0 issues.`
   - artifact: `ff-wiki/proposals/cost-aware-verification-planning/evidence/05-implementation.md`
   - 作者验证归属：以上为最终冻结测试的整文件lint实跑，并非新行为验收通过。最终定向作者命令实际exit 1：三项新语义测试族预期red；同次安全及部署检查pass，无SKIP。已记录旧断言对应、全部失败及冻结哈希，主会话明确撤权后只读查询为missing。此勾选仅完成G0作者交付；Changes2–5及整票仍未完成。
-- [ ] 2. 按[Plan与检查安排](../design.md#allocation)修改shared、solution-design和plan：新票默认一组完整逻辑和紧凑schedule；切分/提前关口需具体理由；旧票无安排仍旧规则，声明残缺仍返回owner。保持Fix入口优先级和04已修正门禁。
-- [ ] 3. 按[证据与执行确认](../design.md#evidence)修改refine/implement：五节仍核实，已确认且未变部分精确引用；Phase0/0b合并成一次当前组/关键约束确认。组末统一检查后才勾选；四元组和失败上限不变，记录只补实际结果/例外。
-- [ ] 4. 按[责任接口](../design.md#owners)及[修复范围](../design.md#fix-contract)统一review、四个subagent源、assets/AGENTS和tracker：主会话owner编排/裁决/写回，只读审计和双轴子代理只返回发现；保留Round0先于双轴、repair与作者分离。完整流程与叶子调用明确分支，不新增角色/权限、不为机械回填派scribe。
-- [ ] 5. 全部源规则完成后，按G1集中构建/检查并记录源、嵌入、隔离部署的完整性和测试冻结状态；提交固定差分与非空结果交独立Round0/双轴。未运行02真实行为链，不部署本项目、不宣称净提速。
+- [x] 2. 按[Plan与检查安排](../design.md#allocation)修改shared、solution-design和plan：新票默认一组完整逻辑和紧凑schedule；切分/提前关口需具体理由；旧票无安排仍旧规则，声明残缺仍返回owner。保持Fix入口优先级和04已修正门禁。
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`
+  - exit: 0
+  - output: `ok  	flowforge/internal/command	11.271s` / `--- PASS: TestCostAwareContinuousDeliveryContracts (0.01s)`
+  - artifact: `assets/skills/_shared/ARTIFACT-CONTRACT.md`
+  - 共享运行：G1组#1（同一次完整内部Go同时覆盖Changes3–5；另改`assets/skills/flowforge-plan/SKILL.md`、`assets/skills/flowforge-solution-design/SKILL.md`）。
+- [x] 3. 按[证据与执行确认](../design.md#evidence)修改refine/implement：五节仍核实，已确认且未变部分精确引用；Phase0/0b合并成一次当前组/关键约束确认。组末统一检查后才勾选；四元组和失败上限不变，记录只补实际结果/例外。
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`
+  - exit: 0
+  - output: `--- PASS: TestImplementSkillCarriesWeakExecutorContract (0.00s)` / `ok  	flowforge/internal/command	11.271s`
+  - artifact: `assets/skills/flowforge-implement/SKILL.md`
+  - 共享运行：G1组#1（同一次完整内部Go；另改`assets/skills/flowforge-refine-ticket/SKILL.md`，Phase0b并入Phase0）。
+- [x] 4. 按[责任接口](../design.md#owners)及[修复范围](../design.md#fix-contract)统一review、四个subagent源、assets/AGENTS和tracker：主会话owner编排/裁决/写回，只读审计和双轴子代理只返回发现；保留Round0先于双轴、repair与作者分离。完整流程与叶子调用明确分支，不新增角色/权限、不为机械回填派scribe。
+  - cmd: `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`
+  - exit: 0
+  - output: `--- PASS: TestCostAwareRoleContracts (0.00s)` / `--- PASS: TestCostAwareRolesSourceEmbeddedDeployed (0.05s)`
+  - artifact: `assets/skills/flowforge-review/SKILL.md`
+  - 共享运行：G1组#1（同一次完整内部Go；另改四个subagent源、`assets/AGENTS.md`、`assets/agents/issue-tracker.md`；frontmatter权限/profile/角色集合未动）。
+- [x] 5. 全部源规则完成后，按G1集中构建/检查并记录源、嵌入、隔离部署的完整性和测试冻结状态；提交固定差分与非空结果交独立Round0/双轴。未运行02真实行为链，不部署本项目、不宣称净提速。
+  - cmd: `make dev && diff -qr assets internal/command/assets`
+  - exit: 0
+  - output: `cp -R assets internal/command/assets` / `bin/flowforge` 构建完成 / `diff -qr` 无输出（exit 0）
+  - artifact: `internal/command/assets/AGENTS.md`
+  - 共享运行：G1组#1（同一次完整内部Go、同固定点2.15.0整文件lint `0 issues.`、`git diff --check` exit 0、`bin/flowforge check --full`/`frontier` exit 0；全部原始输出见[05证据](../evidence/05-implementation.md#g1-implementation)）。
 
 ## Constraints
 
@@ -122,5 +142,14 @@ G0仅合法作者完成Change1并Refine，预设测试实际基线结果和写�
 ## Implementation note
 
 G0/Change1与Refine完成；仅两测试、本票和[05证据](../evidence/05-implementation.md)改变。最终作者定向检查exit1为预期新语义red，安全/部署case通过，整文件lint exit0；冻结及撤权已证实。Changes2–5/G1、独立审查及02均未执行。全部修改在本次限定写集内。
+
+G1（Changes2–5）完成。执行确认：本轮只消费作者冻结测试与票内`### Verification schedule`；组内不插未安排验收，固定点、写集、测试改权与例外已在确认中列明。具体落地：
+
+- Change2：shared 的 `Verification schedule`/`Execution and review loop` 改为新票默认一组完整逻辑、紧凑一段安排，提前组必须给出所保护的假设/不可逆使用/返工风险；旧票无安排仍用逐Change规则且不被推断迁移；声明残缺仍是停止并回owner；`flowforge-plan` 去掉 `**Optional \`Verification schedule\`:**`，改为每个新票自检已写安排、拆分需给具体理由；`flowforge-solution-design` 把“add no early verification stage”改为“早关口必须指出保护的具体风险”，分组决策仍归Plan；04的Fix消费序与阶段证明门禁未动。
+- Change3：`flowforge-implement` 的Phase0/0b合并成一次紧凑执行确认（本轮组+发布命令、关键失败条件/写集/preset测试、例外），未变事实精确引用；组内不自行加检查，组末发布检查通过后才勾选；四元组、同一运行不重复计数、失败原文、2次/5轮上限保留。`flowforge-refine-ticket` 保留五节核实，已确认且固定点/范围/版本未变的事实精确引用，拒绝占位与裸“同上”。
+- Change4：`flowforge-review` 增加调用归属分支（主会话owner编排/裁决/写回，只读leaf只执行指定审计/轴并返回）；四个subagent源同步身份/边界/返回责任，reviewer默认Spec轴，reviewer-lite仅Standards；移除“Skill自身派双轴/Writes Fix Changes/唯一closeout/裁决输出归reviewer”等旧owner陈述；`assets/AGENTS.md` 与 `assets/agents/issue-tracker.md` 同步主会话owner、短机械记录直接写回、新票安排默认；Round0先于双轴、repair与作者分离保留；frontmatter的permission/model_profile/default_skill与角色集合未改。
+- Change5：一次 `make dev` 后 `diff -qr assets internal/command/assets` 无差异；同固定点完整内部Go exit0、0失败、3项环境SKIP原样披露；整文件lint `0 issues.`；`git diff --check` exit0；`check --full` 保留02缺节与六项历史waiver，05无新增诊断且仍在frontier READY。
+
+实测：三份预期red的新语义测试族现在实际pass（未被放宽或改测）；允许新增的“验证时机”段落在 `assets/AGENTS.md`（Plan/Refine/Implement/Review/tracker已各有同类语句，未在别处重复）。本轮无失败重试、无Blocked evidence、无偏离写集。独立Round 0与双轴、Completion evidence、关闭票与02真实行为链仍未执行。
 
 ## Review rounds

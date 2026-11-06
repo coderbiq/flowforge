@@ -24,15 +24,15 @@ For committed scope, capture `git diff <fixed-point>...HEAD` and `git log <fixed
 
 Confirm the fixed point resolves and the complete scoped diff is non-empty. A bad ref, omitted untracked file, or empty scope fails here.
 
-Resolve closeout ownership before reviewing, using the caller's declared execution mode (which takes precedence), then the ticket's mode:
+Resolve invocation ownership before reviewing: which session owns the round decides who may write artifacts.
 
 | Invocation | Review responsibility | Completion evidence and `closed` owner |
 |---|---|---|
-| Separate review after lightweight implementation | Review, fix planning, Review rounds, and clean-round closeout | Review |
-| Review invoked by full-mode Implement | Review, fix planning, and Review rounds; return dispositions to Implement | Implement |
-| Explicitly read-only review, or no ticket/confirmed execution mode | Return findings and suggested dispositions without artifact writes | No closure in this invocation |
+| Main session running the workflow after a lightweight implementation | Round 0, axis dispatch, aggregation, fix planning, Review rounds, and clean-round closeout | Main session |
+| Main session invoked by full-mode Implement | The same round work; it returns dispositions to Implement | Implement, as that same main session |
+| Read-only leaf dispatched for a Round 0 audit or one axis | Only the assigned audit or axis; it returns findings | No closure and no artifact writes in this invocation |
 
-An explicit read-only request takes precedence over either execution mode. Use the last branch when ownership cannot be established; a clean report alone does not authorize closure. Read-only reviews skip artifact mutations in steps 3b, 6, and 8.
+The main session is the workflow owner: it dispatches the independent read-only roles, adjudicates their findings, and writes back the Fix Changes, Review rounds, and Completion evidence. A read-only leaf runs only the audit or axis it was dispatched with and returns cited findings; it never spawns another role, never writes a file, and never closes a ticket, and a leaf missing its fixed point, scope, or effective specification returns that gap instead of widening the job. An explicit read-only request always takes the leaf branch, and when ownership cannot be established the invocation returns findings without closing. Read-only reviews skip artifact mutations in steps 3b, 6, and 8.
 
 ### 2. Resolve the effective specification
 
@@ -86,9 +86,9 @@ Run one read-only converge-audit pass before spawning the dual-axis sub-agents. 
 
 Proceed to step 4 only when the round reports **zero Round 0 gaps**. In the ticket's Review rounds section, record a Round 0 line: gap count, classification distribution, and disposition (Fix Changes created / design returns).
 
-### 4. Spawn both sub-agents in parallel
+### 4. Dispatch both axes in parallel
 
-Round 0 has already verified per-Change delivery; both briefs below must not re-falsify those verified items and should focus on standards conformance and specification semantics.
+The owner dispatches the Standards and Spec reviewers in one wave, on the same fixed point and the same captured scope, so neither axis pollutes the other's context and the aggregation sees both. Round 0 has already verified per-Change delivery; both briefs below must not re-falsify those verified items and should focus on standards conformance and specification semantics.
 
 **Standards sub-agent prompt** should include:
 
@@ -121,6 +121,8 @@ Return findings to the implementation owner. At this aggregation step, record no
 After aggregating findings, determine the next action based on whether findings exist and whether the implementer is a separate lightweight session.
 
 **If findings exist:**
+
+Findings confirmable on the same fixed point are batched together: one round's Fix Changes carry one `Fix verification`, and the re-check cites the original group's commands and evidence that still hold rather than re-deriving the whole ticket's verification strategy. No new diff, failure, or evidence reopens a decided item.
 
 **Publish the Fix verification** in the same round record, before the Fix Changes reach the implementer. It states: the findings and their numbers with the allowed write set; the counterexample and expected result that exposes a partial fix; the checks that must actually run this round and the acceptance items they cover; the earlier evidence proposed for reuse with its version, environment, and coverage; and what expands the check (a larger diff than expected, a shared interface or configuration change, or a change in tool trust). It arranges runs and never deletes a Done and verify item. This entry is the round's effective verification entry for the implementer, resolved under the shared [effective verification entry](../_shared/ARTIFACT-CONTRACT.md#effective-verification-entry) order: it names the Fix numbers and the fixed point it governs, keeps every original acceptance item, observation method, and write set in force, and is superseded only by a newer entry for a later fixed point. Round count, elapsed time, or reviewer count never waives a finding or widens acceptance: changing acceptance behavior, its observation method, the write set, or the verification strategy stays on the existing design-return or substantive finding → repair path however much it would save.
 
@@ -168,7 +170,7 @@ Append fix Changes to the ticket's Changes section and record the round. Record 
 
 For full-mode Implement, return the clean review and all finding dispositions to the implementation owner. Implement writes Completion evidence, closes the ticket after its own closeout checks, and publishes the next frontier. Review continues to steps 7–8 without writing Completion evidence or closing the ticket.
 
-For a separate review after lightweight implementation, Review writes Completion evidence, closes the ticket, and publishes the next frontier only after the clean review and its closeout checks. If findings exist, neither mode closes the ticket until the findings are corrected or authoritatively dispositioned. Use the verified Implementation note results plus review dispositions from all rounds to write Completion evidence:
+For a separate review after a lightweight implementation, the main session that owns the round writes Completion evidence, closes the ticket, and publishes the next frontier only after the clean review and its closeout checks; a read-only leaf reports the clean round and returns. If findings exist, neither mode closes the ticket until the findings are corrected or authoritatively dispositioned. Use the verified Implementation note results plus review dispositions from all rounds to write Completion evidence:
 
 - delivered behavior;
 - commands run and observed results (from Implementation note);

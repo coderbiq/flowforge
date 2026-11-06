@@ -41,13 +41,15 @@ Otherwise, use **full mode** (step 4). This mode is for capable agents that own 
 
 You are an editor, not a designer: every decision has already been made in the ticket. Execute mechanically and report honestly. When an instruction is ambiguous, a repository fact contradicts the ticket, or completing a Change would require a design judgement, the only legal exit is `STATUS: BLOCKED` with the reason and the current state preserved — never improvise. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority.
 
-#### Phase 0: Restate before executing
+#### Phase 0: Execution confirmation
 
-Before touching any file, write the execution restatement at the top of the Implementation note: for every unchecked Change, one line restating the action plus the acceptance command that will verify it, taken from the effective verification entry: this round's `Fix verification`, the ticket's `Verification schedule`, or, when neither exists, Done and verify and Expected tests. A Change covered by an entry's group names that group and its published command instead of an imagined per-Change check. If any restatement does not match the ticket, stop with `STATUS: BLOCKED` instead of guessing. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority.
+Before touching any file, write one compact execution confirmation at the top of the Implementation note:
 
-#### Phase 0b: Preflight traversal
+- the group of the effective verification entry this round executes, and the published command and expected result that will verify it;
+- the failure conditions that send the work back — a constraint the group must honor, a schedule or Fix verification that does not match this fixed point, a named command that does not exist — together with the write set and the preset tests this round may not modify;
+- any exception this round carries: an uncovered Change, a reuse proposed for review, a fact the round re-checks.
 
-List every Constraint and every Execution scenario (both Success and Failure) from the ticket as a checklist, and mark each with its implementation landing point (file and symbol) or a blocker note. Mark each Change with the group of the effective verification entry that verifies it, or with the per-Change check when the round runs under the old rules. A Change that cannot honor a Constraint it must satisfy, or whose published group cannot run, is a `STATUS: BLOCKED` return, not a silent deviation. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority. Do not modify files outside the ticket's `Write set:`.
+Cite the ticket's Changes, Constraints, and Execution scenarios by reference; the confirmed and unchanged facts keep their precise citation, and you restate a line only where this round's scope, fixed point, or reading differs. Copying every item in full is repetition, not a contract, and a confirmation that leaves out the failure conditions, the write set, or the test permission is incomplete: stop with `STATUS: BLOCKED` when the ticket and the confirmation disagree. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority.
 
 Execute unchecked Changes mechanically, self-check, and stop. Do not review, close the ticket, or make design decisions.
 
@@ -57,8 +59,8 @@ Work through each `- [ ]` item in order. For each Change:
 
 1. Read the named file and symbol from the Change description and Touch points.
 2. Implement the described mechanical action at that location.
-3. Run `go build` (or the project's compile command) after each Change, except when the effective verification entry groups the build with its checks at a defined point (a complete schedule group or this round's Fix verification), where those run when the group's last Change is implemented; that group's Changes stay unchecked until its checks pass.
-4. Run focused tests relevant to the Change if the effective verification entry names them, deduplicated the same way: one published run is the group's single real execution, and no check runs twice because two steps name it.
+3. Run `go build` (or the project's compile command) after each Change only when no grouping entry covers it. When a complete schedule group or this round's Fix verification groups the build with its checks, add no check of your own: implement the rest of the group and run the published checks when the group's last Change is in place; that group's Changes stay unchecked until those checks pass.
+4. Run focused tests relevant to the Change only when the effective verification entry names them for this round, deduplicated the same way: one published run is the group's single real execution, and no check runs twice because two steps name it. An intermediate state inside a group is not an acceptance event.
 
 If a Change cannot be completed (file not found, symbol moved, build fails after the change), stop, leave the Change unchecked, and note the blocker in the Implementation note. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority.
 
@@ -76,7 +78,7 @@ When a command fails, paste the failing command, its exit code, and the relevant
 
 #### 3c. Check off completed Changes
 
-Change `- [ ]` to `- [x]` for each completed Change in the ticket, in the same edit as its evidence quadruple: an indented block under the checked item carrying `- cmd:` (the exact command), `- exit: 0`, `- output:` (1–3 key result lines quoted verbatim, e.g. `N tests completed, 0 failed`), and `- artifact:` (repository-relative path of the delivered file). If the exit code is not `0` — including environment-related failures — the Change stays unchecked; record the disposition, and return `STATUS: BLOCKED` when it blocks completion. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority. Leave unchecked any Change that could not be completed.
+Change `- [ ]` to `- [x]` for each completed Change in the ticket, in the same edit as its evidence quadruple: an indented block under the checked item carrying `- cmd:` (the exact command), `- exit: 0`, `- output:` (1–3 key result lines quoted verbatim, e.g. `N tests completed, 0 failed`), and `- artifact:` (repository-relative path of the delivered file). A run shared by a group writes its own quadruple under every Change that run covers, naming that same run — one execution is never counted as several, and an original quadruple is never rewritten with a later result. If the exit code is not `0` — including environment-related failures — the Change stays unchecked; record the disposition, and return `STATUS: BLOCKED` when it blocks completion. Before returning `STATUS: BLOCKED`, first append a `## Blocked evidence` section to the ticket end (verbatim error, commands tried with exit codes, next hypothesis); the session return continues as before, and the ticket artifact is the authority. Leave unchecked any Change that could not be completed.
 
 #### 3d. Write Implementation note
 
@@ -86,6 +88,8 @@ Write a `## Implementation note` section in the ticket (after the `---` separato
 - commands run and their results (pass/fail, output summary), naming each group of the effective verification entry that ran and every run several Changes share;
 - files modified;
 - write-set compliance: "All modifications within write set" or list violations.
+
+Record only what this round actually produced: real results, the differential or deviation that mattered, and unfinished items. Already-verified facts stay where they are verified; cite them instead of copying the ticket, its Constraints, or its scenarios.
 
 #### 3e. Stop
 
