@@ -21,7 +21,7 @@ flowforge:
 
 <a id="wiki-config-single-track-design"></a># 双轨 wiki 配置统一：方案
 
-依据：[双轨 wiki 配置统一需求](requirements.md#wiki-config-single-track-requirements)（rev 3，Q1-Q3 已裁决）。事实底座：[双轨 wiki 配置收敛调研](../../research/2026-09-25-dual-track-wiki-config.md)。
+依据：[双轨 wiki 配置统一需求](requirements.md#wiki-config-single-track-requirements)（rev 3，Q1-Q3 已裁决）。事实底座：[双轨 wiki 配置收敛调研](../../../../research/2026-09-25-dual-track-wiki-config.md)。
 
 ## <a id="d-deprecation"></a>d-deprecation：wiki 轨删除面与告警机制
 
@@ -54,9 +54,9 @@ flowforge:
 
 ## Standards clauses
 
-- must 纯本地确定性文件操作，无网络、无 LLM 调用（源：[AGENTS.md](../../../AGENTS.md) 核心设计原则 2，[Constraints]）。
-- must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../AGENTS.md) boundaries，[Conventions]）。
-- must 不改 CLI 命令签名与 Issue Schema 头规范（源：[AGENTS.md](../../../AGENTS.md) Ask first 边界，[Constraints]）。
+- must 纯本地确定性文件操作，无网络、无 LLM 调用（源：[AGENTS.md](../../../../../AGENTS.md) 核心设计原则 2，[Constraints]）。
+- must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../../../AGENTS.md) boundaries，[Conventions]）。
+- must 不改 CLI 命令签名与 Issue Schema 头规范（源：[AGENTS.md](../../../../../AGENTS.md) Ask first 边界，[Constraints]）。
 
 ## 兼容与迁移
 

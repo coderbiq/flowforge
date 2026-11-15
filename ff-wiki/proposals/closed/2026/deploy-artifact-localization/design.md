@@ -24,7 +24,7 @@ flowforge:
 
 <a id="deploy-artifact-localization-design"></a># 部署产物本地化与模型注入方案
 
-依据：[部署产物本地化与模型注入需求](requirements.md#deploy-artifact-localization-requirements)。用户已裁决路线：「模型注入产物 + 产物本地化」（否决宿主用户级外置通道与项目级 `.pi/settings.json` 生成方案）。事实基础：[宿主模型外置能力调查](../../research/2026-09-20-host-model-portability.md）。2026-09-25：四项口味题（models_by_host)` 增加宿主参数（`resolveCompileOptions(cfg, def, hostKey)`），model 解析移入其中按上表取值；`deploySubagents`（agents.go 写文件循环）与 `computeSubagentStatus`（agents_status.go 期望编译循环）都在 `for _, h := range hosts` 层传 `h.key`，deploy/status 同一解析路径（既有约定 `TestStatusUsesSameCompileOptions` 的延伸）。缝在 command 包内部，CLI 接口签名不变。
+依据：[部署产物本地化与模型注入需求](requirements.md#deploy-artifact-localization-requirements)。用户已裁决路线：「模型注入产物 + 产物本地化」（否决宿主用户级外置通道与项目级 `.pi/settings.json` 生成方案）。事实基础：[宿主模型外置能力调查](../../../../research/2026-09-20-host-model-portability.md）。2026-09-25：四项口味题（models_by_host)` 增加宿主参数（`resolveCompileOptions(cfg, def, hostKey)`），model 解析移入其中按上表取值；`deploySubagents`（agents.go 写文件循环）与 `computeSubagentStatus`（agents_status.go 期望编译循环）都在 `for _, h := range hosts` 层传 `h.key`，deploy/status 同一解析路径（既有约定 `TestStatusUsesSameCompileOptions` 的延伸）。缝在 command 包内部，CLI 接口签名不变。
 
 ## <a id="d-config-validation"></a>d-config-validation：模型值格式级校验（fail-fast）
 
@@ -44,7 +44,7 @@ flowforge:
 ## <a id="d-pi-model-injection"></a>d-pi-model-injection：pi 宿主 model 注入与 preserve-merge 真实化
 
 - `CompilePiWithOptions` frontmatter 增 `Model string \`yaml:"model,omitempty"\``（字段序固定插在 `description` 之后、`thinking` 之前），取值 `resolveModel(opts)`（Model > FallbackModel > 空）；空时省略键——未配置项目产物逐字节不变（回归零）。
-- 该修订**覆盖** [PI 宿主集成方案 §一](../pi-host-integration/design.md#pi-host-integration-design) 的"`ModelProfile` → `thinking`：**不写 `model`**"一行（已按需求授权修订该行并将其 design revision 升至 2）：`thinking` 映射维持，`model` 从"永不写"改为"config/回填有值才写"。pi 语义：`model` 省略 = 继承父会话（原行为保留为默认态）。
+- 该修订**覆盖** [PI 宿主集成方案 §一](../../../pi-host-integration/design.md#pi-host-integration-design) 的"`ModelProfile` → `thinking`：**不写 `model`**"一行（已按需求授权修订该行并将其 design revision 升至 2）：`thinking` 映射维持，`model` 从"永不写"改为"config/回填有值才写"。pi 语义：`model` 省略 = 继承父会话（原行为保留为默认态）。
 - **preserve-merge 虚假保留随之消除**：deploy 循环的 preserve-merge（agents.go `opts.Model == ""` 分支）是宿主无关缝，pi 编译器此前忽略 `FallbackModel` 却打印 preserved 提示（真 bug）。`CompilePiWithOptions` 改为消费 `resolveModel(opts)` 后，pi 与 opencode/claude 同链（config > 回填 > 默认），提示变真话。**不做按宿主门控**——codex 由"frontmatter 无 `model` 键 → `deployedModel` 无值"天然短路（票 01 已验证零行为差异），四宿主收敛到同一语义，无需 host 能力表。
 - preserved 提示文案同步微调：`(set agents.models in .flowforge/config.yaml to pin explicitly)` → `(set agents.models_by_name/models_by_host in .flowforge/config.yaml to pin explicitly)`（提示真实通道）。
 
@@ -62,11 +62,11 @@ flowforge:
 
 ## Standards clauses
 
-- must 纯本地确定性文件操作，无网络、无 LLM 调用：模型校验仅格式级，git 检测仅本地 `git ls-files` 查询，绝不写 git 索引（源：[AGENTS.md](../../../AGENTS.md) 核心设计原则 2，[Constraints]）。
-- must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../AGENTS.md) boundaries，[Conventions]）。
-- must 不改 CLI 命令签名与 Issue Schema 头规范；`resolveCompileOptions` 加宿主参数属包内缝（源：[AGENTS.md](../../../AGENTS.md) Ask first 边界 + requirements 范围，[Constraints]）。
-- must `assets/` 只放部署内容（AGENTS 模板 gitignore 约定属部署内容）（源：[AGENTS.md](../../../AGENTS.md) 🚫 Never，[Constraints]）。
-- must config 显式配置总是压过 preserve-merge 回填值（源：[agent-model-preservation 需求](../closed/2026/agent-model-preservation/requirements.md#agent-model-preservation-requirements) 显式通道优先级，[Constraints]）。
+- must 纯本地确定性文件操作，无网络、无 LLM 调用：模型校验仅格式级，git 检测仅本地 `git ls-files` 查询，绝不写 git 索引（源：[AGENTS.md](../../../../../AGENTS.md) 核心设计原则 2，[Constraints]）。
+- must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../../../AGENTS.md) boundaries，[Conventions]）。
+- must 不改 CLI 命令签名与 Issue Schema 头规范；`resolveCompileOptions` 加宿主参数属包内缝（源：[AGENTS.md](../../../../../AGENTS.md) Ask first 边界 + requirements 范围，[Constraints]）。
+- must `assets/` 只放部署内容（AGENTS 模板 gitignore 约定属部署内容）（源：[AGENTS.md](../../../../../AGENTS.md) 🚫 Never，[Constraints]）。
+- must config 显式配置总是压过 preserve-merge 回填值（源：[agent-model-preservation 需求](../../../closed/2026/agent-model-preservation/requirements.md#agent-model-preservation-requirements) 显式通道优先级，[Constraints]）。
 
 ## 兼容与迁移
 

@@ -81,11 +81,11 @@ flowforge:
 ## Constraints
 
 - Write set: `internal/command/{agent_model_state.go,agent_model_state_test.go,agent_model_config.go,agents.go,assets_deploy.go,agents_test.go,modelset_cmd_test.go,init_test.go}`；`docs/cli-design.md`；`docs/adr/0002-deploy-artifact-localization-and-model-chain.md`；本票。无新增依赖或远端模型调用，不部署当前仓库，不修改原票或设计语义。
-- must 直接以文件读写 proposal Markdown，并用 check/frontier 校验发布工件 — [AGENTS.md](../../../../AGENTS.md#核心设计原则)
-- must 在变更后运行 `go test ./internal/...` — [AGENTS.md](../../../../AGENTS.md#boundaries)
-- must not 引入 CLI 长文本接口、修改本次未授权的 Issue Schema 或 CLI 调用签名 — [AGENTS.md](../../../../AGENTS.md#boundaries)
-- must not 在 assets 放置不部署的内容 — [AGENTS.md](../../../../AGENTS.md#boundaries)
-- must 让显式配置优先于本地保留字段 — [模型保留需求](../../closed/2026/agent-model-preservation/requirements.md)
+- must 直接以文件读写 proposal Markdown，并用 check/frontier 校验发布工件 — [AGENTS.md](../../../../../../AGENTS.md#核心设计原则)
+- must 在变更后运行 `go test ./internal/...` — [AGENTS.md](../../../../../../AGENTS.md#boundaries)
+- must not 引入 CLI 长文本接口、修改本次未授权的 Issue Schema 或 CLI 调用签名 — [AGENTS.md](../../../../../../AGENTS.md#boundaries)
+- must not 在 assets 放置不部署的内容 — [AGENTS.md](../../../../../../AGENTS.md#boundaries)
+- must 让显式配置优先于本地保留字段 — [模型保留需求](../../../../closed/2026/agent-model-preservation/requirements.md)
 - 配置/读取/编译/序列化失败不得写产物或快照；status 完全只读。生成字段与手改同值时不可观察，沿用生成归属；旧项目无法追溯历史，不猜测旧来源。快照最终提交失败可留下已更新 agent，不能宣称全量回滚。
 
 ## Done and verify

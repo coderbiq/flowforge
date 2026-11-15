@@ -60,12 +60,12 @@ flowforge:
 
 ## Constraints
 
-- must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../../AGENTS.md#核心设计原则)
-- must not 修改Issue Schema头规范、CLI签名或现有诊断算法 — [项目边界](../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility)
-- must 保留测试作者/实施者分离、独立Round0/双轴和真实缺陷阻塞 — [R1](../requirements.md#reliability)、[执行单元政策](../../../../AGENTS.md#execution-unit-policy)
+- must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../../../../AGENTS.md#核心设计原则)
+- must not 修改Issue Schema头规范、CLI签名或现有诊断算法 — [项目边界](../../../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility)
+- must 保留测试作者/实施者分离、独立Round0/双轴和真实缺陷阻塞 — [R1](../requirements.md#reliability)、[执行单元政策](../../../../../../AGENTS.md#execution-unit-policy)
 - must 保留失败原文与证据归属；历史通过不当新实跑，结构通过不当行为通过 — [R6](../requirements.md#evidence)
 - must 让只读子代理仅返回发现，由主会话承担裁决及工件写回；短机械记录不另派角色 — [R7](../requirements.md#review)
-- must 不在assets放不部署的fixture；经源、嵌入、隔离部署核对后再发布 — [项目边界](../../../../AGENTS.md#boundaries)、[Makefile](../../../../Makefile)
+- must 不在assets放不部署的fixture；经源、嵌入、隔离部署核对后再发布 — [项目边界](../../../../../../AGENTS.md#boundaries)、[Makefile](../../../../../../Makefile)
 - Write set: 本票；ff-wiki/proposals/cost-aware-verification-planning/evidence/02-v2/**（其中受保护测试仅合法作者）；ff-wiki/agents/issue-tracker.md（仅本proposal语义对齐）；.agents/**、.claude/agents/**、.opencode/agent/**、.codex/agents/**、.pi/agents/**、.pi/extensions/**（仅已验收二进制的既有部署）；AGENTS.md（仅管理块）；.gitignore（仅生成管理项）；.flowforge/agent-model-state.json（仅部署生成）；internal/command/assets/**与bin/flowforge（仅确需从05已验收固定源重新生成）。Refine指定隔离目录，不改assets源、模型配置或旧02候选目录。
 - 本次G0授权仅本票、`evidence/02-v2/**`及必要临时隔离fixture；以上G2部署写集不授权当前阶段修改本项目部署、生产/源规则或模型配置。主会话负责真实模型派发，G0作者不执行/审查行为链。
 - 05缺正向证据、入口仍指向旧部署、fixture未冻结或观察不充分均返回owner。新产品缺陷交05/原权威，不能在本票临时改规则、删反例或使用编造轨迹。
@@ -121,7 +121,7 @@ G0由Refine/合法作者完成Change1，主会话固定候选入口和观察方�
 - 使用候选隔离入口，不读取本项目旧部署为新规则；测试由原冻结路径只读运行，不复制测试/模型配置。PI只读审查角色只能返回发现，主会话直接裁决/写回；无per-file ACL或OS沙箱宣称。
 - 对固定事实引用author-notes/manifest/inputs；真实调用、作者自检、05历史结果及静态旧规则对照分别归属。未启动模型链不填通过，未知耗时不计算净收益；新角色会话仅承担inputs已列必要职责。
 
-- must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
+- must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
 
 ## Implementation note
 

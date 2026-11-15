@@ -54,7 +54,7 @@ flowforge:
 
 ## Standards identification（移交 solution-design）
 
-- 流程/边界铁律：变更后 `go test ./internal/...`；禁 CLI 传大文本接口；`assets/` 只放部署内容 — [AGENTS.md#boundaries](../../../AGENTS.md)
-- 构建陷阱：`internal/command/assets/` 是 embed 第二副本，仅 `make dev` 刷新，plain `go build` 出旧资产 — [lightweight-execution-contract spec Further Notes](../closed/2026/lightweight-execution-contract/spec.md)
+- 流程/边界铁律：变更后 `go test ./internal/...`；禁 CLI 传大文本接口；`assets/` 只放部署内容 — [AGENTS.md#boundaries](../../../../../AGENTS.md)
+- 构建陷阱：`internal/command/assets/` 是 embed 第二副本，仅 `make dev` 刷新，plain `go build` 出旧资产 — [lightweight-execution-contract spec Further Notes](../../../closed/2026/lightweight-execution-contract/spec.md)
 - 本仓库 `docs/agents/standards.md` 仍为通用模板，marker 词汇表以 standards-injection 交付物为准。
-- 测试/构建命令：`GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`、`golangci-lint run ./...`、`make dev` — [AGENTS.md#Commands](../../../AGENTS.md)
+- 测试/构建命令：`GOPROXY=https://goproxy.cn,direct go test -v ./internal/...`、`golangci-lint run ./...`、`make dev` — [AGENTS.md#Commands](../../../../../AGENTS.md)

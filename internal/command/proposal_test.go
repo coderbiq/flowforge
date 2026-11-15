@@ -263,3 +263,65 @@ func TestProposalCmdRegistered(t *testing.T) {
 		t.Fatal("proposal command group not registered on root")
 	}
 }
+
+func TestProposalCloseFixesOutboundLinks(t *testing.T) {
+	docs := t.TempDir()
+	root := filepath.Join(docs, "proposals")
+	os.MkdirAll(filepath.Join(root, "alpha", "issues"), 0o755)
+	os.MkdirAll(filepath.Join(docs, "research"), 0o755)
+	os.WriteFile(filepath.Join(docs, "research", "r.md"), []byte("# r\n"), 0o644)
+	// Ticket references research via ../../research (two levels up from proposals/alpha/issues/)
+	os.WriteFile(filepath.Join(root, "alpha", "issues", "01.md"), []byte("# t\n\n**Status:** closed\n\n**Blocked by:** None\n\nSee [r](../../../research/r.md) and [internal](../README.md)\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "alpha", "README.md"), []byte("# a [r2](../../research/r.md)\n"), 0o644)
+
+	if _, err := runClose(t, root, "alpha"); err != nil {
+		t.Fatal(err)
+	}
+	// Outbound link gained one ../ level; internal link untouched.
+	body, _ := os.ReadFile(filepath.Join(root, "closed", "2026", "alpha", "issues", "01.md"))
+	if !strings.Contains(string(body), "../../../../../research/r.md") {
+		t.Fatalf("outbound link not deepened by two levels: %s", body)
+	}
+	if !strings.Contains(string(body), "(../README.md)") {
+		t.Fatalf("internal link must stay untouched: %s", body)
+	}
+	readme, _ := os.ReadFile(filepath.Join(root, "closed", "2026", "alpha", "README.md"))
+	if !strings.Contains(string(readme), "../../../../research/r.md") {
+		t.Fatalf("README outbound link not deepened: %s", readme)
+	}
+
+	// Reopen restores one level.
+	if _, err := runReopen(t, root, "alpha"); err != nil {
+		t.Fatal(err)
+	}
+	body2, _ := os.ReadFile(filepath.Join(root, "alpha", "issues", "01.md"))
+	if !strings.Contains(string(body2), "../../../research/r.md") {
+		t.Fatalf("outbound link not restored on reopen: %s", body2)
+	}
+}
+
+func TestProposalCloseSiblingLinksRetargeted(t *testing.T) {
+	docs := t.TempDir()
+	root := filepath.Join(docs, "proposals")
+	os.MkdirAll(filepath.Join(root, "a", "issues"), 0o755)
+	os.MkdirAll(filepath.Join(root, "b"), 0o755)
+	os.WriteFile(filepath.Join(root, "a", "issues", "01.md"), []byte("# t\n\n**Status:** closed\n\n**Blocked by:** None\n"), 0o644)
+	// b's body links a via live path
+	os.WriteFile(filepath.Join(root, "b", "README.md"), []byte("# b\n\nSee [a](../a/README.md).\n"), 0o644)
+	os.WriteFile(filepath.Join(root, "a", "README.md"), []byte("# a\n"), 0o644)
+
+	// close a first; b (live) gets its link rewritten by the global pass
+	if _, err := runClose(t, root, "a"); err != nil {
+		t.Fatal(err)
+	}
+	// now close b: b's directory contains a link to a's LIVE path only if the
+	// global pass skipped it — simulate the ordering bug by writing a stale link
+	os.WriteFile(filepath.Join(root, "b", "README.md"), []byte("# b\n\nSee [a](../a/README.md).\n"), 0o644)
+	if _, err := runClose(t, root, "b"); err != nil {
+		t.Fatal(err)
+	}
+	body, _ := os.ReadFile(filepath.Join(root, "closed", "2026", "b", "README.md"))
+	if !strings.Contains(string(body), "../a/README.md") {
+		t.Fatalf("sibling link not retargeted inside moved dir: %s", body)
+	}
+}

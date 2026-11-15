@@ -27,7 +27,7 @@ flowforge:
 
 需求 authority：[快/弱执行者可靠交付需求](requirements.md#fast-executor-reliability-requirements)，修订版 1。
 
-实证依据：[弱/快模型执行准确率调研](../../research/2026-09-12-weak-model-execution-accuracy.md)（下称"调研 A"）、[子代理 vs 常驻会话性能调研](../../research/2026-09-12-subagent-vs-persistent-session-performance.md)（下称"调研 B"）。衔接既有 authority：[lightweight-execution-contract](../lightweight-execution-contract/spec.md)（三层信息模型与 Fix: 协议保留；其"CLI 不解析段落/不强制"两条 out-of-scope 经需求批准修订）、[subagent-lifecycle](../subagent-lifecycle/design.md)（model 映射与权限表修订，见 d-execution-unit）。
+实证依据：[弱/快模型执行准确率调研](../../../../research/2026-09-12-weak-model-execution-accuracy.md)（下称"调研 A"）、[子代理 vs 常驻会话性能调研](../../../../research/2026-09-12-subagent-vs-persistent-session-performance.md)（下称"调研 B"）。衔接既有 authority：[lightweight-execution-contract](../lightweight-execution-contract/spec.md)（三层信息模型与 Fix: 协议保留；其"CLI 不解析段落/不强制"两条 out-of-scope 经需求批准修订）、[subagent-lifecycle](../subagent-lifecycle/design.md)（model 映射与权限表修订，见 d-execution-unit）。
 
 ## 一、evidence 四元组与 CLI 门禁 <a id="d-evidence-gate"></a>
 

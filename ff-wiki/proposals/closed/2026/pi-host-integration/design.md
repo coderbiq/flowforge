@@ -14,7 +14,7 @@ flowforge:
 
 需求 authority：[PI 宿主集成需求](requirements.md#pi-host-integration-requirements)，修订版 1。
 
-参考依据：[`docs/research/2026-09-19-pi-host-integration.md`](../../research/2026-09-19-pi-host-integration.md)（PI 能力调查，含 pi.dev 官方文档与本机 pi-subagents 源码取证）。
+参考依据：[`docs/research/2026-09-19-pi-host-integration.md`](../../../../research/2026-09-19-pi-host-integration.md)（PI 能力调查，含 pi.dev 官方文档与本机 pi-subagents 源码取证）。
 
 ## 一、宿主编译映射（`compile_pi.go`）
 
@@ -23,7 +23,7 @@ flowforge:
 | Definition / 现有语义 | PI frontmatter | 规则 |
 |---|---|---|
 | `Name` / `Description` / `Body` | `name` / `description` / 正文 | 形态一致；**正文不改写**——正文 Default Skill 段已含 "(or read `.agents/skills/...` directly if no Skill tool is available)" 双通道回退，PI 下 read 通道天然生效 |
-| `ModelProfile` | `thinking` + `model` | `thinking`：`high-capability` → `high`，其余 → `medium`（`ModelProfile.PiThinking()`）。`model`：**有条件写入**（revision 2，由[部署产物本地化与模型注入方案](../closed/2026/deploy-artifact-localization/design.md#d-pi-model-injection)修订）——config 钉扎或 preserve-merge 回填有值时写 `model`（`omitempty`），无值时省略键=继承父会话模型（原"不写 model"语义保留为默认态） |
+| `ModelProfile` | `thinking` + `model` | `thinking`：`high-capability` → `high`，其余 → `medium`（`ModelProfile.PiThinking()`）。`model`：**有条件写入**（revision 2，由[部署产物本地化与模型注入方案](../../../closed/2026/deploy-artifact-localization/design.md#d-pi-model-injection)修订）——config 钉扎或 preserve-merge 回填有值时写 `model`（`omitempty`），无值时省略键=继承父会话模型（原"不写 model"语义保留为默认态） |
 | `Permission: read-only` | `tools: read, grep, find, ls` | 只读角色的严格白名单；其余角色不写 `tools`（继承全量 builtin） |
 | `DefaultSkill` + `DetourSkills` | `skills`（列表）+ `inheritSkills: false` | 精确绑定该角色的 skill 集合，不继承全局目录 |
 | opencode `steps` 预算 | 不映射 | 时间换算不可靠；PI 用默认运行时上限，预算语义降级为可接受损失（调研第六节风险 4） |

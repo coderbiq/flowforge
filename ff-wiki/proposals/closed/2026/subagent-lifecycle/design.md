@@ -14,7 +14,7 @@ flowforge:
 
 需求 authority：[Subagent 生命周期管理需求](requirements.md#subagent-lifecycle-requirements)，修订版 1。
 
-参考依据：[`docs/research/2026-08-29-subagent-design-reference.md`](../../research/2026-08-29-subagent-design-reference.md)（业界机制调研）及其"观察四"补充调研（BMAD-METHOD、ChatDev、Claude Code 社区专家合集、SuperClaude 的角色划分与提示词范式）。
+参考依据：[`docs/research/2026-08-29-subagent-design-reference.md`](../../../../research/2026-08-29-subagent-design-reference.md)（业界机制调研）及其"观察四"补充调研（BMAD-METHOD、ChatDev、Claude Code 社区专家合集、SuperClaude 的角色划分与提示词范式）。
 
 ## 一、角色划分原则：贴合现有 Skill 责任链，而非另起领域专家体系
 

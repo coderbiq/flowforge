@@ -228,3 +228,153 @@ func rewriteLinkTarget(target, relFile, oldRelPath, newRelPath string) (string, 
 	}
 	return newTarget + anchor, true
 }
+
+// RewriteOutboundLinks fixes relative links inside a moved proposal
+// directory: links that escape the proposal tree need one more ../ level
+// after the directory moved deeper (proposals/<slug>/ →
+// proposals/closed/<year>/<slug>/), or one fewer after moving back.
+// depthDelta is +1 on close, -1 on reopen. Returns files rewritten.
+func RewriteOutboundLinks(proposalsRoot, slug string, depthDelta int) (int, error) {
+	featureDir := filepath.Join(proposalsRoot, slug)
+	if _, err := os.Stat(featureDir); err != nil {
+		return 0, nil
+	}
+	var files []string
+	err := filepath.Walk(featureDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() || !strings.EqualFold(filepath.Ext(path), ".md") {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("walking %s: %w", featureDir, err)
+	}
+	sort.Strings(files)
+	rewritten := 0
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return 0, fmt.Errorf("reading %s: %w", file, err)
+		}
+		relFile, err := filepath.Rel(featureDir, file)
+		if err != nil {
+			return 0, fmt.Errorf("resolving %s: %w", file, err)
+		}
+		fileDepth := len(strings.Split(filepath.ToSlash(filepath.Dir(relFile)), "/"))
+		if filepath.Dir(relFile) == "." {
+			fileDepth = 0
+		}
+		updated, changed := shiftOutboundLinks(string(data), depthDelta, fileDepth)
+		if !changed {
+			continue
+		}
+		if err := os.WriteFile(file, []byte(updated), 0o644); err != nil {
+			return 0, fmt.Errorf("writing %s: %w", file, err)
+		}
+		rewritten++
+	}
+	return rewritten, nil
+}
+
+// shiftOutboundLinks adds (delta>0) or removes (delta<0) one ../ level on
+// every markdown link target whose ../ count exceeds the containing file's
+// depth — i.e. links resolving outside the proposal directory. Links that
+// resolve back inside stay untouched.
+func shiftOutboundLinks(content string, delta, fileDepth int) (string, bool) {
+	changed := false
+	var out strings.Builder
+	out.Grow(len(content))
+	i := 0
+	for i < len(content) {
+		open := strings.IndexByte(content[i:], '[')
+		if open < 0 {
+			out.WriteString(content[i:])
+			break
+		}
+		open += i
+		out.WriteString(content[i:open])
+		text, target, rest, ok := parseMarkdownLink(content, open)
+		if !ok {
+			out.WriteByte('[')
+			i = open + 1
+			continue
+		}
+		newTarget := target
+		if ups := countLeadingUps(filepath.ToSlash(target)); ups > fileDepth {
+			if delta > 0 {
+				newTarget = strings.Repeat("../", delta) + target
+				changed = true
+			} else if d := -delta; ups > fileDepth+d {
+				newTarget = strings.TrimPrefix(target, strings.Repeat("../", d))
+				changed = true
+			}
+		}
+		out.WriteString("[" + text + "](" + newTarget + ")")
+		i = rest
+	}
+	return out.String(), changed
+}
+
+// countLeadingUps counts leading ../ segments in a slash-normalized target.
+func countLeadingUps(target string) int {
+	ups, rest := 0, target
+	for strings.HasPrefix(rest, "../") {
+		ups++
+		rest = rest[3:]
+	}
+	return ups
+}
+
+// RewriteReferencesInDir rewrites inbound references (oldRelPath → newRelPath)
+// but only inside the given directory subtree. Used after a proposal move to
+// fix sibling-proposal links inside the moved directory: links that pointed
+// at other live proposals when this one closed are not covered by the global
+// pass (which skips the moved directory) and must be re-targeted when those
+// siblings archive later — this pass handles the already-moved side now.
+func RewriteReferencesInDir(dir, relDirFromDocs, oldRelPath, newRelPath string) (int, error) {
+	var files []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() || !strings.EqualFold(filepath.Ext(path), ".md") {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("walking %s: %w", dir, err)
+	}
+	sort.Strings(files)
+	rewritten := 0
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return 0, fmt.Errorf("reading %s: %w", file, err)
+		}
+		relFile := filepath.ToSlash(filepath.Join(relDirFromDocs, mustRel(dir, file)))
+		updated, changed := rewriteLinksInContent(string(data), relFile, oldRelPath, newRelPath)
+		if !changed {
+			continue
+		}
+		if err := os.WriteFile(file, []byte(updated), 0o644); err != nil {
+			return 0, fmt.Errorf("writing %s: %w", file, err)
+		}
+		rewritten++
+	}
+	return rewritten, nil
+}
+
+// mustRel is filepath.Rel with an impossible-error panic guard.
+func mustRel(base, target string) string {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return filepath.Base(target)
+	}
+	return rel
+}

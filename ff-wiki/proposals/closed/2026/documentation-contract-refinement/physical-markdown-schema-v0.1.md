@@ -340,7 +340,7 @@ A ticket that consumes a design area includes a meaningful local summary and lin
 Application crosses one framework-neutral route-execution seam; Spring owns
 discovery and runtime invocation.
 
-See [RPC route execution](../design.md#rpc-route-execution).
+See [RPC route execution](../../../design.md#rpc-route-execution).
 ```
 
 Diagnostics:

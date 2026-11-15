@@ -27,10 +27,10 @@ flowforge:
 
 | 来源 | 分类 | 本轮使用 |
 | --- | --- | --- |
-| [流程成因核查](../../research/2026-11-05-plan-verification-handoff-causal-analysis.md) P1–P7 | 条款事实、因果假设、设计候选 | 需求和设计分别采纳；不照抄“一次交接”等未定建议 |
-| [本proposal自成本报告](../../research/2026-11-05-cost-aware-proposal-self-audit.md) | 历史证据与初步建议 | 299.33分钟是墙上跨度；34 child集合含发布前Plan；不将21分钟记录区间全当可净节省值 |
-| [GIIS验证循环](../../research/2026-11-05-giis-verification-loop-cost.md)、[独立归因](../../research/2026-11-05-giis-execution-root-causes.md) | 原始样本及反证 | 重验证存在，也有定向复验成功；不把全部测试视为浪费 |
-| [成本原则草案](../../research/2026-11-05-cost-aware-plan-principles.md) | 历史需求/设计候选 | 研究不是执行权威；以当前R2–R4重新表达 |
+| [流程成因核查](../../../../research/2026-11-05-plan-verification-handoff-causal-analysis.md) P1–P7 | 条款事实、因果假设、设计候选 | 需求和设计分别采纳；不照抄“一次交接”等未定建议 |
+| [本proposal自成本报告](../../../../research/2026-11-05-cost-aware-proposal-self-audit.md) | 历史证据与初步建议 | 299.33分钟是墙上跨度；34 child集合含发布前Plan；不将21分钟记录区间全当可净节省值 |
+| [GIIS验证循环](../../../../research/2026-11-05-giis-verification-loop-cost.md)、[独立归因](../../../../research/2026-11-05-giis-execution-root-causes.md) | 原始样本及反证 | 重验证存在，也有定向复验成功；不把全部测试视为浪费 |
+| [成本原则草案](../../../../research/2026-11-05-cost-aware-plan-principles.md) | 历史需求/设计候选 | 研究不是执行权威；以当前R2–R4重新表达 |
 | 01/04的审查、实施记录；00/03授权证据 | 已交付历史 | 真实缺陷与真实失败保留，不追写成新目标已验收 |
 | 旧02和候选fixture | 未完成计划/草稿 | 旧票全文可用`git show 933797d:ff-wiki/proposals/cost-aware-verification-planning/issues/02-controlled-acceptance-and-deploy.md`读取；未跟踪目录保留且不消费作通过证据 |
 

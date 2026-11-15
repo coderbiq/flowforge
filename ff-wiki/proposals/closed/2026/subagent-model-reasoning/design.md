@@ -71,7 +71,7 @@ set 的字符串值只覆盖 model；对象只覆盖已声明字段。因此换�
 
 `model-set show` 沿用当前调用方式，展示每个启用 host/agent 的有效 model、effort 和两者独立来源；inherit 显示为宿主继承，省略值显示默认语义。展示配置推导值，不读取部署文件充当 config 来源；保留值只在 deploy/status 的文件观察中说明。
 
-`model-set use` 复用自动部署与激活指针回滚。新增校验失败须保证产物未写；中途 I/O 失败仍可能部分更新产物，本次不重写部署事务。实施更新 [ADR 0002](../../adr/0002-deploy-artifact-localization-and-model-chain.md)，注明本提案替代 Codex 排除规则；旧完工证据不重写。
+`model-set use` 复用自动部署与激活指针回滚。新增校验失败须保证产物未写；中途 I/O 失败仍可能部分更新产物，本次不重写部署事务。实施更新 [ADR 0002](../../../../adr/0002-deploy-artifact-localization-and-model-chain.md)，注明本提案替代 Codex 排除规则；旧完工证据不重写。
 
 <a id="deployment-field-state"></a>
 ## 部署字段快照
@@ -95,11 +95,11 @@ set 的字符串值只覆盖 model；对象只覆盖已声明字段。因此换�
 
 ## Standards clauses
 
-- must 直接以文件读写 proposal Markdown，并用 check/frontier 校验发布工件 — [AGENTS.md](../../../AGENTS.md#核心设计原则) [Constraints]
-- must 在变更后运行 `go test ./internal/...` — [AGENTS.md](../../../AGENTS.md#boundaries) [Constraints]
-- must not 引入 CLI 长文本接口、修改本次未授权的 Issue Schema 或 CLI 调用签名 — [AGENTS.md](../../../AGENTS.md#boundaries) [Constraints]
-- must not 在 assets 放置不部署的内容 — [AGENTS.md](../../../AGENTS.md#boundaries) [Constraints]
-- must 让显式配置优先于本地保留字段 — [模型保留需求](../closed/2026/agent-model-preservation/requirements.md) [Constraints]
+- must 直接以文件读写 proposal Markdown，并用 check/frontier 校验发布工件 — [AGENTS.md](../../../../../AGENTS.md#核心设计原则) [Constraints]
+- must 在变更后运行 `go test ./internal/...` — [AGENTS.md](../../../../../AGENTS.md#boundaries) [Constraints]
+- must not 引入 CLI 长文本接口、修改本次未授权的 Issue Schema 或 CLI 调用签名 — [AGENTS.md](../../../../../AGENTS.md#boundaries) [Constraints]
+- must not 在 assets 放置不部署的内容 — [AGENTS.md](../../../../../AGENTS.md#boundaries) [Constraints]
+- must 让显式配置优先于本地保留字段 — [模型保留需求](../../../closed/2026/agent-model-preservation/requirements.md) [Constraints]
 
 ## 改动位置与验证
 

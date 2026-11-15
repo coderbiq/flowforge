@@ -9,7 +9,7 @@ flowforge:
 <a id="wiki-config-single-track-requirements"></a>
 # 双轨 wiki 配置统一：需求
 
-事实底座：[双轨 wiki 配置收敛调研](../../research/2026-09-25-dual-track-wiki-config.md)（3 × batch-analyst 并行盘点 + 旗舰复核，引用密度 200+ 条 file:line）。
+事实底座：[双轨 wiki 配置收敛调研](../../../../research/2026-09-25-dual-track-wiki-config.md)（3 × batch-analyst 并行盘点 + 旗舰复核，引用密度 200+ 条 file:line）。
 
 ## 问题
 

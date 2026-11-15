@@ -86,11 +86,11 @@ Changes 1–4 已完成 Refine、实现 `93f07a4` 与修后 native 验收，首�
 
 ## Constraints
 
-- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability)
+- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability)
 - must 只给主会话明确指定的 Plan/Refine 会话实例与具体文件授予权限，默认和异常拒绝；不能关闭全局保护 — [R10](../requirements.md#test-authority)
-- must not 修改 Issue Schema、CLI 签名或模型配置，不通过 shell 绕过被拒绝的测试写入 — [项目边界](../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility)
+- must not 修改 Issue Schema、CLI 签名或模型配置，不通过 shell 绕过被拒绝的测试写入 — [项目边界](../../../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility)
 - must 以真实入口及正负例验证权限，不把源文件一致当成已启动运行内的保护证明 — [R10](../requirements.md#test-authority)
-- must 不在 assets 放不部署的测试/调查材料 — [项目边界](../../../../AGENTS.md#boundaries)
+- must 不在 assets 放不部署的测试/调查材料 — [项目边界](../../../../../../AGENTS.md#boundaries)
 - Write set: assets/pi/flowforge.ts; internal/command/assets/**（仅make dev生成）；bin/flowforge（构建）；.pi/extensions/flowforge.ts及flowforge-planner本机部署文件（仅现有deploy命令）；ff-wiki/proposals/cost-aware-verification-planning/issues/03-test-authority-boundary-repair.md; ff-wiki/proposals/cost-aware-verification-planning/evidence/03-implementation.md。
 - Plan作者专属写集：ff-wiki/proposals/cost-aware-verification-planning/evidence/00-test-authority-probe.mjs（仅上段明确预设测试Change）；本票五节与作者实跑证据由规划阶段维护。该测试文件不进入轻量实现者 Write set。
 - 预设probe和其他测试不可由实现者修改。不得自行签发授权、将自己改成Plan、关闭保护或替真实native验收造结果。

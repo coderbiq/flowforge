@@ -117,12 +117,12 @@ flowforge:
 
 ## Constraints
 
-- must 直接用文件工具维护 proposal Markdown，CLI 仅承担现有图与诊断计算 — [项目核心原则](../../../../AGENTS.md#核心设计原则)
-- must not 改变 Issue Schema 头或 CLI 签名；本方案用现有正文及依赖表达 — [项目边界](../../../../AGENTS.md#boundaries)
-- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability)
-- must not 把旧结果当新执行、把结构诊断通过当行为证明，证据仍须独立核实 — [证据契约](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#hand-offs)、[审查交付核对](../../../../assets/skills/flowforge-review/references/review-protocol.md#test-pass-does-not-equal-requirement-met)
-- must 只让有具体失败依据的发现形成修复义务，保留真实失败及已约定标准 — [审查反猜测规则](../../../../assets/skills/flowforge-review/references/review-protocol.md#no-speculation)
-- must 不在 assets 放不部署的情景材料，按源→嵌入→部署接缝验证一致性 — [项目边界](../../../../AGENTS.md#boundaries)、[构建入口](../../../../Makefile)
+- must 直接用文件工具维护 proposal Markdown，CLI 仅承担现有图与诊断计算 — [项目核心原则](../../../../../../AGENTS.md#核心设计原则)
+- must not 改变 Issue Schema 头或 CLI 签名；本方案用现有正文及依赖表达 — [项目边界](../../../../../../AGENTS.md#boundaries)
+- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability)
+- must not 把旧结果当新执行、把结构诊断通过当行为证明，证据仍须独立核实 — [证据契约](../../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#hand-offs)、[审查交付核对](../../../../../../assets/skills/flowforge-review/references/review-protocol.md#test-pass-does-not-equal-requirement-met)
+- must 只让有具体失败依据的发现形成修复义务，保留真实失败及已约定标准 — [审查反猜测规则](../../../../../../assets/skills/flowforge-review/references/review-protocol.md#no-speculation)
+- must 不在 assets 放不部署的情景材料，按源→嵌入→部署接缝验证一致性 — [项目边界](../../../../../../AGENTS.md#boundaries)、[构建入口](../../../../../../Makefile)
 - 轻量执行者不得更改任何预设测试；Change 8路径维护及两项新增测试全部由合法Plan/refine作者在G0先行完成，只有主会话向该实际实例签发这三个具体路径。宿主保护不得绕过。
 - 不修改 DAG/Catalog 算法、evidence 四字段、默认 Mode 或旧票；不迁移 GIIS。保持 Round 0、独立双轴、零未处置发现关票与 substantive finding → repair。
 - Write set: assets/skills/_shared/ARTIFACT-CONTRACT.md; assets/skills/flowforge-solution-design/SKILL.md; assets/skills/flowforge-plan/SKILL.md; assets/skills/flowforge-refine-ticket/SKILL.md; assets/skills/flowforge-implement/SKILL.md; assets/skills/flowforge-review/SKILL.md; assets/agents/issue-tracker.md; internal/command/assets/**（仅 make dev 生成）; bin/flowforge（仅构建）; internal/command/assets_deploy_test.go（仅合法测试作者执行Change 8；轻量实现者只读）; internal/command/cost_aware_assets_test.go 与 internal/tracker/cost_aware_evidence_test.go（仅合法测试作者）；ff-wiki/proposals/cost-aware-verification-planning/issues/01-rule-package.md; ff-wiki/proposals/cost-aware-verification-planning/evidence/01-implementation.md。
@@ -180,7 +180,7 @@ G0产生两个新Go测试及 [01-test-authoring.md](../evidence/01-test-authorin
 
 ### Conventions
 
-- must 只写有独立信息的成本理由与复用说明，复用共同权威链接而非复制长模板 — [信息价值规则](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
+- must 只写有独立信息的成本理由与复用说明，复用共同权威链接而非复制长模板 — [信息价值规则](../../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
 - G0只授权精确三测试路径；授权撤销后测试只读，Refine不得借文档维护再改测试。兼容回归允许baseline green，不制造red；全仓lint旧失败与G0指定lint通过分开表述。[Conventions]
 
 ## Implementation note
@@ -303,7 +303,7 @@ Round 0 另记录九项已证伪候选（实现者未改测试、新测试真实
 
 - Fixed point: `c990efb`（父 `348f0f4`）；审查范围 `16cce8e...c990efb`
 - Fix verification: 采用 Round 1 发布的 11–13 安排；本轮无新增 Fix verification
-- Standards: 未运行 — Round 0 报 1 partial + 1 contradicts，按 [review 第 3b 步](../../../../assets/skills/flowforge-review/SKILL.md) 不进入双轴；两轴报告为空
+- Standards: 未运行 — Round 0 报 1 partial + 1 contradicts，按 [review 第 3b 步](../../../../../../assets/skills/flowforge-review/SKILL.md) 不进入双轴；两轴报告为空
 - Spec: 未运行 — 同上
 - Fix changes: none
 - Design returns: A04 阶段证明门禁适用范围（`contradicts`/Medium，权威含义问题，经既有 design-return/repair 通道交设计所有者）；A05（`partial`/Medium）作为同一 repair 内的记录恢复，不另造产品范围

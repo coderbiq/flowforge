@@ -1,6 +1,6 @@
 # 成本感知的规划：连续实现、集中验证
 
-当前权威：[需求rev3](requirements.md)、[设计rev4](design.md)、[来源归类rev3](source-notes.md)。用户已授权依据[成因核查](../../research/2026-11-05-plan-verification-handoff-causal-analysis.md)调整proposal并重新规划。目标由“主要减少重复验证”纠正为“Plan组织完整逻辑连续实现，随后集中验证，减少角色往返”。
+当前权威：[需求rev3](requirements.md)、[设计rev4](design.md)、[来源归类rev3](source-notes.md)。用户已授权依据[成因核查](../../../../research/2026-11-05-plan-verification-handoff-causal-analysis.md)调整proposal并重新规划。目标由“主要减少重复验证”纠正为“Plan组织完整逻辑连续实现，随后集中验证，减少角色往返”。
 
 ## 当前交付
 

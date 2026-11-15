@@ -110,7 +110,7 @@ Example:
 Configured-provider selection belongs to application composition; concrete
 construction remains inside the web adapter.
 
-See [Configured web adapter construction](../design.md#configured-web-adapter-construction).
+See [Configured web adapter construction](../../../design.md#configured-web-adapter-construction).
 ```
 
 #### Blocked by

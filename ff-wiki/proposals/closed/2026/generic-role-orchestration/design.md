@@ -24,7 +24,7 @@ flowforge:
 
 <a id="generic-role-orchestration-design"></a># 通用角色与任务链调度方案
 
-依据：[通用角色与任务链调度需求](requirements.md#generic-role-orchestration-requirements)。实证基础：[GIIS 派发模式调研](../../research/2026-09-24-giis-subagent-dispatch-pattern.md)（42 worker 的编排模式、任务模板与角色谱系）。
+依据：[通用角色与任务链调度需求](requirements.md#generic-role-orchestration-requirements)。实证基础：[GIIS 派发模式调研](../../../../research/2026-09-24-giis-subagent-dispatch-pattern.md)（42 worker 的编排模式、任务模板与角色谱系）。
 
 ## <a id="d-roster"></a>d-roster：角色清单与契约（混合模型落点）
 
@@ -84,11 +84,11 @@ flowforge:
 
 ## Standards clauses
 
-- must 纯本地确定性文件操作，无网络、无 LLM 调用（源：[AGENTS.md](../../../AGENTS.md) 核心设计原则 2，[Constraints]）。
-- must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../AGENTS.md) boundaries，[Conventions]）。
-- must 不改 CLI 命令签名与 Issue Schema 头规范；不改编译器行为（源：[AGENTS.md](../../../AGENTS.md) Ask first 边界 + 本设计 d-roster/d-pi-boost，[Constraints]）。
-- must `assets/` 只放部署内容（角色资产与 AGENTS 模板属部署内容）（源：[AGENTS.md](../../../AGENTS.md) 🚫 Never，[Constraints]）。
-- must flash 档角色产出必须带可验证引用（源：[flash-worksurface-expansion 需求](../closed/2026/flash-worksurface-expansion/requirements.md#flash-worksurface-expansion-requirements) 约束，[Conventions]）。
+- must 纯本地确定性文件操作，无网络、无 LLM 调用（源：[AGENTS.md](../../../../../AGENTS.md) 核心设计原则 2，[Constraints]）。
+- must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../../../AGENTS.md) boundaries，[Conventions]）。
+- must 不改 CLI 命令签名与 Issue Schema 头规范；不改编译器行为（源：[AGENTS.md](../../../../../AGENTS.md) Ask first 边界 + 本设计 d-roster/d-pi-boost，[Constraints]）。
+- must `assets/` 只放部署内容（角色资产与 AGENTS 模板属部署内容）（源：[AGENTS.md](../../../../../AGENTS.md) 🚫 Never，[Constraints]）。
+- must flash 档角色产出必须带可验证引用（源：[flash-worksurface-expansion 需求](../../../closed/2026/flash-worksurface-expansion/requirements.md#flash-worksurface-expansion-requirements) 约束，[Conventions]）。
 - must 通用角色 description 按能力书写、不含流程术语（源：[本需求](requirements.md#generic-role-orchestration-requirements) 验收 1，[Conventions]）。
 
 ## 兼容与迁移

@@ -71,12 +71,12 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 
 ## Constraints
 
-- must 直接用文件工具维护 proposal Markdown，CLI 仅承担现有图与诊断计算 — [项目核心原则](../../../../AGENTS.md#核心设计原则)
-- must not 改变 Issue Schema 头或 CLI 签名；本方案用现有正文及依赖表达 — [项目边界](../../../../AGENTS.md#boundaries)
-- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability)
-- must not 把旧结果当新执行、把结构诊断通过当行为证明，证据仍须独立核实 — [证据契约](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#hand-offs)、[审查交付核对](../../../../assets/skills/flowforge-review/references/review-protocol.md#test-pass-does-not-equal-requirement-met)
-- must 只让有具体失败依据的发现形成修复义务，保留真实失败及已约定标准 — [审查反猜测规则](../../../../assets/skills/flowforge-review/references/review-protocol.md#no-speculation)
-- must 不在 assets 放不部署的情景材料，按源→嵌入→部署接缝验证一致性 — [项目边界](../../../../AGENTS.md#boundaries)、[构建入口](../../../../Makefile)
+- must 直接用文件工具维护 proposal Markdown，CLI 仅承担现有图与诊断计算 — [项目核心原则](../../../../../../AGENTS.md#核心设计原则)
+- must not 改变 Issue Schema 头或 CLI 签名；本方案用现有正文及依赖表达 — [项目边界](../../../../../../AGENTS.md#boundaries)
+- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability)
+- must not 把旧结果当新执行、把结构诊断通过当行为证明，证据仍须独立核实 — [证据契约](../../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#hand-offs)、[审查交付核对](../../../../../../assets/skills/flowforge-review/references/review-protocol.md#test-pass-does-not-equal-requirement-met)
+- must 只让有具体失败依据的发现形成修复义务，保留真实失败及已约定标准 — [审查反猜测规则](../../../../../../assets/skills/flowforge-review/references/review-protocol.md#no-speculation)
+- must 不在 assets 放不部署的情景材料，按源→嵌入→部署接缝验证一致性 — [项目边界](../../../../../../AGENTS.md#boundaries)、[构建入口](../../../../../../Makefile)
 - 轻量执行者不得更改任何预设测试；01 Change 8 已由合法作者在 G0 完成，本票对全部 Go 测试只读，不修改 `assets/pi/**` 源码 guard，不修改任何保护或模型配置。
 - 不修改 DAG/Catalog 算法、evidence 四字段、默认 Mode 或旧票；不迁移 GIIS。保持 Round 0、独立双轴、零未处置发现关票与 substantive finding → repair。A04 只按设计所有者裁决恢复范围，不以删除门禁代替。
 - Write set: assets/skills/_shared/ARTIFACT-CONTRACT.md; assets/skills/flowforge-plan/SKILL.md; internal/command/assets/**（仅 make dev 生成）; bin/flowforge（仅构建）; ff-wiki/proposals/cost-aware-verification-planning/issues/01-rule-package.md（仅 Fix 11–13 历史记录修正段，不改状态/验收、不把旧证据写成假通过）; ff-wiki/proposals/cost-aware-verification-planning/evidence/01-implementation.md; ff-wiki/proposals/cost-aware-verification-planning/issues/04-stage-proof-scope-and-execution-record.md; ff-wiki/proposals/cost-aware-verification-planning/evidence/04-implementation.md。
@@ -122,7 +122,7 @@ A04 的权威含义问题已由设计所有者明确解决（`agent_message`，�
 
 ### Conventions
 
-- must 只写有独立信息的成本理由与复用说明，复用共同权威链接而非复制长模板 — [信息价值规则](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
+- must 只写有独立信息的成本理由与复用说明，复用共同权威链接而非复制长模板 — [信息价值规则](../../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
 - 记录求实：早批次、事后回填与工具偏离如实保留；不以补跑或不倒填的方式伪装顺序执行；A04 恢复范围以设计所有者裁决为界，不扩大豁免。[Conventions]
 
 ---

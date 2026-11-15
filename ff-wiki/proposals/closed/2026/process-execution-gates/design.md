@@ -95,11 +95,11 @@ events:
 
 ## Standards clauses
 
-- [Constraints] must 每次代码变更后运行 `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` 全绿 — [AGENTS.md#Commands](../../../AGENTS.md)
-- [Constraints] must not 引入通过 CLI 传长文本的接口（journal init/stamp 只传小结构化字段） — [AGENTS.md#核心设计原则](../../../AGENTS.md)
-- [Constraints] must `assets/` 只放部署内容；skill 改动后 `make dev` 刷新 embed 副本再构建 — [AGENTS.md](../../../AGENTS.md)、[lightweight-execution-contract spec](../closed/2026/lightweight-execution-contract/spec.md)
+- [Constraints] must 每次代码变更后运行 `GOPROXY=https://goproxy.cn,direct go test -v ./internal/...` 全绿 — [AGENTS.md#Commands](../../../../../AGENTS.md)
+- [Constraints] must not 引入通过 CLI 传长文本的接口（journal init/stamp 只传小结构化字段） — [AGENTS.md#核心设计原则](../../../../../AGENTS.md)
+- [Constraints] must `assets/` 只放部署内容；skill 改动后 `make dev` 刷新 embed 副本再构建 — [AGENTS.md](../../../../../AGENTS.md)、[lightweight-execution-contract spec](../../../closed/2026/lightweight-execution-contract/spec.md)
 - [Constraints] must 新增 schema role 与 CLI 子命令维持既有命名/解析惯例（validRole case、parser 特判、Get/Set switch） — 本 design 现状节
-- [Conventions] must `golangci-lint run ./...` 通过 — [AGENTS.md#Commands](../../../AGENTS.md)
+- [Conventions] must `golangci-lint run ./...` 通过 — [AGENTS.md#Commands](../../../../../AGENTS.md)
 - [Conventions] must 新门禁测试沿用 catalog_test/frontier_test 既有构造模式（临时目录 + assertDiagnostic） — 本 design 现状节
 
 ## 验证策略

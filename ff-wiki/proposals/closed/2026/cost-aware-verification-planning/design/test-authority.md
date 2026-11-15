@@ -53,11 +53,11 @@ flowforge:
 
 ## Standards clauses
 
-- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability) [Constraints]
+- must 保持测试作者/轻量实现者分离、每 ticket 的执行上下文策略和独立审查 — [执行单元政策](../../../../../../AGENTS.md#execution-unit-policy)、[R1](../requirements.md#reliability) [Constraints]
 - must 只给主会话明确指定的 Plan/Refine 会话实例与具体文件授予权限，默认和异常拒绝；不能关闭全局保护 — [R10](../requirements.md#test-authority) [Constraints]
-- must not 修改 Issue Schema、CLI 签名或模型配置，不通过 shell 绕过被拒绝的测试写入 — [项目边界](../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility) [Constraints]
+- must not 修改 Issue Schema、CLI 签名或模型配置，不通过 shell 绕过被拒绝的测试写入 — [项目边界](../../../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility) [Constraints]
 - must 以真实入口及正负例验证权限，不把源文件一致当成已启动运行内的保护证明 — [R10](../requirements.md#test-authority) [Constraints]
-- must 不在 assets 放不部署的测试/调查材料 — [项目边界](../../../../AGENTS.md#boundaries) [Constraints]
+- must 不在 assets 放不部署的测试/调查材料 — [项目边界](../../../../../../AGENTS.md#boundaries) [Constraints]
 
 ## 事实引用
 

@@ -65,6 +65,22 @@ See the design authority at `../design.md#commands`.
   - output: ok — 深度重算/后缀容忍/他链不动/文字保留 5 用例
   - artifact: internal/command/link_rewrite_test.go
 
+- [x] 8. Fix: `internal/command/link_rewrite.go` 新增 `RewriteOutboundLinks(proposalsRoot, slug, depthDelta)` + `shiftOutboundLinks`（按文件相对 proposal 根深度判定出站链接，加/减 `closed/<year>/` 两层深度）；close/reopen 分别以 +2/-2 调用（出站链接两层深度修复）
+  - cmd: `go test ./internal/command/ -run TestProposalCloseFixesOutboundLinks -count=1 -v`
+  - exit: 0
+  - output: --- PASS
+  - artifact: internal/command/link_rewrite.go
+- [x] 9. Fix: `internal/command/link_rewrite.go` 新增 `RewriteReferencesInDir`；close 在全局重写后对已归档兄弟 proposal 的 live 路径引用做目录内定向重写（全局 pass SkipDir 跳过被移动目录造成的兄弟链接时序漏网）
+  - cmd: `go test ./internal/command/ -run TestProposalCloseSiblingLinksRetargeted -count=1 -v`
+  - exit: 0
+  - output: --- PASS
+  - artifact: internal/command/link_rewrite.go
+- [x] 10. Fix: `internal/command/proposal_test.go` 补 `TestProposalCloseFixesOutboundLinks`（出站两层加深、内部链接不动、reopen 反向）与 `TestProposalCloseSiblingLinksRetargeted`（兄弟链接在移动目录内被定向重写）
+  - cmd: `go test ./internal/command/ -run "TestProposalClose" -count=1 -v`
+  - exit: 0
+  - output: 5/5 PASS
+  - artifact: internal/command/proposal_test.go
+
 ## Constraints
 
 - close 只迁移 live 目录（`proposals/<slug>/`），不重复归档已 closed 的
@@ -146,3 +162,13 @@ See the design authority at `../design.md#commands`.
 - Review: Round 0 — 1 contradicts（全量回归措辞 vs 预存在环境失败；git stash 基线对照 FAIL 集合零 diff，处置记录）；Round 1 — Standards P2×4 / Spec P2×3 中涉本票的均已处置（"proposals" 魔法串记录不修，与库内风格一致）。
 - Deviations: 本机 /tmp go exe 链接 ACL 怪癖以 GOTMPDIR 绕开（Implementation note 环境注记）；委派子代理超时后由主会话按票面合同收口验证。
 - Reference: 工作树 `internal/command/proposal.go` + `link_rewrite.go` + `proposal_test.go` + `link_rewrite_test.go` + `root.go`（提交随 proposal 收口）。
+- Round 2 增补：出站链接与兄弟链接重写（Fix 8-10），归档区 56 条迁移断裂清零。
+
+### Round 2
+
+- Fixed point: working tree (user close-readiness question triggered pre-close verification)
+- Root causes found: close rewrote inbound links only; the moved proposal outbound links broke with two-level deepening, and the global pass SkipDir left sibling-proposal links inside the moved dir stale when siblings archived later (3 links)
+- Standards: none; Spec: outbound/sibling link rewrite missing from "rewrite library references" semantics
+- Fix changes: 8-10 created and fixed; archive area went 56 broken -> 0 (2 remaining are pre-migration legacy breakages unrelated to the command)
+- Design returns: none; Repair: none
+- Verification: TestProposalClose* 5/5, vet clean, archive link-health sweep green

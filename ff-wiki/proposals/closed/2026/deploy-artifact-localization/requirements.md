@@ -12,7 +12,7 @@ flowforge:
 ## 问题
 
 1. **pi 宿主无 per-subagent 模型通道**：`compile_pi.go` 按 PI 宿主集成方案（`../pi-host-integration/design.md`）§一明文"不写 `model`（省略=继承父会话模型）"，子代理能力分层只剩 `thinking` 字段，换机部署后无法重现角色模型分配（用户在新电脑部署时发现）。
-2. **多人协作可移植性**：若将 `.opencode/`、`.pi/`、`.claude/` 等部署产物提交入库，产物 frontmatter 中的 `model:` 会被应用到所有协作机器；不提供该模型/provider 的机器运行即错。[宿主模型外置能力调查](../../research/2026-09-20-host-model-portability.md)证实各宿主"定义文件外置模型"通道强度差异大（pi 可覆盖 frontmatter、opencode 仅在 frontmatter 省略时生效、claude 无 per-role 外置），外置路线不可统一。
+2. **多人协作可移植性**：若将 `.opencode/`、`.pi/`、`.claude/` 等部署产物提交入库，产物 frontmatter 中的 `model:` 会被应用到所有协作机器；不提供该模型/provider 的机器运行即错。[宿主模型外置能力调查](../../../../research/2026-09-20-host-model-portability.md)证实各宿主"定义文件外置模型"通道强度差异大（pi 可覆盖 frontmatter、opencode 仅在 frontmatter 省略时生效、claude 无 per-role 外置），外置路线不可统一。
 3. **本仓库现状已分化**：`.gitignore` 已忽略 `.agents`、`.opencode`，但 `.claude/agents/`、`.codex/agents/`、`.pi/agents/`、`.pi/extensions/flowforge.ts` 仍被 git 跟踪；`.flowforge/config.yaml` 未被跟踪但也未被忽略。
 4. **附带 bug**：preserve-merge 对 pi 宿主虚假承诺——手编 `.pi/agents/<name>.md` 加 `model:` 后重新部署，stderr 打印 preserved 提示，但 `CompilePiWithOptions` 忽略 `FallbackModel`，值实际被丢弃（agent-model-preservation 的 preserve-merge 循环宿主无关，未按宿主门控；见 `../agent-model-preservation/design.md`）。
 

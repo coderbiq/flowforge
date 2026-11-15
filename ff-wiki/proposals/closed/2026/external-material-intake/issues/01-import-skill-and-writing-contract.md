@@ -47,7 +47,7 @@ Implement [external-material intake](../design.md#external-material-intake-desig
 
 ## Completion evidence
 
-- Added the deployed [Import Skill](../../../../assets/skills/flowforge-import/SKILL.md), which classifies local material before handing it to the authority owner and records target language without converting sources into authority.
-- Added the shared [source-intake and semantic-rewrite contract](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#source-intake-and-semantic-rewrite); the [mixed-source walk-through](../scenario-fixtures/mixed-source-import.example.md) exercises all five classifications in Chinese without copied source text or ticket creation.
+- Added the deployed [Import Skill](../../../../../../assets/skills/flowforge-import/SKILL.md), which classifies local material before handing it to the authority owner and records target language without converting sources into authority.
+- Added the shared [source-intake and semantic-rewrite contract](../../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#source-intake-and-semantic-rewrite); the [mixed-source walk-through](../scenario-fixtures/mixed-source-import.example.md) exercises all five classifications in Chinese without copied source text or ticket creation.
 - Added package coverage for the new contract pointers; `go test ./internal/command/...`, `GOPROXY=https://goproxy.cn,direct go test ./internal/...`, `flowforge check --dir docs/proposals/external-material-intake --strict`, `flowforge frontier --dir docs/proposals/external-material-intake --strict`, and `git diff --check` passed.
 - Dual-axis review: Standards found no violations or smell concerns. Specification review found missing scenario proof and ambiguous target-language hand-off; both were corrected by the walk-through and explicit completion contract.

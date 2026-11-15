@@ -14,7 +14,7 @@ flowforge:
 
 让 Plan 以实施总成本组织工作：先连续完成一个完整逻辑，再集中验证与独立审查，减少碎片化验收和实施者、验证者、主会话之间的往返。避免重复运行只是次要收益；每个检查即使只执行一次，过密的关口仍可能让交付变慢。需求、设计、Plan、Refine 的职责保留。
 
-用户在本 proposal 暂停后明确了上述本意，并授权按[成因研究](../../research/2026-11-05-plan-verification-handoff-causal-analysis.md)调整 proposal、重新规划，必要时回滚。来源分类见[来源归类](source-notes.md)。01已采用组末验证仍出现返工，故不能把问题仅归于票数、重复测试或模型推理强度。复盘超时受电脑休眠影响，不作效率依据。
+用户在本 proposal 暂停后明确了上述本意，并授权按[成因研究](../../../../research/2026-11-05-plan-verification-handoff-causal-analysis.md)调整 proposal、重新规划，必要时回滚。来源分类见[来源归类](source-notes.md)。01已采用组末验证仍出现返工，故不能把问题仅归于票数、重复测试或模型推理强度。复盘超时受电脑休眠影响，不作效率依据。
 
 <a id="reliability"></a>
 ## R1：可靠性边界不变
@@ -105,4 +105,4 @@ R10语义与revision 2保持一致：主会话向实际Plan/Refine会话实例�
 <a id="standards-sources"></a>
 ## 适用规范
 
-按[规范提取指南](../../agents/standards.md)核实，本范围适用[项目边界](../../../AGENTS.md#boundaries)、[执行单元政策](../../../AGENTS.md#execution-unit-policy)、[工件信息价值](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)及[审查反猜测](../../../assets/skills/flowforge-review/references/review-protocol.md#no-speculation)。本轮只修正文职责和默认行为，不改变Schema/CLI、不削弱测试保护。
+按[规范提取指南](../../../../agents/standards.md)核实，本范围适用[项目边界](../../../../../AGENTS.md#boundaries)、[执行单元政策](../../../../../AGENTS.md#execution-unit-policy)、[工件信息价值](../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)及[审查反猜测](../../../../../assets/skills/flowforge-review/references/review-protocol.md#no-speculation)。本轮只修正文职责和默认行为，不改变Schema/CLI、不削弱测试保护。

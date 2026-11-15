@@ -107,8 +107,30 @@ func runProposalClose(cmd *cobra.Command, slug string) error {
 	if err != nil {
 		return err
 	}
+	// The moved proposal's own outbound ../ links now sit two levels deeper
+	// (closed/<year>/ adds two path segments).
+	outbound, err := RewriteOutboundLinks(yearDir, slug, +2)
+	if err != nil {
+		return err
+	}
+	// The global pass skips the moved directory; links inside it that point
+	// at OTHER proposals still carry live-path references from before any
+	// sibling archived. Re-target any that now point at already-archived
+	// proposals under closed/<year>/: only exact live-path matches change.
+	var siblingFixed int
+	yearEntries, _ := os.ReadDir(yearDir)
+	for _, ye := range yearEntries {
+		if !ye.IsDir() || ye.Name() == slug {
+			continue
+		}
+		n, err := RewriteReferencesInDir(target, "proposals/closed/"+fmt.Sprintf("%d", year)+"/"+slug, "proposals/"+ye.Name(), "proposals/closed/"+fmt.Sprintf("%d", year)+"/"+ye.Name())
+		if err != nil {
+			return err
+		}
+		siblingFixed += n
+	}
 
-	cmd.Printf("Closed %s → %s (tickets: all terminal; links rewritten in %d file(s))\n", liveDir, target, rewritten)
+	cmd.Printf("Closed %s → %s (tickets: all terminal; links rewritten in %d file(s), outbound links fixed in %d file(s), sibling links fixed in %d file(s))\n", liveDir, target, rewritten, outbound, siblingFixed)
 	return nil
 }
 
@@ -156,8 +178,13 @@ func runProposalReopen(cmd *cobra.Command, slug string) error {
 	if err != nil {
 		return err
 	}
+	// Moving back up two levels: strip ../ from outbound links.
+	outbound, err := RewriteOutboundLinks(proposalsRoot, slug, -2)
+	if err != nil {
+		return err
+	}
 
-	cmd.Printf("Reopened %s → %s (links rewritten in %d file(s))\n", source, liveDir, rewritten)
+	cmd.Printf("Reopened %s → %s (links rewritten in %d file(s), outbound links fixed in %d file(s))\n", source, liveDir, rewritten, outbound)
 	return nil
 }
 

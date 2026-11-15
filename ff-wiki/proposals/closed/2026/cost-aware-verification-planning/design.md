@@ -23,7 +23,7 @@ flowforge:
 
 未采用：只保留旧的可选schedule和证据复用，它仍未指导Plan为什么/何时拆票；也未采用多票先实现、最后统一改状态的批处理层，它会改变关闭/依赖语义并制造新的中间状态。先利用现有一票多Change表达完整逻辑，真正独立交付/风险/上下文容量才拆票。
 
-[成因研究P1–P7](../../research/2026-11-05-plan-verification-handoff-causal-analysis.md)是来源证据，不直接成为执行合同。产品化的边界和行为以本文件为准；模型过度推理尚未被独立证实，本轮不调thinking。
+[成因研究P1–P7](../../../../research/2026-11-05-plan-verification-handoff-causal-analysis.md)是来源证据，不直接成为执行合同。产品化的边界和行为以本文件为准；模型过度推理尚未被独立证实，本轮不调thinking。
 
 <a id="owners"></a>
 ## 责任与调用接口
@@ -128,13 +128,13 @@ B1的过程成本以重规划前规则快照对同一固定输入静态重建的
 <a id="standards"></a>
 ## Standards clauses
 
-- must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../AGENTS.md#核心设计原则) [Constraints]
-- must not 修改Issue Schema头规范、CLI签名或现有诊断算法 — [项目边界](../../../AGENTS.md#boundaries)、[R8](requirements.md#compatibility) [Constraints]
-- must 保留测试作者/实施者分离、独立Round0/双轴和真实缺陷阻塞 — [R1](requirements.md#reliability)、[执行单元政策](../../../AGENTS.md#execution-unit-policy) [Constraints]
+- must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../../../AGENTS.md#核心设计原则) [Constraints]
+- must not 修改Issue Schema头规范、CLI签名或现有诊断算法 — [项目边界](../../../../../AGENTS.md#boundaries)、[R8](requirements.md#compatibility) [Constraints]
+- must 保留测试作者/实施者分离、独立Round0/双轴和真实缺陷阻塞 — [R1](requirements.md#reliability)、[执行单元政策](../../../../../AGENTS.md#execution-unit-policy) [Constraints]
 - must 保留失败原文与证据归属；历史通过不当新实跑，结构通过不当行为通过 — [R6](requirements.md#evidence) [Constraints]
 - must 让只读子代理仅返回发现，由主会话承担裁决及工件写回；短机械记录不另派角色 — [R7](requirements.md#review) [Constraints]
-- must 不在assets放不部署的fixture；经源、嵌入、隔离部署核对后再发布 — [项目边界](../../../AGENTS.md#boundaries)、[Makefile](../../../Makefile) [Constraints]
-- must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value) [Conventions]
+- must 不在assets放不部署的fixture；经源、嵌入、隔离部署核对后再发布 — [项目边界](../../../../../AGENTS.md#boundaries)、[Makefile](../../../../../Makefile) [Constraints]
+- must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value) [Conventions]
 
 <a id="coverage"></a>
 ## 规划交接

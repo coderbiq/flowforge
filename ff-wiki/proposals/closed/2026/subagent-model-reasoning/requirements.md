@@ -19,7 +19,7 @@ flowforge:
 
 来源分类：终端输出是问题线索；[Codex 官方文档](https://learn.chatgpt.com/docs/agent-configuration/subagents#custom-agent-file-schema)是原生能力事实；用户此次请求是需求依据。官方文档允许自定义 agent 同时设置 `model` 和 `model_reasoning_effort`。当前代码明确丢弃 Codex 的 CompileOptions，并拒绝 `models_by_host.codex`（`internal/command/agents.go:178,378`）；Codex/pi 仅按 profile 固定输出 high/medium（`internal/subagent/model_profile.go:25,39`）。
 
-[旧宿主调查](../../research/2026-09-20-host-model-portability.md#四codex无-per-agent-model-概念天然可移植)的 Codex 结论已过时。本提案替代[部署本地化需求](../closed/2026/deploy-artifact-localization/requirements.md#范围与约束)中“Codex 无 model 概念”及 [ADR 0002](../../adr/0002-deploy-artifact-localization-and-model-chain.md#决策)中 Codex 配置拒绝规则；其余每机器部署与优先级约定沿用。旧文档作为历史证据保留，实施时更新 ADR 的现行描述。
+[旧宿主调查](../../../../research/2026-09-20-host-model-portability.md#四codex无-per-agent-model-概念天然可移植)的 Codex 结论已过时。本提案替代[部署本地化需求](../../../closed/2026/deploy-artifact-localization/requirements.md#范围与约束)中“Codex 无 model 概念”及 [ADR 0002](../../../../adr/0002-deploy-artifact-localization-and-model-chain.md#决策)中 Codex 配置拒绝规则；其余每机器部署与优先级约定沿用。旧文档作为历史证据保留，实施时更新 ADR 的现行描述。
 
 ## 可观察结果
 
@@ -46,4 +46,4 @@ flowforge:
 
 不新增命令或 flag，不变更 Issue Schema，不生成宿主用户级配置，不同步跨机器模型，不增加在线模型探测。配置与产物继续是每机器文件。模型和 effort 的配置不更改角色 prompt、权限、工具、技能绑定或 test guard。
 
-适用 Standards：[AGENTS.md](../../../AGENTS.md#boundaries) 的本地 Markdown 写作、frontier/check 校验、变更后 internal 测试、CLI/Issue Schema 边界及 assets 仅放部署内容；[模型保留需求](../closed/2026/agent-model-preservation/requirements.md)的显式配置优先规则。具体 must 条款由设计转写。
+适用 Standards：[AGENTS.md](../../../../../AGENTS.md#boundaries) 的本地 Markdown 写作、frontier/check 校验、变更后 internal 测试、CLI/Issue Schema 边界及 assets 仅放部署内容；[模型保留需求](../../../closed/2026/agent-model-preservation/requirements.md)的显式配置优先规则。具体 must 条款由设计转写。

@@ -84,12 +84,12 @@ flowforge:
 
 ## Constraints
 
-- must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../../AGENTS.md#核心设计原则)
-- must not 修改Issue Schema头规范、CLI签名或现有诊断算法 — [项目边界](../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility)
-- must 保留测试作者/实施者分离、独立Round0/双轴和真实缺陷阻塞 — [R1](../requirements.md#reliability)、[执行单元政策](../../../../AGENTS.md#execution-unit-policy)
+- must 直接用文件工具维护proposal，CLI只承担图与诊断计算 — [项目原则](../../../../../../AGENTS.md#核心设计原则)
+- must not 修改Issue Schema头规范、CLI签名或现有诊断算法 — [项目边界](../../../../../../AGENTS.md#boundaries)、[R8](../requirements.md#compatibility)
+- must 保留测试作者/实施者分离、独立Round0/双轴和真实缺陷阻塞 — [R1](../requirements.md#reliability)、[执行单元政策](../../../../../../AGENTS.md#execution-unit-policy)
 - must 保留失败原文与证据归属；历史通过不当新实跑，结构通过不当行为通过 — [R6](../requirements.md#evidence)
 - must 让只读子代理仅返回发现，由主会话承担裁决及工件写回；短机械记录不另派角色 — [R7](../requirements.md#review)
-- must 不在assets放不部署的fixture；经源、嵌入、隔离部署核对后再发布 — [项目边界](../../../../AGENTS.md#boundaries)、[Makefile](../../../../Makefile)
+- must 不在assets放不部署的fixture；经源、嵌入、隔离部署核对后再发布 — [项目边界](../../../../../../AGENTS.md#boundaries)、[Makefile](../../../../../../Makefile)
 - Write set: assets/skills/_shared/ARTIFACT-CONTRACT.md; assets/skills/flowforge-solution-design/SKILL.md; assets/skills/flowforge-plan/SKILL.md; assets/skills/flowforge-refine-ticket/SKILL.md; assets/skills/flowforge-implement/SKILL.md; assets/skills/flowforge-review/SKILL.md; assets/subagents/flowforge-planner.md; assets/subagents/flowforge-implementer.md; assets/subagents/flowforge-reviewer.md; assets/subagents/flowforge-reviewer-lite.md; assets/AGENTS.md; assets/agents/issue-tracker.md; internal/command/cost_aware_assets_test.go与internal/command/assets_deploy_test.go（仅Change1合法作者，实施者只读）；internal/command/assets/**、bin/flowforge（仅make dev生成）；本票；ff-wiki/proposals/cost-aware-verification-planning/evidence/05-implementation.md。
 - 不修改权限profile、模型配置、PI保护、tracker算法或历史票结果；修改默认文案不允许删除安全断言获得绿灯。
 
@@ -147,7 +147,7 @@ G0仅合法作者完成Change1并Refine，预设测试实际基线结果和写�
 
 ### Conventions
 
-- must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
+- must 将共同语义保留在单一权威处，其他入口精确引用，删除无新信息的复述 — [信息价值](../../../../../../assets/skills/_shared/ARTIFACT-CONTRACT.md#information-value)
 - 共同语义保留shared已有锚点，Plan/Refine/Implement/Review和tracker精确链接；`TestPackagedSkillPointersResolve`会在G1完整Go中验证相对链接。角色frontmatter的permission/model_profile/default_skill不因正文职责调整而修改。
 - 源测试从`internal/command`包工作目录用`../../assets`读取；隔离部署使用`t.TempDir()`。Markdown资产测试仅钉住条款/同步，完整解释由独立审查确认；模板/否定句即使含关键词也不证明遵从。
 - Changes2–5按一组连续实施，不按文件分组；Implementation note只补本轮结果/例外并精确引用既有核实。保持本票open，主会话独立裁决/写回/关闭；不让轻量实施者自行选测或裁决证据复用。
