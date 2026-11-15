@@ -55,7 +55,7 @@
 - must 在变更后运行 `go test ./internal/...` — [AGENTS.md](../../../AGENTS.md#boundaries)
 - must not 引入 CLI 长文本接口、修改本次未授权的 Issue Schema 或 CLI 调用签名 — [AGENTS.md](../../../AGENTS.md#boundaries)
 - must not 在 assets 放置不部署的内容 — [AGENTS.md](../../../AGENTS.md#boundaries)
-- must 让显式配置优先于本地保留字段 — [模型保留需求](../agent-model-preservation/requirements.md)
+- must 让显式配置优先于本地保留字段 — [模型保留需求](../closed/2026/agent-model-preservation/requirements.md)
 
 ## Done and verify
 

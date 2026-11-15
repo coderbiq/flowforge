@@ -1,6 +1,6 @@
 # ADR 0002: 部署产物本地化与六级模型优先级链
 
-日期：2026-09-25 · 状态：已接受 · 来源提案：[deploy-artifact-localization](../proposals/deploy-artifact-localization/design.md)；2026-09-30 局部更新依据：[subagent-model-reasoning revision 3](../proposals/subagent-model-reasoning/design.md)，替代原 Codex 排除规则并扩展独立 effort 配置。
+日期：2026-09-25 · 状态：已接受 · 来源提案：[deploy-artifact-localization](../proposals/closed/2026/deploy-artifact-localization/design.md)；2026-09-30 局部更新依据：[subagent-model-reasoning revision 3](../proposals/closed/2026/subagent-model-reasoning/design.md)，替代原 Codex 排除规则并扩展独立 effort 配置。
 
 ## 背景
 
@@ -31,7 +31,7 @@
 
 ## 验证
 
-以下保留 2026-09-25 原提案完工证据；2026-09-30 扩展的验收要求与证据由[新提案执行票](../proposals/subagent-model-reasoning/issues/01-model-reasoning-config.md#done-and-verify)承载。
+以下保留 2026-09-25 原提案完工证据；2026-09-30 扩展的验收要求与证据由[新提案执行票](../proposals/closed/2026/subagent-model-reasoning/issues/01-model-reasoning-config.md#done-and-verify)承载。
 
 票 01-03 证据四元组（六级链/校验矩阵/幂等 gitignore/索引不变/逐字节回归）+ GIIS 实弹（v5.11.0 deploy：investigator / reviewer-lite / implementer 的 pi 产物均带 `model: cpa/deepseek-v4.1-flash`）。
 

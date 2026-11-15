@@ -65,6 +65,7 @@ const (
 	DiagnosticStandardsMarkerMissing      DiagnosticCode = "standards-marker-missing"
 	DiagnosticStandardsPending            DiagnosticCode = "standards-pending"
 	DiagnosticStandardsClausesMissing     DiagnosticCode = "standards-clauses-missing"
+	DiagnosticRoadmapDeadLink             DiagnosticCode = "roadmap-dead-link"
 )
 
 type Diagnostic struct {
@@ -249,6 +250,7 @@ func DiscoverArtifactsWithConfig(root string, opts Options) (*Catalog, error) {
 	sort.Slice(catalog.Artifacts, func(i, j int) bool { return catalog.Artifacts[i].Path < catalog.Artifacts[j].Path })
 	catalog.Diagnostics = append(catalog.Diagnostics, discoverStageGateDiagnostics(catalog, opts)...)
 	catalog.buildSemanticDiagnostics(standardsExempt)
+	catalog.Diagnostics = append(catalog.Diagnostics, discoverRoadmapDeadLinkDiagnostics(root)...)
 	catalog.validateRepairReferences()
 	return catalog, nil
 }

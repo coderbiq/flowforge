@@ -88,7 +88,7 @@ flowforge:
 - must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../AGENTS.md) boundaries，[Conventions]）。
 - must 不改 CLI 命令签名与 Issue Schema 头规范；不改编译器行为（源：[AGENTS.md](../../../AGENTS.md) Ask first 边界 + 本设计 d-roster/d-pi-boost，[Constraints]）。
 - must `assets/` 只放部署内容（角色资产与 AGENTS 模板属部署内容）（源：[AGENTS.md](../../../AGENTS.md) 🚫 Never，[Constraints]）。
-- must flash 档角色产出必须带可验证引用（源：[flash-worksurface-expansion 需求](../flash-worksurface-expansion/requirements.md#flash-worksurface-expansion-requirements) 约束，[Conventions]）。
+- must flash 档角色产出必须带可验证引用（源：[flash-worksurface-expansion 需求](../closed/2026/flash-worksurface-expansion/requirements.md#flash-worksurface-expansion-requirements) 约束，[Conventions]）。
 - must 通用角色 description 按能力书写、不含流程术语（源：[本需求](requirements.md#generic-role-orchestration-requirements) 验收 1，[Conventions]）。
 
 ## 兼容与迁移

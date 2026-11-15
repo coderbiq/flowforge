@@ -52,6 +52,7 @@ FlowForge 不设中心 router。Agent 读取扁平的 skill `description` 列表
 - `flowforge-prototype`：用一次性可运行探针回答一个设计问题。
 - `flowforge-tdd`：在 Implement 内部执行 red-green-refactor。
 - `flowforge-wayfinder`：工作大到一个会话无法看清时，维护决策 frontier map；已决问题仍返回 Align/Design。
+- `flowforge-roadmap`：proposal 之上的意图层——方向文件 + 无限层级节点树记录粗粒度长期规划，节点成熟后孵化为 proposal（hatch 交接 align），`status` 树视图向上汇聚；不做需求澄清/设计/切票，不写节点状态。
 - `flowforge-diagnose`：对 failing、flaky、slow 或 regression 做假设驱动诊断。
 - `flowforge-improve-architecture`：扫描代码库的 deepening opportunity 并推进选中重构。
 - `flowforge-handoff`：跨会话传递尚未进入权威工件的临时上下文；不是长期设计来源。

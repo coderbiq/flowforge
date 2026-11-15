@@ -24,37 +24,7 @@ flowforge:
 
 <a id="deploy-artifact-localization-design"></a># 部署产物本地化与模型注入方案
 
-依据：[部署产物本地化与模型注入需求](requirements.md#deploy-artifact-localization-requirements)。用户已裁决路线：「模型注入产物 + 产物本地化」（否决宿主用户级外置通道与项目级 `.pi/settings.json` 生成方案）。事实基础：[宿主模型外置能力调查](../../research/2026-09-20-host-model-portability.md）。2026-09-25：四项口味题（models_by_host 双键、层间优先级链、无 --untrack flag、格式级 fail-fast 校验）经用户逐条确认，设计定稿。
-
-## <a id="d-model-channels"></a>d-model-channels：per-host 模型覆盖层与优先级链
-
-**配置形状**：`AgentsConfig` 新增 `ModelHostOverrides map[string]map[string]string`（`yaml:"models_by_host,omitempty"`）。外层键 = 宿主 key（`opencode`/`claude`/`pi`；`codex` 是配置错误，见 d-config-validation）；内层键 = agent 名**或** profile 键（`tool-capable`/`tool-capable-read-only`），值 = 模型字符串：
-
-```yaml
-agents:
-  models_by_host:
-    pi:
-      flowforge-investigator: cpa/deepseek-v4.1-flash   # name 键
-      tool-capable-read-only: cpa/deepseek-v4.1-flash   # profile 键
-    claude:
-      flowforge-reviewer: opus
-```
-
-**优先级链**（需求"per-host 覆盖 > `agents.models`/`models_by_name` > 未配置"的机械展开；同层内 name 键 > profile 键，与既有全局层语义一致）：
-
-1. `models_by_host.<host>[<agent-name>]`
-2. `models_by_host.<host>[<profile-key>]`
-3. `models_by_name.<agent-name>`（既有）
-4. `models.<profile-key>`（既有）
-5. preserve-merge 回填（既有部署文件 `model:`，仅 model 承载宿主）
-6. 宿主默认（opencode/pi 省略字段；claude 输出 profile 别名档）
-
-**替代方案（否决）**：
-- *全局层 name 键跨层压过 per-host profile 键*（按"name 更具体"排序）——否决：需求明文把整个 per-host 层排在 `models`/`models_by_name` 之上；跨层混排使优先级不可局部推理，配置审查需全局计算。
-- *扁平 host 前缀键*（`models: {"pi/tool-capable": ...}`）——否决：模型值本身含 `/`（`provider/model`），键再引入 `/` 语义产生解析歧义；嵌套 map 无歧义且 yaml 表达自然。
-- *内层只收 name 键*——否决：全局层已有 profile 批量档位需求（验收 2 的"各自宿主的值"常按档位批量配），per-host 层镜像双键成本极低。
-
-**解析缝**：`resolveCompileOptions(cfg, def)` 增加宿主参数（`resolveCompileOptions(cfg, def, hostKey)`），model 解析移入其中按上表取值；`deploySubagents`（agents.go 写文件循环）与 `computeSubagentStatus`（agents_status.go 期望编译循环）都在 `for _, h := range hosts` 层传 `h.key`，deploy/status 同一解析路径（既有约定 `TestStatusUsesSameCompileOptions` 的延伸）。缝在 command 包内部，CLI 接口签名不变。
+依据：[部署产物本地化与模型注入需求](requirements.md#deploy-artifact-localization-requirements)。用户已裁决路线：「模型注入产物 + 产物本地化」（否决宿主用户级外置通道与项目级 `.pi/settings.json` 生成方案）。事实基础：[宿主模型外置能力调查](../../research/2026-09-20-host-model-portability.md）。2026-09-25：四项口味题（models_by_host)` 增加宿主参数（`resolveCompileOptions(cfg, def, hostKey)`），model 解析移入其中按上表取值；`deploySubagents`（agents.go 写文件循环）与 `computeSubagentStatus`（agents_status.go 期望编译循环）都在 `for _, h := range hosts` 层传 `h.key`，deploy/status 同一解析路径（既有约定 `TestStatusUsesSameCompileOptions` 的延伸）。缝在 command 包内部，CLI 接口签名不变。
 
 ## <a id="d-config-validation"></a>d-config-validation：模型值格式级校验（fail-fast）
 
@@ -96,7 +66,7 @@ agents:
 - must 变更后运行 `go test ./internal/...`（源：[AGENTS.md](../../../AGENTS.md) boundaries，[Conventions]）。
 - must 不改 CLI 命令签名与 Issue Schema 头规范；`resolveCompileOptions` 加宿主参数属包内缝（源：[AGENTS.md](../../../AGENTS.md) Ask first 边界 + requirements 范围，[Constraints]）。
 - must `assets/` 只放部署内容（AGENTS 模板 gitignore 约定属部署内容）（源：[AGENTS.md](../../../AGENTS.md) 🚫 Never，[Constraints]）。
-- must config 显式配置总是压过 preserve-merge 回填值（源：[agent-model-preservation 需求](../agent-model-preservation/requirements.md#agent-model-preservation-requirements) 显式通道优先级，[Constraints]）。
+- must config 显式配置总是压过 preserve-merge 回填值（源：[agent-model-preservation 需求](../closed/2026/agent-model-preservation/requirements.md#agent-model-preservation-requirements) 显式通道优先级，[Constraints]）。
 
 ## 兼容与迁移
 

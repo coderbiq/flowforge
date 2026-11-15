@@ -19,8 +19,8 @@
 
 1. 原规划票提交17:37到用户22:36:20要求暂停，墙上跨度299.33分钟；并非模型活跃时长。授权入口、真实缺陷修复、审查和记录均在这段工作中，不能都归为重复测试成本。
 2. 01首次实施child约10.7分钟；包含两次实施、两次Round 0和两次记录child的工作流约60.3分钟。两次scribe区间合计约21分钟，包含读材料、回填、工具及等待，不代表删掉代理即可等额省下21分钟。[原报告的阶段记录](2026-11-05-cost-aware-proposal-self-audit.md)
-3. **01是反对“只是票切太碎”的直接反证。** 它已把七处规则放进同一张票，并明确先完成相互关联的源规则、再组末构建验证。[01票:131–133](../proposals/cost-aware-verification-planning/issues/01-rule-package.md)
-4. 尽管如此，01仍因A01–A04真实语义遗漏/错误返工，A05–A06则因执行记录失真或漏记继续修正；04还出现无新源变化依据的额外Go检查。不能把所有返工说成多余审查，也不能让“确有缺陷”替额外协调成本背书。[01票:270–340](../proposals/cost-aware-verification-planning/issues/01-rule-package.md)、[04实施记录](../proposals/cost-aware-verification-planning/evidence/04-implementation.md)
+3. **01是反对“只是票切太碎”的直接反证。** 它已把七处规则放进同一张票，并明确先完成相互关联的源规则、再组末构建验证。[01票:131–133](../proposals/closed/2026/cost-aware-verification-planning/issues/01-rule-package.md)
+4. 尽管如此，01仍因A01–A04真实语义遗漏/错误返工，A05–A06则因执行记录失真或漏记继续修正；04还出现无新源变化依据的额外Go检查。不能把所有返工说成多余审查，也不能让“确有缺陷”替额外协调成本背书。[01票:270–340](../proposals/closed/2026/cost-aware-verification-planning/issues/01-rule-package.md)、[04实施记录](../proposals/closed/2026/cost-aware-verification-planning/evidence/04-implementation.md)
 5. 00/03修的是后来加入的合法测试作者入口和真实权限边界，不是原七处规则的纯文档工作。它们解释了一部分范围和时长扩大，但不证明原规则方案的净收益。
 
 因此，本样本直接支持的是：**分组实现虽已采用，但每轮验证、修复和收口仍有高固定成本，且主会话额外拆分了记录工作。** 它不单独证明所有既有Plan都过度切票，也没有证明新规则部署后一定更快或更慢。

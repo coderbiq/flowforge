@@ -628,6 +628,7 @@ func assertRequiredArtifactContractPointers(t *testing.T, root string) {
 		"flowforge-to-spec":         {"roles-and-authority", "hand-offs", "information-value"},
 		"flowforge-plan":            {"packaging", "hand-offs", "information-value"},
 		"flowforge-wayfinder":       {"packaging", "hand-offs"},
+		"flowforge-roadmap":         {"packaging"},
 		"flowforge-implement":       {"hand-offs", "diagnostics"},
 		"flowforge-tdd":             {"hand-offs", "diagnostics"},
 		"flowforge-review":          {"roles-and-authority", "information-value"},

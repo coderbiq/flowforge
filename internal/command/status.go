@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -31,6 +32,10 @@ func newStatusCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("discovering issues: %w", err)
 			}
+
+			// Roadmap direction tree view (when <docs_dir>/roadmap exists)
+			// renders before the flat feature view, even with zero issues.
+			renderRoadmapAndReconcile(cmd, filepath.Dir(dir), dir, issues)
 
 			if len(issues) == 0 {
 				cmd.Println("No features or issues found in", dir)

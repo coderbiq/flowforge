@@ -1,6 +1,6 @@
 # ADR 0001: 混合通用角色模型（流程角色与能力角色共存）
 
-日期：2026-09-25 · 状态：已接受 · 来源提案：[generic-role-orchestration](../proposals/generic-role-orchestration/design.md)
+日期：2026-09-25 · 状态：已接受 · 来源提案：[generic-role-orchestration](../proposals/closed/2026/generic-role-orchestration/design.md)
 
 ## 背景
 

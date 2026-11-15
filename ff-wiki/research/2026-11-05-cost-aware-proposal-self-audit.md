@@ -46,20 +46,20 @@
 
 ### 1. 设计缺陷：优化目标与协调成本不在同一账本
 
-R3明确要求对“重复冻结及额外角色交接”给出成本理由，并禁止为成本规划制造大量模板和重复文档（[requirements.md](../proposals/cost-aware-verification-planning/requirements.md#cost)）。但设计把每个Fix都设置成“Review提出复验→独立Round0按实际差分确认→双轴→关闭”，又要求固定版本、环境、覆盖、复用者和新四元组（[design.md](../proposals/cost-aware-verification-planning/design.md#fix-contract)、[同文件证据生命周期](../proposals/cost-aware-verification-planning/design.md#evidence)）。没有给出哪些修改不值得完整再协调的边界。
+R3明确要求对“重复冻结及额外角色交接”给出成本理由，并禁止为成本规划制造大量模板和重复文档（[requirements.md](../proposals/closed/2026/cost-aware-verification-planning/requirements.md#cost)）。但设计把每个Fix都设置成“Review提出复验→独立Round0按实际差分确认→双轴→关闭”，又要求固定版本、环境、覆盖、复用者和新四元组（[design.md](../proposals/closed/2026/cost-aware-verification-planning/design.md#fix-contract)、[同文件证据生命周期](../proposals/closed/2026/cost-aware-verification-planning/design.md#evidence)）。没有给出哪些修改不值得完整再协调的边界。
 
-这正是“以更多协调避免少量运行”的结构风险。R1保留独立审查，却没有要求把每项主会话记录都另开子会话（[requirements.md](../proposals/cost-aware-verification-planning/requirements.md#reliability)）；现有项目规范还明确“delegation has overhead”，默认直接做（[AGENTS.md:109–112](../../../AGENTS.md)）。所以不能把机械记录子会话和主会话的过度协调说成可靠性必然代价。
+这正是“以更多协调避免少量运行”的结构风险。R1保留独立审查，却没有要求把每项主会话记录都另开子会话（[requirements.md](../proposals/closed/2026/cost-aware-verification-planning/requirements.md#reliability)）；现有项目规范还明确“delegation has overhead”，默认直接做（[AGENTS.md:109–112](../../../AGENTS.md)）。所以不能把机械记录子会话和主会话的过度协调说成可靠性必然代价。
 
 ### 2. 执行失误：真实缺陷返工 + 无必要的重复操作
 
-- 授权入口由需求外新增为前置R10；它修正真实合法作者阻塞，但也引入path、UTC、grant-zone三个partial及后续SPEC-01（[requirements.md](../proposals/cost-aware-verification-planning/requirements.md#test-authority)、[03票](../proposals/cost-aware-verification-planning/issues/03-test-authority-boundary-repair.md)）。这是额外范围，不能计入原七面规则的“必要实现时间”。
-- A01–A03是实际规则遗漏：Fix verification未接入Implement、初次发布缺正向门禁、部署指针错误；A04把阶段门禁扩大到所有消费者，阻断应产生证明的票。它们证明独立审查有价值，也证明长合同在多个消费者之间产生了协调错误（[01票](../proposals/cost-aware-verification-planning/issues/01-rule-package.md)、[04票](../proposals/cost-aware-verification-planning/issues/04-stage-proof-scope-and-execution-record.md)）。
+- 授权入口由需求外新增为前置R10；它修正真实合法作者阻塞，但也引入path、UTC、grant-zone三个partial及后续SPEC-01（[requirements.md](../proposals/closed/2026/cost-aware-verification-planning/requirements.md#test-authority)、[03票](../proposals/closed/2026/cost-aware-verification-planning/issues/03-test-authority-boundary-repair.md)）。这是额外范围，不能计入原七面规则的“必要实现时间”。
+- A01–A03是实际规则遗漏：Fix verification未接入Implement、初次发布缺正向门禁、部署指针错误；A04把阶段门禁扩大到所有消费者，阻断应产生证明的票。它们证明独立审查有价值，也证明长合同在多个消费者之间产生了协调错误（[01票](../proposals/closed/2026/cost-aware-verification-planning/issues/01-rule-package.md)、[04票](../proposals/closed/2026/cost-aware-verification-planning/issues/04-stage-proof-scope-and-execution-record.md)）。
 - A05–A06属于记录与流程：漏记首批运行、事后“执行前”、错误工具声明、漏计cached diff。它们不是测试失败。A06后仍发生主会话漏计，见最终独立报告 `~/.pi/.../outputs/32d706cb…/rule-package-final-review.audit-records.md` 与 `fe981fc3…/rule-package-close-review.audit-count-correction.md`。
 - 04实施在源已完成后重复完整Go一次、多次check；主会话又没有及时按用户后来的降编排要求行动。重复计数不等于大量重复测试，必须分别观察。
 
 ### 3. 验收设计有范围扩张
 
-02尚未完成就要求S1–S9、多个变体、真实轨迹、独立裁决，以及source→embedded→isolated→project部署（[02票](../proposals/cost-aware-verification-planning/issues/02-controlled-acceptance-and-deploy.md)）。对修改角色解释的规则，真实行为抽样是必要的；但不能在只有01自证、没有生产净收益对照时，就把矩阵继续做大。02的准备又开启一个新Plan作者、单文件授权和预设测试，重复前置协调。暂停时只有未跟踪的fixtures/inputs，不能把作者fixture通过当模型行为通过。
+02尚未完成就要求S1–S9、多个变体、真实轨迹、独立裁决，以及source→embedded→isolated→project部署（[02票](../proposals/closed/2026/cost-aware-verification-planning/issues/02-controlled-acceptance-and-deploy.md)）。对修改角色解释的规则，真实行为抽样是必要的；但不能在只有01自证、没有生产净收益对照时，就把矩阵继续做大。02的准备又开启一个新Plan作者、单文件授权和预设测试，重复前置协调。暂停时只有未跟踪的fixtures/inputs，不能把作者fixture通过当模型行为通过。
 
 ## 反证和不能下的结论
 
